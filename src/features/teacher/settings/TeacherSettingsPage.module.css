@@ -1,0 +1,5 @@
+.heading { margin: .45rem 0 .6rem; }
+.list { display: grid; gap: .65rem; margin: 1.2rem 0 0; }
+.list div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-top: 1px solid var(--color-border); }
+.list dt { color: var(--color-muted); font-weight: 800; }
+.list dd { margin: 0; font-weight: 900; }

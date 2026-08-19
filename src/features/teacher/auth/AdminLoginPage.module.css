@@ -1,0 +1,59 @@
+.page {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  overflow: hidden;
+  padding: 5rem 1.25rem 3rem;
+  color: var(--color-ink);
+  background:
+    radial-gradient(circle at 12% 15%, rgba(255, 217, 103, 0.2), transparent 18rem),
+    radial-gradient(circle at 88% 88%, rgba(95, 147, 244, 0.17), transparent 25rem),
+    var(--color-landing-bg);
+}
+
+.page::before,
+.page::after { position: fixed; content: ""; width: 12rem; height: 12rem; border: 1px solid rgba(40, 100, 220, 0.08); border-radius: 2.5rem; transform: rotate(18deg); pointer-events: none; }
+.page::before { top: -6rem; right: -4rem; }
+.page::after { bottom: -7rem; left: -4rem; transform: rotate(-12deg); }
+
+.backLink { position: absolute; top: 2rem; left: clamp(1.25rem, 4vw, 4rem); display: flex; align-items: center; gap: 0.55rem; color: #71859b; font-size: 0.8rem; font-weight: 700; text-decoration: none; transition: color 150ms ease; }
+.backLink span { font-size: 1.05rem; }
+.backLink:hover { color: var(--color-auth-primary); }
+
+.panel { position: relative; z-index: 1; width: min(28rem, 100%); padding: clamp(2rem, 4vw, 3rem); border: 1px solid var(--color-landing-border); border-radius: 1.75rem; background: var(--color-landing-surface); box-shadow: 0 30px 80px rgba(35, 63, 98, 0.13); text-align: center; backdrop-filter: blur(18px); }
+.panelBrandMark { width: 3.25rem; height: 3.25rem; margin: 0 auto 1.2rem; border-radius: 1rem; box-shadow: 0 10px 22px rgba(35, 63, 98, 0.15); }
+.eyebrow { margin: 0 0 0.6rem; color: var(--color-auth-primary); font-size: 0.67rem; font-weight: 900; letter-spacing: 0.2em; }
+.panel h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 2.35rem); letter-spacing: -0.05em; }
+.description { margin: 0.85rem 0 2rem; color: var(--color-ink-muted); font-size: 0.9rem; line-height: 1.65; }
+.form { display: grid; text-align: left; }
+.form label { margin-bottom: 0.55rem; color: var(--color-ink-soft); font-size: 0.8rem; font-weight: 850; }
+.passwordField { position: relative; }
+.passwordField input { width: 100%; min-height: 3.4rem; padding: 0 4.4rem 0 1rem; border: 1px solid var(--color-landing-border); border-radius: 0.9rem; outline: none; color: var(--color-ink); background: var(--color-landing-input-bg); transition: border-color 150ms ease, box-shadow 150ms ease; }
+.passwordField input::placeholder { color: #a8b4c1; }
+.passwordField input:focus { border-color: var(--color-landing-input-focus); box-shadow: 0 0 0 4px var(--color-landing-input-focus-ring); }
+.visibilityButton { position: absolute; top: 50%; right: 0.7rem; min-width: 3.1rem; padding: 0.42rem 0.55rem; transform: translateY(-50%); border: 0; border-radius: 0.55rem; color: #637a91; background: #edf2f8; font-size: 0.7rem; font-weight: 800; }
+.error { display: flex; align-items: flex-start; gap: 0.55rem; margin: 0.9rem 0 0; padding: 0.75rem 0.85rem; border-radius: 0.75rem; color: var(--color-error-text); background: var(--color-error-bg); font-size: 0.78rem; line-height: 1.45; }
+.error span { display: grid; flex: 0 0 auto; width: 1.1rem; height: 1.1rem; place-items: center; border-radius: 50%; color: var(--color-surface); background: var(--color-error-badge); font-size: 0.65rem; font-weight: 900; }
+.submitButton { display: flex; width: 100%; min-height: 3.45rem; align-items: center; justify-content: space-between; margin-top: 1.15rem; padding: 0 1rem 0 1.2rem; border: 0; border-radius: 0.95rem; color: var(--color-surface); background: var(--color-auth-primary); box-shadow: 0 12px 24px rgba(40, 100, 220, 0.22); font-weight: 850; transition: transform 150ms ease, background 150ms ease; }
+.submitButton:not(:disabled):hover { transform: translateY(-1px); background: var(--color-auth-primary-hover); }
+.submitButton span { display: grid; width: 1.9rem; height: 1.9rem; place-items: center; border-radius: 0.6rem; color: var(--color-auth-primary-text); background: var(--color-accent); }
+.submitButton:disabled { cursor: wait; }
+.securityNote { display: flex; align-items: center; gap: 0.75rem; margin-top: 1.5rem; padding: 0.9rem; border-radius: 0.9rem; background: #f1f6fc; text-align: left; }
+.securityNote > span { display: grid; flex: 0 0 auto; width: 1.65rem; height: 1.65rem; place-items: center; border-radius: 50%; color: var(--color-surface); background: var(--color-success); font-size: 0.75rem; font-weight: 900; }
+.securityNote p { display: grid; gap: 0.2rem; margin: 0; color: #8292a2; font-size: 0.68rem; line-height: 1.35; }
+.securityNote strong { color: #456078; font-size: 0.75rem; }
+.footer { position: absolute; bottom: 1.4rem; margin: 0; color: #a0adba; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.16em; }
+
+@media (max-width: 480px) {
+  .page { align-items: start; padding-top: 5.3rem; }
+  .backLink { top: 1.6rem; }
+  .panel { padding: 2rem 1.25rem; border-radius: 1.4rem; }
+  .footer { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backLink,
+  .passwordField input,
+  .submitButton { transition: none; }
+}

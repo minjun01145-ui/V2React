@@ -1,0 +1,36 @@
+{
+  "name": "jurye-react-classroom",
+  "private": true,
+  "version": "0.7.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && vite build",
+    "preview": "vite preview",
+    "test:engine": "node --experimental-strip-types tests/engine-smoke.ts",
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "check": "npm run typecheck && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:games && npm run test:routing && npm run test:auth",
+    "test": "npm run check",
+    "test:routing": "node --experimental-strip-types tests/teacher-route-smoke.ts",
+    "test:auth": "node --experimental-strip-types tests/auth-validation-smoke.ts",
+    "check:security": "node scripts/check-security.mjs",
+    "test:games": "node --experimental-strip-types tests/games/sentence-builder.test.ts"
+  },
+  "dependencies": {
+    "firebase": "^12.16.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^7.0.2",
+    "vite": "^7.0.0"
+  }
+}

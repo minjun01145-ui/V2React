@@ -1,0 +1,105 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
+    }
+
+    function isStudent() {
+      return signedIn()
+        && request.auth.token.role == "student"
+        && request.auth.token.studentNumber is string
+        && request.auth.token.displayName is string;
+    }
+
+    function activeRound(roomId, roundId) {
+      return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "playing"
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId;
+    }
+
+    match /admins/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /studentRoster/{studentNumber} {
+      allow read, write: if isAdmin();
+    }
+
+    match /studentProfiles/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /multiplayerSessions/{roomId} {
+      allow read: if isStudent() || isAdmin();
+      allow create, update, delete: if isAdmin();
+
+      match /players/{uid} {
+        allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
+        allow create: if isStudent()
+          && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
+          && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "waiting"
+          && request.auth.uid == uid
+          && request.resource.data.playerId == uid
+          && request.resource.data.studentNumber == request.auth.token.studentNumber
+          && request.resource.data.displayName == request.auth.token.displayName
+          && request.resource.data.state == "waiting"
+          && request.resource.data.keys().hasOnly([
+            "playerId", "studentNumber", "displayName", "state",
+            "joinedAt", "joinedAtMs", "lastSeenAt", "lastSeenAtMs"
+          ]);
+        allow update: if isStudent()
+          && request.auth.uid == uid
+          && resource.data.playerId == uid
+          && resource.data.studentNumber == request.auth.token.studentNumber
+          && resource.data.displayName == request.auth.token.displayName
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["lastSeenAt", "lastSeenAtMs"]);
+        allow delete: if isStudent() && request.auth.uid == uid;
+      }
+
+      match /rounds/{roundId} {
+        allow read, write: if isAdmin();
+
+        match /answers/{answerId} {
+          allow read: if isAdmin();
+          allow create: if isStudent()
+            && activeRound(roomId, roundId)
+            && request.resource.data.playerId == request.auth.uid
+            && request.resource.data.displayName == request.auth.token.displayName
+            && request.resource.data.attemptId == answerId
+            && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
+            && request.resource.data.keys().hasOnly([
+              "attemptId", "gameId", "playerId", "displayName", "questionId",
+              "prompt", "answer", "isCorrect", "scoreDelta", "totalScore",
+              "attemptCount", "createdAt", "createdAtMs"
+            ]);
+          allow update, delete: if false;
+        }
+
+        match /progress/{uid} {
+          allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
+          allow create, update: if isStudent()
+            && request.auth.uid == uid
+            && activeRound(roomId, roundId)
+            && request.resource.data.playerId == uid
+            && request.resource.data.displayName == request.auth.token.displayName
+            && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
+            && request.resource.data.keys().hasOnly([
+              "gameId", "playerId", "displayName", "currentIndex", "score",
+              "correctCount", "attemptCount", "completedQuestionIds", "lastResult",
+              "completedAtMs", "updatedAt", "updatedAtMs"
+            ]);
+          allow delete: if isAdmin();
+        }
+      }
+    }
+  }
+}

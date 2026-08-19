@@ -1,0 +1,63 @@
+:root {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-bg: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f9fafb;
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-border-strong: #d1d5db;
+
+  --color-primary: #4f46e5;
+  --color-primary-soft: #eef2ff;
+  --color-primary-text: #3730a3;
+  --color-primary-hover: #4338ca;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-success: #047857;
+  --color-success-soft: #ecfdf5;
+  --color-warning: #f59e0b;
+
+  /* Brand accent (used by landing pages and brand mark) */
+  --color-accent: #ffd967;
+  --color-accent-ink: #173a72;
+  --color-auth-primary: #2864dc;
+  --color-auth-primary-hover: #1e4fae;
+  --color-auth-primary-text: #1c4fae;
+  --color-ink: #17324d;
+  --color-ink-soft: #38526c;
+  --color-ink-muted: #73869a;
+
+  /* Login layout surfaces */
+  --color-landing-bg: #f5f8fc;
+  --color-landing-surface: rgba(255, 255, 255, 0.92);
+  --color-landing-border: #dbe3ec;
+  --color-landing-input-bg: #fbfcfe;
+  --color-landing-input-focus: #6090eb;
+  --color-landing-input-focus-ring: rgba(40, 100, 220, 0.11);
+
+  /* Hero panel (intro section of student login) */
+  --color-hero-bg-start: #173a72;
+  --color-hero-bg-mid: #1b4c91;
+  --color-hero-bg-end: #16396d;
+  --color-hero-text: #ffffff;
+  --color-hero-text-soft: rgba(255, 255, 255, 0.73);
+  --color-hero-text-faint: rgba(255, 255, 255, 0.56);
+  --color-hero-accent: #a9c9ff;
+
+  /* Error surfaces (login forms) */
+  --color-error-text: #a63c42;
+  --color-error-bg: #fff1f1;
+  --color-error-badge: #d85860;
+  --shadow-card: 0 18px 45px rgba(17, 24, 39, 0.08);
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.25rem;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+}
