@@ -21,3 +21,9 @@ export function validateStudentCredentials(studentNumber: unknown, name: unknown
   }
   return { studentNumber: normalizedNumber, name: normalizedName };
 }
+
+export function validateStudentPin(value: unknown): string {
+  const pin = String(value ?? "").normalize("NFKC").trim();
+  if (!/^[0-9]{4}$/.test(pin)) throw new Error("비밀번호는 숫자 4자리로 입력해 주세요.");
+  return pin;
+}

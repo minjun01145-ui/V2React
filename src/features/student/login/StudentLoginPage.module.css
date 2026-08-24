@@ -61,12 +61,18 @@
 .field input::placeholder { color: #a8b4c1; }
 .field input:focus { border-color: var(--color-landing-input-focus); background: var(--color-surface); box-shadow: 0 0 0 4px var(--color-landing-input-focus-ring); }
 .field input:disabled { opacity: 0.65; }
+.identitySummary { display: grid; gap: .3rem; padding: .9rem 1rem; border: 1px solid var(--color-landing-border); border-radius: .9rem; background: #f7faff; }
+.identitySummary span { color: var(--color-ink-muted); font-size: .72rem; font-weight: 800; }
+.identitySummary strong { color: var(--color-ink); font-size: .96rem; }
 .error { display: flex; align-items: flex-start; gap: 0.55rem; margin: 1rem 0 0; padding: 0.75rem 0.85rem; border-radius: 0.75rem; color: var(--color-error-text); background: var(--color-error-bg); font-size: 0.8rem; line-height: 1.45; }
 .error span { display: grid; flex: 0 0 auto; width: 1.15rem; height: 1.15rem; place-items: center; margin-top: 0.05rem; border-radius: 50%; color: var(--color-surface); background: var(--color-error-badge); font-size: 0.68rem; font-weight: 900; }
 .submitButton { display: flex; width: 100%; min-height: 3.45rem; align-items: center; justify-content: space-between; margin-top: 1.6rem; padding: 0 0.75rem 0 1.2rem; border: 0; border-radius: 0.95rem; color: var(--color-surface); background: var(--color-auth-primary); box-shadow: 0 12px 24px rgba(40, 100, 220, 0.22); font-weight: 850; transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease; }
 .submitButton:not(:disabled):hover { transform: translateY(-1px); background: var(--color-auth-primary-hover); box-shadow: 0 15px 28px rgba(40, 100, 220, 0.28); }
 .submitButton:disabled { cursor: wait; }
 .arrow { display: grid; width: 2rem; height: 2rem; place-items: center; border-radius: 0.65rem; color: var(--color-auth-primary-text); background: var(--color-accent); font-size: 1.1rem; }
+.backButton { display: block; margin: .8rem auto 0; padding: .45rem .7rem; border: 0; color: var(--color-ink-muted); background: transparent; font: inherit; font-size: .76rem; font-weight: 800; cursor: pointer; }
+.backButton:hover { color: var(--color-auth-primary); text-decoration: underline; }
+.backButton:disabled { cursor: wait; opacity: .6; }
 .formNote { margin: 1rem 0 0; color: #99a7b5; font-size: 0.7rem; text-align: center; }
 .adminLink { display: flex; align-items: center; gap: 0.4rem; margin-top: 1.25rem; color: #8797a8; font-size: 0.76rem; text-decoration: none; transition: color 150ms ease; }
 .adminLink:hover { color: var(--color-auth-primary); }

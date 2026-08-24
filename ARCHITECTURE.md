@@ -40,7 +40,7 @@ features/student               features/teacher
 13. explicit `any`를 사용하지 않습니다. 정말 알 수 없는 값은 `unknown`을 사용합니다.
 14. 학생/교사 인증 전에는 multiplayer/teacher 데이터 구독을 시작하지 않습니다.
 15. 관리자 비밀번호/서비스계정 키 같은 비밀은 browser bundle, `VITE_` 변수, GitHub에 넣지 않습니다.
-16. 학생의 학번/이름 검증은 Cloud Function에서만 수행하고 roster 전체를 브라우저에 공개하지 않습니다.
+16. 학생의 학번/이름/PIN 검증과 roster 관리는 Cloud Function에서만 수행하고 roster 전체와 PIN 해시를 브라우저에 공개하지 않습니다.
 17. `auth`는 신원/권한만 소유합니다. 뱃지, 인벤토리, 통계, 장기 진행도는 `StudentIdentity`에 추가하지 않습니다.
 18. `shared/ui`는 domain-neutral primitive만 소유하며 game/feature/auth/multiplayer를 import하지 않습니다.
 19. evaluator/adapter가 있는 게임은 같은 게임의 자동 테스트를 반드시 가집니다.

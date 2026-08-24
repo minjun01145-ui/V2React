@@ -1,6 +1,7 @@
 export const TEACHER_VIEW = Object.freeze({
   DASHBOARD: "dashboard",
   LOBBY: "lobby",
+  STUDENTS: "students",
   SETTINGS: "settings",
 } as const);
 

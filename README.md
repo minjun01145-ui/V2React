@@ -2,13 +2,15 @@
 
 Firebase Hosting과 GitHub Actions 자동 배포 절차는 [FIREBASE_GITHUB_DEPLOY_KO.md](./FIREBASE_GITHUB_DEPLOY_KO.md)를 참고하세요.
 
+학생 로그인과 명단 관리 구조는 [STUDENT_LOGIN.md](./STUDENT_LOGIN.md)를 참고하세요.
+
 React + TypeScript strict + Vite + Firebase base for browser-only Chromebook classroom games.
 
 ## Current system
 
 ### Student app `/`
 
-- first screen: student number + name
+- first screen: student number + name, followed by a four-digit PIN setup/login step
 - student credentials are checked **server-side** against `studentRoster`
 - Firebase Anonymous Auth gives each browser session an authenticated UID
 - server issues verified student custom claims after roster validation
@@ -32,7 +34,7 @@ React + TypeScript strict + Vite + Firebase base for browser-only Chromebook cla
 Frontend route guards are not security. Real authorization comes from:
 
 1. Firebase Authentication
-2. server-side `claimStudentIdentity` Cloud Function
+2. server-side `prepareStudentLogin` / `completeStudentLogin` Cloud Functions
 3. Firebase custom claims for verified students
 4. `admins/{uid}` allow-list for teachers
 5. Firestore Security Rules

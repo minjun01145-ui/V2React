@@ -2,8 +2,8 @@ import { deleteUser, onAuthStateChanged, signInAnonymously, signOut, type Unsubs
 import { doc, getDoc, onSnapshot, type DocumentData, type DocumentSnapshot } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { auth, db, functions } from "../firebase/firebaseClient.ts";
-import type { StudentCredentials, StudentIdentity } from "./types.ts";
-import { validateStudentCredentials } from "./validation.ts";
+import type { StudentCredentials, StudentIdentity, StudentLoginChallenge, StudentPinCredentials } from "./types.ts";
+import { validateStudentCredentials, validateStudentPin } from "./validation.ts";
 
 const studentIdentityRef = (uid: string) => doc(db, "studentProfiles", uid);
 
@@ -30,11 +30,33 @@ async function anonymousUser(): Promise<User> {
   return credential.user;
 }
 
-export async function claimStudentIdentity(credentials: StudentCredentials): Promise<StudentIdentity> {
+export async function prepareStudentLogin(credentials: StudentCredentials): Promise<StudentLoginChallenge> {
   const validated = validateStudentCredentials(credentials.studentNumber, credentials.name);
-  const user = await anonymousUser();
-  const callable = httpsCallable<typeof validated, { readonly studentNumber: string; readonly displayName: string }>(functions, "claimStudentIdentity");
+  await anonymousUser();
+  const callable = httpsCallable<typeof validated, {
+    readonly mode: "pin_setup" | "pin_required";
+    readonly studentNumber: string;
+    readonly displayName: string;
+  }>(functions, "prepareStudentLogin");
   const response = await callable(validated);
+  return {
+    studentNumber: response.data.studentNumber,
+    name: validated.name,
+    displayName: response.data.displayName,
+    mode: response.data.mode,
+  };
+}
+
+export async function completeStudentLogin(credentials: StudentPinCredentials): Promise<StudentIdentity> {
+  const validated = validateStudentCredentials(credentials.studentNumber, credentials.name);
+  const pin = validateStudentPin(credentials.pin);
+  const user = await anonymousUser();
+  const callable = httpsCallable<typeof validated & { readonly pin: string }, {
+    readonly studentNumber: string;
+    readonly displayName: string;
+    readonly pinWasCreated: boolean;
+  }>(functions, "completeStudentLogin");
+  const response = await callable({ ...validated, pin });
   await user.getIdToken(true);
   return {
     uid: user.uid,

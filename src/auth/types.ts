@@ -3,6 +3,15 @@ export interface StudentCredentials {
   readonly name: string;
 }
 
+export interface StudentLoginChallenge extends StudentCredentials {
+  readonly displayName: string;
+  readonly mode: "pin_setup" | "pin_required";
+}
+
+export interface StudentPinCredentials extends StudentCredentials {
+  readonly pin: string;
+}
+
 /** Authentication identity only. Do not add badges, stats, inventory, or game progress here. */
 export interface StudentIdentity {
   readonly uid: string;

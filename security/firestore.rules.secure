@@ -15,7 +15,10 @@ service cloud.firestore {
       return signedIn()
         && request.auth.token.role == "student"
         && request.auth.token.studentNumber is string
-        && request.auth.token.displayName is string;
+        && request.auth.token.displayName is string
+        && exists(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber))
+        && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.active != false
+        && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.displayName == request.auth.token.displayName;
     }
 
     function activeRound(roomId, roundId) {
@@ -30,7 +33,15 @@ service cloud.firestore {
     }
 
     match /studentRoster/{studentNumber} {
-      allow read, write: if isAdmin();
+      allow read, write: if false;
+    }
+
+    match /studentPinCredentials/{studentNumber} {
+      allow read, write: if false;
+    }
+
+    match /authRateLimits/{limitId} {
+      allow read, write: if false;
     }
 
     match /studentProfiles/{uid} {

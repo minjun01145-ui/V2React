@@ -4,13 +4,15 @@ The browser is untrusted. React route guards and hidden links are UX only; autho
 
 ## Student boundary
 
-- Student number/name are verified by `claimStudentIdentity` on Cloud Functions against `studentRoster`.
+- Student number/name are verified by `prepareStudentLogin` on Cloud Functions against `studentRoster`.
+- First login creates a four-digit PIN; later logins verify it with `completeStudentLogin`.
+- PIN plaintext is never stored. A per-student salt and scrypt hash live in `studentPinCredentials`, which browser clients cannot read.
 - Students use Firebase Anonymous Authentication and receive a unique UID.
 - The server sets student custom claims on the Firebase Auth account; the browser force-refreshes the ID token before entering Firestore.
 - `studentProfiles/{uid}` is written only by the Admin SDK and is used for persisted profile display.
 - Student Firestore writes must match `request.auth.uid` and the signed custom claims.
 
-Student number/name alone cannot prove real-world identity if another person already knows them. Add per-student PIN or school SSO if impersonation resistance is required.
+The first person who knows a correct student number/name can claim that student's initial PIN. This is acceptable only for low-stakes classroom use. Use a teacher-issued setup code or school SSO for stronger first-person identity assurance.
 
 ## Administrator boundary
 

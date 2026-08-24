@@ -1,0 +1,33 @@
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.stats > div { display: grid; gap: .35rem; }
+.stats span { color: var(--color-muted); font-size: .8rem; font-weight: 800; }
+.stats strong { font-size: 1.8rem; }
+.forms { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 1rem; margin-bottom: 1rem; }
+.form { display: grid; align-content: start; gap: .85rem; }
+.form h2, .rosterHeading h2 { margin: .25rem 0 0; }
+.form label { display: grid; gap: .4rem; color: var(--color-text); font-size: .82rem; font-weight: 800; }
+.form input:not([type="checkbox"]), .form textarea { width: 100%; border: 1px solid var(--color-border-strong); border-radius: .75rem; padding: .78rem .85rem; color: var(--color-text); background: var(--color-surface); font: inherit; }
+.form textarea { resize: vertical; line-height: 1.55; }
+.form input:focus, .form textarea:focus { border-color: var(--color-primary); outline: 3px solid var(--color-primary-soft); }
+.check { display: flex !important; align-items: center; gap: .55rem !important; }
+.check input { width: 1.1rem; height: 1.1rem; }
+.error, .notice { margin: 0 0 1rem; padding: .8rem 1rem; border-radius: .75rem; font-weight: 750; }
+.error { color: var(--color-error-text); background: var(--color-error-bg); }
+.notice { color: #17643a; background: #eaf8f0; }
+.rosterCard { overflow: hidden; }
+.rosterHeading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.tableWrap { overflow-x: auto; }
+table { width: 100%; min-width: 760px; border-collapse: collapse; }
+th, td { padding: .8rem .65rem; border-top: 1px solid var(--color-border); text-align: left; vertical-align: middle; }
+th { color: var(--color-muted); font-size: .72rem; letter-spacing: .04em; }
+.activeBadge, .inactiveBadge { display: inline-flex; padding: .25rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 850; }
+.activeBadge { color: #17643a; background: #eaf8f0; }
+.inactiveBadge { color: #7f3940; background: #fff0f1; }
+.actions { display: flex; flex-wrap: wrap; gap: .35rem; }
+.actions button { padding: .4rem .55rem; border: 1px solid var(--color-border-strong); border-radius: .55rem; color: var(--color-text); background: var(--color-surface); font: inherit; font-size: .72rem; font-weight: 800; cursor: pointer; }
+.actions button:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.actions button:disabled { cursor: not-allowed; opacity: .45; }
+.actions .danger { color: #a62c37; }
+.empty { margin: 1rem 0 0; color: var(--color-muted); text-align: center; }
+@media (max-width: 820px) { .forms { grid-template-columns: 1fr; } .rosterHeading { align-items: start; flex-direction: column; } }
+@media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }

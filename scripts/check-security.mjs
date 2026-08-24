@@ -38,8 +38,8 @@ for (const file of clientFiles) {
 }
 
 const studentAuth = read("src/auth/studentAuth.ts");
-if (!studentAuth.includes("signInAnonymously") || !studentAuth.includes("claimStudentIdentity")) {
-  violations.push("src/auth/studentAuth.ts: student identity must use anonymous Firebase Auth plus the server-side claim function");
+if (!studentAuth.includes("signInAnonymously") || !studentAuth.includes("prepareStudentLogin") || !studentAuth.includes("completeStudentLogin")) {
+  violations.push("src/auth/studentAuth.ts: student identity must use anonymous Firebase Auth plus the two-step server login functions");
 }
 
 const teacherAuth = read("src/auth/teacherAuth.ts");
@@ -47,9 +47,13 @@ if (!teacherAuth.includes("signInWithEmailAndPassword") || !teacherAuth.includes
   violations.push("src/auth/teacherAuth.ts: teacher login must use Firebase Auth and verify the admins allow-list");
 }
 
-const functionSource = read("functions/src/index.ts");
+const functionSource = read("functions/src/student-auth/callables.ts");
+const pinSource = read("functions/src/student-auth/pin.ts");
 if (!functionSource.includes('collection("studentRoster")') || !functionSource.includes('collection("studentProfiles")')) {
-  violations.push("functions/src/index.ts: student credentials must be verified server-side against studentRoster");
+  violations.push("functions/src/student-auth/callables.ts: student credentials must be verified server-side against studentRoster");
+}
+if (!pinSource.includes("scryptSync") || !pinSource.includes("timingSafeEqual")) {
+  violations.push("functions/src/student-auth/pin.ts: student PINs must use salted hashing and constant-time comparison");
 }
 
 const rules = read("security/firestore.rules.secure");
@@ -58,6 +62,9 @@ if (/allow\s+(read|write|read,\s*write)\s*:\s*if\s+true/.test(rules)) {
 }
 if (!rules.includes("studentProfiles") || !rules.includes("admins") || !rules.includes("request.auth.uid")) {
   violations.push("security/firestore.rules.secure: expected authenticated ownership/admin checks are missing");
+}
+if (!rules.includes("studentPinCredentials") || !rules.includes("allow read, write: if false")) {
+  violations.push("security/firestore.rules.secure: student PIN credentials must be inaccessible to browser clients");
 }
 
 if (violations.length) {

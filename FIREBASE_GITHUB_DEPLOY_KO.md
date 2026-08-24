@@ -1,9 +1,9 @@
 # Firebase Hosting + GitHub Actions 배포
 
-이 프로젝트는 GitHub를 소스 저장소로 계속 사용하고, `main` 브랜치에 푸시할 때 Firebase Hosting으로 자동 배포합니다.
+이 프로젝트는 GitHub를 소스 저장소로 계속 사용하고, `main` 브랜치에 푸시할 때 Firebase Hosting과 Firebase 백엔드를 자동 배포합니다.
 
 ```text
-코드 수정 -> GitHub Desktop Commit -> Push -> GitHub Actions 빌드 -> Firebase Hosting 배포
+코드 수정 -> GitHub Desktop Commit -> Push -> GitHub Actions 검사 -> Firebase Hosting/Backend 배포
 ```
 
 ## 준비물
@@ -107,13 +107,22 @@ npm run deploy:hosting
 
 브랜치를 만든 뒤 Pull Request를 열면 `Deploy Firebase Hosting (preview)` 워크플로가 7일 동안 유효한 미리보기 주소를 생성하고 PR에 표시합니다. Preview도 실제 Firebase 백엔드에 접속하므로 테스트 데이터를 사용할 때 주의합니다.
 
-## 7. Functions 배포
+## 7. Functions와 Firestore Rules 배포
 
-Hosting 자동화는 프런트엔드 `dist`만 배포합니다. `functions/`를 수정했을 때는 별도로 배포합니다.
+`.github/workflows/firebase-backend-live.yml`은 `main`에 Functions, Firestore Rules 또는 Firebase 설정 변경이 Push되면 다음 순서로 실행됩니다.
+
+1. `functions/` 의존성 설치
+2. Functions 빌드 및 PIN 해시 테스트
+3. Google Cloud 서비스 계정 인증
+4. `jurye-v2` Functions와 Firestore Rules 배포
+
+Hosting 배포와 백엔드 배포는 서로 독립된 작업입니다. 수동 배포가 필요할 때는 다음 명령을 사용합니다.
 
 ```powershell
-firebase deploy --only functions
+firebase deploy --only "functions:jurye-v2,firestore:rules"
 ```
+
+`asia-northeast3`의 Functions 배포 이미지는 Artifact Registry에서 7일간 보관한 뒤 자동 삭제됩니다. 이 정리 정책은 배포된 함수 실행에는 영향을 주지 않습니다.
 
 ## 8. App Check 확인
 

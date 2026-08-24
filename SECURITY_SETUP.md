@@ -8,13 +8,15 @@ This version intentionally does **not** store an administrator password in HTML,
 
 1. Student enters **student number + name** on `/`.
 2. The browser signs in with Firebase **Anonymous Authentication** and receives a unique Firebase Auth UID.
-3. `claimStudentIdentity` (Cloud Function) checks the submitted values against the private `studentRoster` collection on the server.
-4. On success the server sets Firebase custom claims (`role`, `studentNumber`, `displayName`) and creates `studentProfiles/{uid}`.
-5. The client refreshes its Firebase ID token. Firestore rules then use the signed token claims plus `request.auth.uid`, so frequent heartbeat/answer writes do not need a profile-document lookup on every request.
+3. `prepareStudentLogin` checks the submitted values against the private `studentRoster` collection on the server.
+4. On first login the student creates a four-digit PIN. Later logins require that PIN through `completeStudentLogin`.
+5. Only a salted scrypt hash is stored in `studentPinCredentials`; the browser cannot read that collection.
+6. On success the server sets Firebase custom claims (`role`, `studentNumber`, `displayName`) and creates `studentProfiles/{uid}`.
+7. The client refreshes its Firebase ID token. Firestore rules then use the signed token claims plus the active roster entry.
 
-The browser never receives the full roster. The claim endpoint also rate-limits repeated attempts per anonymous UID; Firebase Authentication separately applies abuse limits to new anonymous sign-ins.
+The browser never receives the full roster or PIN hashes. The endpoints rate-limit attempts per anonymous UID and per student number; Firebase Authentication separately applies abuse limits to new anonymous sign-ins.
 
-**Important limitation:** student number + name are not strong personal secrets. This design protects database access and prevents casual cross-account writes, but someone who already knows another student's exact number and name could impersonate that student. If stronger identity assurance becomes necessary, add an individual PIN or school Google/Workspace SSO. The rest of this architecture can stay unchanged.
+**Important limitation:** the first person who knows another student's exact number and name could claim that student's initial PIN. For stronger first-person identity assurance, add a teacher-issued setup code or school Google/Workspace SSO.
 
 ### Teachers / administrators
 
@@ -68,7 +70,7 @@ VITE_ADMIN_AUTH_EMAIL=jurye-admin@your-school-domain.example
 
 ### 3. Student roster
 
-Create one document per student:
+관리자 로그인 후 `학생 관리` 메뉴에서 한 명씩 등록하거나 엑셀의 학번·이름 두 열을 붙여넣습니다. 관리 UI는 Cloud Functions를 통해 다음 문서를 만듭니다.
 
 `studentRoster/10101`
 
@@ -79,9 +81,7 @@ Create one document per student:
 }
 ```
 
-Document ID = student number. `displayName` must match what the student types after Unicode/whitespace normalization.
-
-A roster-management admin UI can be added later; the login system already uses this contract.
+Document ID = student number. `displayName` must match what the student types after Unicode/whitespace normalization. PIN 해시는 별도 `studentPinCredentials` 컬렉션에 저장되며 어떤 브라우저 사용자에게도 직접 공개되지 않습니다.
 
 ### 4. Deploy Cloud Functions
 
@@ -92,10 +92,12 @@ cd functions
 npm install
 npm run build
 cd ..
-firebase deploy --only functions
+firebase deploy --only functions:jurye-v2
 ```
 
 The project defaults to function region `asia-northeast3` (Seoul). The client uses the same region.
+
+After the initial setup, changes under `functions/` are deployed automatically from `main` by `.github/workflows/firebase-backend-live.yml`.
 
 ### 5. Firestore Security Rules — required
 
@@ -105,6 +107,8 @@ The project defaults to function region `asia-northeast3` (Seoul). The client us
 
 The client code alone cannot secure an open Firestore database.
 
+Changes to this rules file are deployed automatically from `main` by the backend workflow after the Functions tests pass.
+
 ### 6. App Check — recommended after the basic login works
 
 For a new web integration, use Firebase App Check with **reCAPTCHA Enterprise**. Add the public site key to:
@@ -113,7 +117,7 @@ For a new web integration, use Firebase App Check with **reCAPTCHA Enterprise**.
 VITE_FIREBASE_APP_CHECK_SITE_KEY=...
 ```
 
-Monitor App Check metrics first. After legitimate traffic is verified, enable enforcement for Authentication, Firestore, and Cloud Functions, and change the two callable functions' `enforceAppCheck` option to `true`.
+Monitor App Check metrics first. After legitimate traffic is verified, enable enforcement for Authentication, Firestore, and Cloud Functions, and change callable functions' `enforceAppCheck` option to `true`.
 
 ## Firebase project isolation recommendation
 

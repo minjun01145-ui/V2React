@@ -14,6 +14,12 @@ export default function TeacherDashboardPage({ roomId }: { readonly roomId: stri
           <a className={styles.link} href="#/lobby">대기실 열기 →</a>
         </Card>
         <Card>
+          <Eyebrow>STUDENT ROSTER</Eyebrow>
+          <h2>학생 명단 관리</h2>
+          <Muted>학생을 등록하거나 로그인 중지, PIN 초기화, 명단 삭제 작업을 처리합니다.</Muted>
+          <a className={styles.link} href="#/students">학생 관리 열기 →</a>
+        </Card>
+        <Card>
           <Eyebrow>SETTINGS</Eyebrow>
           <h2>게임 및 수업 설정</h2>
           <Muted>콘텐츠 선택, 게임 옵션, 점수 규칙 등 교사용 설정이 모이는 영역입니다.</Muted>
