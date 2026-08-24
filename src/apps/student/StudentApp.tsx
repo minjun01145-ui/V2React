@@ -6,8 +6,9 @@ import { getRoomIdFromLocation } from "../../app/location.ts";
 import StudentPage from "../../features/student/StudentPage.tsx";
 import StudentLoginPage from "../../features/student/login/StudentLoginPage.tsx";
 import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
+import { PopupProvider } from "../../shared/popup/index.ts";
 
-export default function StudentApp() {
+function StudentAppContent() {
   const roomId = getRoomIdFromLocation();
   const authState = useStudentAuth();
   const [claimedIdentity, setClaimedIdentity] = useState<StudentIdentity | null>(null);
@@ -29,4 +30,8 @@ export default function StudentApp() {
       await clearStudentLogin();
     }}
   />;
+}
+
+export default function StudentApp() {
+  return <PopupProvider><StudentAppContent /></PopupProvider>;
 }

@@ -21,6 +21,10 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.displayName == request.auth.token.displayName;
     }
 
+    function publicLearningSetRead() {
+      return true;
+    }
+
     function activeRound(roomId, roundId) {
       return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "playing"
@@ -42,6 +46,20 @@ service cloud.firestore {
 
     match /authRateLimits/{limitId} {
       allow read, write: if false;
+    }
+
+    match /aiProviderConfigs/{providerId} {
+      allow read, write: if false;
+    }
+
+    match /learningSets/{setId} {
+      allow read: if publicLearningSetRead();
+      allow create, update, delete: if isAdmin();
+
+      match /content/{contentId} {
+        allow read: if publicLearningSetRead();
+        allow create, update, delete: if isAdmin();
+      }
     }
 
     match /studentProfiles/{uid} {

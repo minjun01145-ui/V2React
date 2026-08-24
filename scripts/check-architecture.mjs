@@ -9,6 +9,8 @@ const globalCssEntries = new Set([
   "src/apps/student/main.tsx",
   "src/apps/teacher/main.tsx",
 ]);
+const sourceFiles = walk(srcRoot).filter((file) => /\.(ts|tsx)$/.test(file));
+const dependencyGraph = new Map(sourceFiles.map((file) => [file, []]));
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -48,7 +50,7 @@ function crossesRoleBoundary(rel, specifier) {
   return (isStudentOwner && importsTeacher) || (isTeacherOwner && importsStudent);
 }
 
-for (const file of walk(srcRoot)) {
+for (const file of sourceFiles) {
   const rel = relative(file);
 
   if (/\.(js|jsx)$/.test(file)) {
@@ -69,6 +71,7 @@ for (const file of walk(srcRoot)) {
     if (resolved && !fs.existsSync(resolved)) {
       violations.push(`${rel}: relative import does not exist (${specifier})`);
     }
+    if (resolved && dependencyGraph.has(resolved)) dependencyGraph.get(file).push(resolved);
 
     const isGlobalCss = specifier.endsWith(".css") && !specifier.endsWith(".module.css");
     if (isGlobalCss && !globalCssEntries.has(rel)) {
@@ -83,14 +86,18 @@ for (const file of walk(srcRoot)) {
       violations.push(`${rel}: game modules must not access Firebase directly (${specifier})`);
     }
 
+    if (rel.startsWith("src/games/") && specifier.includes("/ai-admin/")) {
+      violations.push(`${rel}: game modules must use a game-specific server AI contract, not the teacher AI admin client (${specifier})`);
+    }
+
     if (rel.startsWith("src/games/") && (specifier.includes("/apps/") || specifier.includes("/features/"))) {
       violations.push(`${rel}: game modules must not depend on app/feature UI layers (${specifier})`);
     }
 
     if ((rel.startsWith("src/game-engine/core/") ||
          (rel.startsWith("src/game-engine/question-engine/") && !rel.endsWith("useQuestionEngine.ts") && !rel.includes("/multiplayer/"))) &&
-        (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
-      violations.push(`${rel}: pure engine code may not depend on React, Firebase, concrete games, or app multiplayer (${specifier})`);
+        (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/games/") || specifier.includes("/learning-sets/") || specifier.includes("/multiplayer/"))) {
+      violations.push(`${rel}: pure engine code may not depend on React, Firebase, concrete games, learning sets, or app multiplayer (${specifier})`);
     }
 
     if (rel.startsWith("src/shared/ui/") &&
@@ -99,11 +106,40 @@ for (const file of walk(srcRoot)) {
       violations.push(`${rel}: shared UI primitives must stay domain-neutral (${specifier})`);
     }
 
+    if (rel.startsWith("src/shared/popup/") &&
+        (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") ||
+         specifier.includes("/auth/") || specifier.includes("/firebase/") || specifier.includes("/multiplayer/"))) {
+      violations.push(`${rel}: popup engine must remain domain-neutral (${specifier})`);
+    }
+
     if (rel.startsWith("src/multiplayer/") && specifier.includes("/games/")) {
       violations.push(`${rel}: multiplayer base may not depend on a concrete game (${specifier})`);
     }
+
+    if (rel.startsWith("src/ai-admin/") && (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/"))) {
+      violations.push(`${rel}: AI admin domain must not depend on app, feature, or game UI layers (${specifier})`);
+    }
+
+    if (rel.startsWith("src/learning-sets/") && (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
+      violations.push(`${rel}: learning set domain must not depend on app, feature, game, or multiplayer layers (${specifier})`);
+    }
   }
 }
+
+const visiting = new Set();
+const visited = new Set();
+function visitDependency(file, trail) {
+  if (visiting.has(file)) {
+    violations.push(`circular dependency: ${[...trail, file].map(relative).join(" -> ")}`);
+    return;
+  }
+  if (visited.has(file)) return;
+  visiting.add(file);
+  for (const dependency of dependencyGraph.get(file) ?? []) visitDependency(dependency, [...trail, file]);
+  visiting.delete(file);
+  visited.add(file);
+}
+for (const file of sourceFiles) visitDependency(file, []);
 
 const studentHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const teacherHtml = fs.readFileSync(path.join(root, "teacher/index.html"), "utf8");

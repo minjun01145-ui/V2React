@@ -4,6 +4,12 @@ Firebase Hosting과 GitHub Actions 자동 배포 절차는 [FIREBASE_GITHUB_DEPL
 
 학생 로그인과 명단 관리 구조는 [STUDENT_LOGIN.md](./STUDENT_LOGIN.md)를 참고하세요.
 
+Ollama Cloud 기반 AI API 공통 구조와 게임 연결 원칙은 [AI_API.md](./AI_API.md)를 참고하세요.
+
+엑셀 붙여넣기 기반 학습 세트 구조와 게임 연결 방법은 [LEARNING_SETS.md](./LEARNING_SETS.md)를 참고하세요.
+
+사이트 내부 메시지·입력 팝업과 확장 방법은 [POPUP_ENGINE.md](./POPUP_ENGINE.md)를 참고하세요.
+
 React + TypeScript strict + Vite + Firebase base for browser-only Chromebook classroom games.
 
 ## Current system
@@ -26,7 +32,7 @@ React + TypeScript strict + Vite + Firebase base for browser-only Chromebook cla
 - password is verified by Firebase Email/Password Authentication
 - admin account email comes from `VITE_ADMIN_AUTH_EMAIL` and is not treated as a secret
 - a successfully authenticated Firebase user must also be allow-listed in `admins/{uid}`
-- after login: administrator home / multiplayer lobby / settings
+- after login: administrator home / multiplayer lobby / student roster / learning set editor / AI API / settings
 - teacher logout included
 
 ## Security model
@@ -65,6 +71,7 @@ src/
 │   ├── question-engine/   # 문제→답→판정→진행 패턴 전용
 │   └── contracts/
 ├── games/
+├── learning-sets/         # 세트 타입, parser, Firestore read/admin repositories
 ├── multiplayer/
 ├── shared/
 └── styles/
@@ -105,9 +112,12 @@ npm run build
 - architecture boundary check
 - security invariant check
 - game engine smoke tests
+- 2~5지선다 생성·양방향 adapter·정답 판정 테스트
 - per-game evaluator/adapter tests
 - teacher routing test
 - auth input validation test
+- popup input model and accessibility contract test
+- learning set paste parser test
 
 ## Student identity limitation
 

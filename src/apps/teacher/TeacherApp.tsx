@@ -1,9 +1,10 @@
 import { useAdminAuth } from "../../auth/hooks.ts";
 import AdminLoginPage from "../../features/teacher/auth/AdminLoginPage.tsx";
 import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
+import { PopupProvider } from "../../shared/popup/index.ts";
 import TeacherWorkspace from "./TeacherWorkspace.tsx";
 
-export default function TeacherApp() {
+function TeacherAppContent() {
   const authState = useAdminAuth();
   if (authState.loading) {
     return <AuthStatusPage eyebrow="TEACHER ACCESS" title="관리자 정보를 확인하고 있어요" message="잠시만 기다려 주세요." />;
@@ -13,4 +14,8 @@ export default function TeacherApp() {
   }
   if (!authState.value) return <AdminLoginPage />;
   return <TeacherWorkspace />;
+}
+
+export default function TeacherApp() {
+  return <PopupProvider><TeacherAppContent /></PopupProvider>;
 }

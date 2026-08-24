@@ -22,7 +22,7 @@ function extractChunks(item: Record<string, unknown>): string[] {
       .filter((chunk) => Boolean(chunk));
   }
 
-  const slashSentence = firstText(item.chunkedEnglish, item.english, item.en, item.sentence);
+  const slashSentence = firstText(item.sourceText, item.chunkedEnglish, item.english, item.en, item.sentence);
   return slashSentence.includes("/")
     ? slashSentence.split("/").map((chunk) => chunk.trim()).filter(Boolean)
     : [];

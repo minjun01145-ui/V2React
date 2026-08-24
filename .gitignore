@@ -5,6 +5,7 @@ dist/
 .env.*.local
 firebase-debug.log
 firebase-debug.*.log
+.firebase/
 functions/node_modules/
 functions/lib/
 .DS_Store

@@ -20,6 +20,18 @@ export default function TeacherDashboardPage({ roomId }: { readonly roomId: stri
           <a className={styles.link} href="#/students">학생 관리 열기 →</a>
         </Card>
         <Card>
+          <Eyebrow>LEARNING SETS</Eyebrow>
+          <h2>학습 세트 편집</h2>
+          <Muted>단어와 끊어읽기 자료를 엑셀에서 붙여넣어 저장하고 게임에 연결합니다.</Muted>
+          <a className={styles.link} href="#/sets">세트 편집기 열기 →</a>
+        </Card>
+        <Card>
+          <Eyebrow>AI PROVIDER</Eyebrow>
+          <h2>AI API 관리</h2>
+          <Muted>Ollama Cloud 키와 모델 옵션을 설정하고 연결 및 실제 메시지를 테스트합니다.</Muted>
+          <a className={styles.link} href="#/ai">AI 설정 열기 →</a>
+        </Card>
+        <Card>
           <Eyebrow>SETTINGS</Eyebrow>
           <h2>게임 및 수업 설정</h2>
           <Muted>콘텐츠 선택, 게임 옵션, 점수 규칙 등 교사용 설정이 모이는 영역입니다.</Muted>

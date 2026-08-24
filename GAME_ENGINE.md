@@ -55,6 +55,30 @@ useQuestionEngine
 
 문장 조각은 표시 문자열이 아니라 고유 token ID로 판정하므로 같은 단어나 구가 반복되어도 안전합니다.
 
+## Multiple-choice 전문 엔진
+
+`question-engine/multiple-choice`는 question-engine 위에 구축한 순수 객관식 전문 모듈입니다.
+
+```text
+MultipleChoicePair<TSource>
+        ↓ direction + choiceCount(2~5) + seed
+buildMultipleChoiceSet()
+        ↓
+MultipleChoiceQuestion<TSource>
+        ↓ selected option ID
+evaluateMultipleChoice()
+```
+
+엔진은 left/right 문구만 알고 영어·한글·단어·Firestore를 알지 않습니다. 같은 prompt에 서로 다른 정답이 있는 항목은 제외하고, 정답 문구가 중복된 오답은 한 번만 사용하며, 필요한 수의 서로 다른 선택지를 만들 수 없는 문제는 생성하지 않습니다. seed가 같으면 문제와 선택지 순서도 같습니다.
+
+학습 세트 변환은 `src/learning-sets/multipleChoiceAdapter.ts`가 담당합니다.
+
+- 단어 전체: 단어 → 뜻 또는 뜻 → 단어
+- 끊어읽기 전체: `/`를 제거한 문장 → 전체 뜻 또는 반대 방향
+- 끊어읽기 덩어리: 영어 덩어리 → 대응 뜻 덩어리 또는 반대 방향
+
+Firestore `gameConfig`처럼 신뢰할 수 없는 설정은 `parseLearningSetMultipleChoiceOptions()`로 먼저 검증합니다. 각 라운드의 `roundId`를 seed로 넘기면 같은 라운드의 모든 학생에게 같은 문제·선택지 순서를 재현할 수 있습니다. 생성된 question set과 `evaluateMultipleChoice()`는 기존 `useQuestionEngine()`에 그대로 전달할 수 있습니다.
+
 ## Adapter boundary
 
 `readingChunksAdapter.ts`가 `unknown` 원본 세트를 Sentence Builder의 canonical question set으로 바꿉니다. UI와 evaluator는 Jurye 원본 DB 필드명을 알 필요가 없습니다.

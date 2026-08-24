@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import PageShell from "../../../shared/PageShell.tsx";
+import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import { Eyebrow, Muted } from "../../../shared/ui/Typography.tsx";
@@ -29,6 +30,7 @@ export default function TeacherStudentsPage({ roomId }: Props) {
   const [busyKey, setBusyKey] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const { requestConfirmation } = usePopup();
 
   const refresh = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -93,6 +95,38 @@ export default function TeacherStudentsPage({ roomId }: Props) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  const resetPin = async (student: StudentRosterEntry): Promise<void> => {
+    const confirmed = await requestConfirmation({
+      eyebrow: "RESET PIN",
+      title: `${student.displayName} 학생의 PIN을 초기화할까요?`,
+      message: "기존 비밀번호로는 로그인할 수 없으며, 다음 로그인 때 새 숫자 4자리를 설정합니다.",
+      tone: "warning",
+      confirmLabel: "PIN 초기화",
+      blurBackground: true,
+    });
+    if (!confirmed) return;
+    await run(`pin-${student.studentNumber}`, async () => {
+      await resetStudentRosterPin(student);
+      return "PIN을 초기화했습니다. 다음 로그인 때 새 PIN을 설정합니다.";
+    });
+  };
+
+  const removeStudent = async (student: StudentRosterEntry): Promise<void> => {
+    const confirmed = await requestConfirmation({
+      eyebrow: "DELETE STUDENT",
+      title: `${student.studentNumber} ${student.displayName} 학생을 삭제할까요?`,
+      message: "명단과 로그인 정보가 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
+      tone: "error",
+      confirmLabel: "학생 삭제",
+      blurBackground: true,
+    });
+    if (!confirmed) return;
+    await run(`delete-${student.studentNumber}`, async () => {
+      await removeStudentRosterEntry(student);
+      return "학생을 명단에서 삭제했습니다.";
+    });
+  };
+
   return (
     <PageShell eyebrow="STUDENT ROSTER" title="학생 관리" roomId={roomId} actions={<Button variant="ghost" onClick={() => void refresh()} disabled={loading || Boolean(busyKey)}>새로고침</Button>}>
       <div className={styles.stats}>
@@ -140,8 +174,8 @@ export default function TeacherStudentsPage({ roomId }: Props) {
                   <td><div className={styles.actions}>
                     <button type="button" onClick={() => editStudent(student)} disabled={Boolean(busyKey)}>수정</button>
                     <button type="button" onClick={() => void run(`toggle-${key}`, async () => { await saveStudentRosterEntry({ studentNumber: key, name: student.displayName, active: !student.active }); return student.active ? "학생 로그인을 중지했습니다." : "학생 로그인을 다시 허용했습니다."; })} disabled={Boolean(busyKey)}>{student.active ? "중지" : "허용"}</button>
-                    <button type="button" onClick={() => { if (window.confirm(`${student.displayName} 학생의 PIN을 초기화할까요?`)) void run(`pin-${key}`, async () => { await resetStudentRosterPin(student); return "PIN을 초기화했습니다. 다음 로그인 때 새 PIN을 설정합니다."; }); }} disabled={Boolean(busyKey) || !student.pinConfigured}>PIN 초기화</button>
-                    <button className={styles.danger} type="button" onClick={() => { if (window.confirm(`${student.studentNumber} ${student.displayName} 학생을 명단에서 삭제할까요?`)) void run(`delete-${key}`, async () => { await removeStudentRosterEntry(student); return "학생을 명단에서 삭제했습니다."; }); }} disabled={Boolean(busyKey)}>삭제</button>
+                    <button type="button" onClick={() => void resetPin(student)} disabled={Boolean(busyKey) || !student.pinConfigured}>PIN 초기화</button>
+                    <button className={styles.danger} type="button" onClick={() => void removeStudent(student)} disabled={Boolean(busyKey)}>삭제</button>
                   </div></td>
                 </tr>;
               })}</tbody>

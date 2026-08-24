@@ -1,7 +1,9 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { completeStudentLogin, prepareStudentLogin } from "../../../auth/studentAuth.ts";
 import type { StudentIdentity, StudentLoginChallenge } from "../../../auth/types.ts";
+import { validateStudentPin } from "../../../auth/validation.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
+import { usePopup, type PopupInputValues } from "../../../shared/popup/index.ts";
 import BrandMark from "../../../shared/ui/BrandMark.tsx";
 import styles from "./StudentLoginPage.module.css";
 
@@ -17,11 +19,72 @@ function teacherUrl(roomId: string): string {
 export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
   const [studentNumber, setStudentNumber] = useState("");
   const [name, setName] = useState("");
-  const [challenge, setChallenge] = useState<StudentLoginChallenge | null>(null);
-  const [pin, setPin] = useState("");
-  const [pinConfirmation, setPinConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const { requestInput } = usePopup();
+
+  const requestPin = async (challenge: StudentLoginChallenge): Promise<void> => {
+    const setup = challenge.mode === "pin_setup";
+    await requestInput({
+      eyebrow: setup ? "FIRST LOGIN" : "STUDENT LOGIN",
+      title: setup ? "숫자 4자리 비밀번호를 만들어요" : "비밀번호를 입력해 주세요",
+      message: setup
+        ? `${challenge.studentNumber} · ${challenge.displayName} 학생의 첫 로그인입니다. 다음 접속부터 사용할 숫자 4자리를 두 번 입력해 주세요.`
+        : `${challenge.studentNumber} · ${challenge.displayName} 학생이 처음 정한 숫자 4자리를 입력해 주세요.`,
+      tone: "info",
+      blurBackground: true,
+      closeOnBackdrop: false,
+      closeOnEscape: true,
+      confirmLabel: setup ? "비밀번호 만들고 입장" : "교실 입장",
+      cancelLabel: "학번·이름 다시 입력",
+      clearOnError: true,
+      fields: [
+        {
+          name: "pin",
+          label: setup ? "새 비밀번호" : "비밀번호",
+          type: "password",
+          inputMode: "numeric",
+          autoComplete: setup ? "new-password" : "current-password",
+          placeholder: "숫자 4자리",
+          maxLength: 4,
+          pattern: "[0-9０-９]{4}",
+          autoFocus: true,
+        },
+        ...(setup ? [{
+          name: "pinConfirmation",
+          label: "비밀번호 확인",
+          type: "password" as const,
+          inputMode: "numeric" as const,
+          autoComplete: "new-password",
+          placeholder: "한 번 더 입력",
+          maxLength: 4,
+          pattern: "[0-9０-９]{4}",
+        }] : []),
+      ],
+      validate: (values: PopupInputValues): string | null => {
+        try {
+          const pin = validateStudentPin(values.pin);
+          if (setup && pin !== validateStudentPin(values.pinConfirmation)) return "두 비밀번호가 서로 다릅니다.";
+          return null;
+        } catch (value: unknown) {
+          return toErrorMessage(value, "비밀번호는 숫자 4자리로 입력해 주세요.");
+        }
+      },
+      onConfirm: async (values: PopupInputValues): Promise<string | null> => {
+        try {
+          const identity = await completeStudentLogin({
+            studentNumber: challenge.studentNumber,
+            name: challenge.name,
+            pin: values.pin ?? "",
+          });
+          onAuthenticated(identity);
+          return null;
+        } catch (value: unknown) {
+          return toErrorMessage(value, "학번, 이름 또는 비밀번호를 다시 확인해 주세요.");
+        }
+      },
+    });
+  };
 
   const submitIdentity = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
@@ -30,47 +93,12 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
     setError("");
     try {
       const prepared = await prepareStudentLogin({ studentNumber, name });
-      setChallenge(prepared);
-      setPin("");
-      setPinConfirmation("");
+      await requestPin(prepared);
     } catch (value: unknown) {
       setError(toErrorMessage(value, "학번과 이름을 다시 확인해 주세요."));
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const submitPin = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-    if (submitting || !challenge) return;
-    if (challenge.mode === "pin_setup" && pin !== pinConfirmation) {
-      setError("두 비밀번호가 서로 다릅니다.");
-      return;
-    }
-    setSubmitting(true);
-    setError("");
-    try {
-      const identity = await completeStudentLogin({
-        studentNumber: challenge.studentNumber,
-        name: challenge.name,
-        pin,
-      });
-      onAuthenticated(identity);
-    } catch (value: unknown) {
-      setPin("");
-      setPinConfirmation("");
-      setError(toErrorMessage(value, "학번, 이름 또는 비밀번호를 다시 확인해 주세요."));
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const backToIdentity = (): void => {
-    if (submitting) return;
-    setChallenge(null);
-    setPin("");
-    setPinConfirmation("");
-    setError("");
   };
 
   return (
@@ -113,65 +141,19 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
             <span>JURYE CLASSROOM</span>
           </div>
 
-          <form className={styles.form} onSubmit={(event) => void (challenge ? submitPin(event) : submitIdentity(event))}>
+          <form className={styles.form} onSubmit={(event) => void submitIdentity(event)}>
             <div className={styles.roomBadge}>
               <span className={styles.liveDot} aria-hidden="true" />
               현재 수업 <strong>{roomId}</strong>
             </div>
 
             <div className={styles.formHeading}>
-              <p>{challenge ? `${challenge.displayName} 학생` : "반가워요!"}</p>
-              <h2 id="login-title">{challenge?.mode === "pin_setup" ? "비밀번호를 만들어요" : challenge ? "비밀번호를 입력해요" : "수업에 참여해요"}</h2>
-              <span>{challenge?.mode === "pin_setup" ? "처음 한 번만 사용할 숫자 4자리 비밀번호를 정해 주세요." : challenge ? "처음 접속할 때 정한 숫자 4자리를 입력해 주세요." : "학번과 이름을 먼저 확인할게요."}</span>
+              <p>반가워요!</p>
+              <h2 id="login-title">수업에 참여해요</h2>
+              <span>학번과 이름을 확인한 뒤 비밀번호는 팝업에서 입력할게요.</span>
             </div>
 
-            {challenge ? (
-              <>
-                <div className={styles.identitySummary}>
-                  <span>확인된 학생</span>
-                  <strong>{challenge.studentNumber} · {challenge.displayName}</strong>
-                </div>
-                <div className={styles.field}>
-                  <label htmlFor="student-pin"><span>03</span> 숫자 4자리 비밀번호</label>
-                  <input
-                    id="student-pin"
-                    name="pin"
-                    type="password"
-                    inputMode="numeric"
-                    autoComplete={challenge.mode === "pin_setup" ? "new-password" : "current-password"}
-                    maxLength={4}
-                    pattern="[0-9０-９]{4}"
-                    placeholder="••••"
-                    value={pin}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) => setPin(event.target.value)}
-                    disabled={submitting}
-                    required
-                    autoFocus
-                  />
-                </div>
-                {challenge.mode === "pin_setup" ? (
-                  <div className={styles.field}>
-                    <label htmlFor="student-pin-confirmation"><span>04</span> 비밀번호 확인</label>
-                    <input
-                      id="student-pin-confirmation"
-                      name="pinConfirmation"
-                      type="password"
-                      inputMode="numeric"
-                      autoComplete="new-password"
-                      maxLength={4}
-                      pattern="[0-9０-９]{4}"
-                      placeholder="한 번 더 입력"
-                      value={pinConfirmation}
-                      onChange={(event: ChangeEvent<HTMLInputElement>) => setPinConfirmation(event.target.value)}
-                      disabled={submitting}
-                      required
-                    />
-                  </div>
-                ) : null}
-              </>
-            ) : (
-              <>
-                <div className={styles.field}>
+            <div className={styles.field}>
                   <label htmlFor="student-number"><span>01</span> 학번</label>
                   <input
                     id="student-number"
@@ -187,9 +169,9 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
                     required
                     autoFocus
                   />
-                </div>
+            </div>
 
-                <div className={styles.field}>
+            <div className={styles.field}>
                   <label htmlFor="student-name"><span>02</span> 이름</label>
                   <input
                     id="student-name"
@@ -202,20 +184,16 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
                     disabled={submitting}
                     required
                   />
-                </div>
-              </>
-            )}
+            </div>
 
             {error ? <p className={styles.error} role="alert"><span aria-hidden="true">!</span>{error}</p> : null}
 
             <button className={styles.submitButton} type="submit" disabled={submitting}>
-              <span>{submitting ? "정보를 확인하고 있어요" : challenge?.mode === "pin_setup" ? "비밀번호 만들고 입장하기" : challenge ? "교실 입장하기" : "다음"}</span>
+              <span>{submitting ? "정보를 확인하고 있어요" : "로그인"}</span>
               <span className={styles.arrow} aria-hidden="true">→</span>
             </button>
 
-            {challenge ? <button className={styles.backButton} type="button" onClick={backToIdentity} disabled={submitting}>학번과 이름 다시 입력</button> : null}
-
-            <p className={styles.formNote}>{challenge?.mode === "pin_setup" ? "비밀번호 원문은 저장하지 않으며, 잊어버리면 선생님이 초기화할 수 있습니다." : "입력한 정보는 수업 참여 확인에만 사용됩니다."}</p>
+            <p className={styles.formNote}>입력한 정보는 수업 참여 확인에만 사용되며 비밀번호 원문은 저장하지 않습니다.</p>
           </form>
 
           <a className={styles.adminLink} href={teacherUrl(roomId)}>

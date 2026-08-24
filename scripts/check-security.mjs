@@ -66,6 +66,28 @@ if (!rules.includes("studentProfiles") || !rules.includes("admins") || !rules.in
 if (!rules.includes("studentPinCredentials") || !rules.includes("allow read, write: if false")) {
   violations.push("security/firestore.rules.secure: student PIN credentials must be inaccessible to browser clients");
 }
+if (!rules.includes("aiProviderConfigs") || !rules.includes("allow read, write: if false")) {
+  violations.push("security/firestore.rules.secure: AI provider settings must be inaccessible to browser clients");
+}
+if (!rules.includes("match /learningSets/{setId}") || !rules.includes("publicLearningSetRead()") || !rules.includes("allow create, update, delete: if isAdmin()")) {
+  violations.push("security/firestore.rules.secure: learning sets must be public-read and admin-write");
+}
+
+const aiCallables = read("functions/src/ai/callables.ts");
+const aiSecretStore = read("functions/src/ai/secretStore.ts");
+if (!aiCallables.includes("requireAdmin(request)")) {
+  violations.push("functions/src/ai/callables.ts: every AI administration callable must require an administrator");
+}
+if (!aiSecretStore.includes("SecretManagerServiceClient") || !aiSecretStore.includes("addSecretVersion")) {
+  violations.push("functions/src/ai/secretStore.ts: AI API keys must be stored in Google Secret Manager");
+}
+for (const file of clientFiles) {
+  const source = fs.readFileSync(file, "utf8");
+  const rel = path.relative(root, file).replaceAll(path.sep, "/");
+  if (/OLLAMA_API_KEY|jurye-ollama-cloud-api-key/.test(source)) {
+    violations.push(`${rel}: browser code must not know the AI secret name or environment variable`);
+  }
+}
 
 if (violations.length) {
   console.error("Security checks failed:\n" + violations.map((item) => `- ${item}`).join("\n"));

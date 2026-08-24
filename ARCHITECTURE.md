@@ -44,6 +44,13 @@ features/student               features/teacher
 17. `auth`는 신원/권한만 소유합니다. 뱃지, 인벤토리, 통계, 장기 진행도는 `StudentIdentity`에 추가하지 않습니다.
 18. `shared/ui`는 domain-neutral primitive만 소유하며 game/feature/auth/multiplayer를 import하지 않습니다.
 19. evaluator/adapter가 있는 게임은 같은 게임의 자동 테스트를 반드시 가집니다.
+20. AI 공급자 HTTP/인증 구현은 `functions/src/ai`에만 두고, 게임은 게임별 서버 계약을 통해 공통 AI 서비스를 호출합니다.
+21. `ai-admin`은 app/feature/game UI를 import하지 않으며, 관리자 UI만 `ai-admin`을 사용합니다.
+22. 상대 import 그래프의 순환 의존성은 자동 검사에서 실패합니다.
+23. `learning-sets` 도메인은 app/feature/game/multiplayer를 import하지 않으며, 게임과 교사 UI가 이 도메인의 읽기·관리 인터페이스를 사용합니다.
+24. 세트 목록 메타데이터와 실제 문항 문서를 분리하고, 게임 세션에는 문항 배열 대신 `setId`만 저장합니다.
+25. 객관식 엔진은 left/right 쌍만 처리하며, 단어·끊어읽기 해석은 `learning-sets` adapter가 담당합니다. 엔진에서 세트 도메인을 import하지 않습니다.
+26. `shared/popup`은 도메인을 import하지 않으며, 각 앱의 단일 Provider가 큐·portal·접근성을 소유합니다. 기능 코드는 `usePopup()` 계약만 사용합니다.
 
 `npm run check`가 타입 검사 + architecture/security 검사 + 엔진/라우팅/auth smoke test를 수행합니다.
 
@@ -57,13 +64,50 @@ src/apps/teacher/
   teacherRoute.ts
 
 src/features/teacher/
+  ai/
   auth/
   dashboard/
   lobby/
+  sets/
   settings/
 ```
 
 새 관리자 기능은 `features/teacher/<feature>/`로 추가합니다. `TeacherApp`은 메뉴와 페이지 조립만 담당하고 실제 Firebase 작업/도메인 로직을 직접 구현하지 않습니다.
+
+## AI provider structure
+
+```text
+features/teacher/ai
+        ↓
+src/ai-admin                 # 관리자용 typed callable client
+        ↓
+functions/src/ai/callables   # 인증과 transport 경계
+        ↓
+functions/src/ai/service     # 공급자와 게임이 공유하는 orchestration
+       ↙             ↘
+configRepository      ollamaProvider
+       ↓                    ↓
+Firestore             Ollama Cloud API
+                secretStore → Secret Manager
+```
+
+`ollamaProvider`, `configRepository`, `secretStore`는 callable이나 React를 알지 않습니다. 이후 게임별 AI 함수는 `service.generateAiReply()`만 사용하고 관리자 테스트 UI를 import하지 않습니다.
+
+## Learning set structure
+
+```text
+features/teacher/sets
+          ↓
+src/learning-sets/adminRepository
+          ↓
+Firestore metadata + content
+          ↑
+src/learning-sets/readRepository
+          ↑
+games/<game>/adapter
+```
+
+학생 앱은 세트 편집 UI를 포함하지 않습니다. 게임 lazy chunk가 시작될 때 선택된 `setId`의 content만 읽고 게임별 adapter가 canonical question으로 변환합니다.
 
 ## Student app structure
 
@@ -112,6 +156,7 @@ loadTeacher: () => import("./my-game/MyTeacherGame.tsx")
 game-engine/
   core/                  # 실제로 여러 엔진에서 공유되는 최소 계약/유틸
   question-engine/       # 문제 → 답 → 판정 → 진행 형태의 게임만
+    multiple-choice/     # 2~5지선다 생성·검증·판정
     multiplayer/         # question-engine 진행/답안의 Firestore adapter
   contracts/             # 게임 registry 같은 앱 수준 계약
 ```

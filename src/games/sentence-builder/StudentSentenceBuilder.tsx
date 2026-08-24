@@ -3,6 +3,7 @@ import { shuffled } from "../../game-engine/core/random.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
+import { usePopup } from "../../shared/popup/index.ts";
 import Button from "../../shared/ui/Button.tsx";
 import Card from "../../shared/ui/Card.tsx";
 import { Eyebrow, Muted } from "../../shared/ui/Typography.tsx";
@@ -21,6 +22,7 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
   const engine = useSentenceBuilderGame({ roomId, session, player, set });
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const { showMessage } = usePopup();
   const question = engine.currentQuestion;
   const availableTokens = useMemo<SentenceToken[]>(
     () => question ? shuffled(question.tokens, `${session.roundId}:${player.id}:${question.id}:tokens`) : [],
@@ -61,7 +63,7 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
       if (!result?.isCorrect) setSelectedTokenIds([]);
     } catch (error: unknown) {
       console.error(error);
-      window.alert(toErrorMessage(error, "정답을 제출하지 못했습니다."));
+      await showMessage({ title: "정답을 제출하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
     } finally {
       setSubmitting(false);
     }
