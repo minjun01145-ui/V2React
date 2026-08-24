@@ -118,11 +118,15 @@ src/apps/student/
 
 src/features/student/
   login/
+  session/
+    useStudentSession.ts
+    studentSessionState.ts
+    StudentStatusScreen.tsx
   StudentPage.tsx
-  ...
+  WaitingRoom.tsx
 ```
 
-학생 앱은 관리자 기능을 알지 않습니다.
+학생 앱은 관리자 기능을 알지 않습니다. `StudentPage`는 세션 상태에 맞는 화면만 조립하며, 자동 입장·하트비트·퇴장 생명주기는 `useStudentSession`, 화면 상태 우선순위는 순수 함수인 `studentSessionState`가 담당합니다.
 
 ## Adding a game
 

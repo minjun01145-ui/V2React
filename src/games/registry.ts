@@ -2,6 +2,13 @@ import { defineGame, type GameDefinition } from "../game-engine/contracts/gameDe
 
 const definitions = [
   defineGame({
+    id: "pokemon-catch",
+    title: "포켓몬 잡기",
+    supportedSetTypes: ["vocabulary"],
+    loadStudent: () => import("./pokemon-catch/PokemonCatchStudentGame.tsx"),
+    loadTeacher: () => import("./pokemon-catch/PokemonCatchTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "sentence-builder",
     title: "문장 만들기",
     supportedSetTypes: ["reading-chunks"],
