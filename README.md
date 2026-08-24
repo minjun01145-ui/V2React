@@ -1,5 +1,7 @@
 # Jurye React classroom base
 
+Firebase Hosting과 GitHub Actions 자동 배포 절차는 [FIREBASE_GITHUB_DEPLOY_KO.md](./FIREBASE_GITHUB_DEPLOY_KO.md)를 참고하세요.
+
 React + TypeScript strict + Vite + Firebase base for browser-only Chromebook classroom games.
 
 ## Current system
