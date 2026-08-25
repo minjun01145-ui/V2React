@@ -141,25 +141,24 @@ export default function TeacherStudentsPage({ roomId }: Props) {
       <div className={styles.forms}>
         <Card as="form" className={styles.form} onSubmit={(event) => void submitSingle(event)}>
           <Eyebrow>ADD OR EDIT</Eyebrow>
-          <h2>학생 한 명 등록·수정</h2>
-          <Muted>같은 학번을 저장하면 이름과 활성 상태가 수정됩니다.</Muted>
+          <h2>학생 등록·수정</h2>
           <label>학번<input inputMode="numeric" maxLength={12} pattern="[0-9０-９]+" value={studentNumber} onChange={(event) => setStudentNumber(event.target.value)} disabled={Boolean(busyKey)} required /></label>
           <label>이름<input maxLength={30} value={name} onChange={(event) => setName(event.target.value)} disabled={Boolean(busyKey)} required /></label>
           <label className={styles.check}><input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} disabled={Boolean(busyKey)} /> 로그인 허용</label>
-          <Button type="submit" disabled={Boolean(busyKey)}>{busyKey === "save" ? "저장 중…" : "학생 저장"}</Button>
+          <Button type="submit" disabled={Boolean(busyKey)}>{busyKey === "save" ? "저장 중…" : "저장"}</Button>
         </Card>
 
         <Card as="form" className={styles.form} onSubmit={(event) => void submitBulk(event)}>
           <Eyebrow>BULK IMPORT</Eyebrow>
-          <h2>명단 한꺼번에 붙여넣기</h2>
-          <Muted>엑셀에서 학번·이름 두 열을 복사하거나, 한 줄에 `학번,이름` 형식으로 입력하세요.</Muted>
+          <h2>명단 붙여넣기</h2>
+          <Muted>엑셀에서 학번·이름 두 열을 복사하거나 한 줄에 `학번,이름`.</Muted>
           <label>학생 명단<textarea rows={7} placeholder={'20301\t홍길동\n20302\t김주례'} value={bulkText} onChange={(event) => setBulkText(event.target.value)} disabled={Boolean(busyKey)} required /></label>
-          <Button type="submit" disabled={Boolean(busyKey)}>{busyKey === "import" ? "등록 중…" : "명단 반영"}</Button>
+          <Button type="submit" disabled={Boolean(busyKey)}>{busyKey === "import" ? "등록 중…" : "반영"}</Button>
         </Card>
       </div>
 
       <Card className={styles.rosterCard}>
-        <div className={styles.rosterHeading}><div><Eyebrow>PRIVATE FIRESTORE DATA</Eyebrow><h2>등록된 학생</h2></div><Muted>PIN 원문은 저장되거나 표시되지 않습니다.</Muted></div>
+        <div className={styles.rosterHeading}><div><Eyebrow>ROSTER</Eyebrow><h2>등록된 학생</h2></div></div>
         {loading ? <p className={styles.empty}>학생 명단을 불러오는 중입니다.</p> : students.length === 0 ? <p className={styles.empty}>아직 등록된 학생이 없습니다.</p> : (
           <div className={styles.tableWrap}>
             <table>

@@ -1,11 +1,11 @@
-.body { display: grid; gap: 1rem; padding: .8rem 1.55rem 1.55rem; }
-.fields { display: grid; gap: .85rem; }
-.field { display: grid; gap: .42rem; color: var(--color-ink-soft); font-size: .8rem; font-weight: 850; }
-.field input { width: 100%; min-height: 3.2rem; padding: 0 .95rem; border: 1px solid var(--color-landing-border); border-radius: .85rem; outline: none; color: var(--color-ink); background: var(--color-landing-input-bg); font: inherit; letter-spacing: normal; transition: border-color 140ms ease, box-shadow 140ms ease; }
+.body { display: grid; gap: .9rem; padding: .7rem 1.25rem 1.25rem; }
+.fields { display: grid; gap: .8rem; }
+.field { display: grid; gap: .4rem; color: var(--color-text); font-size: .8rem; font-weight: 700; }
+.field input { width: 100%; min-height: 2.9rem; padding: 0 .9rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); outline: none; color: var(--color-text); background: var(--color-surface); font: inherit; letter-spacing: normal; transition: border-color 140ms ease, box-shadow 140ms ease; }
 .field input[type="password"] { font-size: 1.2rem; letter-spacing: .2em; }
-.field input:focus { border-color: var(--color-landing-input-focus); box-shadow: 0 0 0 4px var(--color-landing-input-focus-ring); }
-.field input:disabled { opacity: .65; }
-.error { margin: 0; padding: .7rem .8rem; border-radius: .7rem; color: var(--color-error-text); background: var(--color-error-bg); font-size: .78rem; font-weight: 750; line-height: 1.45; }
-.actions { display: flex; justify-content: flex-end; gap: .55rem; }
-.actions button { min-width: 6.2rem; }
-@media (max-width: 480px) { .body { padding: .75rem 1.2rem 1.2rem; } .actions { flex-direction: column-reverse; } .actions button { width: 100%; } }
+.field input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+.field input:disabled { opacity: .6; }
+.error { margin: 0; padding: .65rem .75rem; border-radius: var(--radius-sm); color: var(--color-danger-text); background: var(--color-danger-soft); font-size: .78rem; font-weight: 700; line-height: 1.4; }
+.actions { display: flex; justify-content: flex-end; gap: .5rem; }
+.actions button { min-width: 5.5rem; }
+@media (max-width: 480px) { .body { padding: .65rem 1.1rem 1.1rem; } .actions { flex-direction: column-reverse; } .actions button { width: 100%; } }

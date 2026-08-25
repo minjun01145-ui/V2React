@@ -1,2 +1,2 @@
-.eyebrow { margin: 0 0 0.45rem; color: #6366f1; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.14em; }
+.eyebrow { margin: 0 0 0.3rem; color: var(--color-primary); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; }
 .muted { color: var(--color-muted); }

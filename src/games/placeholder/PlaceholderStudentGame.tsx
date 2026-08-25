@@ -7,8 +7,7 @@ export default function PlaceholderStudentGame({ player }: StudentGameModuleProp
     <Card className={styles.placeholder}>
       <div className={styles.badge}>STUDENT GAME MODULE</div>
       <h2>{player.displayName}, 준비!</h2>
-      <p>학생용 게임 진입점이 정상적으로 분리되어 로드되었습니다.</p>
-      <code>src/games/placeholder/PlaceholderStudentGame.tsx</code>
+      <p>학생용 게임 진입점이 정상적으로 로드되었습니다.</p>
     </Card>
   );
 }

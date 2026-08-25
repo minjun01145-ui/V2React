@@ -3,12 +3,12 @@ import type { Unsubscribe } from "firebase/firestore";
 import { appConfig } from "../config/appConfig.ts";
 import {
   ensureSession,
-  isPlayerOnline,
   subscribePlayer,
   subscribePlayers,
   subscribeSession,
   touchPlayer,
 } from "./repository.ts";
+import { selectActivePlayers } from "./presence.ts";
 import type { GameSession, Player } from "./types.ts";
 
 interface SubscriptionResult<T> {
@@ -82,7 +82,7 @@ export function usePlayers(roomId: string): {
 
   return {
     players: result.value,
-    activePlayers: result.value.filter((player) => isPlayerOnline(player, now)),
+    activePlayers: selectActivePlayers(result.value, now, appConfig.playerStaleAfterMs),
     loading: result.loading,
     error: result.error,
   };
@@ -153,9 +153,14 @@ export function usePlayerHeartbeat(
 
     void tick();
     const timer = window.setInterval(() => void tick(), appConfig.playerHeartbeatMs);
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState === "visible") void tick();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       active = false;
       window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [roomId, playerId, enabled]);
 

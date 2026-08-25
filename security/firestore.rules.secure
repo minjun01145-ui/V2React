@@ -75,12 +75,12 @@ service cloud.firestore {
         allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
         allow create: if isStudent()
           && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
-          && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "waiting"
+          && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status in ["waiting", "playing"]
           && request.auth.uid == uid
           && request.resource.data.playerId == uid
           && request.resource.data.studentNumber == request.auth.token.studentNumber
           && request.resource.data.displayName == request.auth.token.displayName
-          && request.resource.data.state == "waiting"
+          && request.resource.data.state == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status
           && request.resource.data.keys().hasOnly([
             "playerId", "studentNumber", "displayName", "state",
             "joinedAt", "joinedAtMs", "lastSeenAt", "lastSeenAtMs"
@@ -90,8 +90,14 @@ service cloud.firestore {
           && resource.data.playerId == uid
           && resource.data.studentNumber == request.auth.token.studentNumber
           && resource.data.displayName == request.auth.token.displayName
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["lastSeenAt", "lastSeenAtMs"]);
-        allow delete: if isStudent() && request.auth.uid == uid;
+          && request.resource.data.studentNumber == resource.data.studentNumber
+          && request.resource.data.displayName == resource.data.displayName
+          && (
+            request.resource.data.state == resource.data.state
+            || request.resource.data.state == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status
+          )
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs"]);
+        allow delete: if isAdmin() || (isStudent() && request.auth.uid == uid);
       }
 
       match /rounds/{roundId} {

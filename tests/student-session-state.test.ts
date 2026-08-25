@@ -53,6 +53,11 @@ assert.equal(resolveStudentSessionState({
   ...baseSnapshot,
   session: { ...session, status: SESSION_STATUS.PLAYING },
 }).view, "playing");
+assert.equal(resolveStudentSessionState({
+  ...baseSnapshot,
+  session: { ...session, status: SESSION_STATUS.PLAYING },
+  heartbeatError: new Error("presence temporarily unavailable"),
+}).view, "playing", "presence 오류가 게임 시작 전환을 막으면 안 됩니다.");
 
 const playerError = new Error("player subscription failed");
 const playerErrorState = resolveStudentSessionState({ ...baseSnapshot, playerError });

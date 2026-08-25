@@ -24,10 +24,10 @@
 .previewRows > div span { overflow-wrap: anywhere; }
 .previewRows > div span:last-child { color: var(--color-muted); }
 .previewRows small { padding-top: .65rem; color: var(--color-muted); font-weight: 750; }
-.previewError { margin: .75rem 0 0; color: var(--color-error-text); font-weight: 750; }
+.previewError { margin: .75rem 0 0; color: var(--color-danger-text); font-weight: 700; }
 .actions { display: flex; flex-wrap: wrap; gap: .6rem; }
-.error, .notice { margin: 0 0 1rem; padding: .8rem 1rem; border-radius: .75rem; font-weight: 750; }
-.error { color: var(--color-error-text); background: var(--color-error-bg); }
+.error, .notice { margin: 0 0 1rem; padding: .8rem 1rem; border-radius: var(--radius-sm); font-weight: 700; }
+.error { color: var(--color-danger-text); background: var(--color-danger-soft); }
 .notice { color: #17643a; background: #eaf8f0; }
 .empty { margin: .75rem 0 0; color: var(--color-muted); text-align: center; }
 @media (max-width: 860px) { .workspace { grid-template-columns: 1fr; } }

@@ -30,7 +30,7 @@ export default function TeacherSentenceBuilder({ roomId, session, set }: Props) 
   ] as const;
 
   return <div>
-    <StatusPanel title={adaptedSet.title} tone="waiting">학생들이 각자 문장 조각을 올바른 순서로 맞추고 있습니다.</StatusPanel>
+    <StatusPanel title={adaptedSet.title} tone="waiting">문장 만들기 진행 중</StatusPanel>
     <section className={styles.statGrid}>{stats.map((stat) => <div className={styles.stat} key={stat.label}><span>{stat.label}</span><strong>{stat.value}</strong></div>)}</section>
     <Card><div className={styles.heading}><div><Eyebrow>LIVE ANSWERS</Eyebrow><h2>최근 응답</h2></div></div>
       {answers.value.length === 0 ? <Muted>아직 제출된 답이 없습니다.</Muted> : <div className={styles.feed}>{answers.value.slice(0, 12).map((answer) => <div className={styles.feedRow} key={answer.id}><strong>{answer.displayName}</strong><span>{answer.prompt}</span><b className={answer.isCorrect ? styles.ok : styles.no}>{answer.isCorrect ? "정답" : "오답"}</b><small>{answer.totalScore}점</small></div>)}</div>}

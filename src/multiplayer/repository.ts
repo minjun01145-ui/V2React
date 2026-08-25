@@ -4,10 +4,12 @@ import {
   deleteField,
   doc,
   getDoc,
+  getDocs,
   onSnapshot,
   runTransaction,
   serverTimestamp,
   setDoc,
+  writeBatch,
   type DocumentData,
   type DocumentSnapshot,
   type QueryDocumentSnapshot,
@@ -16,6 +18,7 @@ import {
 import { appConfig } from "../config/appConfig.ts";
 import { db } from "../firebase/firebaseClient.ts";
 import { MULTIPLAYER_COLLECTION, SESSION_STATUS, type SessionStatus } from "./constants.ts";
+import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import type { GameSession, JoinSessionInput, Player, StartSessionOptions } from "./types.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
@@ -82,10 +85,6 @@ function parsePlayer(snapshot: QueryDocumentSnapshot<DocumentData> | DocumentSna
   };
 }
 
-export function isPlayerOnline(player: Player, now = Date.now()): boolean {
-  return now - player.lastSeenAtMs <= appConfig.playerStaleAfterMs;
-}
-
 export async function ensureSession(roomId: string): Promise<void> {
   const ref = sessionRef(roomId);
   const snapshot = await getDoc(ref);
@@ -109,10 +108,9 @@ export function subscribeSession(roomId: string, onValue: (value: GameSession | 
 
 export function subscribePlayers(roomId: string, onValue: (value: Player[]) => void, onError: (error: Error) => void): Unsubscribe {
   return onSnapshot(playersRef(roomId), (snapshot) => {
-    const players = snapshot.docs
+    const players = deduplicatePlayers(snapshot.docs
       .map((playerDoc) => parsePlayer(playerDoc))
-      .filter((player): player is Player => player !== null)
-      .sort((a, b) => a.studentNumber.localeCompare(b.studentNumber, "ko-KR", { numeric: true }));
+      .filter((player): player is Player => player !== null));
     onValue(players);
   }, onError);
 }
@@ -123,8 +121,15 @@ export function subscribePlayer(roomId: string, playerId: string, onValue: (valu
 
 export async function joinSession({ roomId, playerId, studentNumber, displayName }: JoinSessionInput): Promise<void> {
   const now = Date.now();
+  const sRef = sessionRef(roomId);
   const pRef = playerRef(roomId, playerId);
   await runTransaction(db, async (tx) => {
+    const sessionSnapshot = await tx.get(sRef);
+    const sessionData: unknown = sessionSnapshot.exists() ? sessionSnapshot.data() : null;
+    const sessionStatus = isRecord(sessionData) ? parseStatus(sessionData.status) : null;
+    if (sessionStatus !== SESSION_STATUS.WAITING && sessionStatus !== SESSION_STATUS.PLAYING) {
+      throw new Error("참여할 수 있는 수업 세션이 없습니다.");
+    }
     const current = await tx.get(pRef);
     const currentData: unknown = current.exists() ? current.data() : null;
     const currentJoinedAt = isRecord(currentData) ? currentData.joinedAt : undefined;
@@ -133,13 +138,27 @@ export async function joinSession({ roomId, playerId, studentNumber, displayName
       playerId,
       studentNumber,
       displayName,
-      state: SESSION_STATUS.WAITING,
+      state: sessionStatus,
       joinedAt: currentJoinedAt ?? serverTimestamp(),
       joinedAtMs: currentJoinedAtMs ?? now,
       lastSeenAt: serverTimestamp(),
       lastSeenAtMs: now,
     }, { merge: true });
   });
+}
+
+async function prunePlayerPresence(roomId: string, now: number): Promise<void> {
+  const snapshot = await getDocs(playersRef(roomId));
+  const parsed = snapshot.docs
+    .map((playerDoc) => parsePlayer(playerDoc))
+    .filter((player): player is Player => player !== null);
+  const keepIds = new Set(selectActivePlayers(parsed, now, appConfig.playerStaleAfterMs).map((player) => player.id));
+  const removals = snapshot.docs.filter((playerDoc) => !keepIds.has(playerDoc.id));
+  for (let offset = 0; offset < removals.length; offset += 400) {
+    const batch = writeBatch(db);
+    for (const playerDoc of removals.slice(offset, offset + 400)) batch.delete(playerDoc.ref);
+    await batch.commit();
+  }
 }
 
 export async function touchPlayer(roomId: string, playerId: string): Promise<void> {
@@ -156,6 +175,7 @@ export async function leaveSession(roomId: string, playerId: string): Promise<vo
 export async function startSession(roomId: string, options: StartSessionOptions = {}): Promise<void> {
   await ensureSession(roomId);
   const now = Date.now();
+  await prunePlayerPresence(roomId, now);
   const nextSession: Record<string, unknown> = {
     gameId: options.gameId ?? appConfig.defaultGameId,
     status: SESSION_STATUS.PLAYING,

@@ -1,5 +1,4 @@
 .placeholder { text-align: center; }
 .placeholder h2 { margin: 0; }
-.badge { display: inline-block; margin-bottom: 1rem; padding: .35rem .65rem; border-radius: 999px; background: var(--color-primary-soft); color: #4338ca; font-size: .75rem; font-weight: 900; letter-spacing: .08em; }
+.badge { display: inline-block; margin-bottom: 1rem; padding: .3rem .6rem; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary); font-size: .72rem; font-weight: 700; letter-spacing: .08em; }
 .placeholder p { color: var(--color-muted); }
-.placeholder code { display: inline-block; margin-top: 1rem; padding: .55rem .7rem; border-radius: .6rem; background: var(--color-text); color: #f9fafb; }

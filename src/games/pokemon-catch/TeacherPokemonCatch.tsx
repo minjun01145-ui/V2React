@@ -21,7 +21,7 @@ export default function TeacherPokemonCatch({ roomId, session, set }: {
   const correct = answers.value.filter((answer) => answer.isCorrect).length;
   const completed = progress.value.filter((item) => item.currentIndex >= adapted.questions.length).length;
   return <div className={styles.teacherView}>
-    <StatusPanel title={set.name} tone="waiting">학생들이 단어 문제를 풀어 몬스터볼을 얻고 FireRed 포켓몬을 잡고 있습니다.</StatusPanel>
+    <StatusPanel title={set.name} tone="waiting">포켓몬 잡기 진행 중</StatusPanel>
     <section className={styles.teacherStats}>
       <div><span>단어</span><strong>{adapted.questions.length}</strong></div>
       <div><span>총 응답</span><strong>{answers.value.length}</strong></div>

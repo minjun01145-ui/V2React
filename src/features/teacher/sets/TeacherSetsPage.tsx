@@ -162,24 +162,23 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
         </Card>
 
         <Card as="form" className={styles.editor} onSubmit={(event) => void submit(event)}>
-          <div><Eyebrow>{selected ? "EDIT SET" : "NEW SET"}</Eyebrow><h2>{selected ? "세트 수정" : "새 세트 만들기"}</h2><Muted>엑셀이나 Google Sheets에서 두 열을 복사해 아래 입력란에 붙여넣으세요.</Muted></div>
+          <div><Eyebrow>{selected ? "EDIT SET" : "NEW SET"}</Eyebrow><h2>{selected ? "세트 수정" : "새 세트"}</h2></div>
           <div className={styles.fields}>
             <label>세트 이름<input maxLength={80} value={name} onChange={(event) => setName(event.target.value)} disabled={Boolean(busy)} placeholder="예: 1학기 필수 단어" required /></label>
-            <label>세트 타입<select value={type} onChange={(event) => setType(event.target.value as LearningSetType)} disabled={Boolean(busy)}><option value={LEARNING_SET_TYPE.VOCABULARY}>단어</option><option value={LEARNING_SET_TYPE.READING_CHUNKS}>끊어읽기</option></select></label>
+            <label>타입<select value={type} onChange={(event) => setType(event.target.value as LearningSetType)} disabled={Boolean(busy)}><option value={LEARNING_SET_TYPE.VOCABULARY}>단어</option><option value={LEARNING_SET_TYPE.READING_CHUNKS}>끊어읽기</option></select></label>
           </div>
-          <label>세트 내용<textarea rows={13} value={pasteText} onChange={(event) => setPasteText(event.target.value)} disabled={Boolean(busy)} placeholder={readingType ? "I go / to school.\t나는 / 학교에 간다.\nShe likes / this book.\t그녀는 좋아한다 / 이 책을." : "apple\t사과\nclassroom\t교실"} required /></label>
-          <Muted>{readingType ? "왼쪽 문장을 / 기호로 두 조각 이상 나누세요. 뜻도 같은 개수로 나누면 덩어리 객관식에 사용할 수 있고, 나누지 않으면 전체 문장 문제에 사용할 수 있습니다." : "왼쪽 열에는 단어 또는 표현, 오른쪽 열에는 뜻을 입력하세요."} 첫 줄의 `단어·뜻` 또는 `문장·뜻` 머리글은 자동으로 제외됩니다.</Muted>
+          <label>내용<textarea rows={13} value={pasteText} onChange={(event) => setPasteText(event.target.value)} disabled={Boolean(busy)} placeholder={readingType ? "I go / to school.\t나는 / 학교에 간다." : "apple\t사과\nclassroom\t교실"} required /></label>
 
           <div className={styles.preview}>
             <div className={styles.heading}><div><Eyebrow>PREVIEW</Eyebrow><h3>인식 결과</h3></div><strong>{preview.items.length}개</strong></div>
-            {preview.error ? <p className={styles.previewError}>{preview.error}</p> : preview.items.length === 0 ? <p className={styles.empty}>내용을 붙여넣으면 여기에서 확인할 수 있습니다.</p> : (
+            {preview.error ? <p className={styles.previewError}>{preview.error}</p> : preview.items.length === 0 ? <p className={styles.empty}>붙여넣으면 여기에 표시됩니다.</p> : (
               <div className={styles.previewRows}>{preview.items.slice(0, 8).map((item) => <div key={item.id}><span>{item.sourceText}</span><span>{item.meaning}</span></div>)}{preview.items.length > 8 ? <small>외 {preview.items.length - 8}개</small> : null}</div>
             )}
           </div>
 
           <div className={styles.actions}>
-            <Button type="submit" disabled={Boolean(busy) || Boolean(preview.error) || preview.items.length === 0}>{busy === "save" ? "저장 중…" : selected ? "변경사항 저장" : "세트 저장"}</Button>
-            {selected ? <Button variant="ghost" onClick={() => void remove()} disabled={Boolean(busy)}>{busy === "delete" ? "삭제 중…" : "세트 삭제"}</Button> : null}
+            <Button type="submit" disabled={Boolean(busy) || Boolean(preview.error) || preview.items.length === 0}>{busy === "save" ? "저장 중…" : selected ? "저장" : "세트 저장"}</Button>
+            {selected ? <Button variant="ghost" onClick={() => void remove()} disabled={Boolean(busy)}>{busy === "delete" ? "삭제 중…" : "삭제"}</Button> : null}
           </div>
         </Card>
       </div>

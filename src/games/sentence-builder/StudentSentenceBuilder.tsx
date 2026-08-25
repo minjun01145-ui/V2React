@@ -80,10 +80,10 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
 
   return <div className={styles.game}>
     <div className={styles.topbar}><div><Eyebrow>{engine.setTitle}</Eyebrow><strong>{engine.currentIndex + 1} / {engine.questionCount}</strong></div><div className={styles.scoreChip}>{engine.progress.score}점</div></div>
-    <Card className={styles.prompt}><p className={styles.label}>한글에 맞게 영어 조각을 순서대로 선택하세요.</p><h2>{question.prompt}</h2></Card>
+    <Card className={styles.prompt}><p className={styles.label}>한글에 맞게 영어 조각을 순서대로 선택</p><h2>{question.prompt}</h2></Card>
     <Card>
       <p className={styles.label}>내 문장</p>
-      <div className={styles.answerZone} aria-label="선택한 문장 조각">{selectedTokens.length === 0 ? <span className={styles.placeholder}>아래 조각을 클릭하세요.</span> : selectedTokens.map((token, index) => <button key={token.id} type="button" className={`${styles.token} ${styles.selected}`} onClick={() => removeToken(token.id)}><span>{index + 1}</span>{token.text}</button>)}</div>
+      <div className={styles.answerZone} aria-label="선택한 문장 조각">{selectedTokens.length === 0 ? <span className={styles.placeholder}>아래 조각을 클릭</span> : selectedTokens.map((token, index) => <button key={token.id} type="button" className={`${styles.token} ${styles.selected}`} onClick={() => removeToken(token.id)}><span>{index + 1}</span>{token.text}</button>)}</div>
       <div className={styles.tokenBank} aria-label="사용 가능한 문장 조각">{unusedTokens.map((token) => <button key={token.id} type="button" className={styles.token} onClick={() => selectToken(token.id)} disabled={submitting || lastResult?.isCorrect}>{token.text}</button>)}</div>
       {lastResult ? <div className={`${styles.feedback} ${lastResult.isCorrect ? styles.correct : styles.incorrect}`} role="status">{lastResult.feedback}</div> : null}
       <div className={styles.actions}>{lastResult?.isCorrect ? <Button onClick={() => void goNext()} disabled={submitting}>다음 문제</Button> : <Button onClick={() => void checkAnswer()} disabled={submitting || selectedTokenIds.length !== question.tokens.length}>정답 확인</Button>}<Button variant="ghost" onClick={() => setSelectedTokenIds([])} disabled={submitting || selectedTokenIds.length === 0 || lastResult?.isCorrect}>다시 선택</Button></div>

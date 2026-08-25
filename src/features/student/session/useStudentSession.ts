@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudentIdentity } from "../../../auth/types.ts";
-import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayer, usePlayerHeartbeat, useSession } from "../../../multiplayer/hooks.ts";
 import { joinSession, leaveSession } from "../../../multiplayer/repository.ts";
 import { resolveStudentSessionState, type StudentSessionState } from "./studentSessionState.ts";
@@ -40,8 +39,7 @@ export function useStudentSession({
       || Boolean(playerError)
       || Boolean(joinError)
       || !session
-      || Boolean(player)
-      || session.status === SESSION_STATUS.PLAYING;
+      || Boolean(player);
 
     if (cannotJoin) {
       activeJoin.current = null;
@@ -87,6 +85,15 @@ export function useStudentSession({
     await leaveSession(roomId, playerId).catch(console.error);
     await onChangeStudent();
   }, [onChangeStudent, playerId, roomId]);
+
+  useEffect(() => {
+    if (!player) return undefined;
+    const releasePresence = (event: PageTransitionEvent): void => {
+      if (!event.persisted) void leaveSession(roomId, playerId).catch(() => undefined);
+    };
+    window.addEventListener("pagehide", releasePresence);
+    return () => window.removeEventListener("pagehide", releasePresence);
+  }, [player, playerId, roomId]);
 
   return {
     state: resolveStudentSessionState({

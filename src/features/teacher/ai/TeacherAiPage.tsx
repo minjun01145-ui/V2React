@@ -143,8 +143,8 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
     <PageShell eyebrow="AI PROVIDER" title="AI API 관리" roomId={roomId} actions={<Button variant="ghost" onClick={() => void load()} disabled={Boolean(busy)}>새로고침</Button>}>
       <div className={styles.statusGrid}>
         <Card as="div"><span>공급자</span><strong>Ollama Cloud</strong><small>{AI_PROVIDER_ID}</small></Card>
-        <Card as="div"><span>상태</span><strong>{statusLabel}</strong><small>키 값은 다시 표시되지 않습니다.</small></Card>
-        <Card as="div"><span>마지막 저장</span><strong className={styles.date}>{formatUpdatedAt(saved?.updatedAtMs ?? 0)}</strong><small>{OLLAMA_CLOUD_ENDPOINT}</small></Card>
+        <Card as="div"><span>상태</span><strong>{statusLabel}</strong></Card>
+        <Card as="div"><span>마지막 저장</span><strong className={styles.date}>{formatUpdatedAt(saved?.updatedAtMs ?? 0)}</strong></Card>
       </div>
 
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
@@ -152,9 +152,9 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
 
       <div className={styles.columns}>
         <Card as="form" className={styles.form} onSubmit={(event) => void submitSettings(event)}>
-          <div><Eyebrow>SECURE PROVIDER SETTINGS</Eyebrow><h2>Ollama Cloud 설정</h2><Muted>API 키는 Google Secret Manager에 저장되며 브라우저와 Firestore에 노출되지 않습니다.</Muted></div>
+          <div><Eyebrow>PROVIDER SETTINGS</Eyebrow><h2>Ollama Cloud</h2><Muted>API 키는 Google Secret Manager에 저장됩니다.</Muted></div>
           <label>API 엔드포인트<input value={OLLAMA_CLOUD_ENDPOINT} readOnly /></label>
-          <label>API 키<input type="password" autoComplete="new-password" placeholder={saved?.apiKeyConfigured ? "변경할 때만 새 키 입력" : "Ollama API 키 입력"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} disabled={Boolean(busy)} /></label>
+          <label>API 키<input type="password" autoComplete="new-password" placeholder={saved?.apiKeyConfigured ? "변경할 때만 입력" : "Ollama API 키"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} disabled={Boolean(busy)} /></label>
           <label>모델<input list="ollama-models" maxLength={120} value={settings.model} onChange={(event) => update("model", event.target.value)} disabled={Boolean(busy)} required /></label>
           <datalist id="ollama-models">{modelOptions.map((model) => <option value={model} key={model} />)}</datalist>
           <div className={styles.compactFields}>
@@ -165,26 +165,20 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
           </div>
           <label className={styles.check}><input type="checkbox" checked={settings.enabled} onChange={(event) => update("enabled", event.target.checked)} disabled={Boolean(busy)} /> 이 AI 공급자 사용</label>
           <div className={styles.buttonRow}>
-            <Button type="submit" disabled={Boolean(busy)}>{busy === "save" ? "저장 중…" : "설정 저장"}</Button>
+            <Button type="submit" disabled={Boolean(busy)}>{busy === "save" ? "저장 중…" : "저장"}</Button>
             <Button variant="ghost" onClick={() => void testConnection()} disabled={!readyForTest}>{busy === "connection" ? "연결 중…" : "연결 테스트"}</Button>
           </div>
           {connectionMeta ? <p className={styles.meta}>{connectionMeta}</p> : null}
         </Card>
 
         <Card as="form" className={styles.form} onSubmit={(event) => void submitMessage(event)}>
-          <div><Eyebrow>REAL MESSAGE TEST</Eyebrow><h2>실제 메시지 전송</h2><Muted>저장된 모델과 옵션으로 Ollama Cloud에 실제 요청을 보내 응답과 지연 시간을 확인합니다.</Muted></div>
+          <div><Eyebrow>MESSAGE TEST</Eyebrow><h2>메시지 전송</h2></div>
           <label>시스템 지시<textarea rows={4} maxLength={2000} value={systemPrompt} onChange={(event) => setSystemPrompt(event.target.value)} disabled={Boolean(busy)} /></label>
           <label>사용자 메시지<textarea rows={6} maxLength={4000} value={prompt} onChange={(event) => setPrompt(event.target.value)} disabled={Boolean(busy)} required /></label>
-          <Button type="submit" disabled={!readyForTest}>{busy === "message" ? "응답 기다리는 중…" : "실제 메시지 보내기"}</Button>
-          {reply ? <div className={styles.response}><span>AI 응답</span><p>{reply}</p>{replyMeta ? <small>{replyMeta}</small> : null}</div> : <p className={styles.placeholder}>API 키와 설정을 저장한 뒤 실제 메시지 테스트를 실행하세요.</p>}
+          <Button type="submit" disabled={!readyForTest}>{busy === "message" ? "응답 대기 중…" : "보내기"}</Button>
+          {reply ? <div className={styles.response}><span>AI 응답</span><p>{reply}</p>{replyMeta ? <small>{replyMeta}</small> : null}</div> : null}
         </Card>
       </div>
-
-      <Card className={styles.guide}>
-        <Eyebrow>FOR FUTURE GAMES</Eyebrow>
-        <h2>게임 모듈 연결 원칙</h2>
-        <Muted>각 게임은 API 키나 공급자 HTTP 형식을 직접 다루지 않고, 서버의 공통 AI 서비스에 게임별 검증·프롬프트 모듈을 연결합니다. 학생에게 범용 AI 프록시는 공개하지 않습니다.</Muted>
-      </Card>
     </PageShell>
   );
 }

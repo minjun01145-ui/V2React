@@ -1,19 +1,19 @@
 .mark {
   display: grid;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   place-items: center;
   transform: rotate(-5deg);
-  border-radius: 0.75rem;
+  border-radius: 0.55rem;
   color: var(--color-accent-ink);
   background: var(--color-accent);
-  box-shadow: 0 8px 18px rgba(8, 28, 63, 0.2);
+  box-shadow: 0 4px 10px rgba(8, 28, 63, 0.12);
 }
 
 .mark span {
   transform: rotate(5deg);
   font-family: Georgia, serif;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   font-weight: 900;
   line-height: 1;
 }

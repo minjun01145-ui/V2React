@@ -6,7 +6,5 @@
   text-rendering: optimizeLegibility;
 }
 body {
-  background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 32rem),
-    var(--color-bg);
+  background: var(--color-bg);
 }

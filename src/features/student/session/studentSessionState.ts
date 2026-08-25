@@ -32,7 +32,6 @@ export function resolveStudentSessionState(snapshot: StudentSessionSnapshot): St
   if (snapshot.sessionError) return { view: "session-error", error: snapshot.sessionError };
   if (snapshot.playerError) return { view: "player-error", error: snapshot.playerError };
   if (snapshot.joinError) return { view: "join-error", error: snapshot.joinError };
-  if (snapshot.heartbeatError) return { view: "heartbeat-error", error: snapshot.heartbeatError };
   if (!snapshot.session) return { view: "waiting-for-session" };
   if (!snapshot.player && snapshot.session.status === SESSION_STATUS.PLAYING) {
     return { view: "game-already-playing" };
@@ -41,5 +40,6 @@ export function resolveStudentSessionState(snapshot: StudentSessionSnapshot): St
   if (snapshot.session.status === SESSION_STATUS.PLAYING) {
     return { view: "playing", session: snapshot.session, player: snapshot.player };
   }
+  if (snapshot.heartbeatError) return { view: "heartbeat-error", error: snapshot.heartbeatError };
   return { view: "lobby", session: snapshot.session, player: snapshot.player };
 }
