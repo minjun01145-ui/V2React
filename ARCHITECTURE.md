@@ -53,6 +53,20 @@ features/student               features/teacher
 26. `shared/popup`은 도메인을 import하지 않으며, 각 앱의 단일 Provider가 큐·portal·접근성을 소유합니다. 기능 코드는 `usePopup()` 계약만 사용합니다.
 27. `classroom-test`는 iframe 메시지 계약과 학생 화면 선택 같은 순수 로직만 소유합니다. 관리자 Callable transport는 `classroom-test-admin`, 임시 사용자·방 발급은 Functions의 `multiplayer-test`가 소유합니다.
 28. 테스트 학생은 별도 HTML entry와 메모리 인증을 사용하지만 기존 `features/student`, `multiplayer`, `games`를 그대로 실행합니다. 교사 테스트 UI는 실제 방 제어를 `features/teacher/room-control`을 통해서만 사용합니다.
+29. 학생의 장기 인벤토리와 수집 기록은 인증 신원이나 라운드 진행도에 섞지 않고 `student-data` 도메인에서 소유합니다. 게임은 이 도메인의 typed hook만 사용하며 Firebase SDK를 직접 import하지 않습니다.
+
+## Persistent student game data
+
+```text
+games/pokemon-catch UI
+          ↓ typed hook
+student-data/pokemon-catch
+          ↓
+Firestore studentGameData/{studentNumber}/games/pokemon-catch
+          └─ captured/{captureId}
+```
+
+인벤토리는 실제 계정의 안정적인 학번 키를 사용하는 학생별 게임 문서에 저장하고 포획 기록은 문서 크기 증가를 막기 위해 하위 컬렉션으로 분리합니다. 보안 규칙은 인증 토큰의 학번이 일치하는 본인 또는 관리자만 읽도록 하고, 인벤토리 필드와 포획 문서 형식을 검증합니다. 테스트 학생은 `test-{uid}` 격리 키를 사용하며 임시 게임 데이터는 테스트 사용자를 삭제하기 전에 서버에서 함께 정리합니다.
 
 `npm run check`가 타입 검사 + architecture/security 검사 + 엔진/라우팅/auth smoke test를 수행합니다.
 
@@ -88,7 +102,7 @@ features/teacher/test-tool → classroom-test-admin → admin Callable
               apps/test-student → features/student → games/multiplayer
 ```
 
-관리자 전용 Callable이 테스트 방과 세 개의 임시 custom-token 사용자를 발급합니다. 각 iframe은 고유 Firebase app 이름과 `inMemoryPersistence`를 사용해 인증 세션을 공유하지 않습니다. 토큰은 URL이나 영속 저장소에 넣지 않고 같은 출처의 `postMessage`로만 전달합니다. 보안 규칙은 토큰의 `testRoomId`와 테스트 방의 `testOwnerUid`를 함께 확인하며, 일반 학생 roster 인증과 분리합니다.
+관리자 전용 Callable이 테스트 방과 세 개의 일회성 참가 비밀을 발급합니다. 각 iframe은 고유 Firebase app 이름과 `inMemoryPersistence`로 익명 인증한 뒤, 서버가 참가 비밀의 해시와 슬롯을 검증하고 해당 익명 사용자에게 테스트 전용 claims를 설정합니다. 참가 비밀은 URL이나 영속 저장소에 넣지 않고 같은 출처의 `postMessage`로만 전달하며 서버에는 SHA-256 해시만 저장합니다. 보안 규칙은 claims의 `testRoomId`와 테스트 방의 `testOwnerUid`를 함께 확인하며, 일반 학생 roster 인증과 분리합니다.
 
 테스트 툴을 끄거나 페이지를 떠나면 종료 Callable이 방의 하위 컬렉션과 임시 사용자를 정리합니다. 비정상 종료로 남은 실행은 같은 관리자가 다음 테스트를 시작할 때 먼저 정리됩니다.
 

@@ -74,11 +74,13 @@ function parsePlayer(snapshot: QueryDocumentSnapshot<DocumentData> | DocumentSna
   const displayName = stringValue(data.displayName).trim();
   const studentNumber = stringValue(data.studentNumber).trim();
   if (!displayName || !studentNumber) return null;
+  const rawNickname = typeof data.nickname === "string" ? data.nickname.trim() : "";
   return {
     id: snapshot.id,
     playerId: stringValue(data.playerId, snapshot.id),
     studentNumber,
     displayName,
+    nickname: rawNickname ? rawNickname : null,
     state: parseStatus(data.state),
     joinedAtMs: numberValue(data.joinedAtMs),
     lastSeenAtMs: numberValue(data.lastSeenAtMs),
@@ -119,7 +121,7 @@ export function subscribePlayer(roomId: string, playerId: string, onValue: (valu
   return onSnapshot(playerRef(roomId, playerId), (snapshot) => onValue(parsePlayer(snapshot)), onError);
 }
 
-export async function joinSession({ roomId, playerId, studentNumber, displayName }: JoinSessionInput): Promise<void> {
+export async function joinSession({ roomId, playerId, studentNumber, displayName, nickname }: JoinSessionInput): Promise<void> {
   const now = Date.now();
   const sRef = sessionRef(roomId);
   const pRef = playerRef(roomId, playerId);
@@ -134,10 +136,12 @@ export async function joinSession({ roomId, playerId, studentNumber, displayName
     const currentData: unknown = current.exists() ? current.data() : null;
     const currentJoinedAt = isRecord(currentData) ? currentData.joinedAt : undefined;
     const currentJoinedAtMs = isRecord(currentData) ? numberOrNull(currentData.joinedAtMs) : null;
+    const trimmedNickname = nickname?.trim() || null;
     tx.set(pRef, {
       playerId,
       studentNumber,
       displayName,
+      nickname: trimmedNickname,
       state: sessionStatus,
       joinedAt: currentJoinedAt ?? serverTimestamp(),
       joinedAtMs: currentJoinedAtMs ?? now,

@@ -9,6 +9,7 @@ function player(id: string, studentNumber: string, lastSeenAtMs: number, joinedA
     playerId: id,
     studentNumber,
     displayName: `학생 ${studentNumber}`,
+    nickname: null,
     state: SESSION_STATUS.WAITING,
     joinedAtMs,
     lastSeenAtMs,

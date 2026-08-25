@@ -13,7 +13,7 @@ import PageShell from "../../../shared/PageShell.tsx";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { Eyebrow, Muted } from "../../../shared/ui/Typography.tsx";
+import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherSetsPage.module.css";
 
 export default function TeacherSetsPage({ roomId }: { readonly roomId: string }) {
@@ -138,7 +138,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
   const readingType = type === LEARNING_SET_TYPE.READING_CHUNKS;
 
   return (
-    <PageShell eyebrow="LEARNING SETS" title="학습 세트 편집" roomId={roomId} actions={<Button variant="ghost" onClick={newSet} disabled={Boolean(busy)}>새 세트</Button>}>
+    <PageShell title="학습 세트 편집" roomId={roomId} actions={<Button variant="ghost" onClick={newSet} disabled={Boolean(busy)}>새 세트</Button>}>
       <div className={styles.stats}>
         <Card as="div"><span>전체 세트</span><strong>{sets.length}</strong></Card>
         <Card as="div"><span>단어</span><strong>{counts.vocabulary}</strong></Card>
@@ -150,7 +150,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
 
       <div className={styles.workspace}>
         <Card className={styles.listCard}>
-          <div className={styles.heading}><div><Eyebrow>SAVED SETS</Eyebrow><h2>저장된 세트</h2></div><Button variant="ghost" onClick={() => void refresh()} disabled={loading || Boolean(busy)}>새로고침</Button></div>
+          <div className={styles.heading}><h2>저장된 세트</h2><Button variant="ghost" onClick={() => void refresh()} disabled={loading || Boolean(busy)}>새로고침</Button></div>
           {loading ? <p className={styles.empty}>세트 목록을 불러오는 중입니다.</p> : sets.length === 0 ? <p className={styles.empty}>아직 저장된 세트가 없습니다.</p> : (
             <div className={styles.setList}>{sets.map((set) => (
               <button className={`${styles.setRow} ${selected?.id === set.id ? styles.selected : ""}`} type="button" onClick={() => void editSet(set)} disabled={Boolean(busy)} key={set.id}>
@@ -162,7 +162,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
         </Card>
 
         <Card as="form" className={styles.editor} onSubmit={(event) => void submit(event)}>
-          <div><Eyebrow>{selected ? "EDIT SET" : "NEW SET"}</Eyebrow><h2>{selected ? "세트 수정" : "새 세트"}</h2></div>
+          <div><h2>{selected ? "세트 수정" : "새 세트"}</h2></div>
           <div className={styles.fields}>
             <label>세트 이름<input maxLength={80} value={name} onChange={(event) => setName(event.target.value)} disabled={Boolean(busy)} placeholder="예: 1학기 필수 단어" required /></label>
             <label>타입<select value={type} onChange={(event) => setType(event.target.value as LearningSetType)} disabled={Boolean(busy)}><option value={LEARNING_SET_TYPE.VOCABULARY}>단어</option><option value={LEARNING_SET_TYPE.READING_CHUNKS}>끊어읽기</option></select></label>
@@ -170,7 +170,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
           <label>내용<textarea rows={13} value={pasteText} onChange={(event) => setPasteText(event.target.value)} disabled={Boolean(busy)} placeholder={readingType ? "I go / to school.\t나는 / 학교에 간다." : "apple\t사과\nclassroom\t교실"} required /></label>
 
           <div className={styles.preview}>
-            <div className={styles.heading}><div><Eyebrow>PREVIEW</Eyebrow><h3>인식 결과</h3></div><strong>{preview.items.length}개</strong></div>
+            <div className={styles.heading}><h3>인식 결과</h3><strong>{preview.items.length}개</strong></div>
             {preview.error ? <p className={styles.previewError}>{preview.error}</p> : preview.items.length === 0 ? <p className={styles.empty}>붙여넣으면 여기에 표시됩니다.</p> : (
               <div className={styles.previewRows}>{preview.items.slice(0, 8).map((item) => <div key={item.id}><span>{item.sourceText}</span><span>{item.meaning}</span></div>)}{preview.items.length > 8 ? <small>외 {preview.items.length - 8}개</small> : null}</div>
             )}

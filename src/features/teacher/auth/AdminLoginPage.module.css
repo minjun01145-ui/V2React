@@ -4,7 +4,6 @@
 .backLink:hover { color: var(--color-primary); }
 
 .panel { position: relative; width: min(24rem, 100%); padding: 1.75rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-card); text-align: center; }
-.eyebrow { margin: 0 0 .4rem; color: var(--color-primary); font-size: .65rem; font-weight: 700; letter-spacing: .16em; }
 .panel h1 { margin: 0; font-size: 1.4rem; }
 .form { display: grid; margin-top: 1.5rem; text-align: left; }
 .form label { margin-bottom: .4rem; color: var(--color-text); font-size: .8rem; font-weight: 700; }

@@ -4,7 +4,7 @@ import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Card from "../../shared/ui/Card.tsx";
-import { Eyebrow, Muted } from "../../shared/ui/Typography.tsx";
+import { Muted } from "../../shared/ui/Typography.tsx";
 import { adaptVocabularySet } from "./adapter.ts";
 import styles from "./PokemonCatch.module.css";
 
@@ -28,7 +28,7 @@ export default function TeacherPokemonCatch({ roomId, session, set }: {
       <div><span>정답</span><strong>{correct}</strong></div>
       <div><span>문제 완료</span><strong>{completed}</strong></div>
     </section>
-    <Card><Eyebrow>LIVE QUIZ</Eyebrow><h2 className={styles.teacherTitle}>최근 단어 응답</h2>
+    <Card><h2 className={styles.teacherTitle}>최근 단어 응답</h2>
       {answers.value.length === 0 ? <Muted>아직 제출된 답이 없습니다.</Muted> : <div className={styles.answerFeed}>{answers.value.slice(0, 12).map((answer) => <div key={answer.id}><strong>{answer.displayName}</strong><span>{answer.prompt}</span><b data-correct={answer.isCorrect}>{answer.isCorrect ? "정답" : "오답"}</b><small>{answer.totalScore}점</small></div>)}</div>}
     </Card>
   </div>;

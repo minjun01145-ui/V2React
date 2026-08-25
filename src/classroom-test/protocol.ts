@@ -2,6 +2,7 @@ import type { MultiplayerTestStudentCredential, TestStudentClientStatus } from "
 
 export interface TestStudentBootstrapMessage {
   readonly type: "classroom-test/bootstrap";
+  readonly runId: string;
   readonly roomId: string;
   readonly student: MultiplayerTestStudentCredential;
 }
@@ -29,26 +30,27 @@ function isSlot(value: unknown): value is number {
 }
 
 export function createTestStudentBootstrapMessage(
+  runId: string,
   roomId: string,
   student: MultiplayerTestStudentCredential,
 ): TestStudentBootstrapMessage {
-  return { type: "classroom-test/bootstrap", roomId, student };
+  return { type: "classroom-test/bootstrap", runId, roomId, student };
 }
 
 export function parseTestStudentBootstrapMessage(value: unknown): TestStudentBootstrapMessage | null {
-  if (!isRecord(value) || value.type !== "classroom-test/bootstrap" || typeof value.roomId !== "string" || !isRecord(value.student)) return null;
+  if (!isRecord(value) || value.type !== "classroom-test/bootstrap" || typeof value.runId !== "string" || typeof value.roomId !== "string" || !isRecord(value.student)) return null;
   const student = value.student;
-  if (!isSlot(student.slot) || typeof student.uid !== "string" || typeof student.studentNumber !== "string"
-      || typeof student.displayName !== "string" || typeof student.customToken !== "string") return null;
+  if (!isSlot(student.slot) || typeof student.studentNumber !== "string"
+      || typeof student.displayName !== "string" || typeof student.joinSecret !== "string") return null;
   return {
     type: "classroom-test/bootstrap",
+    runId: value.runId,
     roomId: value.roomId,
     student: {
       slot: student.slot,
-      uid: student.uid,
       studentNumber: student.studentNumber,
       displayName: student.displayName,
-      customToken: student.customToken,
+      joinSecret: student.joinSecret,
     },
   };
 }

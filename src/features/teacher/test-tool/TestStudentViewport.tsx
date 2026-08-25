@@ -2,7 +2,6 @@ import { useState } from "react";
 import type { MultiplayerTestSession } from "../../../classroom-test/types.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { Eyebrow } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherTestToolPage.module.css";
 import { useTestStudentFrames } from "./useTestStudentFrames.ts";
 
@@ -21,7 +20,7 @@ export default function TestStudentViewport({ session, activeSlot, onPrevious, o
 
   return <Card className={styles.viewerCard}>
     <div className={styles.cardHeading}>
-      <div><Eyebrow>ACTUAL STUDENT APP</Eyebrow><h2>학생 화면</h2></div>
+      <div><h2>학생 화면</h2></div>
       <span className={styles.liveBadge}>실제 연결 · {activeStudent?.displayName ?? "학생"}</span>
     </div>
     <div className={styles.clientStates} aria-label="테스트 학생 연결 상태">

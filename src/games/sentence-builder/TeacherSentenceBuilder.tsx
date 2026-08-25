@@ -3,7 +3,7 @@ import { useRoundAnswers, useRoundProgress } from "../../game-engine/question-en
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Card from "../../shared/ui/Card.tsx";
-import { Eyebrow, Muted } from "../../shared/ui/Typography.tsx";
+import { Muted } from "../../shared/ui/Typography.tsx";
 import { adaptReadingChunksSet } from "./readingChunksAdapter.ts";
 import styles from "./SentenceBuilder.module.css";
 
@@ -32,7 +32,7 @@ export default function TeacherSentenceBuilder({ roomId, session, set }: Props) 
   return <div>
     <StatusPanel title={adaptedSet.title} tone="waiting">문장 만들기 진행 중</StatusPanel>
     <section className={styles.statGrid}>{stats.map((stat) => <div className={styles.stat} key={stat.label}><span>{stat.label}</span><strong>{stat.value}</strong></div>)}</section>
-    <Card><div className={styles.heading}><div><Eyebrow>LIVE ANSWERS</Eyebrow><h2>최근 응답</h2></div></div>
+    <Card><div className={styles.heading}><h2>최근 응답</h2></div>
       {answers.value.length === 0 ? <Muted>아직 제출된 답이 없습니다.</Muted> : <div className={styles.feed}>{answers.value.slice(0, 12).map((answer) => <div className={styles.feedRow} key={answer.id}><strong>{answer.displayName}</strong><span>{answer.prompt}</span><b className={answer.isCorrect ? styles.ok : styles.no}>{answer.isCorrect ? "정답" : "오답"}</b><small>{answer.totalScore}점</small></div>)}</div>}
     </Card>
   </div>;

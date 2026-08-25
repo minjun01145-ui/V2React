@@ -9,9 +9,9 @@ import {
 import type { MultiplayerTestStudentCredential } from "../src/classroom-test/types.ts";
 
 const students: readonly MultiplayerTestStudentCredential[] = [
-  { slot: 1, uid: "test-1", studentNumber: "99001", displayName: "테스트 학생 1", customToken: "token-1" },
-  { slot: 2, uid: "test-2", studentNumber: "99002", displayName: "테스트 학생 2", customToken: "token-2" },
-  { slot: 3, uid: "test-3", studentNumber: "99003", displayName: "테스트 학생 3", customToken: "token-3" },
+  { slot: 1, studentNumber: "99001", displayName: "테스트 학생 1", joinSecret: "secret-1" },
+  { slot: 2, studentNumber: "99002", displayName: "테스트 학생 2", joinSecret: "secret-2" },
+  { slot: 3, studentNumber: "99003", displayName: "테스트 학생 3", joinSecret: "secret-3" },
 ];
 
 assert.equal(moveTestStudentSlot(1, "next", students), 2);
@@ -22,10 +22,10 @@ assert.equal(moveTestStudentSlot(2, "next", []), 2);
 assert.equal(selectTestStudentSlot(1, 3, students), 3);
 assert.equal(selectTestStudentSlot(1, 99, students), 1);
 
-const bootstrap = createTestStudentBootstrapMessage("test-room", students[0]!);
+const bootstrap = createTestStudentBootstrapMessage("11111111-1111-1111-1111-111111111111", "test-room", students[0]!);
 assert.deepEqual(parseTestStudentBootstrapMessage(bootstrap), bootstrap);
 assert.equal(parseTestStudentBootstrapMessage({ ...bootstrap, roomId: 3 }), null);
-assert.equal(parseTestStudentBootstrapMessage({ ...bootstrap, student: { ...students[0], customToken: null } }), null);
+assert.equal(parseTestStudentBootstrapMessage({ ...bootstrap, student: { ...students[0], joinSecret: null } }), null);
 
 assert.deepEqual(parseTestStudentToParentMessage({ type: "classroom-test/ready", slot: 2 }), { type: "classroom-test/ready", slot: 2 });
 const status = createTestStudentStatusMessage(3, "connected", "연결됨");

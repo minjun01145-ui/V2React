@@ -93,11 +93,17 @@ const multiplayerTestCallables = read("functions/src/multiplayer-test/callables.
 if ((multiplayerTestCallables.match(/requireAdmin\(request\)/g) ?? []).length < 2) {
   violations.push("functions/src/multiplayer-test/callables.ts: test session creation and cleanup must both require an administrator");
 }
+if (!multiplayerTestCallables.includes("requireAnonymous(request)")) {
+  violations.push("functions/src/multiplayer-test/callables.ts: test student joining must start from an isolated anonymous Firebase user");
+}
 if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
   violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
 }
 if (!rules.includes("match /multiplayerTestRuns/{adminUid}")) {
   violations.push("security/firestore.rules.secure: multiplayer test run credentials must be server-only");
+}
+if (!rules.includes("match /studentGameData/{accountId}/games/pokemon-catch") || !rules.includes("validPokemonInventory")) {
+  violations.push("security/firestore.rules.secure: persistent Pokémon data must validate authenticated ownership and inventory shape");
 }
 
 if (violations.length) {

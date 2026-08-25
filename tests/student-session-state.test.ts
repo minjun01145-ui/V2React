@@ -23,6 +23,7 @@ const player: Player = {
   playerId: "student-1",
   studentNumber: "10101",
   displayName: "홍길동",
+  nickname: null,
   state: SESSION_STATUS.WAITING,
   joinedAtMs: 0,
   lastSeenAtMs: 0,
@@ -43,7 +44,7 @@ const baseSnapshot: StudentSessionSnapshot = {
 assert.equal(resolveStudentSessionState(baseSnapshot).view, "lobby");
 assert.equal(resolveStudentSessionState({ ...baseSnapshot, joining: true }).view, "loading");
 assert.equal(resolveStudentSessionState({ ...baseSnapshot, session: null, player: null }).view, "waiting-for-session");
-assert.equal(resolveStudentSessionState({ ...baseSnapshot, player: null }).view, "joining");
+assert.equal(resolveStudentSessionState({ ...baseSnapshot, player: null }).view, "awaiting-nickname");
 assert.equal(resolveStudentSessionState({
   ...baseSnapshot,
   session: { ...session, status: SESSION_STATUS.PLAYING },

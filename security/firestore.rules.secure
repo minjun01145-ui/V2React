@@ -38,6 +38,23 @@ service cloud.firestore {
       return isRosterStudent() || isTestStudentForRoom(roomId);
     }
 
+    function ownsStudentGameData(accountId) {
+      return signedIn()
+        && (
+          (isRosterStudent() && accountId == request.auth.token.studentNumber)
+          || (request.auth.token.role == "test-student" && accountId == "test-" + request.auth.uid)
+        );
+    }
+
+    function validPokemonInventory(inventory) {
+      return inventory is map
+        && inventory.keys().hasOnly(["pokeBall", "greatBall", "sleepSpray", "anger"])
+        && inventory.pokeBall is int && inventory.pokeBall >= 0
+        && inventory.greatBall is int && inventory.greatBall >= 0
+        && inventory.sleepSpray is int && inventory.sleepSpray >= 0
+        && inventory.anger is int && inventory.anger >= 0;
+    }
+
     function publicLearningSetRead() {
       return true;
     }
@@ -88,6 +105,35 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /studentGameData/{accountId}/games/pokemon-catch {
+      allow read: if ownsStudentGameData(accountId) || isAdmin();
+      allow create, update: if ownsStudentGameData(accountId)
+        && request.resource.data.keys().hasOnly(["inventory", "updatedAt", "updatedAtMs"])
+        && validPokemonInventory(request.resource.data.inventory)
+        && request.resource.data.updatedAtMs is int;
+      allow delete: if isAdmin();
+
+      match /captured/{captureId} {
+        allow read: if ownsStudentGameData(accountId) || isAdmin();
+        allow create: if ownsStudentGameData(accountId)
+          && request.resource.data.keys().hasOnly([
+            "speciesId", "name", "spriteUrl", "fallbackSpriteUrl", "caughtAt", "caughtAtMs"
+          ])
+          && request.resource.data.speciesId is int
+          && request.resource.data.speciesId >= 1
+          && request.resource.data.speciesId <= 386
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 1
+          && request.resource.data.name.size() <= 80
+          && request.resource.data.spriteUrl is string
+          && request.resource.data.spriteUrl.matches("https://.*")
+          && (request.resource.data.fallbackSpriteUrl == null || request.resource.data.fallbackSpriteUrl is string)
+          && request.resource.data.caughtAtMs is int;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
+    }
+
     match /multiplayerSessions/{roomId} {
       allow read: if isRoomStudent(roomId) || isAdmin();
       allow create, update, delete: if isAdmin();
@@ -102,8 +148,12 @@ service cloud.firestore {
           && request.resource.data.studentNumber == request.auth.token.studentNumber
           && request.resource.data.displayName == request.auth.token.displayName
           && request.resource.data.state == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status
+          && (request.resource.data.nickname == null
+            || (request.resource.data.nickname is string
+              && request.resource.data.nickname.size() >= 2
+              && request.resource.data.nickname.size() <= 12))
           && request.resource.data.keys().hasOnly([
-            "playerId", "studentNumber", "displayName", "state",
+            "playerId", "studentNumber", "displayName", "nickname", "state",
             "joinedAt", "joinedAtMs", "lastSeenAt", "lastSeenAtMs"
           ]);
         allow update: if isRoomStudent(roomId)
@@ -113,11 +163,15 @@ service cloud.firestore {
           && resource.data.displayName == request.auth.token.displayName
           && request.resource.data.studentNumber == resource.data.studentNumber
           && request.resource.data.displayName == resource.data.displayName
+          && (request.resource.data.nickname == null
+            || (request.resource.data.nickname is string
+              && request.resource.data.nickname.size() >= 2
+              && request.resource.data.nickname.size() <= 12))
           && (
             request.resource.data.state == resource.data.state
             || request.resource.data.state == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status
           )
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs"]);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs", "nickname"]);
         allow delete: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
       }
 

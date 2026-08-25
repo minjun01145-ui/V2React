@@ -4,7 +4,7 @@ import PageShell from "../../../shared/PageShell.tsx";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { Eyebrow, Muted } from "../../../shared/ui/Typography.tsx";
+import { Muted } from "../../../shared/ui/Typography.tsx";
 import {
   importStudentRoster,
   listStudentRoster,
@@ -128,7 +128,7 @@ export default function TeacherStudentsPage({ roomId }: Props) {
   };
 
   return (
-    <PageShell eyebrow="STUDENT ROSTER" title="학생 관리" roomId={roomId} actions={<Button variant="ghost" onClick={() => void refresh()} disabled={loading || Boolean(busyKey)}>새로고침</Button>}>
+    <PageShell title="학생 관리" roomId={roomId} actions={<Button variant="ghost" onClick={() => void refresh()} disabled={loading || Boolean(busyKey)}>새로고침</Button>}>
       <div className={styles.stats}>
         <Card as="div"><span>전체 학생</span><strong>{counts.total}</strong></Card>
         <Card as="div"><span>로그인 가능</span><strong>{counts.active}</strong></Card>
@@ -140,7 +140,6 @@ export default function TeacherStudentsPage({ roomId }: Props) {
 
       <div className={styles.forms}>
         <Card as="form" className={styles.form} onSubmit={(event) => void submitSingle(event)}>
-          <Eyebrow>ADD OR EDIT</Eyebrow>
           <h2>학생 등록·수정</h2>
           <label>학번<input inputMode="numeric" maxLength={12} pattern="[0-9０-９]+" value={studentNumber} onChange={(event) => setStudentNumber(event.target.value)} disabled={Boolean(busyKey)} required /></label>
           <label>이름<input maxLength={30} value={name} onChange={(event) => setName(event.target.value)} disabled={Boolean(busyKey)} required /></label>
@@ -149,7 +148,6 @@ export default function TeacherStudentsPage({ roomId }: Props) {
         </Card>
 
         <Card as="form" className={styles.form} onSubmit={(event) => void submitBulk(event)}>
-          <Eyebrow>BULK IMPORT</Eyebrow>
           <h2>명단 붙여넣기</h2>
           <Muted>엑셀에서 학번·이름 두 열을 복사하거나 한 줄에 `학번,이름`.</Muted>
           <label>학생 명단<textarea rows={7} placeholder={'20301\t홍길동\n20302\t김주례'} value={bulkText} onChange={(event) => setBulkText(event.target.value)} disabled={Boolean(busyKey)} required /></label>
@@ -158,7 +156,7 @@ export default function TeacherStudentsPage({ roomId }: Props) {
       </div>
 
       <Card className={styles.rosterCard}>
-        <div className={styles.rosterHeading}><div><Eyebrow>ROSTER</Eyebrow><h2>등록된 학생</h2></div></div>
+        <div className={styles.rosterHeading}><h2>등록된 학생</h2></div>
         {loading ? <p className={styles.empty}>학생 명단을 불러오는 중입니다.</p> : students.length === 0 ? <p className={styles.empty}>아직 등록된 학생이 없습니다.</p> : (
           <div className={styles.tableWrap}>
             <table>

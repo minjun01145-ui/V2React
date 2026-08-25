@@ -10,8 +10,13 @@ interface UseStudentSessionOptions {
   readonly onChangeStudent: () => Promise<void>;
 }
 
+export interface JoinWithNicknameOptions {
+  readonly nickname: string | null;
+}
+
 interface UseStudentSessionResult {
   readonly state: StudentSessionState;
+  readonly joinWithNickname: (options: JoinWithNicknameOptions) => Promise<void>;
   readonly retryJoin: () => void;
   readonly leave: () => Promise<void>;
 }
@@ -26,59 +31,42 @@ export function useStudentSession({
   const heartbeat = usePlayerHeartbeat(roomId, identity.uid, Boolean(player));
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<Error | null>(null);
-  const [retryGeneration, setRetryGeneration] = useState(0);
   const joinAttempt = useRef(0);
   const activeJoin = useRef<{ readonly attempt: number; readonly roomId: string; readonly playerId: string } | null>(null);
 
   const { uid: playerId, studentNumber, displayName } = identity;
 
-  useEffect(() => {
-    const cannotJoin = sessionLoading
-      || playerLoading
-      || Boolean(sessionError)
-      || Boolean(playerError)
-      || Boolean(joinError)
-      || !session
-      || Boolean(player);
-
-    if (cannotJoin) {
-      activeJoin.current = null;
-      setJoining(false);
-      return;
-    }
-    if (activeJoin.current?.roomId === roomId && activeJoin.current.playerId === playerId) return;
-
-    const attempt = ++joinAttempt.current;
-    activeJoin.current = { attempt, roomId, playerId };
-    setJoining(true);
-    void joinSession({ roomId, playerId, studentNumber, displayName })
-      .catch((error: unknown) => {
+  const joinWithNickname = useCallback(
+    async ({ nickname }: JoinWithNicknameOptions): Promise<void> => {
+      if (joining || player) return;
+      const resolvedNickname = nickname?.trim() ? nickname.trim() : null;
+      const attempt = ++joinAttempt.current;
+      activeJoin.current = { attempt, roomId, playerId };
+      setJoining(true);
+      setJoinError(null);
+      try {
+        await joinSession({
+          roomId,
+          playerId,
+          studentNumber,
+          displayName,
+          nickname: resolvedNickname,
+        });
+      } catch (error: unknown) {
         if (activeJoin.current?.attempt !== attempt) return;
         setJoinError(error instanceof Error ? error : new Error("대기실 입장에 실패했습니다."));
-      })
-      .finally(() => {
+        throw error instanceof Error ? error : new Error("대기실 입장에 실패했습니다.");
+      } finally {
         if (activeJoin.current?.attempt !== attempt) return;
         activeJoin.current = null;
         setJoining(false);
-      });
-  }, [
-    displayName,
-    joinError,
-    player,
-    playerError,
-    playerId,
-    playerLoading,
-    retryGeneration,
-    roomId,
-    session,
-    sessionError,
-    sessionLoading,
-    studentNumber,
-  ]);
+      }
+    },
+    [displayName, joining, player, playerId, roomId, studentNumber],
+  );
 
   const retryJoin = useCallback((): void => {
     setJoinError(null);
-    setRetryGeneration((current) => current + 1);
   }, []);
 
   const leave = useCallback(async (): Promise<void> => {
@@ -107,6 +95,7 @@ export function useStudentSession({
       joinError,
       heartbeatError: heartbeat.error,
     }),
+    joinWithNickname,
     retryJoin,
     leave,
   };

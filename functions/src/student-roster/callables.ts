@@ -87,6 +87,7 @@ export const deleteStudent = onCall(callableOptions, async (request) => {
   await Promise.all([
     db.collection("studentRoster").doc(studentNumber).delete(),
     db.collection("studentPinCredentials").doc(studentNumber).delete(),
+    db.recursiveDelete(db.collection("studentGameData").doc(studentNumber)),
   ]);
   await clearStudentSessions(studentNumber);
   return { ok: true };

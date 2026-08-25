@@ -6,7 +6,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: .65rem clamp(1rem, 3vw, 2rem);
+  padding: .75rem clamp(1rem, 3vw, 2rem);
   background: color-mix(in srgb, var(--color-surface) 96%, transparent);
   border-bottom: 1px solid var(--color-border);
 }
@@ -20,8 +20,8 @@
   color: var(--color-text);
 }
 
-.brandMark { flex: 0 0 auto; width: 2.4rem; height: 2.4rem; }
-.brand strong { font-size: .95rem; font-weight: 700; }
+.brandMark { flex: 0 0 auto; width: 3.4rem; height: 3.4rem; }
+.brand strong { font-size: 1.05rem; font-weight: 700; }
 
 .links {
   display: flex;

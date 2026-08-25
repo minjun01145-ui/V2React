@@ -9,12 +9,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function parseStudent(value: unknown): MultiplayerTestStudentCredential | null {
   if (!isRecord(value)) return null;
   const slot = typeof value.slot === "number" && Number.isInteger(value.slot) ? value.slot : 0;
-  const uid = typeof value.uid === "string" ? value.uid : "";
   const studentNumber = typeof value.studentNumber === "string" ? value.studentNumber : "";
   const displayName = typeof value.displayName === "string" ? value.displayName : "";
-  const customToken = typeof value.customToken === "string" ? value.customToken : "";
-  return slot > 0 && uid && studentNumber && displayName && customToken
-    ? { slot, uid, studentNumber, displayName, customToken }
+  const joinSecret = typeof value.joinSecret === "string" ? value.joinSecret : "";
+  return slot > 0 && studentNumber && displayName && joinSecret
+    ? { slot, studentNumber, displayName, joinSecret }
     : null;
 }
 

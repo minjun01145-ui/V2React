@@ -1,9 +1,15 @@
 export interface MultiplayerTestStudentCredential {
   readonly slot: number;
+  readonly studentNumber: string;
+  readonly displayName: string;
+  readonly joinSecret: string;
+}
+
+export interface JoinedMultiplayerTestStudent {
+  readonly slot: number;
   readonly uid: string;
   readonly studentNumber: string;
   readonly displayName: string;
-  readonly customToken: string;
 }
 
 export interface MultiplayerTestSession {

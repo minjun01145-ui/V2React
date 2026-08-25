@@ -106,7 +106,7 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
     <main className={styles.page}>
       <div className={styles.shell}>
         <a className={styles.brand} href="/" aria-label="Jurye 홈">
-          <BrandMark />
+          <BrandMark className={styles.brandMark} />
         </a>
 
         <form className={styles.form} onSubmit={(event) => void submitIdentity(event)}>

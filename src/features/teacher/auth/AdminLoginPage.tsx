@@ -30,7 +30,6 @@ export default function AdminLoginPage() {
       <a className={styles.backLink} href="/">← 학생 화면으로</a>
 
       <section className={styles.panel} aria-labelledby="admin-login-title">
-        <p className={styles.eyebrow}>TEACHER ACCESS</p>
         <h1 id="admin-login-title">관리자 로그인</h1>
 
         <form className={styles.form} onSubmit={(event) => void submit(event)}>

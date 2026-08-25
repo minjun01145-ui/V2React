@@ -1,10 +1,11 @@
-import { signInWithCustomToken, signOut } from "firebase/auth";
+import { signInAnonymously, signOut } from "firebase/auth";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudentIdentity } from "../../auth/types.ts";
 import {
   createTestStudentStatusMessage,
   parseTestStudentBootstrapMessage,
 } from "../../classroom-test/protocol.ts";
+import { joinMultiplayerTestSession } from "../../classroom-test-client/repository.ts";
 import { auth } from "../../firebase/firebaseClient.ts";
 
 interface BootstrapState {
@@ -45,24 +46,26 @@ export function useTestStudentBootstrap(): BootstrapResult {
     const receiveBootstrap = (event: MessageEvent<unknown>): void => {
       if (event.origin !== window.location.origin || event.source !== window.parent) return;
       const message = parseTestStudentBootstrapMessage(event.data);
-      if (!message || message.student.slot !== slot || activeToken.current === message.student.customToken) return;
-      activeToken.current = message.student.customToken;
+      if (!message || message.student.slot !== slot || activeToken.current === message.student.joinSecret) return;
+      activeToken.current = message.student.joinSecret;
       setError(null);
       setEnded(false);
       postStatus(slot, "connecting", "임시 학생 계정으로 접속 중입니다.");
-      void signInWithCustomToken(auth, message.student.customToken)
-        .then((credential) => {
-          if (credential.user.uid !== message.student.uid) throw new Error("테스트 학생 인증 정보가 일치하지 않습니다.");
+      void (async () => {
+          const credential = auth.currentUser?.isAnonymous ? { user: auth.currentUser } : await signInAnonymously(auth);
+          const joined = await joinMultiplayerTestSession(message.runId, message.roomId, message.student);
+          await credential.user.getIdToken(true);
+          if (credential.user.uid !== joined.uid || joined.slot !== slot) throw new Error("테스트 학생 인증 정보가 일치하지 않습니다.");
           setValue({
             roomId: message.roomId,
             identity: {
-              uid: message.student.uid,
-              studentNumber: message.student.studentNumber,
-              displayName: message.student.displayName,
+              uid: joined.uid,
+              studentNumber: joined.studentNumber,
+              displayName: joined.displayName,
             },
           });
           postStatus(slot, "connected", "실제 멀티플레이 세션에 연결되었습니다.");
-        })
+        })()
         .catch((reason: unknown) => {
           const nextError = reason instanceof Error ? reason : new Error("테스트 학생 인증에 실패했습니다.");
           activeToken.current = "";

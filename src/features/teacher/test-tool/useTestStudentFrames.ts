@@ -33,7 +33,7 @@ export function useTestStudentFrames(session: MultiplayerTestSession): TestStude
         setStates((current) => current.map((item) => item.slot === message.slot
           ? { ...item, status: "connecting", message: "임시 인증 정보를 전달했습니다." }
           : item));
-        frame.contentWindow.postMessage(createTestStudentBootstrapMessage(session.roomId, student), window.location.origin);
+        frame.contentWindow.postMessage(createTestStudentBootstrapMessage(session.runId, session.roomId, student), window.location.origin);
         return;
       }
 

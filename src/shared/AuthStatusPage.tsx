@@ -8,12 +8,11 @@ interface Props {
   readonly error?: string;
 }
 
-export default function AuthStatusPage({ eyebrow, title, message, error }: Props) {
+export default function AuthStatusPage({ eyebrow: _eyebrow, title, message, error }: Props) {
   return (
     <main className={styles.page}>
       <section className={styles.card} role={error ? "alert" : "status"}>
         <BrandMark className={styles.brandMark} />
-        <p className={styles.eyebrow}>{eyebrow}</p>
         <h1>{title}</h1>
         <p className={styles.message}>{message}</p>
         {error ? <p className={styles.error}>{error}</p> : <span className={styles.loader} aria-hidden="true" />}

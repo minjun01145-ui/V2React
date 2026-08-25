@@ -9,6 +9,7 @@ export type StudentSessionState =
   | { readonly view: "heartbeat-error"; readonly error: Error }
   | { readonly view: "waiting-for-session" }
   | { readonly view: "game-already-playing" }
+  | { readonly view: "awaiting-nickname" }
   | { readonly view: "joining" }
   | { readonly view: "playing"; readonly session: GameSession; readonly player: Player }
   | { readonly view: "lobby"; readonly session: GameSession; readonly player: Player };
@@ -36,7 +37,7 @@ export function resolveStudentSessionState(snapshot: StudentSessionSnapshot): St
   if (!snapshot.player && snapshot.session.status === SESSION_STATUS.PLAYING) {
     return { view: "game-already-playing" };
   }
-  if (!snapshot.player) return { view: "joining" };
+  if (!snapshot.player) return { view: "awaiting-nickname" };
   if (snapshot.session.status === SESSION_STATUS.PLAYING) {
     return { view: "playing", session: snapshot.session, player: snapshot.player };
   }

@@ -5,8 +5,11 @@ export interface MultiplayerTestStudentDefinition {
 }
 
 export interface MultiplayerTestStudentCredential extends MultiplayerTestStudentDefinition {
+  readonly joinSecret: string;
+}
+
+export interface JoinedMultiplayerTestStudent extends MultiplayerTestStudentDefinition {
   readonly uid: string;
-  readonly customToken: string;
 }
 
 export interface MultiplayerTestSessionResult {

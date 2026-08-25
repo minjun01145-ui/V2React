@@ -10,7 +10,7 @@ import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import PageShell from "../../../shared/PageShell.tsx";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { Eyebrow, Muted } from "../../../shared/ui/Typography.tsx";
+import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherAiPage.module.css";
 
 interface EditableSettings {
@@ -140,7 +140,7 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
   const modelOptions = useMemo(() => models.includes(settings.model) ? models : [settings.model, ...models], [models, settings.model]);
 
   return (
-    <PageShell eyebrow="AI PROVIDER" title="AI API 관리" roomId={roomId} actions={<Button variant="ghost" onClick={() => void load()} disabled={Boolean(busy)}>새로고침</Button>}>
+    <PageShell title="AI API 관리" roomId={roomId} actions={<Button variant="ghost" onClick={() => void load()} disabled={Boolean(busy)}>새로고침</Button>}>
       <div className={styles.statusGrid}>
         <Card as="div"><span>공급자</span><strong>Ollama Cloud</strong><small>{AI_PROVIDER_ID}</small></Card>
         <Card as="div"><span>상태</span><strong>{statusLabel}</strong></Card>
@@ -152,7 +152,7 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
 
       <div className={styles.columns}>
         <Card as="form" className={styles.form} onSubmit={(event) => void submitSettings(event)}>
-          <div><Eyebrow>PROVIDER SETTINGS</Eyebrow><h2>Ollama Cloud</h2><Muted>API 키는 Google Secret Manager에 저장됩니다.</Muted></div>
+          <div><h2>Ollama Cloud</h2><Muted>API 키는 Google Secret Manager에 저장됩니다.</Muted></div>
           <label>API 엔드포인트<input value={OLLAMA_CLOUD_ENDPOINT} readOnly /></label>
           <label>API 키<input type="password" autoComplete="new-password" placeholder={saved?.apiKeyConfigured ? "변경할 때만 입력" : "Ollama API 키"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} disabled={Boolean(busy)} /></label>
           <label>모델<input list="ollama-models" maxLength={120} value={settings.model} onChange={(event) => update("model", event.target.value)} disabled={Boolean(busy)} required /></label>
@@ -172,7 +172,7 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
         </Card>
 
         <Card as="form" className={styles.form} onSubmit={(event) => void submitMessage(event)}>
-          <div><Eyebrow>MESSAGE TEST</Eyebrow><h2>메시지 전송</h2></div>
+          <div><h2>메시지 전송</h2></div>
           <label>시스템 지시<textarea rows={4} maxLength={2000} value={systemPrompt} onChange={(event) => setSystemPrompt(event.target.value)} disabled={Boolean(busy)} /></label>
           <label>사용자 메시지<textarea rows={6} maxLength={4000} value={prompt} onChange={(event) => setPrompt(event.target.value)} disabled={Boolean(busy)} required /></label>
           <Button type="submit" disabled={!readyForTest}>{busy === "message" ? "응답 대기 중…" : "보내기"}</Button>

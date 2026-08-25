@@ -5,18 +5,13 @@ export interface PokemonEncounter {
   readonly id: number;
   readonly name: string;
   readonly spriteUrl: string;
+  readonly fallbackSpriteUrl: string | null;
   readonly shinySpriteUrl: string | null;
   readonly cryUrl: string | null;
   readonly captureRate: number;
-  readonly baseExperience: number;
-}
-
-export interface CapturedPokemon extends PokemonEncounter {
-  readonly captureId: string;
-  readonly caughtAtMs: number;
-  readonly score: number;
 }
 
 export type PokemonCatchQuestionSet = MultipleChoiceQuestionSet<LearningSetQuestionSource>;
-export type EncounterPhase = "loading" | "ready" | "throwing" | "caught" | "escaped" | "error";
-
+export type EncounterLoadStatus = "loading" | "ready" | "error";
+export type EncounterActionPhase = "ready" | "throwing" | "failed" | "caught" | "escaped";
+export type EncounterPhase = "loading" | EncounterActionPhase | "error";

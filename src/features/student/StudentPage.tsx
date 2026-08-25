@@ -11,7 +11,7 @@ interface Props {
 }
 
 export default function StudentPage({ roomId, identity, onChangeStudent }: Props) {
-  const { state, retryJoin, leave } = useStudentSession({ roomId, identity, onChangeStudent });
+  const { state, joinWithNickname, retryJoin, leave } = useStudentSession({ roomId, identity, onChangeStudent });
 
   if (state.view === "playing") {
     return <StudentGamePage roomId={roomId} session={state.session} player={state.player} />;
@@ -19,6 +19,19 @@ export default function StudentPage({ roomId, identity, onChangeStudent }: Props
 
   if (state.view === "lobby") {
     return <StudentLobbyPage roomId={roomId} player={state.player} onLeave={leave} />;
+  }
+
+  if (state.view === "awaiting-nickname") {
+    return (
+      <StudentLobbyPage
+        roomId={roomId}
+        player={null}
+        onJoin={(nickname) => joinWithNickname({ nickname })}
+        onLeave={leave}
+        defaultDisplayName={identity.displayName}
+        selfStudentNumber={identity.studentNumber}
+      />
+    );
   }
 
   return <StudentStatusScreen roomId={roomId} state={state} onRetryJoin={retryJoin} onLeave={leave} />;
