@@ -2,9 +2,9 @@ import { usePlayers } from "../../../multiplayer/hooks.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { displayLabel } from "./nickname.ts";
-import PlayerGrid from "./PlayerGrid.tsx";
+import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import TypingGameButton from "./TypingGameButton.tsx";
+import { displayLabel } from "./nickname.ts";
 import styles from "./WaitingRoom.module.css";
 
 interface Props {

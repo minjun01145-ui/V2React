@@ -5,7 +5,7 @@ import { LEARNING_SET_TYPE, type LearningSetSummary } from "../../../learning-se
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayers, useSession } from "../../../multiplayer/hooks.ts";
 import { resetSession, startSession } from "../../../multiplayer/repository.ts";
-import { displayLabel } from "../../../multiplayer/types.ts";
+import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -81,7 +81,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
     {isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : <>
       <StatusPanel title="학생 대기 중" tone="waiting">접속 {activePlayers.length}명{staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}</StatusPanel>
       <Card className={styles.setPicker}><div><h2>{gameId === "pokemon-catch" ? "포켓몬 잡기" : "문장 만들기"}</h2><Muted>{gameId === "pokemon-catch" ? "단어 세트 · 4개 이상 필요" : "끊어읽기 세트"}</Muted></div><div className={styles.pickerControls}><label>게임<select value={gameId} onChange={(event) => selectGame(event.target.value as SupportedGameId)} disabled={working}><option value="pokemon-catch">포켓몬 잡기</option><option value="sentence-builder">문장 만들기</option></select></label><label>학습 세트<select value={selectedSetId} onChange={(event) => setSelectedSetId(event.target.value)} disabled={working}><option value="">내장 데모 세트</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</select></label></div>{setError ? <p className={styles.setError}>{setError}</p> : null}{invalidPokemonSet ? <p className={styles.setError}>4지선다를 위해 4개 이상의 단어가 필요합니다.</p> : null}</Card>
-      <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div>{activePlayers.length === 0 ? <Muted>접속한 학생이 없습니다.</Muted> : <div className={styles.grid}>{activePlayers.map((player, index) => <div className={styles.player} key={player.id}><span>{index + 1}</span><strong>{player.studentNumber} · {displayLabel(player.displayName, player.nickname)}</strong></div>)}</div>}</Card>
+      <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div><PlayerGrid players={activePlayers} showStudentNumber emptyMessage="접속한 학생이 없습니다." /></Card>
     </>}
   </>;
 

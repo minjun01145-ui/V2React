@@ -7,13 +7,6 @@
   gap: 0.9rem;
 }
 
-.empty {
-  margin: 0;
-  padding: 1.5rem 0;
-  text-align: center;
-  color: var(--text-muted, #8a90a0);
-}
-
 .cell {
   min-width: 0;
 }

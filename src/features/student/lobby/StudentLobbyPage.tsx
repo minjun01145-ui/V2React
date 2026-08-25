@@ -2,8 +2,8 @@ import type { Player } from "../../../multiplayer/types.ts";
 import { usePlayers } from "../../../multiplayer/hooks.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
+import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import NicknamePrompt from "./NicknamePrompt.tsx";
-import PlayerGrid from "./PlayerGrid.tsx";
 import TypingGameButton from "./TypingGameButton.tsx";
 import WaitingRoom from "./WaitingRoom.tsx";
 
