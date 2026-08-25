@@ -7,6 +7,7 @@ import TeacherLobbyPage from "../../features/teacher/lobby/TeacherLobbyPage.tsx"
 import TeacherSetsPage from "../../features/teacher/sets/TeacherSetsPage.tsx";
 import TeacherSettingsPage from "../../features/teacher/settings/TeacherSettingsPage.tsx";
 import TeacherStudentsPage from "../../features/teacher/students/TeacherStudentsPage.tsx";
+import TeacherTestToolPage from "../../features/teacher/test-tool/TeacherTestToolPage.tsx";
 import TeacherNav from "./TeacherNav.tsx";
 import { getTeacherView, TEACHER_VIEW, type TeacherView } from "./teacherRoute.ts";
 
@@ -27,6 +28,7 @@ export default function TeacherWorkspace() {
       {view === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
       {view === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
       {view === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
+      {view === TEACHER_VIEW.TEST_TOOL ? <TeacherTestToolPage roomId={roomId} /> : null}
       {view === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
       {view === TEACHER_VIEW.DASHBOARD ? <TeacherDashboardPage roomId={roomId} /> : null}
     </>

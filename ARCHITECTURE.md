@@ -51,6 +51,8 @@ features/student               features/teacher
 24. 세트 목록 메타데이터와 실제 문항 문서를 분리하고, 게임 세션에는 문항 배열 대신 `setId`만 저장합니다.
 25. 객관식 엔진은 left/right 쌍만 처리하며, 단어·끊어읽기 해석은 `learning-sets` adapter가 담당합니다. 엔진에서 세트 도메인을 import하지 않습니다.
 26. `shared/popup`은 도메인을 import하지 않으며, 각 앱의 단일 Provider가 큐·portal·접근성을 소유합니다. 기능 코드는 `usePopup()` 계약만 사용합니다.
+27. `classroom-test`는 iframe 메시지 계약과 학생 화면 선택 같은 순수 로직만 소유합니다. 관리자 Callable transport는 `classroom-test-admin`, 임시 사용자·방 발급은 Functions의 `multiplayer-test`가 소유합니다.
+28. 테스트 학생은 별도 HTML entry와 메모리 인증을 사용하지만 기존 `features/student`, `multiplayer`, `games`를 그대로 실행합니다. 교사 테스트 UI는 실제 방 제어를 `features/teacher/room-control`을 통해서만 사용합니다.
 
 `npm run check`가 타입 검사 + architecture/security 검사 + 엔진/라우팅/auth smoke test를 수행합니다.
 
@@ -73,6 +75,22 @@ src/features/teacher/
 ```
 
 새 관리자 기능은 `features/teacher/<feature>/`로 추가합니다. `TeacherApp`은 메뉴와 페이지 조립만 담당하고 실제 Firebase 작업/도메인 로직을 직접 구현하지 않습니다.
+
+## Real multiplayer classroom test tool
+
+```text
+features/teacher/test-tool → classroom-test-admin → admin Callable
+             │                                       ↓
+             ├→ teacher/room-control → multiplayer test room
+             │
+             └→ three sandboxed iframes
+                         ↓ postMessage bootstrap
+              apps/test-student → features/student → games/multiplayer
+```
+
+관리자 전용 Callable이 테스트 방과 세 개의 임시 custom-token 사용자를 발급합니다. 각 iframe은 고유 Firebase app 이름과 `inMemoryPersistence`를 사용해 인증 세션을 공유하지 않습니다. 토큰은 URL이나 영속 저장소에 넣지 않고 같은 출처의 `postMessage`로만 전달합니다. 보안 규칙은 토큰의 `testRoomId`와 테스트 방의 `testOwnerUid`를 함께 확인하며, 일반 학생 roster 인증과 분리합니다.
+
+테스트 툴을 끄거나 페이지를 떠나면 종료 Callable이 방의 하위 컬렉션과 임시 사용자를 정리합니다. 비정상 종료로 남은 실행은 같은 관리자가 다음 테스트를 시작할 때 먼저 정리됩니다.
 
 ## AI provider structure
 

@@ -8,6 +8,7 @@ teacher/index.html        → 교사 앱
 
 src/apps/student/         → 학생 앱 조립/부트스트랩
 src/apps/teacher/         → 교사 앱 조립/관리자 내비게이션
+src/apps/test-student/    → 교사 테스트 툴이 띄우는 메모리 인증 학생 클라이언트
 
 src/features/student/     → 학생 전용 기능 UI
 src/features/teacher/     → 교사 전용 기능 UI

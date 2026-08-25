@@ -1,7 +1,7 @@
-import StatusPanel from "../../shared/StatusPanel.tsx";
-import Button from "../../shared/ui/Button.tsx";
-import Card from "../../shared/ui/Card.tsx";
-import { Eyebrow } from "../../shared/ui/Typography.tsx";
+import StatusPanel from "../../../shared/StatusPanel.tsx";
+import Button from "../../../shared/ui/Button.tsx";
+import Card from "../../../shared/ui/Card.tsx";
+import { Eyebrow } from "../../../shared/ui/Typography.tsx";
 import styles from "./WaitingRoom.module.css";
 
 interface Props {

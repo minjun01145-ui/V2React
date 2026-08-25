@@ -11,7 +11,7 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active != false;
     }
 
-    function isStudent() {
+    function isRosterStudent() {
       return signedIn()
         && request.auth.token.role == "student"
         && request.auth.token.studentNumber is string
@@ -19,6 +19,23 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber))
         && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.active != false
         && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.displayName == request.auth.token.displayName;
+    }
+
+    function isTestStudentForRoom(roomId) {
+      return signedIn()
+        && request.auth.token.role == "test-student"
+        && request.auth.token.studentNumber is string
+        && request.auth.token.displayName is string
+        && request.auth.token.testOwnerUid is string
+        && request.auth.token.testRoomId == roomId
+        && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.isTestSession == true
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.expiresAt > request.time
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.testOwnerUid == request.auth.token.testOwnerUid;
+    }
+
+    function isRoomStudent(roomId) {
+      return isRosterStudent() || isTestStudentForRoom(roomId);
     }
 
     function publicLearningSetRead() {
@@ -52,6 +69,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /multiplayerTestRuns/{adminUid} {
+      allow read, write: if false;
+    }
+
     match /learningSets/{setId} {
       allow read: if publicLearningSetRead();
       allow create, update, delete: if isAdmin();
@@ -68,12 +89,12 @@ service cloud.firestore {
     }
 
     match /multiplayerSessions/{roomId} {
-      allow read: if isStudent() || isAdmin();
+      allow read: if isRoomStudent(roomId) || isAdmin();
       allow create, update, delete: if isAdmin();
 
       match /players/{uid} {
-        allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
-        allow create: if isStudent()
+        allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+        allow create: if isRoomStudent(roomId)
           && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
           && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status in ["waiting", "playing"]
           && request.auth.uid == uid
@@ -85,7 +106,7 @@ service cloud.firestore {
             "playerId", "studentNumber", "displayName", "state",
             "joinedAt", "joinedAtMs", "lastSeenAt", "lastSeenAtMs"
           ]);
-        allow update: if isStudent()
+        allow update: if isRoomStudent(roomId)
           && request.auth.uid == uid
           && resource.data.playerId == uid
           && resource.data.studentNumber == request.auth.token.studentNumber
@@ -97,7 +118,7 @@ service cloud.firestore {
             || request.resource.data.state == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status
           )
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs"]);
-        allow delete: if isAdmin() || (isStudent() && request.auth.uid == uid);
+        allow delete: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
       }
 
       match /rounds/{roundId} {
@@ -105,7 +126,7 @@ service cloud.firestore {
 
         match /answers/{answerId} {
           allow read: if isAdmin();
-          allow create: if isStudent()
+          allow create: if isRoomStudent(roomId)
             && activeRound(roomId, roundId)
             && request.resource.data.playerId == request.auth.uid
             && request.resource.data.displayName == request.auth.token.displayName
@@ -120,8 +141,8 @@ service cloud.firestore {
         }
 
         match /progress/{uid} {
-          allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
-          allow create, update: if isStudent()
+          allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow create, update: if isRoomStudent(roomId)
             && request.auth.uid == uid
             && activeRound(roomId, roundId)
             && request.resource.data.playerId == uid

@@ -1,14 +1,18 @@
+.embedded { display: grid; gap: 1rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
+.embeddedHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.embeddedHeader h2 { margin: .25rem 0 0; }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .heading h2 { margin: 0; }
 .count { display: inline-grid; place-content: center; min-width: 2.4rem; height: 2.4rem; border-radius: 999px; background: var(--color-primary-soft); color: #4338ca; font-weight: 900; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(160px,1fr)); gap: .75rem; }
 .player { display: flex; align-items: center; gap: .65rem; padding: .8rem .9rem; border-radius: .9rem; background: #f9fafb; border: 1px solid var(--color-border); }
 .player span { display: inline-grid; place-content: center; width: 1.8rem; height: 1.8rem; border-radius: 999px; background: var(--color-text); color: white; font-size: .75rem; font-weight: 800; }
-.setPicker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .6fr); gap: 1rem; align-items: end; margin-bottom: 1rem; }
+.setPicker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .6fr); gap: 1rem; align-items: end; }
 .setPicker h2 { margin: .25rem 0; }
 .setPicker label { display: grid; gap: .4rem; font-size: .82rem; font-weight: 800; }
 .setPicker select { width: 100%; border: 1px solid var(--color-border-strong); border-radius: .75rem; padding: .78rem .85rem; color: var(--color-text); background: var(--color-surface); font: inherit; }
 .setPicker select:focus { border-color: var(--color-primary); outline: 3px solid var(--color-primary-soft); }
 .pickerControls { display: grid; gap: .7rem; }
 .setError { grid-column: 1 / -1; margin: 0; color: var(--color-danger-text); font-weight: 700; }
-@media (max-width: 680px) { .setPicker { grid-template-columns: 1fr; } }
+@media (max-width: 680px) { .setPicker { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } }

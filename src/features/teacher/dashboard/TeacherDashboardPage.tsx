@@ -32,6 +32,11 @@ export default function TeacherDashboardPage({ roomId }: { readonly roomId: stri
           <h2>수업 설정</h2>
           <a className={styles.link} href="#/settings">열기 →</a>
         </Card>
+        <Card>
+          <Eyebrow>ISOLATED SANDBOX</Eyebrow>
+          <h2>테스트 툴</h2>
+          <a className={styles.link} href="#/test-tool">열기 →</a>
+        </Card>
       </div>
     </PageShell>
   );

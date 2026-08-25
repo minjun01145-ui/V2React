@@ -20,8 +20,8 @@
   color: var(--color-text);
 }
 
-.brandMark { flex: 0 0 auto; width: 1.85rem; height: 1.85rem; }
-.brand strong { font-size: .92rem; font-weight: 700; }
+.brandMark { flex: 0 0 auto; width: 2.4rem; height: 2.4rem; }
+.brand strong { font-size: .95rem; font-weight: 700; }
 
 .links {
   display: flex;

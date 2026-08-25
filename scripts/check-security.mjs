@@ -89,6 +89,17 @@ for (const file of clientFiles) {
   }
 }
 
+const multiplayerTestCallables = read("functions/src/multiplayer-test/callables.ts");
+if ((multiplayerTestCallables.match(/requireAdmin\(request\)/g) ?? []).length < 2) {
+  violations.push("functions/src/multiplayer-test/callables.ts: test session creation and cleanup must both require an administrator");
+}
+if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
+  violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
+}
+if (!rules.includes("match /multiplayerTestRuns/{adminUid}")) {
+  violations.push("security/firestore.rules.secure: multiplayer test run credentials must be server-only");
+}
+
 if (violations.length) {
   console.error("Security checks failed:\n" + violations.map((item) => `- ${item}`).join("\n"));
   process.exit(1);

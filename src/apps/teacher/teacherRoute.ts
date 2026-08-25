@@ -4,6 +4,7 @@ export const TEACHER_VIEW = Object.freeze({
   STUDENTS: "students",
   SETS: "sets",
   AI: "ai",
+  TEST_TOOL: "test-tool",
   SETTINGS: "settings",
 } as const);
 

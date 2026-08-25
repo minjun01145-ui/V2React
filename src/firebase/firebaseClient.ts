@@ -1,6 +1,6 @@
 import { getApps, initializeApp, type FirebaseApp, type FirebaseOptions } from "firebase/app";
 import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-check";
-import { browserLocalPersistence, browserSessionPersistence, getAuth, initializeAuth, type Auth } from "firebase/auth";
+import { browserLocalPersistence, browserSessionPersistence, getAuth, inMemoryPersistence, initializeAuth, type Auth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 
@@ -19,19 +19,31 @@ const firebaseConfig: FirebaseOptions = {
   appId: required(import.meta.env.VITE_FIREBASE_APP_ID, "VITE_FIREBASE_APP_ID"),
 };
 
-function currentRole(): "student" | "teacher" {
+type AppRole = "student" | "teacher" | "test-student";
+
+function currentRole(): AppRole {
   if (typeof window !== "undefined" && /(^|\/)teacher(\/|$)/.test(window.location.pathname)) return "teacher";
+  if (typeof window !== "undefined" && /(^|\/)test-student(\/|$)/.test(window.location.pathname)) return "test-student";
   return "student";
 }
 
+function testStudentSlot(): string {
+  if (typeof window === "undefined") return "0";
+  const slot = new URLSearchParams(window.location.search).get("slot") ?? "0";
+  return /^[1-3]$/.test(slot) ? slot : "0";
+}
+
 const role = currentRole();
-const appName = `jurye-${role}`;
+const appName = role === "test-student" ? `jurye-test-student-${testStudentSlot()}` : `jurye-${role}`;
 const existing = getApps().find((app) => app.name === appName);
 export const firebaseApp: FirebaseApp = existing ?? initializeApp(firebaseConfig, appName);
 
 function createAuth(): Auth {
   try {
-    return initializeAuth(firebaseApp, { persistence: role === "teacher" ? browserSessionPersistence : browserLocalPersistence });
+    const persistence = role === "teacher"
+      ? browserSessionPersistence
+      : role === "test-student" ? inMemoryPersistence : browserLocalPersistence;
+    return initializeAuth(firebaseApp, { persistence });
   } catch {
     return getAuth(firebaseApp);
   }

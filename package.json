@@ -15,7 +15,7 @@
     "test:engine": "node --experimental-strip-types tests/engine-smoke.ts",
     "test:multiple-choice": "node --experimental-strip-types tests/multiple-choice-engine.test.ts",
     "check:architecture": "node scripts/check-architecture.mjs",
-    "check": "npm run typecheck && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:multiple-choice && npm run test:games && npm run test:routing && npm run test:student-session && npm run test:presence && npm run test:auth && npm run test:popup && npm run test:sets && npm run test:ai",
+    "check": "npm run typecheck && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:multiple-choice && npm run test:games && npm run test:routing && npm run test:student-session && npm run test:presence && npm run test:auth && npm run test:popup && npm run test:sets && npm run test:ai && npm run test:test-tool",
     "test": "npm run check",
     "test:routing": "node --experimental-strip-types tests/teacher-route-smoke.ts",
     "test:student-session": "node --experimental-strip-types tests/student-session-state.test.ts",
@@ -25,7 +25,8 @@
     "test:sets": "node --experimental-strip-types tests/learning-sets-smoke.ts",
     "check:security": "node scripts/check-security.mjs",
     "test:games": "node --experimental-strip-types tests/games/sentence-builder.test.ts && node --experimental-strip-types tests/games/pokemon-catch.test.ts",
-    "test:ai": "node --experimental-strip-types tests/ai-admin-smoke.ts"
+    "test:ai": "node --experimental-strip-types tests/ai-admin-smoke.ts",
+    "test:test-tool": "node --experimental-strip-types tests/classroom-test-model.test.ts"
   },
   "dependencies": {
     "firebase": "^12.16.0",

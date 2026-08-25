@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         student: resolve(import.meta.dirname, "index.html"),
         teacher: resolve(import.meta.dirname, "teacher/index.html"),
+        testStudent: resolve(import.meta.dirname, "test-student/index.html"),
       },
     },
   },

@@ -8,6 +8,7 @@ const violations = [];
 const globalCssEntries = new Set([
   "src/apps/student/main.tsx",
   "src/apps/teacher/main.tsx",
+  "src/apps/test-student/main.tsx",
 ]);
 const sourceFiles = walk(srcRoot).filter((file) => /\.(ts|tsx)$/.test(file));
 const dependencyGraph = new Map(sourceFiles.map((file) => [file, []]));
@@ -123,6 +124,23 @@ for (const file of sourceFiles) {
     if (rel.startsWith("src/learning-sets/") && (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
       violations.push(`${rel}: learning set domain must not depend on app, feature, game, or multiplayer layers (${specifier})`);
     }
+
+    if (rel.startsWith("src/classroom-test/") &&
+        (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/apps/") || specifier.includes("/features/") ||
+         specifier.includes("/games/") || specifier.includes("/multiplayer/") || specifier.includes("/firebase/"))) {
+      violations.push(`${rel}: classroom test model must remain pure and isolated (${specifier})`);
+    }
+
+    if (rel.startsWith("src/classroom-test-admin/") &&
+        (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
+      violations.push(`${rel}: classroom test admin transport must not depend on app, feature, game, or multiplayer layers (${specifier})`);
+    }
+
+    if (rel.startsWith("src/features/teacher/test-tool/") &&
+        (specifier.startsWith("firebase/") || specifier.includes("/features/student/") || specifier.includes("/multiplayer/") ||
+         specifier.includes("/firebase/") || specifier.includes("/auth/") || specifier.includes("/games/"))) {
+      violations.push(`${rel}: teacher test tool must not access real student, auth, game, Firebase, or multiplayer state (${specifier})`);
+    }
   }
 }
 
@@ -143,12 +161,16 @@ for (const file of sourceFiles) visitDependency(file, []);
 
 const studentHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const teacherHtml = fs.readFileSync(path.join(root, "teacher/index.html"), "utf8");
+const testStudentHtml = fs.readFileSync(path.join(root, "test-student/index.html"), "utf8");
 if (!studentHtml.includes("/src/apps/student/main.tsx")) violations.push("index.html: must load the student entry only");
 if (studentHtml.includes("/src/apps/teacher/")) violations.push("index.html: must not load teacher app code");
 if (!teacherHtml.includes("/src/apps/teacher/main.tsx")) violations.push("teacher/index.html: must load the teacher entry only");
 if (teacherHtml.includes("/src/apps/student/")) violations.push("teacher/index.html: must not load student app code");
 if (/\sstyle\s*=/.test(studentHtml)) violations.push("index.html: visual styling belongs in React CSS modules, not the HTML entry");
 if (/\sstyle\s*=/.test(teacherHtml)) violations.push("teacher/index.html: visual styling belongs in React CSS modules, not the HTML entry");
+if (!testStudentHtml.includes("/src/apps/test-student/main.tsx")) violations.push("test-student/index.html: must load the test student entry only");
+if (testStudentHtml.includes("/src/apps/teacher/") || testStudentHtml.includes("/src/apps/student/main.tsx")) violations.push("test-student/index.html: must not load a normal student or teacher entry");
+if (/\sstyle\s*=/.test(testStudentHtml)) violations.push("test-student/index.html: visual styling belongs in React CSS modules, not the HTML entry");
 
 const registrySource = fs.readFileSync(path.join(srcRoot, "games/registry.ts"), "utf8");
 if (!registrySource.includes("loadStudent:") || !registrySource.includes("loadTeacher:")) {
