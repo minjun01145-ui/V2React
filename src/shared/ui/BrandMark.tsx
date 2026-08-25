@@ -1,3 +1,4 @@
+import logo from "./logo.png";
 import styles from "./BrandMark.module.css";
 
 interface Props {
@@ -6,9 +7,5 @@ interface Props {
 
 export default function BrandMark({ className = "" }: Props) {
   const classes = [styles.mark, className].filter(Boolean).join(" ");
-  return (
-    <span className={classes} aria-hidden="true">
-      <span>J</span>
-    </span>
-  );
+  return <img className={classes} src={logo} alt="Jurye" draggable="false" />;
 }

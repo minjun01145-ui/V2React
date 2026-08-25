@@ -2,12 +2,9 @@
 
 .shell { width: min(24rem, 100%); display: grid; gap: 1.25rem; justify-items: center; }
 
-.brand { display: flex; align-items: center; gap: .55rem; font-size: .76rem; font-weight: 800; letter-spacing: .14em; color: var(--color-text); }
+.brand { display: inline-flex; align-items: center; gap: .55rem; text-decoration: none; }
 
 .form { width: 100%; padding: 1.5rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-card); display: grid; gap: .85rem; }
-
-.roomBadge { display: inline-flex; width: fit-content; align-items: center; gap: .35rem; padding: .3rem .6rem; border-radius: 999px; color: var(--color-muted); background: var(--color-surface-muted); font-size: .72rem; font-weight: 700; }
-.roomBadge strong { color: var(--color-text); }
 
 .form h2 { margin: .25rem 0 0; font-size: 1.35rem; }
 .sub { margin: .25rem 0 .2rem; color: var(--color-muted); font-size: .86rem; }

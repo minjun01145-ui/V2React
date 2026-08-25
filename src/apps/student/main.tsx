@@ -9,7 +9,7 @@ const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("#root element not found");
 
 const root = createRoot(rootElement);
-root.render(<StrictMode><AuthStatusPage eyebrow="JURYE CLASSROOM" title="수업을 준비하고 있어요" message="잠시만 기다려 주세요." /></StrictMode>);
+root.render(<StrictMode><AuthStatusPage eyebrow="JURYE" title="수업을 준비하고 있어요" message="잠시만 기다려 주세요." /></StrictMode>);
 
 void import("./StudentApp.tsx")
   .then(({ default: StudentApp }) => {

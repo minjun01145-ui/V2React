@@ -1,7 +1,6 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { signInAdmin } from "../../../auth/teacherAuth.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
-import BrandMark from "../../../shared/ui/BrandMark.tsx";
 import styles from "./AdminLoginPage.module.css";
 
 export default function AdminLoginPage() {
@@ -31,7 +30,6 @@ export default function AdminLoginPage() {
       <a className={styles.backLink} href="/">← 학생 화면으로</a>
 
       <section className={styles.panel} aria-labelledby="admin-login-title">
-        <BrandMark className={styles.panelBrandMark} />
         <p className={styles.eyebrow}>TEACHER ACCESS</p>
         <h1 id="admin-login-title">관리자 로그인</h1>
 

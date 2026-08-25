@@ -10,10 +10,10 @@ interface Props {
   readonly actions?: ReactNode;
 }
 
-export default function PageShell({ eyebrow, title, roomId, children, actions = null }: Props) {
+export default function PageShell({ eyebrow, title, roomId: _roomId, children, actions = null }: Props) {
   return <main className={styles.shell}>
     <header className={styles.header}>
-      <div><Eyebrow>{eyebrow}</Eyebrow><h1>{title}</h1><p className={styles.room}>Room <strong>{roomId}</strong></p></div>
+      <div><Eyebrow>{eyebrow}</Eyebrow><h1>{title}</h1></div>
       {actions ? <div className={styles.actions}>{actions}</div> : null}
     </header>
     {children}

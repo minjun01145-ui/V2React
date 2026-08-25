@@ -1,5 +1,6 @@
 import type { TeacherView } from "./teacherRoute.ts";
 import { TEACHER_VIEW, teacherHref } from "./teacherRoute.ts";
+import BrandMark from "../../shared/ui/BrandMark.tsx";
 import styles from "./TeacherNav.module.css";
 
 const items: readonly { readonly view: TeacherView; readonly label: string }[] = [
@@ -13,17 +14,16 @@ const items: readonly { readonly view: TeacherView; readonly label: string }[] =
 
 interface Props {
   readonly currentView: TeacherView;
-  readonly roomId: string;
   readonly onLogout: () => Promise<void>;
 }
 
-export default function TeacherNav({ currentView, roomId, onLogout }: Props) {
+export default function TeacherNav({ currentView, onLogout }: Props) {
   return (
     <nav className={styles.nav} aria-label="교사용 메뉴">
-      <div className={styles.brand}>
-        <strong>Jurye Teacher</strong>
-        <span>수업 · {roomId}</span>
-      </div>
+      <a className={styles.brand} href="/" aria-label="Jurye 홈">
+        <BrandMark className={styles.brandMark} />
+        <strong>관리자 페이지</strong>
+      </a>
       <div className={styles.links}>
         {items.map(({ view, label }) => (
           <a className={`${styles.link} ${currentView === view ? styles.active : ""}`} href={teacherHref(view)} aria-current={currentView === view ? "page" : undefined} key={view}>{label}</a>

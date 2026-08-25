@@ -105,13 +105,11 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <div className={styles.brand}>
+        <a className={styles.brand} href="/" aria-label="Jurye 홈">
           <BrandMark />
-          <span>JURYE CLASSROOM</span>
-        </div>
+        </a>
 
         <form className={styles.form} onSubmit={(event) => void submitIdentity(event)}>
-          <div className={styles.roomBadge}>현재 수업 <strong>{roomId}</strong></div>
           <h2 id="login-title">수업에 참여해요</h2>
           <p className={styles.sub}>학번과 이름을 입력하면 비밀번호 창이 열려요.</p>
 

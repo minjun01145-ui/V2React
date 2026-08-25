@@ -12,14 +12,16 @@
 }
 
 .brand {
-  display: flex;
-  align-items: baseline;
-  gap: .5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
   min-width: 0;
+  text-decoration: none;
+  color: var(--color-text);
 }
 
-.brand strong { font-size: .95rem; }
-.brand span { color: var(--color-muted); font-size: .78rem; white-space: nowrap; }
+.brandMark { flex: 0 0 auto; width: 1.85rem; height: 1.85rem; }
+.brand strong { font-size: .92rem; font-weight: 700; }
 
 .links {
   display: flex;

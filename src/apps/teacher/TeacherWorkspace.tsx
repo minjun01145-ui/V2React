@@ -22,7 +22,7 @@ export default function TeacherWorkspace() {
 
   return (
     <>
-      <TeacherNav currentView={view} roomId={roomId} onLogout={signOutAdmin} />
+      <TeacherNav currentView={view} onLogout={signOutAdmin} />
       {view === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
       {view === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
       {view === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
