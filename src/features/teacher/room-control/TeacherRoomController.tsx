@@ -16,7 +16,7 @@ import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherRoomController.module.css";
 
 type RoomAction = (roomId: string) => Promise<void>;
-type SupportedGameId = "pokemon-catch" | "sentence-builder";
+type SupportedGameId = "pokemon-catch" | "sentence-builder" | "matching";
 
 interface Props {
   readonly roomId: string;
@@ -61,18 +61,19 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
 
   const isPlaying = session?.status === SESSION_STATUS.PLAYING;
   const staleCount = Math.max(players.length - activePlayers.length, 0);
-  const setType = gameId === "pokemon-catch" ? LEARNING_SET_TYPE.VOCABULARY : LEARNING_SET_TYPE.READING_CHUNKS;
+  const setType = gameId === "sentence-builder" ? LEARNING_SET_TYPE.READING_CHUNKS : LEARNING_SET_TYPE.VOCABULARY;
   const compatibleSets = useMemo(() => sets.filter((set) => set.type === setType), [setType, sets]);
   const selectedSet = useMemo(() => compatibleSets.find((set) => set.id === selectedSetId) ?? null, [compatibleSets, selectedSetId]);
-  const invalidPokemonSet = gameId === "pokemon-catch" && Boolean(selectedSet && selectedSet.itemCount < 4);
+  const minimumItemCount = gameId === "matching" ? 6 : gameId === "pokemon-catch" ? 4 : 1;
+  const invalidSet = Boolean(selectedSet && selectedSet.itemCount < minimumItemCount);
   const selectGame = (nextGameId: SupportedGameId): void => {
-    const nextType = nextGameId === "pokemon-catch" ? LEARNING_SET_TYPE.VOCABULARY : LEARNING_SET_TYPE.READING_CHUNKS;
+    const nextType = nextGameId === "sentence-builder" ? LEARNING_SET_TYPE.READING_CHUNKS : LEARNING_SET_TYPE.VOCABULARY;
     setGameId(nextGameId);
     setSelectedSetId(sets.find((set) => set.type === nextType)?.id ?? "");
   };
 
   const actions = <>
-    <Button disabled={working || loading || isPlaying || activePlayers.length === 0 || invalidPokemonSet} onClick={() => void run((id) => startSession(id, { gameId, gameConfig: selectedSet ? { setId: selectedSet.id } : {} }))}>게임 시작</Button>
+    <Button disabled={working || loading || isPlaying || activePlayers.length === 0 || invalidSet} onClick={() => void run((id) => startSession(id, { gameId, gameConfig: selectedSet ? { setId: selectedSet.id } : {} }))}>게임 시작</Button>
     <Button variant="ghost" disabled={working || loading} onClick={() => void run(resetSession)}>대기실로</Button>
   </>;
 
@@ -80,7 +81,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : <>
       <StatusPanel title="학생 대기 중" tone="waiting">접속 {activePlayers.length}명{staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}</StatusPanel>
-      <Card className={styles.setPicker}><div><h2>{gameId === "pokemon-catch" ? "포켓몬 잡기" : "문장 만들기"}</h2><Muted>{gameId === "pokemon-catch" ? "단어 세트 · 4개 이상 필요" : "끊어읽기 세트"}</Muted></div><div className={styles.pickerControls}><label>게임<select value={gameId} onChange={(event) => selectGame(event.target.value as SupportedGameId)} disabled={working}><option value="pokemon-catch">포켓몬 잡기</option><option value="sentence-builder">문장 만들기</option></select></label><label>학습 세트<select value={selectedSetId} onChange={(event) => setSelectedSetId(event.target.value)} disabled={working}><option value="">내장 데모 세트</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</select></label></div>{setError ? <p className={styles.setError}>{setError}</p> : null}{invalidPokemonSet ? <p className={styles.setError}>4지선다를 위해 4개 이상의 단어가 필요합니다.</p> : null}</Card>
+      <Card className={styles.setPicker}><div><h2>{gameId === "pokemon-catch" ? "포켓몬 잡기" : gameId === "matching" ? "짝맞추기" : "문장 만들기"}</h2><Muted>{gameId === "matching" ? "단어 세트 · 6개 이상 필요" : gameId === "pokemon-catch" ? "단어 세트 · 4개 이상 필요" : "끊어읽기 세트"}</Muted></div><div className={styles.pickerControls}><label>게임<select value={gameId} onChange={(event) => selectGame(event.target.value as SupportedGameId)} disabled={working}><option value="pokemon-catch">포켓몬 잡기</option><option value="matching">짝맞추기</option><option value="sentence-builder">문장 만들기</option></select></label><label>학습 세트<select value={selectedSetId} onChange={(event) => setSelectedSetId(event.target.value)} disabled={working}><option value="">내장 데모 세트</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</select></label></div>{setError ? <p className={styles.setError}>{setError}</p> : null}{invalidSet ? <p className={styles.setError}>{gameId === "matching" ? "짝맞추기를 위해 6개 이상의 단어가 필요합니다." : "4지선다를 위해 4개 이상의 단어가 필요합니다."}</p> : null}</Card>
       <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div><PlayerGrid players={activePlayers} showStudentNumber emptyMessage="접속한 학생이 없습니다." /></Card>
     </>}
   </>;

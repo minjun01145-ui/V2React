@@ -16,6 +16,13 @@ const definitions = [
     loadTeacher: () => import("./sentence-builder/SentenceBuilderTeacherGame.tsx"),
   }),
   defineGame({
+    id: "matching",
+    title: "짝맞추기",
+    supportedSetTypes: ["vocabulary"],
+    loadStudent: () => import("./matching/MatchingStudentModule.tsx"),
+    loadTeacher: () => import("./matching/MatchingTeacherModule.tsx"),
+  }),
+  defineGame({
     id: "placeholder",
     title: "개발용 빈 게임",
     supportedSetTypes: [],
