@@ -47,7 +47,7 @@ export default function TestStudentViewport({ session, activeSlot, onPrevious, o
           ref={(frame) => frames.attachFrame(student.slot, frame)}
           src={`/test-student/?slot=${student.slot}`}
           title={`${student.displayName} 실제 학생 화면`}
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts allow-same-origin allow-forms"
           key={`${session.runId}-${student.slot}`}
         />)}
       </div>

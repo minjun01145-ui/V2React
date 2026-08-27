@@ -90,6 +90,7 @@ for (const file of clientFiles) {
 }
 
 const multiplayerTestCallables = read("functions/src/multiplayer-test/callables.ts");
+const testStudentViewport = read("src/features/teacher/test-tool/TestStudentViewport.tsx");
 if ((multiplayerTestCallables.match(/requireAdmin\(request\)/g) ?? []).length < 2) {
   violations.push("functions/src/multiplayer-test/callables.ts: test session creation and cleanup must both require an administrator");
 }
@@ -107,6 +108,9 @@ if (!rules.includes("match /multiplayerTestRuns/{adminUid}")) {
 }
 if (!rules.includes("match /studentGameData/{accountId}/games/pokemon-catch") || !rules.includes("validPokemonInventory")) {
   violations.push("security/firestore.rules.secure: persistent Pokémon data must validate authenticated ownership and inventory shape");
+}
+if (!testStudentViewport.includes('sandbox="allow-scripts allow-same-origin allow-forms"')) {
+  violations.push("src/features/teacher/test-tool/TestStudentViewport.tsx: sandboxed test students must allow in-frame forms");
 }
 
 if (violations.length) {
