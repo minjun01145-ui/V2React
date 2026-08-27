@@ -1,3 +1,7 @@
+import { useEffect } from "react";
+import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
+import { createScoreCelebration } from "../../game-engine/effects/model.ts";
+import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
@@ -14,12 +18,23 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
 }) {
   const clock = useTimedGameClock(session);
   const game = useMatchingGame({ roomId, session, player, set, disabled: clock.expired });
+  const effects = useGameEffectEngine();
+
+  useEffect(() => {
+    if (!game.lastOutcome?.isCorrect) return;
+    effects.play(createScoreCelebration({
+      scoreDelta: game.lastOutcome.scoreDelta,
+      combo: game.lastOutcome.combo,
+    }));
+  }, [effects.play, game.lastOutcome]);
+
   if (game.loading) return <StatusPanel title="짝맞추기 준비 중">내 진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
 
   const progressPercent = game.pairCount === 0 ? 0 : Math.round((game.progress.completedQuestionIds.length / game.pairCount) * 100);
 
   return <main className={styles.gameShell}>
+    <GameEffectLayer effect={effects.activeEffect} />
     <header className={styles.topbar}>
       <div><span>PAIR MATCH</span><h1>짝맞추기</h1></div>
       <div className={styles.topMetrics}><div className={styles.stats}>

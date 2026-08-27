@@ -18,6 +18,13 @@ interface MatchingQuestion extends BaseQuestion {
   readonly prompt: string;
 }
 
+export interface MatchingOutcome {
+  readonly id: string;
+  readonly isCorrect: boolean;
+  readonly scoreDelta: number;
+  readonly combo: number;
+}
+
 const wait = (milliseconds: number) => new Promise<void>((resolve) => globalThis.setTimeout(resolve, milliseconds));
 
 export function useMatchingGame(input: {
@@ -37,6 +44,7 @@ export function useMatchingGame(input: {
   const [feedbackTone, setFeedbackTone] = useState<"correct" | "incorrect" | "">("");
   const [removingCardIds, setRemovingCardIds] = useState<readonly string[]>([]);
   const [combo, setCombo] = useState(0);
+  const [lastOutcome, setLastOutcome] = useState<MatchingOutcome | null>(null);
   const hydratedRoundRef = useRef<string | null>(null);
   const busyRef = useRef(false);
 
@@ -44,6 +52,7 @@ export function useMatchingGame(input: {
     if (remoteProgress.loading || hydratedRoundRef.current === session.roundId) return;
     const hydrated = normalizeProgress<MatchingDetails>(remoteProgress.value, pairs.length);
     setProgress(hydrated);
+    setLastOutcome(null);
     setCombo(hydrated.lastResult?.isCorrect ? (hydrated.lastResult.details?.combo ?? 0) : 0);
     setBoard(createMatchingBoard(pairs, hydrated.completedQuestionIds, `${session.roundId}:${player.id}:${hydrated.completedQuestionIds.join(",")}`));
     hydratedRoundRef.current = session.roundId;
@@ -81,12 +90,13 @@ export function useMatchingGame(input: {
         completedQuestionIds: cycleComplete ? [] : applied.completedQuestionIds,
         completedAtMs: null,
       };
+      const attemptId = crypto.randomUUID();
       await persistAnswerAttempt({
         roomId,
         roundId: session.roundId,
         gameId: session.gameId,
         player,
-        attemptId: crypto.randomUUID(),
+        attemptId,
         question,
         answer: details,
         result,
@@ -97,6 +107,7 @@ export function useMatchingGame(input: {
         : refillMatchingBoard(board, pair.id, pairs, nextProgress.completedQuestionIds, `${session.roundId}:${completedCount}`));
       setProgress(nextProgress);
       setCombo(nextCombo);
+      setLastOutcome({ id: attemptId, isCorrect: correct, scoreDelta: comboResult.scoreDelta, combo: nextCombo });
       setFeedback(correct ? "정답! 새로운 카드가 들어왔어요." : "서로 다른 짝이에요. 다시 찾아보세요!");
       setFeedbackTone(correct ? "correct" : "incorrect");
     } catch (error: unknown) {
@@ -139,6 +150,7 @@ export function useMatchingGame(input: {
     loading: remoteProgress.loading,
     error: remoteProgress.error,
     combo,
+    lastOutcome,
     pairCount: pairs.length,
     selectCard,
   };
