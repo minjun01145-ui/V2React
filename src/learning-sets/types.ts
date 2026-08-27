@@ -5,6 +5,10 @@ export const LEARNING_SET_TYPE = Object.freeze({
 
 export type LearningSetType = typeof LEARNING_SET_TYPE[keyof typeof LEARNING_SET_TYPE];
 
+export function isLearningSetType(value: string): value is LearningSetType {
+  return Object.values(LEARNING_SET_TYPE).some((type) => type === value);
+}
+
 export interface LearningSetItem {
   readonly id: string;
   readonly sourceText: string;

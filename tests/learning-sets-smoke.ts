@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { parseLearningSet } from "../src/learning-sets/codec.ts";
-import { LEARNING_SET_TYPE } from "../src/learning-sets/types.ts";
+import { LEARNING_SET_TYPE, isLearningSetType, learningSetTypeLabel } from "../src/learning-sets/types.ts";
 import { parseLearningSetPaste, serializeLearningSetItems, validateLearningSetName } from "../src/learning-sets/validation.ts";
 
 const words = parseLearningSetPaste("단어\t뜻\napple\t사과\nclassroom\t교실", LEARNING_SET_TYPE.VOCABULARY);
+assert.equal(isLearningSetType("vocabulary"), true);
+assert.equal(isLearningSetType("future-set-type"), false);
+assert.equal(learningSetTypeLabel(LEARNING_SET_TYPE.READING_CHUNKS), "끊어읽기");
 assert.deepEqual(words, [
   { id: "item-001", sourceText: "apple", meaning: "사과" },
   { id: "item-002", sourceText: "classroom", meaning: "교실" },

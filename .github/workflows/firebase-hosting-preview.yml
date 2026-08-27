@@ -63,6 +63,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check
+        run: npm run check
+
       - name: Build
         run: npm run build
 

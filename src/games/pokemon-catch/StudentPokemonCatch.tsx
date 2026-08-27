@@ -5,8 +5,12 @@ import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { POKEMON_ITEM, type PokemonItemId, type StoredCapturedPokemon } from "../../student-data/pokemon-catch/types.ts";
 import { usePokemonCatchData } from "../../student-data/pokemon-catch/usePokemonCatchData.ts";
 import { captureChance, didCapture } from "./captureRules.ts";
-import { ANGER_TIME_BONUS_MS, ENCOUNTER_TIME_MS, POKEMON_ITEMS, SLEEP_CAPTURE_MULTIPLIER, itemDefinition, rewardItem } from "./itemRules.ts";
-import { PokemonSprite } from "./PokemonSprite.tsx";
+import { CollectionDialog } from "./components/CollectionDialog.tsx";
+import { CommandPanel } from "./components/CommandPanel.tsx";
+import { EncounterStage } from "./components/EncounterStage.tsx";
+import { ItemBagDialog } from "./components/ItemBagDialog.tsx";
+import { QuizDialog } from "./components/QuizDialog.tsx";
+import { ANGER_TIME_BONUS_MS, ENCOUNTER_TIME_MS, SLEEP_CAPTURE_MULTIPLIER, itemDefinition, rewardItem } from "./itemRules.ts";
 import type { EncounterActionPhase, EncounterPhase } from "./types.ts";
 import { useEncounterTimer } from "./useEncounterTimer.ts";
 import { usePokemonQuiz } from "./usePokemonQuiz.ts";
@@ -193,63 +197,10 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   const secondsRemaining = Math.ceil(timer.remainingMs / 1_000);
 
   return <div className={styles.gameShell}>
-    <main className={styles.field} data-phase={phase}>
-      <div className={styles.skyGlow} />
-      <div className={styles.encounterCard}>
-        <span>{encounter ? `No.${String(encounter.id).padStart(3, "0")}` : "SEARCHING"}</span>
-        <strong>{encounter?.name ?? "야생 포켓몬 탐색 중"}</strong>
-        {asleep ? <small>잠듦 · 포획률 2배</small> : null}
-      </div>
-      {encounterStatus === "ready" ? <div className={styles.timerPanel} data-warning={secondsRemaining <= 10}>
-        <strong>{secondsRemaining}초</strong><progress max={timerMaximum} value={timer.remainingMs} />
-      </div> : null}
-      <div className={styles.pokemonStage}>
-        {encounter ? <PokemonSprite className={styles.pokemon} pokemon={encounter} alt={encounter.name} /> : null}
-        {phase === "loading" ? <div className={styles.scanner}>탐색 중</div> : null}
-        {phase === "error" ? <div className={styles.apiError}><strong>연결 실패</strong><span>{loadError}</span><button type="button" onClick={reload}>다시 불러오기</button></div> : null}
-        <div className={styles.shadow} /><div className={styles.ball} aria-hidden="true"><i /></div>
-        {phase === "caught" ? <div className={styles.resultBurst}>GET!</div> : null}
-        {phase === "failed" ? <div className={styles.failedText}>아깝다!</div> : null}
-        {phase === "escaped" ? <div className={styles.escapeText}>시간 종료!</div> : null}
-      </div>
-      <div className={styles.grass}><i /><i /><i /><i /><i /><i /></div>
-    </main>
-
-    <section className={styles.commandPanel}>
-      {actionMessage ? <div className={styles.actionMessage}>{actionMessage}</div> : null}
-      <div className={styles.commands}>
-        <button type="button" onClick={() => { setQuizOpen(true); setQuizFeedback(""); setReward(null); }} disabled={!question || submitting}>문제 풀기<small>무작위 아이템 얻기</small></button>
-        <button type="button" className={styles.primaryCommand} onClick={() => setItemsOpen(true)} disabled={phase !== "ready" || usingItem}>아이템 사용하기<small>공 · 스프레이 · 시간 증가</small></button>
-      </div>
-      <button type="button" className={styles.collectionButton} onClick={() => setCollectionOpen(true)}>내 포획함 <b>{studentData.captures.length}</b></button>
-    </section>
-
-    {itemsOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="아이템 가방"><section className={styles.itemCard}>
-      <button type="button" className={styles.closeButton} onClick={() => setItemsOpen(false)} aria-label="닫기">×</button>
-      <span className={styles.quizStep}>ITEM BAG</span><h2>아이템 사용하기</h2>
-      <div className={styles.itemGrid}>{POKEMON_ITEMS.map((item) => {
-        const unavailable = studentData.inventory[item.id] < 1 || usingItem || phase !== "ready" || (item.id === POKEMON_ITEM.SLEEP_SPRAY && asleep);
-        return <div key={item.id} data-item={item.id}>
-          <div className={styles.itemIcon}>{item.kind === "ball" ? "◉" : item.id === POKEMON_ITEM.SLEEP_SPRAY ? "Zz" : "+15"}</div>
-          <div><strong>{item.name}</strong><small>{item.description}</small></div><b>× {studentData.inventory[item.id]}</b>
-          <button type="button" onClick={() => useItem(item.id)} disabled={unavailable}>{item.kind === "ball" ? "던지기" : "사용"}</button>
-        </div>;
-      })}</div>
-    </section></div> : null}
-
-    {quizOpen && question ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="단어 퀴즈"><section className={styles.quizCard}>
-      <button type="button" className={styles.closeButton} onClick={() => setQuizOpen(false)} aria-label="닫기">×</button>
-      <span className={styles.quizStep}>WORD {quiz.currentIndex + 1} / {quiz.questionCount}</span>
-      <p>정답을 맞히면 아이템 하나를 얻습니다.</p><h2>{question.prompt}</h2>
-      <div className={styles.options}>{question.options.map((option, index) => <button type="button" key={option.id} onClick={() => void answerQuiz(option.id)} disabled={submitting || Boolean(currentResult?.isCorrect)} data-state={currentResult ? (option.id === question.correctOptionId ? "correct" : currentResult.details?.selectedOptionId === option.id ? "wrong" : "") : ""}><span>{index + 1}</span>{option.text}</button>)}</div>
-      {reward ? <div className={styles.rewardCard}><strong>{itemDefinition(reward).name}</strong><span>가방에 저장되었습니다.</span></div> : null}
-      {quizFeedback ? <div className={styles.quizFeedback} data-correct={Boolean(currentResult?.isCorrect)}>{quizFeedback}</div> : null}
-      {currentResult?.isCorrect ? <button type="button" className={styles.continueButton} onClick={() => void finishQuestion()} disabled={submitting}>{quiz.currentIndex + 1 >= quiz.questionCount ? "문제 완료" : "계속 탐험하기"}</button> : null}
-    </section></div> : null}
-
-    {collectionOpen ? <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="내 포획함"><section className={styles.collectionCard}>
-      <button type="button" className={styles.closeButton} onClick={() => setCollectionOpen(false)} aria-label="닫기">×</button><span className={styles.quizStep}>MY COLLECTION</span><h2>내 포획함</h2>
-      {studentData.captures.length === 0 ? <p className={styles.emptyCollection}>아직 잡은 포켓몬이 없어요.</p> : <div className={styles.collectionGrid}>{studentData.captures.map((pokemon) => <div key={pokemon.captureId}><PokemonSprite pokemon={pokemon} alt="" /><strong>{pokemon.name}</strong><small>No.{String(pokemon.speciesId).padStart(3, "0")}</small></div>)}</div>}
-    </section></div> : null}
+    <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} loadError={loadError} onReload={reload} />
+    <CommandPanel actionMessage={actionMessage} hasQuestion={Boolean(question)} submitting={submitting} phase={phase} usingItem={usingItem} captureCount={studentData.captures.length} onOpenQuiz={() => { setQuizOpen(true); setQuizFeedback(""); setReward(null); }} onOpenItems={() => setItemsOpen(true)} onOpenCollection={() => setCollectionOpen(true)} />
+    {itemsOpen ? <ItemBagDialog inventory={studentData.inventory} usingItem={usingItem} phase={phase} asleep={asleep} onClose={() => setItemsOpen(false)} onUseItem={useItem} /> : null}
+    {quizOpen && question ? <QuizDialog question={question} currentIndex={quiz.currentIndex} questionCount={quiz.questionCount} currentResult={currentResult} reward={reward} feedback={quizFeedback} submitting={submitting} onClose={() => setQuizOpen(false)} onAnswer={(optionId) => void answerQuiz(optionId)} onContinue={() => void finishQuestion()} /> : null}
+    {collectionOpen ? <CollectionDialog captures={studentData.captures} onClose={() => setCollectionOpen(false)} /> : null}
   </div>;
 }

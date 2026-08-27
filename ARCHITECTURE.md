@@ -184,6 +184,8 @@ loadTeacher: () => import("./my-game/MyTeacherGame.tsx")
 
 게임 전용 타입은 게임 폴더 안에 둡니다. 두 개 이상의 게임이 동일한 개념을 실제로 공유하게 된 뒤에만 `game-engine` 공통 계층으로 올립니다.
 
+교사 대기실의 공통 설정은 registry의 `supportedSetTypes`, `minimumSetItemCount`, `timing`만 사용합니다. 첫 게임 고유 설정 UI가 실제로 필요해질 때에는 해당 게임 폴더가 typed 설정 UI와 config 변환을 소유하고, registry에 lazy setup entry를 추가합니다. `TeacherRoomController`에는 게임 ID 조건문이나 게임별 config 필드를 추가하지 않습니다.
+
 ## Engine families
 
 현재 구현된 것은 **question-engine** 하나입니다. 모든 게임을 여기에 맞추지 않습니다.
