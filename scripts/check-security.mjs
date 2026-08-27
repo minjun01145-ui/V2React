@@ -99,6 +99,9 @@ if (!multiplayerTestCallables.includes("requireAnonymous(request)")) {
 if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
   violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
 }
+if (!/match \/players\/\{uid\}[\s\S]*?allow read: if isAdmin\(\) \|\| isRoomStudent\(roomId\);/.test(rules)) {
+  violations.push("security/firestore.rules.secure: room students must be able to query the lobby player roster");
+}
 if (!rules.includes("match /multiplayerTestRuns/{adminUid}")) {
   violations.push("security/firestore.rules.secure: multiplayer test run credentials must be server-only");
 }

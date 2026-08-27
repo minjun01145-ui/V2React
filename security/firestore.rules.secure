@@ -139,7 +139,10 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
 
       match /players/{uid} {
-        allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+        // The lobby renders the room roster with a collection query. Every authenticated
+        // student accepted for this room may read that room's player cards; writes remain
+        // restricted to the caller's own UID below.
+        allow read: if isAdmin() || isRoomStudent(roomId);
         allow create: if isRoomStudent(roomId)
           && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
           && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status in ["waiting", "playing"]
