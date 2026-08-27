@@ -2,6 +2,7 @@ import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
+import { LearningCardButton } from "../../shared/ui/LearningCard.tsx";
 import { useMatchingGame } from "./useMatchingGame.ts";
 import styles from "./MatchingGame.module.css";
 
@@ -41,20 +42,19 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
       {game.board.map((card) => {
         const selected = game.selectedCardId === card.id;
         const removing = game.removingCardIds.includes(card.id);
-        return <button
-          type="button"
+        return <LearningCardButton
           className={styles.matchCard}
-          data-kind={card.kind}
-          data-selected={selected}
-          data-removing={removing}
+          eyebrow={card.kind === "term" ? "WORD" : "뜻"}
+          marker={card.kind === "term" ? "A" : "가"}
+          tone={card.kind === "term" ? "indigo" : "mint"}
+          selected={selected}
+          exiting={removing}
           key={card.id}
           onClick={() => game.selectCard(card)}
           aria-pressed={selected}
         >
-          <span>{card.kind === "term" ? "WORD" : "뜻"}</span>
-          <strong>{card.text}</strong>
-          <i aria-hidden="true">{card.kind === "term" ? "A" : "가"}</i>
-        </button>;
+          {card.text}
+        </LearningCardButton>;
       })}
     </section>
 

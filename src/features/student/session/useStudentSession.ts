@@ -54,12 +54,10 @@ export function useStudentSession({
         });
       } catch (error: unknown) {
         if (activeJoin.current?.attempt !== attempt) return;
-        setJoinError(error instanceof Error ? error : new Error("대기실 입장에 실패했습니다."));
-        throw error instanceof Error ? error : new Error("대기실 입장에 실패했습니다.");
-      } finally {
-        if (activeJoin.current?.attempt !== attempt) return;
         activeJoin.current = null;
         setJoining(false);
+        setJoinError(error instanceof Error ? error : new Error("대기실 입장에 실패했습니다."));
+        throw error instanceof Error ? error : new Error("대기실 입장에 실패했습니다.");
       }
     },
     [displayName, joining, player, playerId, roomId, studentNumber],
@@ -68,6 +66,23 @@ export function useStudentSession({
   const retryJoin = useCallback((): void => {
     setJoinError(null);
   }, []);
+
+  useEffect(() => {
+    if (!player || !activeJoin.current) return;
+    activeJoin.current = null;
+    setJoining(false);
+  }, [player]);
+
+  useEffect(() => {
+    if (!joining || player) return undefined;
+    const timer = window.setTimeout(() => {
+      if (!activeJoin.current) return;
+      activeJoin.current = null;
+      setJoining(false);
+      setJoinError(new Error("입장 정보 확인이 늦어지고 있습니다. 다시 시도해 주세요."));
+    }, 10_000);
+    return () => window.clearTimeout(timer);
+  }, [joining, player]);
 
   const leave = useCallback(async (): Promise<void> => {
     await leaveSession(roomId, playerId).catch(console.error);

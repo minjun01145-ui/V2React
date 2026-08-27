@@ -18,7 +18,7 @@ export default function StudentPage({ roomId, identity, onChangeStudent }: Props
   }
 
   if (state.view === "lobby") {
-    return <StudentLobbyPage roomId={roomId} player={state.player} onLeave={leave} />;
+    return <StudentLobbyPage roomId={roomId} player={state.player} />;
   }
 
   if (state.view === "awaiting-nickname") {
@@ -27,7 +27,6 @@ export default function StudentPage({ roomId, identity, onChangeStudent }: Props
         roomId={roomId}
         player={null}
         onJoin={(nickname) => joinWithNickname({ nickname })}
-        onLeave={leave}
         defaultDisplayName={identity.displayName}
         selfStudentNumber={identity.studentNumber}
       />

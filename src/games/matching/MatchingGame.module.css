@@ -13,17 +13,7 @@
 .instructions { display: flex; justify-content: space-between; gap: 1rem; max-width: 1060px; margin: 1.4rem auto .8rem; color: #5a6680; font-size: .83rem; }
 .instructions strong { color: #33415e; }
 .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(.65rem, 1.5vw, 1rem); max-width: 1060px; margin: 0 auto; }
-.matchCard { position: relative; overflow: hidden; min-height: clamp(135px, 18vw, 190px); padding: 1.2rem 1rem; border: 2px solid transparent; border-radius: 1.25rem; color: #17243e; background: #fff; box-shadow: 0 12px 28px rgba(53, 65, 112, .12); cursor: pointer; font: inherit; transition: transform .16s ease, box-shadow .16s ease, opacity .28s ease; }
-.matchCard:hover { transform: translateY(-4px); box-shadow: 0 18px 34px rgba(53, 65, 112, .18); }
-.matchCard:focus-visible { outline: 4px solid rgba(82, 73, 223, .24); outline-offset: 2px; }
-.matchCard[data-kind="term"] { background: linear-gradient(145deg, #ffffff 0 74%, #edf0ff 74%); }
-.matchCard[data-kind="meaning"] { background: linear-gradient(145deg, #ffffff 0 74%, #e6fbf5 74%); }
-.matchCard[data-selected="true"] { border-color: #665bea; transform: translateY(-5px) scale(1.015); box-shadow: 0 0 0 5px rgba(102, 91, 234, .13), 0 18px 34px rgba(53, 65, 112, .2); }
-.matchCard[data-removing="true"] { opacity: 0; transform: scale(.65) rotate(4deg); pointer-events: none; }
-.matchCard > span { position: absolute; top: .85rem; left: .9rem; color: #7d87a0; font-size: .65rem; font-weight: 950; letter-spacing: .12em; }
-.matchCard > strong { display: grid; min-height: 4.5rem; place-items: center; font-size: clamp(1.05rem, 2.2vw, 1.55rem); line-height: 1.25; overflow-wrap: anywhere; }
-.matchCard > i { position: absolute; right: .8rem; bottom: .55rem; color: rgba(74, 72, 170, .23); font-size: 1.3rem; font-style: normal; font-weight: 950; }
-.matchCard[data-kind="meaning"] > i { color: rgba(18, 139, 114, .25); }
+.matchCard { min-height:clamp(135px,18vw,190px); }
 .feedback { min-height: 2.8rem; max-width: 680px; margin: 1.15rem auto 0; padding: .78rem 1rem; border-radius: 999px; color: #667085; background: rgba(255,255,255,.7); text-align: center; font-size: .88rem; font-weight: 800; }
 .feedback[data-tone="correct"] { color: #067660; background: #dff8f0; }
 .feedback[data-tone="incorrect"] { color: #ad3f48; background: #fff0f1; animation: shake .28s ease; }
@@ -48,4 +38,4 @@
 @keyframes pop { from { opacity: 0; transform: scale(.65) rotate(-12deg); } }
 @media (max-width: 760px) { .gameShell { padding: .85rem; border-radius: 1rem; } .topbar { align-items: flex-start; } .topMetrics { align-items:flex-end; flex-direction:column; } .stats > div { min-width: 60px; padding: .5rem; } .instructions { display: grid; margin-top: 1rem; } .grid { gap: .55rem; } .matchCard { min-height: 116px; border-radius: .95rem; padding: .9rem .45rem; } .matchCard > strong { font-size: clamp(.9rem, 3.6vw, 1.15rem); } .teacherStats { grid-template-columns: repeat(2, 1fr); } .answerFeed > div { grid-template-columns: 1fr auto; } .answerFeed span { order: 3; grid-column: 1 / -1; } }
 @media (max-width: 460px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .matchCard { min-height: 105px; } .topbar h1 { font-size: 1.5rem; } .stats { gap:.35rem; } .stats small { font-size: .58rem; } }
-@media (prefers-reduced-motion: reduce) { .matchCard, .progress div { transition: none; } .feedback, .completeBurst { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .progress div { transition: none; } .feedback, .completeBurst { animation: none; } }

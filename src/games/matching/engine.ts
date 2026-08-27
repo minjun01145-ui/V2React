@@ -1,4 +1,4 @@
-import { shuffled } from "../../game-engine/core/random.ts";
+import { hashString, shuffled } from "../../game-engine/core/random.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../learning-sets/types.ts";
 
 export type MatchingCardKind = "term" | "meaning";
@@ -86,17 +86,29 @@ export function refillMatchingBoard(
   const available = shuffled(pairs.filter((pair) => !completed.has(pair.id)), `${seed}:refill`);
   const termIds = new Set(retained.filter((card) => card.kind === "term").map((card) => card.pairId));
   const meaningIds = new Set(retained.filter((card) => card.kind === "meaning").map((card) => card.pairId));
-  const visiblePairCount = countVisiblePairs(retained);
-
+  const existingPairCount = countVisiblePairs(retained);
+  const targetPairCount = 1 + (hashString(seed) % 2);
+  const termCandidates = available.filter((pair) => !termIds.has(pair.id));
+  const meaningCandidates = available.filter((pair) => !meaningIds.has(pair.id));
+  const candidateTargets = targetPairCount === 1 ? [1, 2] : [2, 1];
   let nextTerm: MatchingPair | undefined;
   let nextMeaning: MatchingPair | undefined;
-  if (visiblePairCount === 0) {
-    const nextPair = available.find((pair) => !termIds.has(pair.id) && !meaningIds.has(pair.id));
-    nextTerm = nextPair;
-    nextMeaning = nextPair;
-  } else {
-    nextTerm = available.find((pair) => !termIds.has(pair.id) && !meaningIds.has(pair.id));
-    nextMeaning = available.find((pair) => pair.id !== nextTerm?.id && !meaningIds.has(pair.id) && !termIds.has(pair.id));
+
+  for (const target of candidateTargets) {
+    for (const term of termCandidates) {
+      const meaning = meaningCandidates.find((candidate) => {
+        if (candidate.id === term.id) return false;
+        const resultingPairs = existingPairCount
+          + (meaningIds.has(term.id) ? 1 : 0)
+          + (termIds.has(candidate.id) ? 1 : 0);
+        return resultingPairs === target;
+      });
+      if (!meaning) continue;
+      nextTerm = term;
+      nextMeaning = meaning;
+      break;
+    }
+    if (nextTerm && nextMeaning) break;
   }
 
   if (!nextTerm || !nextMeaning) return createMatchingBoard(pairs, completedPairIds, `${seed}:fallback`);

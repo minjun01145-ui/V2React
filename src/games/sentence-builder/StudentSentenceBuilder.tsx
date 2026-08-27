@@ -7,6 +7,7 @@ import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../shared/popup/index.ts";
 import Button from "../../shared/ui/Button.tsx";
 import Card from "../../shared/ui/Card.tsx";
+import { LearningCardSurface } from "../../shared/ui/LearningCard.tsx";
 import type { SentenceToken } from "./types.ts";
 import { useSentenceBuilderGame } from "./useSentenceBuilderGame.ts";
 import styles from "./SentenceBuilder.module.css";
@@ -79,7 +80,7 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
 
   return <div className={styles.game}>
     <div className={styles.topbar}><div><strong>{engine.currentIndex + 1} / {engine.questionCount}</strong></div><div className={styles.topbarStats}><div className={styles.scoreChip}>{engine.progress.score}점</div></div></div>
-    <Card className={styles.prompt}><p className={styles.label}>한글에 맞게 영어 조각을 순서대로 선택</p><h2>{question.prompt}</h2></Card>
+    <LearningCardSurface className={styles.prompt} eyebrow="문장 뜻" marker="문장" tone="warm">{question.prompt}</LearningCardSurface>
     <Card>
       <p className={styles.label}>내 문장</p>
       <div className={styles.answerZone} aria-label="선택한 문장 조각">{selectedTokens.length === 0 ? <span className={styles.placeholder}>아래 조각을 클릭</span> : selectedTokens.map((token, index) => <button key={token.id} type="button" className={`${styles.token} ${styles.selected}`} onClick={() => removeToken(token.id)}><span>{index + 1}</span>{token.text}</button>)}</div>

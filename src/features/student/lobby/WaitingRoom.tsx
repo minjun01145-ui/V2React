@@ -12,10 +12,9 @@ interface Props {
   readonly selfStudentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
-  readonly onLeave: () => Promise<void>;
 }
 
-export default function WaitingRoom({ roomId, selfStudentNumber, displayName, nickname, onLeave }: Props) {
+export default function WaitingRoom({ roomId, selfStudentNumber, displayName, nickname }: Props) {
   const { activePlayers } = usePlayers(roomId);
   return (
     <div className={styles.stack}>
@@ -26,7 +25,7 @@ export default function WaitingRoom({ roomId, selfStudentNumber, displayName, ni
       </Card>
       <div className={styles.actions}>
         <TypingGameButton />
-        <Button variant="ghost" onClick={() => void onLeave()}>다른 학생으로</Button>
+        <Button variant="ghost" disabled>상점 보기</Button>
       </div>
       <p className={styles.selfHint}>현재 닉네임: {displayLabel(displayName, nickname)}</p>
     </div>

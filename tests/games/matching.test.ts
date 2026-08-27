@@ -39,6 +39,23 @@ const refilledBoard = refillMatchingBoard(firstBoard, matchingTerm.pairId, pairs
 assert.equal(refilledBoard.length, 8);
 assert.equal(refilledBoard.filter((card) => firstBoard.includes(card)).length, 6, "맞춘 두 카드 외의 카드는 그대로 남아야 합니다.");
 assert.ok([1, 2].includes(countVisiblePairs(refilledBoard)));
+const retainedCards = firstBoard.filter((card) => card.pairId !== matchingTerm.pairId);
+const replacementCards = refilledBoard.filter((card) => !retainedCards.includes(card));
+assert.equal(replacementCards.length, 2);
+assert.notEqual(replacementCards[0]?.pairId, replacementCards[1]?.pairId, "새 카드 두 장이 서로 정답인 구조를 만들면 안 됩니다.");
+
+const visiblePairCounts = new Set<number>();
+for (let index = 0; index < 24; index += 1) {
+  const board = createMatchingBoard(pairs, [], `variation-board-${index}`);
+  const visibleTerm = board.find((card) => card.kind === "term" && board.some((other) => other.kind === "meaning" && other.pairId === card.pairId));
+  assert.ok(visibleTerm);
+  const next = refillMatchingBoard(board, visibleTerm.pairId, pairs, [visibleTerm.pairId], `variation-refill-${index}`);
+  visiblePairCounts.add(countVisiblePairs(next));
+  const kept = board.filter((card) => card.pairId !== visibleTerm.pairId);
+  const replacements = next.filter((card) => !kept.includes(card));
+  if (replacements.length === 2) assert.notEqual(replacements[0]?.pairId, replacements[1]?.pairId);
+}
+assert.deepEqual([...visiblePairCounts].sort(), [1, 2], "진행 중 실제 짝이 한 개 또는 두 개로 다양하게 나타나야 합니다.");
 
 const secondBoard = createMatchingBoard(pairs, [matchingTerm.pairId], "round-2");
 assert.ok(secondBoard.every((card) => card.pairId !== matchingTerm.pairId), "맞춘 짝은 다음 보드에서 사라져야 합니다.");
