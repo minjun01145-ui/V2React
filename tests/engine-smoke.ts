@@ -61,6 +61,8 @@ const game = defineGame({
   loadTeacher: async () => ({ default: (_props: TeacherGameModuleProps) => null }),
 });
 assert.deepEqual(game.supportedSetTypes, ["reading-chunks"]);
+assert.equal(game.timing, "timed", "새 게임은 기본적으로 시간제여야 합니다.");
+assert.equal(game.minimumSetItemCount, 1);
 const invalidGame = {
   id: "Bad Game",
   title: "x",

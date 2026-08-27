@@ -1,6 +1,6 @@
 import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
-import { displayLabel } from "../../multiplayer/types.ts";
+import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { useMatchingGame } from "./useMatchingGame.ts";
 import styles from "./MatchingGame.module.css";
@@ -11,26 +11,21 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
   readonly player: Player;
   readonly set: LearningSet;
 }) {
-  const game = useMatchingGame({ roomId, session, player, set });
+  const clock = useTimedGameClock(session);
+  const game = useMatchingGame({ roomId, session, player, set, disabled: clock.expired });
   if (game.loading) return <StatusPanel title="짝맞추기 준비 중">내 진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
 
-  const progressPercent = game.pairCount === 0 ? 0 : Math.round((game.progress.correctCount / game.pairCount) * 100);
-  if (game.isComplete) return <main className={styles.complete}>
-    <div className={styles.completeBurst} aria-hidden="true">★</div>
-    <span>MATCH COMPLETE</span>
-    <h1>모든 짝을 찾았어요!</h1>
-    <p>{displayLabel(player.displayName, player.nickname)}님, 단어 {game.pairCount}개를 모두 맞췄습니다.</p>
-    <strong>{game.progress.score}점</strong>
-  </main>;
+  const progressPercent = game.pairCount === 0 ? 0 : Math.round((game.progress.completedQuestionIds.length / game.pairCount) * 100);
 
   return <main className={styles.gameShell}>
     <header className={styles.topbar}>
       <div><span>PAIR MATCH</span><h1>짝맞추기</h1></div>
-      <div className={styles.stats}>
-        <div><small>찾은 짝</small><strong>{game.progress.correctCount}<i> / {game.pairCount}</i></strong></div>
+      <div className={styles.topMetrics}><div className={styles.stats}>
+        <div><small>찾은 짝</small><strong>{game.progress.correctCount}</strong></div>
+        <div><small>콤보</small><strong>{game.combo}</strong></div>
         <div><small>점수</small><strong>{game.progress.score}</strong></div>
-      </div>
+      </div></div>
     </header>
 
     <section className={styles.progress} aria-label={`진행률 ${progressPercent}%`}>

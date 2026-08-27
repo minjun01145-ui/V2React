@@ -1,6 +1,7 @@
 .game { display: grid; gap: 1rem; }
 .topbar,.actions { display:flex; align-items:center; justify-content:space-between; gap:.75rem; flex-wrap:wrap; }
 .topbar { margin-bottom: 1rem; }
+.topbarStats { display:flex; align-items:center; gap:.65rem; }
 .scoreChip { padding:.55rem .8rem; border-radius:999px; background:var(--color-text); color:white; font-weight:900; }
 .scoreBig { margin:1rem 0; font-size:clamp(2.5rem,10vw,5rem); font-weight:950; letter-spacing:-.06em; }
 .complete { text-align:center; }

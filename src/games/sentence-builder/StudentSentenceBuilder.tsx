@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { shuffled } from "../../game-engine/core/random.ts";
+import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../shared/popup/index.ts";
 import Button from "../../shared/ui/Button.tsx";
 import Card from "../../shared/ui/Card.tsx";
-import { Muted } from "../../shared/ui/Typography.tsx";
 import type { SentenceToken } from "./types.ts";
 import { useSentenceBuilderGame } from "./useSentenceBuilderGame.ts";
 import styles from "./SentenceBuilder.module.css";
@@ -19,23 +19,22 @@ interface Props {
 }
 
 export default function StudentSentenceBuilder({ roomId, session, player, set }: Props) {
-  const engine = useSentenceBuilderGame({ roomId, session, player, set });
+  const clock = useTimedGameClock(session);
+  const engine = useSentenceBuilderGame({ roomId, session, player, set, disabled: clock.expired });
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const { showMessage } = usePopup();
   const question = engine.currentQuestion;
+  const questionCycle = Math.floor(engine.progress.correctCount / Math.max(engine.questionCount, 1));
   const availableTokens = useMemo<SentenceToken[]>(
-    () => question ? shuffled(question.tokens, `${session.roundId}:${player.id}:${question.id}:tokens`) : [],
-    [player.id, question, session.roundId],
+    () => question ? shuffled(question.tokens, `${session.roundId}:${player.id}:${question.id}:${questionCycle}:tokens`) : [],
+    [player.id, question, questionCycle, session.roundId],
   );
 
-  useEffect(() => setSelectedTokenIds([]), [question?.id]);
+  useEffect(() => setSelectedTokenIds([]), [question?.id, questionCycle]);
 
   if (engine.loading) return <StatusPanel title="게임 불러오는 중">진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (engine.error) return <StatusPanel title="게임 연결 오류" tone="error">{engine.error.message}</StatusPanel>;
-  if (engine.isComplete) {
-    return <Card className={styles.complete}><h2>모든 문장을 완성했습니다!</h2><div className={styles.scoreBig}>{engine.progress.score}점</div><Muted>정답 {engine.progress.correctCount}개 · 총 시도 {engine.progress.attemptCount}회</Muted></Card>;
-  }
   if (!question) return <StatusPanel title="문제가 없습니다" tone="error">세트에 사용할 수 있는 문항이 없습니다.</StatusPanel>;
 
   const selectedTokens = selectedTokenIds
@@ -79,7 +78,7 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
   };
 
   return <div className={styles.game}>
-    <div className={styles.topbar}><div><strong>{engine.currentIndex + 1} / {engine.questionCount}</strong></div><div className={styles.scoreChip}>{engine.progress.score}점</div></div>
+    <div className={styles.topbar}><div><strong>{engine.currentIndex + 1} / {engine.questionCount}</strong></div><div className={styles.topbarStats}><div className={styles.scoreChip}>{engine.progress.score}점</div></div></div>
     <Card className={styles.prompt}><p className={styles.label}>한글에 맞게 영어 조각을 순서대로 선택</p><h2>{question.prompt}</h2></Card>
     <Card>
       <p className={styles.label}>내 문장</p>

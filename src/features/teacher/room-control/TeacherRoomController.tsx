@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import GameHost from "../../../games/GameHost.tsx";
+import { getGame, listGames } from "../../../games/registry.ts";
+import { DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE_OPTIONS, withTimedGameConfig, type TimedGameMode } from "../../../game-engine/timed-game/config.ts";
 import { listLearningSets } from "../../../learning-sets/readRepository.ts";
-import { LEARNING_SET_TYPE, type LearningSetSummary } from "../../../learning-sets/types.ts";
+import type { LearningSetSummary } from "../../../learning-sets/types.ts";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayers, useSession } from "../../../multiplayer/hooks.ts";
 import { resetSession, startSession } from "../../../multiplayer/repository.ts";
@@ -16,7 +18,6 @@ import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherRoomController.module.css";
 
 type RoomAction = (roomId: string) => Promise<void>;
-type SupportedGameId = "pokemon-catch" | "sentence-builder" | "matching";
 
 interface Props {
   readonly roomId: string;
@@ -28,8 +29,10 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const { activePlayers, players } = usePlayers(roomId);
   const [working, setWorking] = useState(false);
   const [sets, setSets] = useState<readonly LearningSetSummary[]>([]);
-  const [gameId, setGameId] = useState<SupportedGameId>("pokemon-catch");
+  const availableGames = useMemo(() => listGames().filter((game) => game.supportedSetTypes.length > 0), []);
+  const [gameId, setGameId] = useState("pokemon-catch");
   const [selectedSetId, setSelectedSetId] = useState("");
+  const [timedMode, setTimedMode] = useState<TimedGameMode>(DEFAULT_TIMED_GAME_MODE);
   const [setError, setSetError] = useState("");
   const { showMessage } = usePopup();
 
@@ -39,8 +42,9 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
       .then((next) => {
         if (!active) return;
         setSets(next);
-        const vocabularySets = next.filter((set) => set.type === LEARNING_SET_TYPE.VOCABULARY);
-        setSelectedSetId((current) => current && vocabularySets.some((set) => set.id === current) ? current : (vocabularySets[0]?.id ?? ""));
+        const initialGame = getGame("pokemon-catch");
+        const compatible = next.filter((set) => initialGame.supportedSetTypes.includes(set.type));
+        setSelectedSetId((current) => current && compatible.some((set) => set.id === current) ? current : (compatible[0]?.id ?? ""));
       })
       .catch((value: unknown) => { if (active) setSetError(toErrorMessage(value, "학습 세트 목록을 불러오지 못했습니다.")); });
     return () => { active = false; };
@@ -61,19 +65,24 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
 
   const isPlaying = session?.status === SESSION_STATUS.PLAYING;
   const staleCount = Math.max(players.length - activePlayers.length, 0);
-  const setType = gameId === "sentence-builder" ? LEARNING_SET_TYPE.READING_CHUNKS : LEARNING_SET_TYPE.VOCABULARY;
-  const compatibleSets = useMemo(() => sets.filter((set) => set.type === setType), [setType, sets]);
+  const selectedGame = useMemo(() => getGame(gameId), [gameId]);
+  const compatibleSets = useMemo(() => sets.filter((set) => selectedGame.supportedSetTypes.includes(set.type)), [selectedGame, sets]);
   const selectedSet = useMemo(() => compatibleSets.find((set) => set.id === selectedSetId) ?? null, [compatibleSets, selectedSetId]);
-  const minimumItemCount = gameId === "matching" ? 6 : gameId === "pokemon-catch" ? 4 : 1;
-  const invalidSet = Boolean(selectedSet && selectedSet.itemCount < minimumItemCount);
-  const selectGame = (nextGameId: SupportedGameId): void => {
-    const nextType = nextGameId === "sentence-builder" ? LEARNING_SET_TYPE.READING_CHUNKS : LEARNING_SET_TYPE.VOCABULARY;
+  const invalidSet = Boolean(selectedSet && selectedSet.itemCount < selectedGame.minimumSetItemCount);
+  const selectGame = (nextGameId: string): void => {
+    const nextGame = getGame(nextGameId);
     setGameId(nextGameId);
-    setSelectedSetId(sets.find((set) => set.type === nextType)?.id ?? "");
+    setSelectedSetId(sets.find((set) => nextGame.supportedSetTypes.includes(set.type))?.id ?? "");
+  };
+
+  const startGame = (id: string): Promise<void> => {
+    const baseConfig: Readonly<Record<string, unknown>> = selectedSet ? { setId: selectedSet.id } : {};
+    const gameConfig = selectedGame.timing === "timed" ? withTimedGameConfig(baseConfig, timedMode) : baseConfig;
+    return startSession(id, { gameId, gameConfig });
   };
 
   const actions = <>
-    <Button disabled={working || loading || isPlaying || activePlayers.length === 0 || invalidSet} onClick={() => void run((id) => startSession(id, { gameId, gameConfig: selectedSet ? { setId: selectedSet.id } : {} }))}>게임 시작</Button>
+    <Button disabled={working || loading || isPlaying || activePlayers.length === 0 || invalidSet} onClick={() => void run(startGame)}>게임 시작</Button>
     <Button variant="ghost" disabled={working || loading} onClick={() => void run(resetSession)}>대기실로</Button>
   </>;
 
@@ -81,7 +90,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : <>
       <StatusPanel title="학생 대기 중" tone="waiting">접속 {activePlayers.length}명{staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}</StatusPanel>
-      <Card className={styles.setPicker}><div><h2>{gameId === "pokemon-catch" ? "포켓몬 잡기" : gameId === "matching" ? "짝맞추기" : "문장 만들기"}</h2><Muted>{gameId === "matching" ? "단어 세트 · 6개 이상 필요" : gameId === "pokemon-catch" ? "단어 세트 · 4개 이상 필요" : "끊어읽기 세트"}</Muted></div><div className={styles.pickerControls}><label>게임<select value={gameId} onChange={(event) => selectGame(event.target.value as SupportedGameId)} disabled={working}><option value="pokemon-catch">포켓몬 잡기</option><option value="matching">짝맞추기</option><option value="sentence-builder">문장 만들기</option></select></label><label>학습 세트<select value={selectedSetId} onChange={(event) => setSelectedSetId(event.target.value)} disabled={working}><option value="">내장 데모 세트</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</select></label></div>{setError ? <p className={styles.setError}>{setError}</p> : null}{invalidSet ? <p className={styles.setError}>{gameId === "matching" ? "짝맞추기를 위해 6개 이상의 단어가 필요합니다." : "4지선다를 위해 4개 이상의 단어가 필요합니다."}</p> : null}</Card>
+      <Card className={styles.setPicker}><div><h2>{selectedGame.title}</h2><Muted>{selectedGame.supportedSetTypes.map((type) => type === "reading-chunks" ? "끊어읽기" : "단어").join(" · ")} 세트 · {selectedGame.minimumSetItemCount}개 이상 필요{selectedGame.timing === "timed" ? " · 시간제" : ""}</Muted></div><div className={styles.pickerControls}><label>게임<select value={gameId} onChange={(event) => selectGame(event.target.value)} disabled={working}>{availableGames.map((game) => <option value={game.id} key={game.id}>{game.title}</option>)}</select></label><label>학습 세트<select value={selectedSetId} onChange={(event) => setSelectedSetId(event.target.value)} disabled={working}><option value="">내장 데모 세트</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</select></label>{selectedGame.timing === "timed" ? <label>게임 시간<select value={timedMode} onChange={(event) => setTimedMode(event.target.value as TimedGameMode)} disabled={working}>{TIMED_GAME_MODE_OPTIONS.map((option) => <option value={option.mode} key={option.mode}>{option.label} 모드</option>)}</select></label> : null}</div>{setError ? <p className={styles.setError}>{setError}</p> : null}{invalidSet ? <p className={styles.setError}>{selectedGame.title}을(를) 위해 {selectedGame.minimumSetItemCount}개 이상의 문항이 필요합니다.</p> : null}</Card>
       <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div><PlayerGrid players={activePlayers} showStudentNumber emptyMessage="접속한 학생이 없습니다." /></Card>
     </>}
   </>;

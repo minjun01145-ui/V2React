@@ -3,6 +3,7 @@ import type {
   StudentGameModuleComponent,
   TeacherGameModuleComponent,
 } from "../game-engine/contracts/gameDefinition.ts";
+import TimedStudentGameBoundary from "../game-engine/timed-game/TimedStudentGameBoundary.tsx";
 import { SESSION_STATUS } from "../multiplayer/constants.ts";
 import type { ActiveGameSession, GameSession, Player } from "../multiplayer/types.ts";
 import StatusPanel from "../shared/StatusPanel.tsx";
@@ -46,11 +47,13 @@ export default function GameHost(props: Props) {
   const resetKey = `${activeSession.roundId}:${activeSession.gameId}:${props.role}`;
 
   if (props.role === "student") {
-    const StudentGame = getStudentComponent(activeSession.gameId);
+    const game = getGame(activeSession.gameId);
+    const StudentGame = getStudentComponent(game.id);
+    const content = <StudentGame role="student" roomId={props.roomId} session={activeSession} player={props.player} />;
     return (
       <GameErrorBoundary resetKey={resetKey}>
         <Suspense fallback={<StatusPanel title="게임 불러오는 중">학생용 게임 모듈을 불러오고 있습니다.</StatusPanel>}>
-          <StudentGame role="student" roomId={props.roomId} session={activeSession} player={props.player} />
+          {game.timing === "timed" ? <TimedStudentGameBoundary roomId={props.roomId} session={activeSession} player={props.player}>{content}</TimedStudentGameBoundary> : content}
         </Suspense>
       </GameErrorBoundary>
     );

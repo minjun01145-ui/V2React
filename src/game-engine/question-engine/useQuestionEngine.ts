@@ -10,6 +10,8 @@ interface UseQuestionEngineInput<TQuestion extends BaseQuestion, TAnswer, TDetai
   readonly evaluator: Evaluator<TQuestion, TAnswer, TDetails>;
   readonly initialProgress: unknown;
   readonly progressLoading?: boolean;
+  readonly repeatQuestions?: boolean;
+  readonly disabled?: boolean;
   readonly onSubmit?: (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => Promise<void> | void;
   readonly onProgress?: (progress: GameProgress<TDetails>) => Promise<void> | void;
 }
@@ -30,6 +32,8 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
   evaluator,
   initialProgress,
   progressLoading = false,
+  repeatQuestions = false,
+  disabled = false,
   onSubmit,
   onProgress,
 }: UseQuestionEngineInput<TQuestion, TAnswer, TDetails>): QuestionEngine<TQuestion, TAnswer, TDetails> {
@@ -39,15 +43,19 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
 
   useEffect(() => {
     if (progressLoading || hydratedRoundRef.current === roundId) return;
-    setProgress(normalizeProgress<TDetails>(initialProgress, questions.length));
+    const normalized = normalizeProgress<TDetails>(initialProgress, questions.length);
+    setProgress(repeatQuestions && questions.length > 0 && normalized.currentIndex >= questions.length
+      ? { ...normalized, currentIndex: 0, completedQuestionIds: [], lastResult: null, completedAtMs: null }
+      : normalized);
     hydratedRoundRef.current = roundId;
-  }, [initialProgress, progressLoading, questions.length, roundId]);
+  }, [initialProgress, progressLoading, questions.length, repeatQuestions, roundId]);
 
-  const currentQuestion = questions[progress.currentIndex] ?? null;
-  const isComplete = questions.length > 0 && progress.currentIndex >= questions.length;
+  const displayIndex = repeatQuestions && questions.length > 0 ? progress.currentIndex % questions.length : progress.currentIndex;
+  const currentQuestion = questions[displayIndex] ?? null;
+  const isComplete = !repeatQuestions && questions.length > 0 && progress.currentIndex >= questions.length;
 
   const submitAnswer = useCallback(async (answer: TAnswer): Promise<AnswerResult<TDetails> | null> => {
-    if (!currentQuestion || isComplete || operationRef.current) return null;
+    if (!currentQuestion || isComplete || disabled || operationRef.current) return null;
     operationRef.current = true;
     try {
       const result = assertAnswerResult<TDetails>(evaluator(currentQuestion, answer));
@@ -59,28 +67,28 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     } finally {
       operationRef.current = false;
     }
-  }, [currentQuestion, evaluator, isComplete, onSubmit, progress]);
+  }, [currentQuestion, disabled, evaluator, isComplete, onSubmit, progress]);
 
   const nextQuestion = useCallback(async (): Promise<boolean> => {
-    if (!currentQuestion || !progress.lastResult?.isCorrect || operationRef.current) return false;
+    if (!currentQuestion || !progress.lastResult?.isCorrect || disabled || operationRef.current) return false;
     operationRef.current = true;
     try {
-      const nextProgress = moveToNextQuestion(progress, questions.length);
+      const nextProgress = moveToNextQuestion(progress, questions.length, { repeat: repeatQuestions });
       await onProgress?.(nextProgress);
       setProgress(nextProgress);
       return true;
     } finally {
       operationRef.current = false;
     }
-  }, [currentQuestion, onProgress, progress, questions.length]);
+  }, [currentQuestion, disabled, onProgress, progress, questions.length, repeatQuestions]);
 
   return useMemo(() => ({
     currentQuestion,
-    currentIndex: progress.currentIndex,
+    currentIndex: displayIndex,
     questionCount: questions.length,
     progress,
     isComplete,
     submitAnswer,
     nextQuestion,
-  }), [currentQuestion, isComplete, nextQuestion, progress, questions.length, submitAnswer]);
+  }), [currentQuestion, displayIndex, isComplete, nextQuestion, progress, questions.length, submitAnswer]);
 }

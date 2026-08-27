@@ -20,8 +20,9 @@ export function useSentenceBuilderGame(input: {
   readonly session: ActiveGameSession;
   readonly player: Player;
   readonly set: unknown;
+  readonly disabled?: boolean;
 }): SentenceBuilderEngine {
-  const { roomId, session, player, set } = input;
+  const { roomId, session, player, set, disabled = false } = input;
   const adaptedSet = useMemo(() => adaptReadingChunksSet(set), [set]);
   const questions = useMemo(() => createQuestionDeck(adaptedSet.questions, {
     seed: `${session.roundId}:${adaptedSet.id}:questions`,
@@ -51,6 +52,8 @@ export function useSentenceBuilderGame(input: {
     evaluator: evaluateSentenceSequence,
     initialProgress: progressSubscription.value,
     progressLoading: progressSubscription.loading,
+    repeatQuestions: true,
+    disabled,
     onSubmit: persistSubmission,
     onProgress: persistProgress,
   });

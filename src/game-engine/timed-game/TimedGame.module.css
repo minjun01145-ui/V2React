@@ -1,0 +1,18 @@
+.clock { min-width: 128px; padding: .65rem .85rem; border: 1px solid #c7d2fe; border-radius: 1rem; color: #312e81; background: #eef2ff; text-align: center; box-shadow: 0 7px 18px rgba(67, 56, 202, .08); }
+.clock > span { display: block; font-size: .65rem; font-weight: 900; letter-spacing: .08em; }
+.clock > strong { display: block; font-variant-numeric: tabular-nums; font-size: 1.45rem; line-height: 1.2; }
+.clockTrack { overflow: hidden; height: .3rem; margin-top: .4rem; border-radius: 999px; background: rgba(79,70,229,.14); }
+.clockTrack i { display: block; height: 100%; border-radius: inherit; background: #4f46e5; transition: width .25s linear; }
+.clock[data-expired="true"] { color: #991b1b; border-color: #fecaca; background: #fef2f2; }
+.clock[data-expired="true"] .clockTrack i { background: #dc2626; }
+.clock[data-compact="true"] { min-width: 104px; padding: .5rem .7rem; }
+.clock[data-compact="true"] > strong { font-size: 1.2rem; }
+.timedBoundary { display:grid; gap:.75rem; }
+.globalClock { position:sticky; z-index:5; top:.5rem; display:flex; justify-content:flex-end; min-height:0; pointer-events:none; }
+.globalClock .clock { backdrop-filter:blur(10px); background:rgba(238,242,255,.94); }
+.gameOver { display: grid; min-height: min(600px, calc(100dvh - 3rem)); place-content: center; justify-items: center; padding: 2rem; border: 1px solid #ddd6fe; border-radius: 1.5rem; background: radial-gradient(circle at 50% 30%, #fff 0 15%, transparent 42%), linear-gradient(145deg, #f5f3ff, #ecfeff); text-align: center; }
+.gameOver > span { color: #6d5ce7; font-size: .76rem; font-weight: 950; letter-spacing: .18em; }
+.gameOver h1 { margin: .45rem 0; font-size: clamp(2.1rem, 7vw, 3.7rem); letter-spacing: -.06em; }
+.gameOver > strong { color: #4f46e5; font-size: clamp(3rem, 12vw, 6rem); letter-spacing: -.07em; }
+.gameOver p { color: #64748b; }
+@media (prefers-reduced-motion: reduce) { .clockTrack i { transition: none; } }

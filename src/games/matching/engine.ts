@@ -63,6 +63,12 @@ export function isMatchingPair(first: MatchingCard, second: MatchingCard): boole
   return first.kind !== second.kind && first.pairId === second.pairId;
 }
 
+export function matchingComboResult(currentCombo: number, correct: boolean): { readonly combo: number; readonly scoreDelta: number } {
+  if (!correct) return { combo: 0, scoreDelta: 0 };
+  const combo = Math.max(0, Math.floor(currentCombo)) + 1;
+  return { combo, scoreDelta: 100 + Math.min(Math.max(combo - 1, 0), 5) * 20 };
+}
+
 export function countVisiblePairs(cards: readonly MatchingCard[]): number {
   const terms = new Set(cards.filter((card) => card.kind === "term").map((card) => card.pairId));
   return new Set(cards.filter((card) => card.kind === "meaning" && terms.has(card.pairId)).map((card) => card.pairId)).size;

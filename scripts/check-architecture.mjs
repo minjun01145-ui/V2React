@@ -96,6 +96,8 @@ for (const file of sourceFiles) {
     }
 
     if ((rel.startsWith("src/game-engine/core/") ||
+         rel === "src/game-engine/timed-game/config.ts" ||
+         rel === "src/game-engine/timed-game/clock.ts" ||
          (rel.startsWith("src/game-engine/question-engine/") && !rel.endsWith("useQuestionEngine.ts") && !rel.includes("/multiplayer/"))) &&
         (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/games/") || specifier.includes("/learning-sets/") || specifier.includes("/multiplayer/"))) {
       violations.push(`${rel}: pure engine code may not depend on React, Firebase, concrete games, learning sets, or app multiplayer (${specifier})`);

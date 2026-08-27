@@ -2,6 +2,7 @@
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; max-width: 1060px; margin: 0 auto; }
 .topbar span { color: #625be7; font-size: .72rem; font-weight: 950; letter-spacing: .18em; }
 .topbar h1 { margin: .15rem 0 0; font-size: clamp(1.7rem, 4vw, 2.55rem); letter-spacing: -.05em; }
+.topMetrics { display:flex; align-items:center; gap:.65rem; }
 .stats { display: flex; gap: .65rem; }
 .stats > div { min-width: 86px; padding: .62rem .9rem; border: 1px solid rgba(99, 102, 241, .14); border-radius: 1rem; background: rgba(255,255,255,.82); text-align: center; box-shadow: 0 8px 24px rgba(55, 65, 130, .08); }
 .stats small { display: block; color: #718096; font-size: .68rem; font-weight: 800; }
@@ -45,6 +46,6 @@
 .answerFeed small { color: var(--color-muted); }
 @keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
 @keyframes pop { from { opacity: 0; transform: scale(.65) rotate(-12deg); } }
-@media (max-width: 760px) { .gameShell { padding: .85rem; border-radius: 1rem; } .topbar { align-items: flex-start; } .stats > div { min-width: 68px; padding: .5rem; } .instructions { display: grid; margin-top: 1rem; } .grid { gap: .55rem; } .matchCard { min-height: 116px; border-radius: .95rem; padding: .9rem .45rem; } .matchCard > strong { font-size: clamp(.9rem, 3.6vw, 1.15rem); } .teacherStats { grid-template-columns: repeat(2, 1fr); } .answerFeed > div { grid-template-columns: 1fr auto; } .answerFeed span { order: 3; grid-column: 1 / -1; } }
-@media (max-width: 460px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .matchCard { min-height: 105px; } .topbar h1 { font-size: 1.5rem; } .stats small { font-size: .58rem; } }
+@media (max-width: 760px) { .gameShell { padding: .85rem; border-radius: 1rem; } .topbar { align-items: flex-start; } .topMetrics { align-items:flex-end; flex-direction:column; } .stats > div { min-width: 60px; padding: .5rem; } .instructions { display: grid; margin-top: 1rem; } .grid { gap: .55rem; } .matchCard { min-height: 116px; border-radius: .95rem; padding: .9rem .45rem; } .matchCard > strong { font-size: clamp(.9rem, 3.6vw, 1.15rem); } .teacherStats { grid-template-columns: repeat(2, 1fr); } .answerFeed > div { grid-template-columns: 1fr auto; } .answerFeed span { order: 3; grid-column: 1 / -1; } }
+@media (max-width: 460px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .matchCard { min-height: 105px; } .topbar h1 { font-size: 1.5rem; } .stats { gap:.35rem; } .stats small { font-size: .58rem; } }
 @media (prefers-reduced-motion: reduce) { .matchCard, .progress div { transition: none; } .feedback, .completeBurst { animation: none; } }

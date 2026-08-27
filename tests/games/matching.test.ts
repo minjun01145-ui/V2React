@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { countVisiblePairs, createMatchingBoard, isMatchingPair, matchingPairs, refillMatchingBoard } from "../../src/games/matching/engine.ts";
+import { countVisiblePairs, createMatchingBoard, isMatchingPair, matchingComboResult, matchingPairs, refillMatchingBoard } from "../../src/games/matching/engine.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
 
 const vocabularySet: LearningSet = {
@@ -30,6 +30,10 @@ const matchingMeaning = firstBoard.find((card) => card.kind === "meaning" && car
 assert.ok(matchingMeaning);
 assert.equal(isMatchingPair(matchingTerm, matchingMeaning), true);
 assert.equal(isMatchingPair(matchingTerm, matchingTerm), false);
+assert.deepEqual(matchingComboResult(0, true), { combo: 1, scoreDelta: 100 });
+assert.deepEqual(matchingComboResult(3, true), { combo: 4, scoreDelta: 160 });
+assert.deepEqual(matchingComboResult(9, true), { combo: 10, scoreDelta: 200 }, "콤보 보너스는 최대 100점이어야 합니다.");
+assert.deepEqual(matchingComboResult(4, false), { combo: 0, scoreDelta: 0 });
 
 const refilledBoard = refillMatchingBoard(firstBoard, matchingTerm.pairId, pairs, [matchingTerm.pairId], "refill-1");
 assert.equal(refilledBoard.length, 8);

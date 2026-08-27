@@ -74,7 +74,18 @@ export function applyAnswerToProgress<TQuestion extends BaseQuestion, TDetails>(
 export function moveToNextQuestion<TDetails>(
   progress: GameProgress<TDetails>,
   questionCount: number,
+  options: { readonly repeat?: boolean } = {},
 ): GameProgress<TDetails> {
+  const repeats = options.repeat === true && questionCount > 0;
+  if (repeats && progress.currentIndex + 1 >= questionCount) {
+    return {
+      ...progress,
+      currentIndex: 0,
+      completedQuestionIds: [],
+      lastResult: null,
+      completedAtMs: null,
+    };
+  }
   const nextIndex = Math.min(progress.currentIndex + 1, questionCount);
   const isComplete = nextIndex >= questionCount;
   return {
