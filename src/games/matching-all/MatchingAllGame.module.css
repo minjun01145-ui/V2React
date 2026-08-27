@@ -1,0 +1,24 @@
+.clearedSlot {
+  min-height: clamp(135px, 18vw, 190px);
+  border: 2px dashed rgba(99, 102, 241, .13);
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, .18);
+  animation: clear-slot .3s ease both;
+}
+
+@keyframes clear-slot {
+  from { opacity: 0; transform: scale(.75); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 760px) {
+  .clearedSlot { min-height: 116px; border-radius: .95rem; }
+}
+
+@media (max-width: 460px) {
+  .clearedSlot { min-height: 105px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clearedSlot { animation: none; }
+}

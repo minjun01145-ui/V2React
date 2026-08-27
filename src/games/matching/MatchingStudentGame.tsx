@@ -36,7 +36,7 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
   return <main className={styles.gameShell}>
     <GameEffectLayer effect={effects.activeEffect} />
     <header className={styles.topbar}>
-      <div><span>PAIR MATCH</span><h1>짝맞추기</h1></div>
+      <div><span>PAIR MATCH</span><h1>짝맞추기 · 일부카드</h1></div>
       <div className={styles.topMetrics}><div className={styles.stats}>
         <div><small>찾은 짝</small><strong>{game.progress.correctCount}</strong></div>
         <div><small>콤보</small><strong>{game.combo}</strong></div>

@@ -27,7 +27,7 @@
     "test:popup": "node --experimental-strip-types tests/popup-engine-smoke.ts",
     "test:sets": "node --experimental-strip-types tests/learning-sets-smoke.ts",
     "check:security": "node scripts/check-security.mjs",
-    "test:games": "node --experimental-strip-types tests/games/sentence-builder.test.ts && node --experimental-strip-types tests/games/pokemon-catch.test.ts && node --experimental-strip-types tests/games/matching.test.ts",
+    "test:games": "node --experimental-strip-types tests/games/sentence-builder.test.ts && node --experimental-strip-types tests/games/pokemon-catch.test.ts && node --experimental-strip-types tests/games/matching.test.ts && node --experimental-strip-types tests/games/matching-all.test.ts",
     "test:ai": "node --experimental-strip-types tests/ai-admin-smoke.ts",
     "test:test-tool": "node --experimental-strip-types tests/classroom-test-model.test.ts"
   },

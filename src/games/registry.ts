@@ -19,11 +19,19 @@ const definitions = [
   }),
   defineGame({
     id: "matching",
-    title: "짝맞추기",
+    title: "짝맞추기(일부카드)",
     supportedSetTypes: ["vocabulary"],
     minimumSetItemCount: 6,
     loadStudent: () => import("./matching/MatchingStudentModule.tsx"),
     loadTeacher: () => import("./matching/MatchingTeacherModule.tsx"),
+  }),
+  defineGame({
+    id: "matching-all",
+    title: "짝맞추기(모든카드)",
+    supportedSetTypes: ["vocabulary"],
+    minimumSetItemCount: 4,
+    loadStudent: () => import("./matching-all/MatchingAllStudentModule.tsx"),
+    loadTeacher: () => import("./matching-all/MatchingAllTeacherModule.tsx"),
   }),
   defineGame({
     id: "placeholder",
