@@ -3,10 +3,12 @@
 .topbar { margin-bottom: 1rem; }
 .topbarStats { display:flex; align-items:center; gap:.65rem; }
 .scoreChip { padding:.55rem .8rem; border-radius:999px; background:var(--color-text); color:white; font-weight:900; }
+.comboChip { padding:.55rem .8rem; border-radius:999px; color:#554ad5; background:#ecebff; font-weight:950; }
 .scoreBig { margin:1rem 0; font-size:clamp(2.5rem,10vw,5rem); font-weight:950; letter-spacing:-.06em; }
 .complete { text-align:center; }
 .prompt h2 { margin:.45rem 0 0; font-size:clamp(1.45rem,4vw,2.25rem); line-height:1.35; }
 .label { margin:0; color:var(--color-muted); font-weight:750; }
+.label span { margin-left:.45rem; color:#7c83a0; font-size:.78rem; font-weight:700; }
 .answerZone,.tokenBank { display:flex; align-items:center; gap:.65rem; flex-wrap:wrap; min-height:4.5rem; }
 .answerZone { margin:.75rem 0 1rem; padding:.85rem; border:2px dashed #c7d2fe; border-radius:1rem; background:#f8faff; }
 .tokenBank { padding:.85rem 0; }

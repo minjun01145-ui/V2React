@@ -26,6 +26,7 @@ const progress: GameProgress = {
   score: 200,
   correctCount: 2,
   attemptCount: 3,
+  combo: 0,
   completedQuestionIds: ["q1", "q2"],
   lastResult: { questionId: "q2", status: "correct", isCorrect: true, scoreDelta: 100, feedback: null, details: null },
   completedAtMs: null,
@@ -33,6 +34,7 @@ const progress: GameProgress = {
 const repeated = moveToNextQuestion(progress, 2, { repeat: true });
 assert.equal(repeated.currentIndex, 0);
 assert.equal(repeated.score, 200);
+assert.equal(repeated.combo, 0);
 assert.deepEqual(repeated.completedQuestionIds, []);
 assert.equal(repeated.completedAtMs, null);
 

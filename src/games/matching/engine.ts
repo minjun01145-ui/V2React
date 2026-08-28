@@ -1,4 +1,5 @@
 import { hashString, shuffled } from "../../game-engine/core/random.ts";
+import { applyComboScore } from "../../game-engine/scoring/combo.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../learning-sets/types.ts";
 
 export type MatchingCardKind = "term" | "meaning";
@@ -64,9 +65,8 @@ export function isMatchingPair(first: MatchingCard, second: MatchingCard): boole
 }
 
 export function matchingComboResult(currentCombo: number, correct: boolean): { readonly combo: number; readonly scoreDelta: number } {
-  if (!correct) return { combo: 0, scoreDelta: 0 };
-  const combo = Math.max(0, Math.floor(currentCombo)) + 1;
-  return { combo, scoreDelta: 100 + Math.min(Math.max(combo - 1, 0), 5) * 20 };
+  const result = applyComboScore(currentCombo, correct, 100, { bonusPerStep: 20, maximumBonus: 100 });
+  return { combo: result.combo, scoreDelta: result.scoreDelta };
 }
 
 export function countVisiblePairs(cards: readonly MatchingCard[]): number {

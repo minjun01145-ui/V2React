@@ -21,6 +21,7 @@ export interface GameProgress<TDetails = unknown> {
   readonly score: number;
   readonly correctCount: number;
   readonly attemptCount: number;
+  readonly combo: number;
   readonly completedQuestionIds: readonly string[];
   readonly lastResult: LastAnswerResult<TDetails> | null;
   readonly completedAtMs: number | null;

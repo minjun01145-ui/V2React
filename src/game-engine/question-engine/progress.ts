@@ -26,6 +26,7 @@ export function createEmptyProgress<TDetails = unknown>(): GameProgress<TDetails
     score: 0,
     correctCount: 0,
     attemptCount: 0,
+    combo: 0,
     completedQuestionIds: [],
     lastResult: null,
     completedAtMs: null,
@@ -46,6 +47,7 @@ export function normalizeProgress<TDetails = unknown>(progress: unknown, questio
     score: nonNegativeNumber(progress.score),
     correctCount: nonNegativeNumber(progress.correctCount),
     attemptCount: nonNegativeNumber(progress.attemptCount),
+    combo: nonNegativeNumber(progress.combo),
     completedQuestionIds,
     lastResult: parseLastResult<TDetails>(progress.lastResult),
     completedAtMs: typeof progress.completedAtMs === "number" && Number.isFinite(progress.completedAtMs)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { assertAnswerResult } from "../core/answerResult.ts";
+import { applyComboScore, type ComboScoringConfig } from "../scoring/combo.ts";
 import { applyAnswerToProgress, createEmptyProgress, moveToNextQuestion, normalizeProgress } from "./progress.ts";
 import type { AnswerResult } from "../core/types.ts";
 import type { AnswerSubmission, BaseQuestion, Evaluator, GameProgress } from "./types.ts";
@@ -12,6 +13,7 @@ interface UseQuestionEngineInput<TQuestion extends BaseQuestion, TAnswer, TDetai
   readonly progressLoading?: boolean;
   readonly repeatQuestions?: boolean;
   readonly disabled?: boolean;
+  readonly comboScoring?: ComboScoringConfig;
   readonly onSubmit?: (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => Promise<void> | void;
   readonly onProgress?: (progress: GameProgress<TDetails>) => Promise<void> | void;
 }
@@ -34,6 +36,7 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
   progressLoading = false,
   repeatQuestions = false,
   disabled = false,
+  comboScoring,
   onSubmit,
   onProgress,
 }: UseQuestionEngineInput<TQuestion, TAnswer, TDetails>): QuestionEngine<TQuestion, TAnswer, TDetails> {
@@ -58,8 +61,12 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     if (!currentQuestion || isComplete || disabled || operationRef.current) return null;
     operationRef.current = true;
     try {
-      const result = assertAnswerResult<TDetails>(evaluator(currentQuestion, answer));
-      const nextProgress = applyAnswerToProgress(progress, currentQuestion, result);
+      const evaluated = assertAnswerResult<TDetails>(evaluator(currentQuestion, answer));
+      const comboResult = comboScoring
+        ? applyComboScore(progress.combo, evaluated.isCorrect, evaluated.scoreDelta, comboScoring)
+        : { combo: progress.combo, scoreDelta: evaluated.scoreDelta };
+      const result = { ...evaluated, scoreDelta: comboResult.scoreDelta };
+      const nextProgress = applyAnswerToProgress({ ...progress, combo: comboResult.combo }, currentQuestion, result);
       const attemptId = globalThis.crypto.randomUUID();
       await onSubmit?.({ attemptId, question: currentQuestion, answer, result, progress: nextProgress });
       setProgress(nextProgress);
@@ -67,7 +74,7 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     } finally {
       operationRef.current = false;
     }
-  }, [currentQuestion, disabled, evaluator, isComplete, onSubmit, progress]);
+  }, [comboScoring, currentQuestion, disabled, evaluator, isComplete, onSubmit, progress]);
 
   const nextQuestion = useCallback(async (): Promise<boolean> => {
     if (!currentQuestion || !progress.lastResult?.isCorrect || disabled || operationRef.current) return false;

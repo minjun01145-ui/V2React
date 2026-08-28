@@ -1,4 +1,5 @@
 import { shuffled } from "../../game-engine/core/random.ts";
+import { applyComboScore } from "../../game-engine/scoring/combo.ts";
 import type { MatchingCard, MatchingPair } from "../matching/engine.ts";
 
 export const ALL_MATCHING_PAIR_COUNT = 4;
@@ -24,12 +25,8 @@ export function allMatchingRoundResult(currentCombo: number, boardComplete: bool
   readonly combo: number;
   readonly scoreDelta: number;
 } {
-  if (!boardComplete) return { combo: 0, scoreDelta: 0 };
-  const combo = Math.max(0, Math.floor(currentCombo)) + 1;
-  return {
-    combo,
-    scoreDelta: ALL_MATCHING_BASE_SCORE + Math.min(Math.max(combo - 1, 0), 5) * 50,
-  };
+  const result = applyComboScore(currentCombo, boardComplete, ALL_MATCHING_BASE_SCORE, { bonusPerStep: 50, maximumBonus: 250 });
+  return { combo: result.combo, scoreDelta: result.scoreDelta };
 }
 
 export function nextUsedPairIds(
