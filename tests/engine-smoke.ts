@@ -7,6 +7,7 @@ import { defineGame, type StudentGameModuleProps, type TeacherGameModuleProps } 
 import { normalizeRoomId } from "../src/multiplayer/roomId.ts";
 import { adaptReadingChunksSet } from "../src/games/sentence-builder/readingChunksAdapter.ts";
 import { evaluateSentenceSequence } from "../src/games/sentence-builder/evaluator.ts";
+import { getGame } from "../src/games/registry.ts";
 
 const set: unknown = {
   id: "test",
@@ -63,6 +64,21 @@ const game = defineGame({
 assert.deepEqual(game.supportedSetTypes, ["reading-chunks"]);
 assert.equal(game.timing, "timed", "새 게임은 기본적으로 시간제여야 합니다.");
 assert.equal(game.minimumSetItemCount, 1);
+assert.deepEqual(game.settings, []);
+const configurableGame = defineGame({
+  id: "configurable-game",
+  title: "Configurable Game",
+  supportedSetTypes: ["vocabulary"],
+  settings: [{ kind: "select", key: "level", label: "난이도", defaultValue: "easy", options: [{ value: "easy", label: "쉬움" }, { value: "hard", label: "어려움" }] }],
+  loadStudent: async () => ({ default: (_props: StudentGameModuleProps) => null }),
+  loadTeacher: async () => ({ default: (_props: TeacherGameModuleProps) => null }),
+});
+assert.equal(configurableGame.settings[0]?.defaultValue, "easy");
+assert.throws(() => defineGame({ ...configurableGame, id: "invalid-setting", settings: [{ ...configurableGame.settings[0]!, defaultValue: "missing" }] }));
+const simpleQuiz = getGame("simple-quiz");
+assert.equal(simpleQuiz.title, "심플퀴즈");
+assert.equal(simpleQuiz.settings[0]?.key, "choice-count");
+assert.equal(simpleQuiz.settings[0]?.defaultValue, "4");
 const invalidGame = {
   id: "Bad Game",
   title: "x",

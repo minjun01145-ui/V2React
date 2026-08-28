@@ -8,17 +8,23 @@ import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 
 const INITIAL_GAME_ID = "pokemon-catch";
 
+function defaultSettingValues(game: GameDefinition): Readonly<Record<string, string>> {
+  return Object.fromEntries(game.settings.map((setting) => [setting.key, setting.defaultValue]));
+}
+
 export interface GameSetupState {
   readonly availableGames: readonly GameDefinition[];
   readonly selectedGame: GameDefinition;
   readonly compatibleSets: readonly LearningSetSummary[];
   readonly selectedSetId: string;
   readonly timedMode: TimedGameMode;
+  readonly settingValues: Readonly<Record<string, string>>;
   readonly setError: string;
   readonly invalidSet: boolean;
   readonly selectGame: (gameId: string) => void;
   readonly selectSet: (setId: string) => void;
   readonly selectTimedMode: (mode: TimedGameMode) => void;
+  readonly selectSetting: (key: string, value: string) => void;
   readonly buildGameConfig: () => Readonly<Record<string, unknown>>;
 }
 
@@ -28,6 +34,7 @@ export function useGameSetup(): GameSetupState {
   const [gameId, setGameId] = useState(INITIAL_GAME_ID);
   const [selectedSetId, setSelectedSetId] = useState("");
   const [timedMode, setTimedMode] = useState<TimedGameMode>(DEFAULT_TIMED_GAME_MODE);
+  const [settingValues, setSettingValues] = useState<Readonly<Record<string, string>>>(() => defaultSettingValues(getGame(INITIAL_GAME_ID)));
   const [setError, setSetError] = useState("");
 
   useEffect(() => {
@@ -52,11 +59,12 @@ export function useGameSetup(): GameSetupState {
   const selectGame = (nextGameId: string): void => {
     const nextGame = getGame(nextGameId);
     setGameId(nextGameId);
+    setSettingValues(defaultSettingValues(nextGame));
     setSelectedSetId(sets.find((set) => nextGame.supportedSetTypes.includes(set.type))?.id ?? "");
   };
 
   const buildGameConfig = (): Readonly<Record<string, unknown>> => {
-    const baseConfig: Readonly<Record<string, unknown>> = selectedSet ? { setId: selectedSet.id } : {};
+    const baseConfig: Readonly<Record<string, unknown>> = { ...(selectedSet ? { setId: selectedSet.id } : {}), ...settingValues };
     return selectedGame.timing === "timed" ? withTimedGameConfig(baseConfig, timedMode) : baseConfig;
   };
 
@@ -66,11 +74,13 @@ export function useGameSetup(): GameSetupState {
     compatibleSets,
     selectedSetId,
     timedMode,
+    settingValues,
     setError,
     invalidSet,
     selectGame,
     selectSet: setSelectedSetId,
     selectTimedMode: setTimedMode,
+    selectSetting: (key, value) => setSettingValues((current) => ({ ...current, [key]: value })),
     buildGameConfig,
   };
 }

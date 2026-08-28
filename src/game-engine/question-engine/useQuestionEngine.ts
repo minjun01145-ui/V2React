@@ -14,6 +14,7 @@ interface UseQuestionEngineInput<TQuestion extends BaseQuestion, TAnswer, TDetai
   readonly repeatQuestions?: boolean;
   readonly disabled?: boolean;
   readonly comboScoring?: ComboScoringConfig;
+  readonly advanceAfterAnyAnswer?: boolean;
   readonly onSubmit?: (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => Promise<void> | void;
   readonly onProgress?: (progress: GameProgress<TDetails>) => Promise<void> | void;
 }
@@ -37,6 +38,7 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
   repeatQuestions = false,
   disabled = false,
   comboScoring,
+  advanceAfterAnyAnswer = false,
   onSubmit,
   onProgress,
 }: UseQuestionEngineInput<TQuestion, TAnswer, TDetails>): QuestionEngine<TQuestion, TAnswer, TDetails> {
@@ -77,7 +79,7 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
   }, [comboScoring, currentQuestion, disabled, evaluator, isComplete, onSubmit, progress]);
 
   const nextQuestion = useCallback(async (): Promise<boolean> => {
-    if (!currentQuestion || !progress.lastResult?.isCorrect || disabled || operationRef.current) return false;
+    if (!currentQuestion || !progress.lastResult || (!advanceAfterAnyAnswer && !progress.lastResult.isCorrect) || disabled || operationRef.current) return false;
     operationRef.current = true;
     try {
       const nextProgress = moveToNextQuestion(progress, questions.length, { repeat: repeatQuestions });
@@ -87,7 +89,7 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     } finally {
       operationRef.current = false;
     }
-  }, [currentQuestion, disabled, onProgress, progress, questions.length, repeatQuestions]);
+  }, [advanceAfterAnyAnswer, currentQuestion, disabled, onProgress, progress, questions.length, repeatQuestions]);
 
   return useMemo(() => ({
     currentQuestion,

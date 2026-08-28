@@ -18,6 +18,21 @@ const definitions = [
     loadTeacher: () => import("./sentence-builder/SentenceBuilderTeacherGame.tsx"),
   }),
   defineGame({
+    id: "simple-quiz",
+    title: "심플퀴즈",
+    supportedSetTypes: ["vocabulary"],
+    minimumSetItemCount: 5,
+    settings: [{
+      kind: "select",
+      key: "choice-count",
+      label: "선택지 수",
+      defaultValue: "4",
+      options: [2, 3, 4, 5].map((count) => ({ value: String(count), label: `${count}지선다` })),
+    }],
+    loadStudent: () => import("./simple-quiz/SimpleQuizStudentModule.tsx"),
+    loadTeacher: () => import("./simple-quiz/SimpleQuizTeacherModule.tsx"),
+  }),
+  defineGame({
     id: "matching",
     title: "짝맞추기(일부카드)",
     supportedSetTypes: ["vocabulary"],

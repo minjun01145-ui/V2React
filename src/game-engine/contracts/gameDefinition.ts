@@ -19,19 +19,29 @@ export type StudentGameModuleComponent = ComponentType<StudentGameModuleProps>;
 
 export type GameTiming = "timed" | "untimed";
 
+export interface GameSelectSetting {
+  readonly kind: "select";
+  readonly key: string;
+  readonly label: string;
+  readonly defaultValue: string;
+  readonly options: readonly { readonly value: string; readonly label: string }[];
+}
+
 export interface GameDefinition {
   readonly id: string;
   readonly title: string;
   readonly supportedSetTypes: readonly string[];
   readonly timing: GameTiming;
   readonly minimumSetItemCount: number;
+  readonly settings: readonly GameSelectSetting[];
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "settings"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
+  readonly settings?: readonly GameSelectSetting[];
 };
 
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -50,6 +60,13 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
   if (!Number.isInteger(minimumSetItemCount) || minimumSetItemCount < 0) {
     throw new Error(`Game ${definition.id} requires a non-negative minimum set item count.`);
   }
+  const settings = definition.settings ?? [];
+  const settingKeys = new Set<string>();
+  for (const setting of settings) {
+    if (!GAME_ID_PATTERN.test(setting.key) || settingKeys.has(setting.key)) throw new Error(`Game ${definition.id} has an invalid or duplicate setting key: ${setting.key}`);
+    if (!setting.options.some((option) => option.value === setting.defaultValue)) throw new Error(`Game ${definition.id} setting ${setting.key} has an invalid default value.`);
+    settingKeys.add(setting.key);
+  }
 
   return Object.freeze({
     ...definition,
@@ -57,5 +74,6 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     supportedSetTypes: Object.freeze([...new Set(definition.supportedSetTypes)]),
     timing: definition.timing ?? "timed",
     minimumSetItemCount,
+    settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
 }
