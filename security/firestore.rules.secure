@@ -207,9 +207,11 @@ service cloud.firestore {
             && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
             && request.resource.data.keys().hasOnly([
               "gameId", "playerId", "displayName", "currentIndex", "score",
-              "correctCount", "attemptCount", "completedQuestionIds", "lastResult",
+              "correctCount", "attemptCount", "combo", "completedQuestionIds", "lastResult",
               "completedAtMs", "updatedAt", "updatedAtMs"
-            ]);
+            ])
+            && request.resource.data.combo is int
+            && request.resource.data.combo >= 0;
           allow delete: if isAdmin();
         }
       }

@@ -106,6 +106,9 @@ if (!/match \/players\/\{uid\}[\s\S]*?allow read: if isAdmin\(\) \|\| isRoomStud
 if (!rules.includes("match /multiplayerTestRuns/{adminUid}")) {
   violations.push("security/firestore.rules.secure: multiplayer test run credentials must be server-only");
 }
+if (!rules.includes('"correctCount", "attemptCount", "combo"') || !rules.includes("request.resource.data.combo is int")) {
+  violations.push("security/firestore.rules.secure: multiplayer progress must explicitly allow and validate combo state");
+}
 if (!rules.includes("match /studentGameData/{accountId}/games/pokemon-catch") || !rules.includes("validPokemonInventory")) {
   violations.push("security/firestore.rules.secure: persistent Pokémon data must validate authenticated ownership and inventory shape");
 }
