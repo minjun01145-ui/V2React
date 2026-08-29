@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useRoundProgress } from "../../multiplayer/game-progress/hooks.ts";
-import { usePlayers } from "../../multiplayer/hooks.ts";
+import { useRoundParticipants } from "../../multiplayer/hooks.ts";
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { createLeaderboard } from "./leaderboard.ts";
@@ -13,14 +13,14 @@ export default function LiveLeaderboard({ roomId, session, title }: {
   readonly session: ActiveGameSession;
   readonly title: string;
 }) {
-  const players = usePlayers(roomId);
+  const participants = useRoundParticipants(roomId, session.roundId);
   const progress = useRoundProgress(roomId, session.roundId);
   const clock = useTimedGameClock(session);
   const entries = useMemo(
-    () => createLeaderboard(players.activePlayers, progress.value),
-    [players.activePlayers, progress.value],
+    () => createLeaderboard(participants.value, progress.value),
+    [participants.value, progress.value],
   );
-  const error = players.error ?? progress.error;
+  const error = participants.error ?? progress.error;
   if (error) return <StatusPanel title="리더보드 연결 오류" tone="error">{error.message}</StatusPanel>;
 
   return <section className={styles.board} aria-label={`${title} 실시간 순위`}>

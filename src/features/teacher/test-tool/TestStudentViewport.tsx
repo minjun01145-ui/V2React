@@ -16,6 +16,7 @@ interface Props {
 export default function TestStudentViewport({ session, activeSlot, onPrevious, onNext, onSelectSlot }: Props) {
   const frames = useTestStudentFrames(session);
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("mobile");
+  const [frameVersions, setFrameVersions] = useState<Readonly<Record<number, number>>>({});
   const activeStudent = session.students.find((student) => student.slot === activeSlot) ?? session.students[0];
 
   return <Card className={styles.viewerCard}>
@@ -38,6 +39,8 @@ export default function TestStudentViewport({ session, activeSlot, onPrevious, o
       <button type="button" className={viewport === "mobile" ? styles.activeViewport : ""} onClick={() => setViewport("mobile")}>휴대폰</button>
       <button type="button" className={viewport === "tablet" ? styles.activeViewport : ""} onClick={() => setViewport("tablet")}>태블릿</button>
       <button type="button" className={viewport === "desktop" ? styles.activeViewport : ""} onClick={() => setViewport("desktop")}>컴퓨터</button>
+      <button type="button" onClick={() => frames.reloadFrame(activeSlot)}>새로고침</button>
+      <button type="button" onClick={() => setFrameVersions((current) => ({ ...current, [activeSlot]: (current[activeSlot] ?? 0) + 1 }))}>다시 마운트</button>
     </div>
     <div className={`${styles.device} ${styles[viewport]}`}>
       <div className={styles.deviceBar}><span /><span /><span /><small>{activeStudent?.studentNumber ?? "TEST"}</small></div>
@@ -48,7 +51,7 @@ export default function TestStudentViewport({ session, activeSlot, onPrevious, o
           src={`/test-student/?slot=${student.slot}`}
           title={`${student.displayName} 실제 학생 화면`}
           sandbox="allow-scripts allow-same-origin allow-forms"
-          key={`${session.runId}-${student.slot}`}
+          key={`${session.runId}-${student.slot}-${frameVersions[student.slot] ?? 0}`}
         />)}
       </div>
     </div>

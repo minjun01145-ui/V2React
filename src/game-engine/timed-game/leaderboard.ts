@@ -1,5 +1,5 @@
 import type { RoundProgressRecord } from "../../multiplayer/game-progress/types.ts";
-import type { Player } from "../../multiplayer/types.ts";
+import type { RoundParticipant } from "../../multiplayer/round-participants/model.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
 
 export interface LeaderboardEntry {
@@ -13,16 +13,16 @@ export interface LeaderboardEntry {
 }
 
 export function createLeaderboard(
-  players: readonly Player[],
+  participants: readonly RoundParticipant[],
   progressRecords: readonly RoundProgressRecord[],
 ): readonly LeaderboardEntry[] {
   const progressByPlayer = new Map(progressRecords.map((progress) => [progress.playerId, progress] as const));
-  const sorted = players.map((player) => {
-    const progress = progressByPlayer.get(player.id);
+  const sorted = participants.map((participant) => {
+    const progress = progressByPlayer.get(participant.playerId);
     return {
-      playerId: player.id,
-      displayName: displayLabel(player.displayName, player.nickname),
-      studentNumber: player.studentNumber,
+      playerId: participant.playerId,
+      displayName: displayLabel(participant.displayName, participant.nickname),
+      studentNumber: participant.studentNumber,
       score: progress?.score ?? 0,
       correctCount: progress?.correctCount ?? 0,
       attemptCount: progress?.attemptCount ?? 0,

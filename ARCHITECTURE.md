@@ -55,6 +55,8 @@ features/student               features/teacher
 28. 테스트 학생은 별도 HTML entry와 메모리 인증을 사용하지만 기존 `features/student`, `multiplayer`, `games`를 그대로 실행합니다. 교사 테스트 UI는 실제 방 제어를 `features/teacher/room-control`을 통해서만 사용합니다.
 29. 학생의 장기 인벤토리와 수집 기록은 인증 신원이나 라운드 진행도에 섞지 않고 `student-data` 도메인에서 소유합니다. 게임은 이 도메인의 typed hook만 사용하며 Firebase SDK를 직접 import하지 않습니다.
 30. `games/<game-id>`는 다른 `games/<other-game-id>`를 직접 import하지 않습니다. 실제로 공유되는 순수 게임 개념은 `game-engine`, 학습 세트 변환은 `learning-sets`, 전송·저장은 `multiplayer`가 소유합니다.
+31. 브라우저 lifecycle은 room membership 삭제 명령이 아닙니다. 새로고침·탭 종료·background·일시적 단절은 heartbeat만 stale하게 만들며, 명시적 학생 변경/로그아웃/나가기 또는 관리자 작업만 membership을 삭제합니다.
+32. 라운드 순위의 참가자 source는 `round participants`이며 presence roster가 아닙니다. participant는 게임별 진행 상태를 갖지 않고, 점수와 완료 항목은 계속 `multiplayer/game-progress`가 소유합니다.
 
 ## Persistent student game data
 
@@ -160,6 +162,29 @@ src/features/student/
 ```
 
 학생 앱은 관리자 기능을 알지 않습니다. `StudentPage`는 세션 상태에 맞는 화면만 조립하며, 자동 입장·하트비트·퇴장 생명주기는 `useStudentSession`, 화면 상태 우선순위는 순수 함수인 `studentSessionState`가 담당합니다.
+
+## Multiplayer reconnect and participant structure
+
+학생의 연결 상태와 라운드 참가 이력을 같은 문서의 생명주기로 취급하지 않습니다.
+
+| 개념 | source of truth | 생명주기 |
+| --- | --- | --- |
+| Identity | Firebase Auth UID와 학생 claims | 인증 세션 |
+| Room membership | `multiplayerSessions/{roomId}/players/{uid}` | 명시적 입장부터 명시적 나가기까지 |
+| Presence | player 문서의 `lastSeenAt` / `lastSeenAtMs` heartbeat | online 동안 갱신, 단절 시 stale |
+| Round participant | `multiplayerSessions/{roomId}/rounds/{roundId}/participants/{uid}` | 라운드 시작 또는 PLAYING 중 late join부터 라운드 기록 보존까지 |
+| Game progress | `multiplayerSessions/{roomId}/rounds/{roundId}/progress/{uid}` | 해당 라운드의 게임 진행 |
+
+```text
+features/student/session             game-engine/timed-game
+  reconnect orchestration                leaderboard composition
+              ↓                                  ↓
+       multiplayer/repository ← round-participants → multiplayer/game-progress
+              ↓                                  ↓
+          Firebase                         Firebase realtime data
+```
+
+participant 문서는 `playerId`, `studentNumber`, `displayName`, `nickname`, `joinedAt`, `joinedAtMs`만 저장합니다. 교사가 라운드를 시작할 때 현재 online roster를 한 번 snapshot하고, PLAYING 중 처음 접속한 학생도 자신의 UID 문서에 upsert합니다. 같은 UID의 reconnect는 같은 participant 문서를 재사용하며 최초 참가 시각과 identity를 보존합니다. offline/stale presence는 participant를 삭제하지 않으므로 교사 새로고침 후에도 `participants + progress`로 순위를 복원할 수 있습니다.
 
 ## Adding a game
 

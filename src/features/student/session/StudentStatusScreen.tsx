@@ -50,16 +50,10 @@ export default function StudentStatusScreen({ roomId, state, onRetryJoin, onLeav
           <StatusPanel title="선생님이 대기실을 준비 중" tone="waiting">준비가 끝나면 자동으로 입장합니다.</StatusPanel>
         </PageShell>
       );
-    case "game-already-playing":
-      return (
-        <PageShell title="게임 진행 중" roomId={roomId}>
-          <StatusPanel title="게임이 진행 중" tone="waiting">대기실로 전환되면 자동 입장합니다.</StatusPanel>
-        </PageShell>
-      );
     case "joining":
       return (
         <PageShell title="대기 중" roomId={roomId}>
-          <StatusPanel title="입장 준비 중">잠시 후 자동으로 연결됩니다.</StatusPanel>
+          <StatusPanel title="현재 라운드로 복귀 중">진행 상황을 확인하고 게임에 다시 연결합니다.</StatusPanel>
         </PageShell>
       );
   }

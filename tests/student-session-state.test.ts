@@ -49,7 +49,7 @@ assert.equal(resolveStudentSessionState({
   ...baseSnapshot,
   session: { ...session, status: SESSION_STATUS.PLAYING },
   player: null,
-}).view, "game-already-playing");
+}).view, "joining", "PLAYING 중 player가 없으면 현재 round 재입장을 시도해야 합니다.");
 assert.equal(resolveStudentSessionState({
   ...baseSnapshot,
   session: { ...session, status: SESSION_STATUS.PLAYING },

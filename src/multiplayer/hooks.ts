@@ -9,6 +9,8 @@ import {
   touchPlayer,
 } from "./repository.ts";
 import { selectActivePlayers } from "./presence.ts";
+import { subscribeRoundParticipants } from "./round-participants/repository.ts";
+import type { RoundParticipant } from "./round-participants/model.ts";
 import type { GameSession, Player } from "./types.ts";
 
 interface SubscriptionResult<T> {
@@ -86,6 +88,14 @@ export function usePlayers(roomId: string): {
     loading: result.loading,
     error: result.error,
   };
+}
+
+export function useRoundParticipants(roomId: string, roundId: string): SubscriptionResult<RoundParticipant[]> {
+  const subscribe = useMemo<SubscribeFunction<RoundParticipant[]>>(
+    () => (onValue, onError) => subscribeRoundParticipants(roomId, roundId, onValue, onError),
+    [roomId, roundId],
+  );
+  return useSubscription(subscribe, []);
 }
 
 export function usePlayer(roomId: string, playerId?: string): {

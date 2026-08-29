@@ -91,6 +91,8 @@ Firestore `gameConfig`처럼 신뢰할 수 없는 설정은 `parseLearningSetMul
 
 pair-matching은 `game-engine/pair-matching`의 pair/card/짝 판정만 공유합니다. 학습 세트 변환은 `learning-sets/pairMatchingAdapter.ts`, 보드 생성과 라운드 규칙은 각 concrete game이 소유합니다.
 
+실시간 순위는 현재 online roster가 아니라 `multiplayer/round-participants`의 라운드 참가자와 `multiplayer/game-progress`의 진행 데이터를 합성합니다. 따라서 presence가 stale인 참가자도 0점 또는 마지막 저장 점수로 순위에 남습니다. participant에는 게임별 상태를 추가하지 않습니다.
+
 Firestore에서 읽은 진행 데이터는 즉시 앱 타입이라고 단언하지 않습니다. `unknown`으로 구독한 뒤 안전하게 파싱합니다. 교사용 응답/진행 목록도 repository에서 runtime parsing한 뒤 반환합니다.
 
 ## 새 게임 추가

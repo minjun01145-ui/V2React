@@ -100,6 +100,9 @@ if (!multiplayerTestCallables.includes("requireAnonymous(request)")) {
 if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
   violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
 }
+if (!rules.includes("match /participants/{uid}") || !rules.includes("activeRound(roomId, roundId)") || !rules.includes('affectedKeys().hasOnly(["nickname"])')) {
+  violations.push("security/firestore.rules.secure: round participants must be round-scoped, self-owned, and identity-immutable");
+}
 if (!/match \/players\/\{uid\}[\s\S]*?allow read: if isAdmin\(\) \|\| isRoomStudent\(roomId\);/.test(rules)) {
   violations.push("security/firestore.rules.secure: room students must be able to query the lobby player roster");
 }

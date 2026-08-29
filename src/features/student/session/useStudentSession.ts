@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudentIdentity } from "../../../auth/types.ts";
+import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayer, usePlayerHeartbeat, useSession } from "../../../multiplayer/hooks.ts";
 import { joinSession, leaveSession } from "../../../multiplayer/repository.ts";
 import { resolveStudentSessionState, type StudentSessionState } from "./studentSessionState.ts";
@@ -68,6 +69,11 @@ export function useStudentSession({
   }, []);
 
   useEffect(() => {
+    if (session?.status !== SESSION_STATUS.PLAYING || player || joining || joinError) return;
+    void joinWithNickname({ nickname: null }).catch(() => undefined);
+  }, [joinError, joinWithNickname, joining, player, session?.status]);
+
+  useEffect(() => {
     if (!player || !activeJoin.current) return;
     activeJoin.current = null;
     setJoining(false);
@@ -88,15 +94,6 @@ export function useStudentSession({
     await leaveSession(roomId, playerId).catch(console.error);
     await onChangeStudent();
   }, [onChangeStudent, playerId, roomId]);
-
-  useEffect(() => {
-    if (!player) return undefined;
-    const releasePresence = (event: PageTransitionEvent): void => {
-      if (!event.persisted) void leaveSession(roomId, playerId).catch(() => undefined);
-    };
-    window.addEventListener("pagehide", releasePresence);
-    return () => window.removeEventListener("pagehide", releasePresence);
-  }, [player, playerId, roomId]);
 
   return {
     state: resolveStudentSessionState({

@@ -8,6 +8,7 @@ import type { MultiplayerTestSession, TestStudentClientState } from "../../../cl
 interface TestStudentFrames {
   readonly states: readonly TestStudentClientState[];
   readonly attachFrame: (slot: number, frame: HTMLIFrameElement | null) => void;
+  readonly reloadFrame: (slot: number) => void;
 }
 
 function initialStates(session: MultiplayerTestSession): TestStudentClientState[] {
@@ -51,5 +52,9 @@ export function useTestStudentFrames(session: MultiplayerTestSession): TestStude
     else frames.current.delete(slot);
   }, []);
 
-  return { states, attachFrame };
+  const reloadFrame = useCallback((slot: number): void => {
+    frames.current.get(slot)?.contentWindow?.location.reload();
+  }, []);
+
+  return { states, attachFrame, reloadFrame };
 }

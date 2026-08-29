@@ -9,6 +9,7 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  updateDoc,
   writeBatch,
   type DocumentData,
   type DocumentSnapshot,
@@ -19,6 +20,8 @@ import { appConfig } from "../config/appConfig.ts";
 import { db } from "../firebase/firebaseClient.ts";
 import { MULTIPLAYER_COLLECTION, SESSION_STATUS, type SessionStatus } from "./constants.ts";
 import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
+import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
+import { roundParticipantRef } from "./round-participants/repository.ts";
 import type { GameSession, JoinSessionInput, Player, StartSessionOptions } from "./types.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
@@ -129,47 +132,55 @@ export async function joinSession({ roomId, playerId, studentNumber, displayName
     const sessionSnapshot = await tx.get(sRef);
     const sessionData: unknown = sessionSnapshot.exists() ? sessionSnapshot.data() : null;
     const sessionStatus = isRecord(sessionData) ? parseStatus(sessionData.status) : null;
+    const roundId = isRecord(sessionData) && typeof sessionData.roundId === "string" ? sessionData.roundId : null;
     if (sessionStatus !== SESSION_STATUS.WAITING && sessionStatus !== SESSION_STATUS.PLAYING) {
       throw new Error("참여할 수 있는 수업 세션이 없습니다.");
     }
     const current = await tx.get(pRef);
     const currentData: unknown = current.exists() ? current.data() : null;
+    const participantRef = sessionStatus === SESSION_STATUS.PLAYING && roundId
+      ? roundParticipantRef(roomId, roundId, playerId)
+      : null;
+    const participantSnapshot = participantRef ? await tx.get(participantRef) : null;
+    const participantData: unknown = participantSnapshot?.exists() ? participantSnapshot.data() : null;
+    const participant = participantSnapshot?.exists()
+      ? parseRoundParticipant(participantSnapshot.id, participantData)
+      : null;
     const currentJoinedAt = isRecord(currentData) ? currentData.joinedAt : undefined;
     const currentJoinedAtMs = isRecord(currentData) ? numberOrNull(currentData.joinedAtMs) : null;
-    const trimmedNickname = nickname?.trim() || null;
+    const currentNickname = isRecord(currentData) && typeof currentData.nickname === "string" ? currentData.nickname.trim() : "";
+    const resolvedNickname = nickname?.trim() || participant?.nickname || currentNickname || null;
     tx.set(pRef, {
       playerId,
       studentNumber,
       displayName,
-      nickname: trimmedNickname,
+      nickname: resolvedNickname,
       state: sessionStatus,
       joinedAt: currentJoinedAt ?? serverTimestamp(),
       joinedAtMs: currentJoinedAtMs ?? now,
       lastSeenAt: serverTimestamp(),
       lastSeenAtMs: now,
     }, { merge: true });
+    if (participantRef) {
+      tx.set(participantRef, {
+        playerId,
+        studentNumber,
+        displayName,
+        nickname: resolvedNickname,
+        joinedAt: isRecord(participantData) && participantData.joinedAt !== undefined
+          ? participantData.joinedAt
+          : serverTimestamp(),
+        joinedAtMs: participant?.joinedAtMs || now,
+      }, { merge: true });
+    }
   });
 }
 
-async function prunePlayerPresence(roomId: string, now: number): Promise<void> {
-  const snapshot = await getDocs(playersRef(roomId));
-  const parsed = snapshot.docs
-    .map((playerDoc) => parsePlayer(playerDoc))
-    .filter((player): player is Player => player !== null);
-  const keepIds = new Set(selectActivePlayers(parsed, now, appConfig.playerStaleAfterMs).map((player) => player.id));
-  const removals = snapshot.docs.filter((playerDoc) => !keepIds.has(playerDoc.id));
-  for (let offset = 0; offset < removals.length; offset += 400) {
-    const batch = writeBatch(db);
-    for (const playerDoc of removals.slice(offset, offset + 400)) batch.delete(playerDoc.ref);
-    await batch.commit();
-  }
-}
-
 export async function touchPlayer(roomId: string, playerId: string): Promise<void> {
-  await setDoc(playerRef(roomId, playerId), {
+  await updateDoc(playerRef(roomId, playerId), {
     lastSeenAt: serverTimestamp(),
     lastSeenAtMs: Date.now(),
-  }, { merge: true });
+  });
 }
 
 export async function leaveSession(roomId: string, playerId: string): Promise<void> {
@@ -179,18 +190,33 @@ export async function leaveSession(roomId: string, playerId: string): Promise<vo
 export async function startSession(roomId: string, options: StartSessionOptions = {}): Promise<void> {
   await ensureSession(roomId);
   const now = Date.now();
-  await prunePlayerPresence(roomId, now);
+  const playerSnapshot = await getDocs(playersRef(roomId));
+  const activePlayers = selectActivePlayers(
+    playerSnapshot.docs.map(parsePlayer).filter((player): player is Player => player !== null),
+    now,
+    appConfig.playerStaleAfterMs,
+  );
+  const roundId = crypto.randomUUID();
   const nextSession: Record<string, unknown> = {
     gameId: options.gameId ?? appConfig.defaultGameId,
     status: SESSION_STATUS.PLAYING,
-    roundId: crypto.randomUUID(),
+    roundId,
     startedAt: serverTimestamp(),
     startedAtMs: now,
     updatedAt: serverTimestamp(),
     updatedAtMs: now,
   };
   if (options.gameConfig !== undefined) nextSession.gameConfig = options.gameConfig;
-  await setDoc(sessionRef(roomId), nextSession, { merge: true });
+  const batch = writeBatch(db);
+  batch.set(sessionRef(roomId), nextSession, { merge: true });
+  for (const player of activePlayers) {
+    batch.set(roundParticipantRef(roomId, roundId, player.id), {
+      ...participantIdentity(player),
+      joinedAt: serverTimestamp(),
+      joinedAtMs: now,
+    });
+  }
+  await batch.commit();
 }
 
 export async function resetSession(roomId: string): Promise<void> {

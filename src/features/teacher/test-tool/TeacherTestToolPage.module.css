@@ -22,7 +22,7 @@
 .connected { background: var(--color-success); box-shadow: 0 0 0 3px rgb(4 120 87 / 14%); }
 .connecting { background: var(--color-warning); }
 .error, .left { background: var(--color-danger); }
-.viewportControls { display: flex; align-items: center; justify-content: flex-end; gap: .35rem; margin-bottom: .55rem; }
+.viewportControls { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .35rem; margin-bottom: .55rem; }
 .viewportControls > span { margin-right: .25rem; color: var(--color-muted); font-size: .72rem; font-weight: 800; }
 .viewportControls button { padding: .35rem .55rem; border: 0; border-radius: 999px; color: var(--color-muted); background: transparent; font-size: .72rem; font-weight: 800; }
 .viewportControls button:hover, .viewportControls .activeViewport { color: var(--color-primary-text); background: var(--color-primary-soft); }

@@ -181,6 +181,43 @@ service cloud.firestore {
       match /rounds/{roundId} {
         allow read, write: if isAdmin();
 
+        match /participants/{uid} {
+          allow read: if isAdmin() || isRoomStudent(roomId);
+          allow create: if isAdmin() || (
+            isRoomStudent(roomId)
+              && activeRound(roomId, roundId)
+              && request.auth.uid == uid
+              && request.resource.data.playerId == uid
+              && request.resource.data.studentNumber == request.auth.token.studentNumber
+              && request.resource.data.displayName == request.auth.token.displayName
+              && (request.resource.data.nickname == null
+                || (request.resource.data.nickname is string
+                  && request.resource.data.nickname.size() >= 2
+                  && request.resource.data.nickname.size() <= 12))
+              && request.resource.data.joinedAtMs is int
+              && request.resource.data.keys().hasOnly([
+                "playerId", "studentNumber", "displayName", "nickname", "joinedAt", "joinedAtMs"
+              ])
+          );
+          allow update: if isAdmin() || (
+            isRoomStudent(roomId)
+              && activeRound(roomId, roundId)
+              && request.auth.uid == uid
+              && resource.data.playerId == uid
+              && request.resource.data.playerId == resource.data.playerId
+              && request.resource.data.studentNumber == resource.data.studentNumber
+              && request.resource.data.displayName == resource.data.displayName
+              && request.resource.data.joinedAt == resource.data.joinedAt
+              && request.resource.data.joinedAtMs == resource.data.joinedAtMs
+              && (request.resource.data.nickname == null
+                || (request.resource.data.nickname is string
+                  && request.resource.data.nickname.size() >= 2
+                  && request.resource.data.nickname.size() <= 12))
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["nickname"])
+          );
+          allow delete: if isAdmin();
+        }
+
         match /answers/{answerId} {
           allow read: if isAdmin();
           allow create: if isRoomStudent(roomId)

@@ -5,7 +5,7 @@ import { createLeaderboard } from "../src/game-engine/timed-game/leaderboard.ts"
 import { moveToNextQuestion } from "../src/game-engine/question-engine/progress.ts";
 import type { GameProgress } from "../src/game-engine/question-engine/types.ts";
 import type { RoundProgressRecord } from "../src/multiplayer/game-progress/types.ts";
-import type { Player } from "../src/multiplayer/types.ts";
+import type { RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
 
 assert.equal(DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE.THREE_MINUTES);
 assert.deepEqual(timedGameConfig(TIMED_GAME_MODE.UNLIMITED), { mode: "unlimited", durationMs: null });
@@ -38,23 +38,26 @@ assert.equal(repeated.combo, 0);
 assert.deepEqual(repeated.completedItemIds, []);
 assert.equal(repeated.completedAtMs, null);
 
-function player(id: string, studentNumber: string, name: string, nickname: string | null = null): Player {
-  return { id, playerId: id, studentNumber, displayName: name, nickname, state: "playing", joinedAtMs: 1, lastSeenAtMs: 1 };
+function participant(id: string, studentNumber: string, name: string, nickname: string | null = null): RoundParticipant {
+  return { id, playerId: id, studentNumber, displayName: name, nickname, joinedAtMs: 1 };
 }
 function roundProgress(playerId: string, score: number, correctCount: number, attemptCount: number): RoundProgressRecord {
   return { id: playerId, gameId: "matching", playerId, displayName: playerId, currentIndex: correctCount, score, correctCount, attemptCount, completedAtMs: null, updatedAtMs: 1 };
 }
 
 const leaderboard = createLeaderboard([
-  player("a", "101", "가람", "별"), player("b", "102", "나래"), player("c", "103", "다온"),
+  participant("a", "101", "가람", "별"), participant("b", "102", "나래"), participant("c", "103", "다온"),
 ], [roundProgress("a", 300, 3, 4), roundProgress("b", 500, 4, 6)]);
 assert.deepEqual(leaderboard.map((entry) => entry.playerId), ["b", "a", "c"]);
 assert.deepEqual(leaderboard.map((entry) => entry.rank), [1, 2, 3]);
 assert.equal(leaderboard[1]?.displayName, "별");
 assert.equal(leaderboard[2]?.score, 0, "아직 답하지 않은 접속 학생도 0점으로 보여야 합니다.");
 
-const tied = createLeaderboard([player("a", "101", "가람"), player("b", "102", "나래")], [
+const tied = createLeaderboard([participant("a", "101", "가람"), participant("b", "102", "나래")], [
   roundProgress("a", 100, 1, 1), roundProgress("b", 100, 1, 1),
 ]);
 assert.deepEqual(tied.map((entry) => entry.rank), [1, 1]);
+const offlineParticipant = participant("offline", "104", "라온");
+const stableRanking = createLeaderboard([offlineParticipant], [roundProgress("offline", 300, 3, 3)]);
+assert.deepEqual(stableRanking.map((entry) => ({ playerId: entry.playerId, score: entry.score })), [{ playerId: "offline", score: 300 }], "presence가 사라져도 round participant는 리더보드에 남아야 합니다.");
 console.log("timed game and leaderboard tests passed");
