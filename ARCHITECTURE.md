@@ -184,7 +184,9 @@ features/student/session             game-engine/timed-game
           Firebase                         Firebase realtime data
 ```
 
-participant 문서는 `playerId`, `studentNumber`, `displayName`, `nickname`, `joinedAt`, `joinedAtMs`만 저장합니다. 교사가 라운드를 시작할 때 현재 online roster를 한 번 snapshot하고, PLAYING 중 처음 접속한 학생도 자신의 UID 문서에 upsert합니다. 같은 UID의 reconnect는 같은 participant 문서를 재사용하며 최초 참가 시각과 identity를 보존합니다. offline/stale presence는 participant를 삭제하지 않으므로 교사 새로고침 후에도 `participants + progress`로 순위를 복원할 수 있습니다.
+participant 문서는 `playerId`, `studentNumber`, `displayName`, `nickname`, `joinedAt`, `joinedAtMs`만 저장합니다. 교사가 라운드를 시작할 때 현재 online roster를 한 번 snapshot하고, PLAYING 중 처음 접속한 학생도 자신의 UID 문서에 upsert합니다. 학생 session orchestration은 현재 round의 자기 participant 문서를 별도로 확인하며, player와 participant가 모두 확인되기 전에는 게임 UI를 열지 않습니다. 같은 UID의 reconnect는 같은 participant 문서를 재사용하며 최초 참가 시각과 identity를 보존합니다. offline/stale presence는 participant를 삭제하지 않으므로 교사 새로고침 후에도 `participants + progress`로 순위를 복원할 수 있습니다.
+
+Stale player housekeeping은 start snapshot과 동시에 수행하지 않습니다. snapshot 이후 heartbeat와 삭제가 경쟁하면 정상 membership을 지울 수 있기 때문입니다. 이후 WAITING/reset 경계에 최신 `lastSeenAtMs`를 다시 확인하는 안전한 정리 작업을 둘 수 있지만, round participant와 history는 정리 대상에 포함하지 않습니다.
 
 ## Adding a game
 
@@ -227,7 +229,7 @@ game-engine/
   contracts/             # 게임 registry 같은 앱 수준 계약
 ```
 
-`multiplayer/game-progress`는 여러 게임이 공유하는 라운드 진행 구독과 저장을 소유합니다. 메모리에서는 `itemId`/`completedItemIds`를 사용하고, 저장 경계에서 기존 Firestore 필드명인 `questionId`/`completedQuestionIds`로 변환해 스키마 호환성을 유지합니다.
+`multiplayer/game-progress`는 여러 게임이 공유하는 라운드 진행 구독과 저장을 소유합니다. 메모리에서는 `itemId`/`completedItemIds`를 사용하고, 저장 경계에서 기존 Firestore 필드명인 `questionId`/`completedQuestionIds`로 변환해 스키마 호환성을 유지합니다. 저장된 progress의 `revision`은 remote snapshot reconciliation과 concurrent writer 직렬화에 사용하며 게임 규칙에는 관여하지 않습니다.
 
 pair-matching 게임은 `learning-sets/pairMatchingAdapter.ts`에서 학습 세트를 pair로 바꾸고, 각 게임 폴더가 자체 board generation과 round rule을 소유합니다. 일부카드 refill 규칙과 모든카드 한 판 규칙을 mode 옵션으로 합치지 않습니다.
 
@@ -243,7 +245,18 @@ TQuestion → evaluator(TQuestion, TAnswer)
 
 ## Persistence rule
 
-정답 제출과 그 결과의 player progress는 하나의 Firestore batch로 commit합니다. UI는 shared repository가 resolve된 뒤에만 로컬 진행 상태를 확정합니다.
+정답 제출과 일반 progress transition은 `multiplayer/game-progress`의 하나의 Firestore transaction 경계를 사용합니다.
+
+```text
+multiplayerSessions/{roomId}/rounds/{roundId}
+  operations/{playerId}/items/{operationId}  # immutable idempotency record
+  answers/{playerId}:{attemptId}             # attempt display/audit record
+  progress/{playerId}                        # canonical progress + revision
+```
+
+Idempotency scope는 `roomId + roundId + playerId + operationId`입니다. Transaction은 operation과 현재 progress를 먼저 읽고, 이미 처리된 operation이면 mutation 없이 canonical progress를 반환합니다. 새 operation이면 client가 계산한 game-neutral `previous → next` transition의 counter/set delta를 현재 progress에 적용하고 operation·answer(정답 제출인 경우)·progress를 원자적으로 기록합니다. 따라서 여러 탭 writer를 허용하되 동일 operation은 한 번만 반영되고 stale 전체 progress가 최신 값을 덮지 않습니다.
+
+Evaluator와 점수 규칙은 계속 concrete game/game-engine이 소유합니다. Repository transaction은 game ID에 따른 분기나 정답 재계산을 하지 않으며, 이번 경계는 consistency와 retry 안정성만 책임집니다. UI는 transaction이 반환한 canonical progress를 받은 뒤 로컬 상태를 확정합니다.
 
 ## Game entry naming
 

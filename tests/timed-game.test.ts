@@ -42,7 +42,7 @@ function participant(id: string, studentNumber: string, name: string, nickname: 
   return { id, playerId: id, studentNumber, displayName: name, nickname, joinedAtMs: 1 };
 }
 function roundProgress(playerId: string, score: number, correctCount: number, attemptCount: number): RoundProgressRecord {
-  return { id: playerId, gameId: "matching", playerId, displayName: playerId, currentIndex: correctCount, score, correctCount, attemptCount, completedAtMs: null, updatedAtMs: 1 };
+  return { id: playerId, gameId: "matching", playerId, displayName: playerId, currentIndex: correctCount, score, correctCount, attemptCount, completedAtMs: null, updatedAtMs: 1, revision: 1 };
 }
 
 const leaderboard = createLeaderboard([

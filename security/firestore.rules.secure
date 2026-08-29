@@ -224,8 +224,10 @@ service cloud.firestore {
             && activeRound(roomId, roundId)
             && request.resource.data.playerId == request.auth.uid
             && request.resource.data.displayName == request.auth.token.displayName
-            && request.resource.data.attemptId == answerId
+            && request.resource.data.attemptId is string
+            && answerId == request.auth.uid + ":" + request.resource.data.attemptId
             && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
+            && getAfter(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/operations/$(request.auth.uid)/items/$(request.resource.data.attemptId)).data.kind == "attempt"
             && request.resource.data.keys().hasOnly([
               "attemptId", "gameId", "playerId", "displayName", "questionId",
               "prompt", "answer", "isCorrect", "scoreDelta", "totalScore",
@@ -234,18 +236,67 @@ service cloud.firestore {
           allow update, delete: if false;
         }
 
+        match /operations/{uid}/items/{operationId} {
+          allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow create: if isRoomStudent(roomId)
+            && activeRound(roomId, roundId)
+            && request.auth.uid == uid
+            && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))
+            && request.resource.data.operationId == operationId
+            && request.resource.data.playerId == uid
+            && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
+            && request.resource.data.kind in ["attempt", "progress"]
+            && (
+              (request.resource.data.kind == "attempt" && request.resource.data.itemId is string)
+              || (request.resource.data.kind == "progress" && request.resource.data.itemId == null)
+            )
+            && request.resource.data.revision is int
+            && request.resource.data.revision > 0
+            && request.resource.data.createdAtMs is int
+            && request.resource.data.keys().hasOnly([
+              "operationId", "kind", "gameId", "playerId", "itemId", "revision", "createdAt", "createdAtMs"
+            ]);
+          allow update: if false;
+          allow delete: if isAdmin();
+        }
+
         match /progress/{uid} {
           allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
-          allow create, update: if isRoomStudent(roomId)
+          allow create: if isRoomStudent(roomId)
             && request.auth.uid == uid
             && activeRound(roomId, roundId)
+            && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))
             && request.resource.data.playerId == uid
             && request.resource.data.displayName == request.auth.token.displayName
             && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
+            && request.resource.data.revision == 1
+            && request.resource.data.lastOperationId is string
+            && getAfter(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/operations/$(uid)/items/$(request.resource.data.lastOperationId)).data.revision == request.resource.data.revision
             && request.resource.data.keys().hasOnly([
               "gameId", "playerId", "displayName", "currentIndex", "score",
               "correctCount", "attemptCount", "combo", "completedQuestionIds", "lastResult",
-              "completedAtMs", "updatedAt", "updatedAtMs"
+              "completedAtMs", "revision", "lastOperationId", "updatedAt", "updatedAtMs"
+            ])
+            && request.resource.data.combo is int
+            && request.resource.data.combo >= 0;
+          allow update: if isRoomStudent(roomId)
+            && request.auth.uid == uid
+            && activeRound(roomId, roundId)
+            && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))
+            && request.resource.data.playerId == uid
+            && request.resource.data.displayName == request.auth.token.displayName
+            && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
+            && request.resource.data.revision is int
+            && (
+              (!("revision" in resource.data) && request.resource.data.revision == 1)
+              || (resource.data.revision is int && request.resource.data.revision == resource.data.revision + 1)
+            )
+            && request.resource.data.lastOperationId is string
+            && getAfter(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/operations/$(uid)/items/$(request.resource.data.lastOperationId)).data.revision == request.resource.data.revision
+            && request.resource.data.keys().hasOnly([
+              "gameId", "playerId", "displayName", "currentIndex", "score",
+              "correctCount", "attemptCount", "combo", "completedQuestionIds", "lastResult",
+              "completedAtMs", "revision", "lastOperationId", "updatedAt", "updatedAtMs"
             ])
             && request.resource.data.combo is int
             && request.resource.data.combo >= 0;

@@ -25,3 +25,15 @@ export function subscribeRoundParticipants(
     onValue(participants);
   }, onError);
 }
+
+export function subscribeRoundParticipant(
+  roomId: string,
+  roundId: string,
+  playerId: string,
+  onValue: (participant: RoundParticipant | null) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(roundParticipantRef(roomId, roundId, playerId), (snapshot) => {
+    onValue(snapshot.exists() ? parseRoundParticipant(snapshot.id, snapshot.data()) : null);
+  }, onError);
+}

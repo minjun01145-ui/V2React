@@ -91,6 +91,7 @@ for (const file of clientFiles) {
 
 const multiplayerTestCallables = read("functions/src/multiplayer-test/callables.ts");
 const testStudentViewport = read("src/features/teacher/test-tool/TestStudentViewport.tsx");
+const multiplayerProgressRepository = read("src/multiplayer/game-progress/repository.ts");
 if ((multiplayerTestCallables.match(/requireAdmin\(request\)/g) ?? []).length < 2) {
   violations.push("functions/src/multiplayer-test/callables.ts: test session creation and cleanup must both require an administrator");
 }
@@ -111,6 +112,17 @@ if (!rules.includes("match /multiplayerTestRuns/{adminUid}")) {
 }
 if (!rules.includes('"correctCount", "attemptCount", "combo"') || !rules.includes("request.resource.data.combo is int")) {
   violations.push("security/firestore.rules.secure: multiplayer progress must explicitly allow and validate combo state");
+}
+if (!rules.includes("match /operations/{uid}/items/{operationId}")
+  || !rules.includes("request.resource.data.lastOperationId")
+  || !rules.includes("request.resource.data.revision == resource.data.revision + 1")
+  || !rules.includes("getAfter(")) {
+  violations.push("security/firestore.rules.secure: progress writes must be linked to an immutable, revisioned operation");
+}
+if (!multiplayerProgressRepository.includes("runTransaction")
+  || !multiplayerProgressRepository.includes("operationSnapshot.exists()")
+  || !multiplayerProgressRepository.includes("mergeProgressTransition")) {
+  violations.push("src/multiplayer/game-progress/repository.ts: attempts and progress must use one idempotent transaction");
 }
 if (!rules.includes("match /studentGameData/{accountId}/games/pokemon-catch") || !rules.includes("validPokemonInventory")) {
   violations.push("security/firestore.rules.secure: persistent Pokémon data must validate authenticated ownership and inventory shape");

@@ -85,7 +85,7 @@ Firestore `gameConfig`처럼 신뢰할 수 없는 설정은 `parseLearningSetMul
 
 ## Question-engine multiplayer boundary
 
-`multiplayer/game-progress`가 여러 게임에 공통인 진행 구독과 시도/진행 저장을 소유합니다. 기존 Firestore schema 호환을 위해 저장할 때만 `itemId`를 `questionId`, `completedItemIds`를 `completedQuestionIds`로 변환합니다. pure `game-engine`은 Firebase를 알지 않습니다.
+`multiplayer/game-progress`가 여러 게임에 공통인 진행 구독과 시도/진행 저장을 소유합니다. 기존 Firestore schema 호환을 위해 저장할 때만 `itemId`를 `questionId`, `completedItemIds`를 `completedQuestionIds`로 변환합니다. 각 attempt/progress transition은 이전 상태와 다음 상태를 전달하고 multiplayer transaction이 현재 canonical progress에 game-neutral delta로 병합합니다. pure `game-engine`은 Firebase, transaction, revision을 알지 않습니다.
 
 `question-engine/multiplayer/useMultiplayerQuestionEngine.ts`는 세 question-style consumer가 반복하던 구독, 두 persistence callback, `useQuestionEngine` 연결만 담당합니다. evaluator, adapter, scoring, config와 UI는 각 게임이 계속 소유합니다.
 
@@ -94,6 +94,8 @@ pair-matching은 `game-engine/pair-matching`의 pair/card/짝 판정만 공유�
 실시간 순위는 현재 online roster가 아니라 `multiplayer/round-participants`의 라운드 참가자와 `multiplayer/game-progress`의 진행 데이터를 합성합니다. 따라서 presence가 stale인 참가자도 0점 또는 마지막 저장 점수로 순위에 남습니다. participant에는 게임별 상태를 추가하지 않습니다.
 
 Firestore에서 읽은 진행 데이터는 즉시 앱 타입이라고 단언하지 않습니다. `unknown`으로 구독한 뒤 안전하게 파싱합니다. 교사용 응답/진행 목록도 repository에서 runtime parsing한 뒤 반환합니다.
+
+Progress listener는 최초 cached snapshot에 고정되지 않습니다. `revision`, 그다음 `updatedAtMs` 순서로 최신 snapshot만 선택하며 다른 탭 또는 reconnect에서 도착한 더 최신 진행을 게임 상태에 다시 hydrate합니다.
 
 ## 새 게임 추가
 

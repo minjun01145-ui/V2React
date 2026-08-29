@@ -30,6 +30,12 @@ export default function StudentStatusScreen({ roomId, state, onRetryJoin, onLeav
           <StatusPanel title="학생 연결 정보 오류" tone="error">{state.error.message}</StatusPanel>
         </PageShell>
       );
+    case "participant-error":
+      return (
+        <PageShell title="연결 오류" roomId={roomId}>
+          <StatusPanel title="라운드 참가 정보 오류" tone="error">{state.error.message}</StatusPanel>
+        </PageShell>
+      );
     case "join-error":
       return (
         <PageShell title="입장 오류" roomId={roomId}>

@@ -23,6 +23,13 @@ export interface AnswerSubmission<TQuestion extends BaseQuestion, TAnswer, TDeta
   readonly question: TQuestion;
   readonly answer: TAnswer;
   readonly result: AnswerResult<TDetails>;
+  readonly previousProgress: GameProgress<TDetails>;
+  readonly progress: GameProgress<TDetails>;
+}
+
+export interface ProgressSubmission<TDetails = unknown> {
+  readonly operationId: string;
+  readonly previousProgress: GameProgress<TDetails>;
   readonly progress: GameProgress<TDetails>;
 }
 

@@ -42,18 +42,20 @@ export function useMatchingGame(input: {
   const [removingCardIds, setRemovingCardIds] = useState<readonly string[]>([]);
   const [combo, setCombo] = useState(0);
   const [lastOutcome, setLastOutcome] = useState<MatchingOutcome | null>(null);
-  const hydratedRoundRef = useRef<string | null>(null);
+  const appliedRemoteRef = useRef<{ readonly roundId: string; readonly revision: number } | null>(null);
   const busyRef = useRef(false);
 
   useEffect(() => {
-    if (remoteProgress.loading || hydratedRoundRef.current === session.roundId) return;
+    if (remoteProgress.loading) return;
+    const applied = appliedRemoteRef.current;
+    if (applied?.roundId === session.roundId && applied.revision >= remoteProgress.revision) return;
     const hydrated = normalizeProgress<MatchingDetails>(remoteProgress.value, pairs.length);
     setProgress(hydrated);
-    setLastOutcome(null);
-    setCombo(hydrated.lastResult?.isCorrect ? (hydrated.lastResult.details?.combo ?? 0) : 0);
+    if (applied?.roundId !== session.roundId) setLastOutcome(null);
+    setCombo(hydrated.combo);
     setBoard(createMatchingBoard(pairs, hydrated.completedItemIds, `${session.roundId}:${player.id}:${hydrated.completedItemIds.join(",")}`));
-    hydratedRoundRef.current = session.roundId;
-  }, [pairs.length, remoteProgress.loading, remoteProgress.value, session.roundId]);
+    appliedRemoteRef.current = { roundId: session.roundId, revision: remoteProgress.revision };
+  }, [pairs, player.id, remoteProgress.loading, remoteProgress.revision, remoteProgress.value, session.roundId]);
 
   const submitPair = useCallback(async (first: PairMatchingCard, second: PairMatchingCard): Promise<void> => {
     if (busyRef.current || disabled) return;
@@ -88,7 +90,7 @@ export function useMatchingGame(input: {
         completedAtMs: null,
       };
       const attemptId = crypto.randomUUID();
-      await persistGameAttempt({
+      const committedMutation = await persistGameAttempt({
         roomId,
         roundId: session.roundId,
         gameId: session.gameId,
@@ -97,13 +99,16 @@ export function useMatchingGame(input: {
         item,
         answer: details,
         result,
+        previousProgress: progress,
         progress: nextProgress,
       });
+      const committedProgress = normalizeProgress<MatchingDetails>(committedMutation.progress, pairs.length);
+      appliedRemoteRef.current = { roundId: session.roundId, revision: committedMutation.revision };
       if (correct) setBoard(cycleComplete
         ? createMatchingBoard(pairs, [], `${session.roundId}:${player.id}:cycle:${applied.correctCount}`)
-        : refillMatchingBoard(board, pair.id, pairs, nextProgress.completedItemIds, `${session.roundId}:${completedCount}`));
-      setProgress(nextProgress);
-      setCombo(nextCombo);
+        : refillMatchingBoard(board, pair.id, pairs, committedProgress.completedItemIds, `${session.roundId}:${completedCount}`));
+      setProgress(committedProgress);
+      setCombo(committedProgress.combo);
       setLastOutcome({ id: attemptId, isCorrect: correct, scoreDelta: comboResult.scoreDelta, combo: nextCombo });
       setFeedback(correct ? "정답! 새로운 카드가 들어왔어요." : "서로 다른 짝이에요. 다시 찾아보세요!");
       setFeedbackTone(correct ? "correct" : "incorrect");

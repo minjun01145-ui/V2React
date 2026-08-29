@@ -9,7 +9,7 @@ import {
   touchPlayer,
 } from "./repository.ts";
 import { selectActivePlayers } from "./presence.ts";
-import { subscribeRoundParticipants } from "./round-participants/repository.ts";
+import { subscribeRoundParticipant, subscribeRoundParticipants } from "./round-participants/repository.ts";
 import type { RoundParticipant } from "./round-participants/model.ts";
 import type { GameSession, Player } from "./types.ts";
 
@@ -46,6 +46,49 @@ function useSubscription<T>(subscribe: SubscribeFunction<T>, initialValue: T): S
   }, [subscribe]);
 
   return { value, loading, error };
+}
+
+function useScopedSubscription<T>(
+  subscribe: SubscribeFunction<T> | null,
+  subscriptionKey: string | null,
+  initialValue: T,
+): SubscriptionResult<T> {
+  const [result, setResult] = useState<SubscriptionResult<T> & { readonly key: string | null }>(() => ({
+    key: null,
+    value: initialValue,
+    loading: Boolean(subscriptionKey),
+    error: null,
+  }));
+
+  useEffect(() => {
+    if (!subscribe || !subscriptionKey) {
+      setResult({ key: null, value: initialValue, loading: false, error: null });
+      return undefined;
+    }
+    let active = true;
+    setResult({ key: subscriptionKey, value: initialValue, loading: true, error: null });
+    const unsubscribe = subscribe(
+      (value) => {
+        if (active) setResult({ key: subscriptionKey, value, loading: false, error: null });
+      },
+      (error) => {
+        console.error(error);
+        if (active) setResult({ key: subscriptionKey, value: initialValue, loading: false, error });
+      },
+    );
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [subscribe, subscriptionKey]);
+
+  return result.key === subscriptionKey
+    ? result
+    : { value: initialValue, loading: Boolean(subscriptionKey), error: null };
+}
+
+function subscriptionKey(...parts: readonly string[]): string {
+  return JSON.stringify(parts);
 }
 
 export function useSession(roomId: string, options: { readonly ensure?: boolean } = {}): {
@@ -98,42 +141,33 @@ export function useRoundParticipants(roomId: string, roundId: string): Subscript
   return useSubscription(subscribe, []);
 }
 
+export function useRoundParticipant(
+  roomId: string,
+  roundId: string | undefined,
+  playerId: string | undefined,
+): SubscriptionResult<RoundParticipant | null> {
+  const scope = roundId && playerId ? subscriptionKey(roomId, roundId, playerId) : null;
+  const subscribe = useMemo<SubscribeFunction<RoundParticipant | null> | null>(
+    () => roundId && playerId
+      ? (onValue, onError) => subscribeRoundParticipant(roomId, roundId, playerId, onValue, onError)
+      : null,
+    [playerId, roomId, roundId],
+  );
+  return useScopedSubscription(subscribe, scope, null);
+}
+
 export function usePlayer(roomId: string, playerId?: string): {
   readonly player: Player | null;
   readonly loading: boolean;
   readonly error: Error | null;
 } {
+  const scope = playerId ? subscriptionKey(roomId, playerId) : null;
   const subscribe = useMemo<SubscribeFunction<Player | null> | null>(
     () => playerId ? (onValue, onError) => subscribePlayer(roomId, playerId, onValue, onError) : null,
     [roomId, playerId],
   );
-  const [player, setPlayer] = useState<Player | null>(null);
-  const [loading, setLoading] = useState(Boolean(playerId));
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!subscribe) {
-      setPlayer(null);
-      setLoading(false);
-      setError(null);
-      return undefined;
-    }
-    setLoading(true);
-    setError(null);
-    return subscribe(
-      (nextPlayer) => {
-        setPlayer(nextPlayer);
-        setLoading(false);
-      },
-      (nextError) => {
-        console.error(nextError);
-        setError(nextError);
-        setLoading(false);
-      },
-    );
-  }, [subscribe]);
-
-  return { player, loading, error };
+  const result = useScopedSubscription(subscribe, scope, null);
+  return { player: result.value, loading: result.loading, error: result.error };
 }
 
 export function usePlayerHeartbeat(

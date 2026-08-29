@@ -24,4 +24,5 @@ export interface RoundProgressRecord {
   readonly attemptCount: number;
   readonly completedAtMs: number | null;
   readonly updatedAtMs: number;
+  readonly revision: number;
 }

@@ -3,7 +3,7 @@ import { assertAnswerResult } from "../core/answerResult.ts";
 import { applyComboScore, type ComboScoringConfig } from "../scoring/combo.ts";
 import { applyAnswerToProgress, createEmptyProgress, moveToNextQuestion, normalizeProgress } from "./progress.ts";
 import type { AnswerResult } from "../core/types.ts";
-import type { AnswerSubmission, BaseQuestion, Evaluator, GameProgress } from "./types.ts";
+import type { AnswerSubmission, BaseQuestion, Evaluator, GameProgress, ProgressSubmission } from "./types.ts";
 
 interface UseQuestionEngineInput<TQuestion extends BaseQuestion, TAnswer, TDetails> {
   readonly questions: readonly TQuestion[];
@@ -15,8 +15,8 @@ interface UseQuestionEngineInput<TQuestion extends BaseQuestion, TAnswer, TDetai
   readonly disabled?: boolean;
   readonly comboScoring?: ComboScoringConfig;
   readonly advanceAfterAnyAnswer?: boolean;
-  readonly onSubmit?: (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => Promise<void> | void;
-  readonly onProgress?: (progress: GameProgress<TDetails>) => Promise<void> | void;
+  readonly onSubmit?: (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => Promise<GameProgress<TDetails> | void> | GameProgress<TDetails> | void;
+  readonly onProgress?: (submission: ProgressSubmission<TDetails>) => Promise<GameProgress<TDetails> | void> | GameProgress<TDetails> | void;
 }
 
 export interface QuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDetails> {
@@ -43,16 +43,14 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
   onProgress,
 }: UseQuestionEngineInput<TQuestion, TAnswer, TDetails>): QuestionEngine<TQuestion, TAnswer, TDetails> {
   const [progress, setProgress] = useState<GameProgress<TDetails>>(() => createEmptyProgress<TDetails>());
-  const hydratedRoundRef = useRef<string | null>(null);
   const operationRef = useRef(false);
 
   useEffect(() => {
-    if (progressLoading || hydratedRoundRef.current === roundId) return;
+    if (progressLoading) return;
     const normalized = normalizeProgress<TDetails>(initialProgress, questions.length);
     setProgress(repeatQuestions && questions.length > 0 && normalized.currentIndex >= questions.length
       ? { ...normalized, currentIndex: 0, completedItemIds: [], lastResult: null, completedAtMs: null }
       : normalized);
-    hydratedRoundRef.current = roundId;
   }, [initialProgress, progressLoading, questions.length, repeatQuestions, roundId]);
 
   const displayIndex = repeatQuestions && questions.length > 0 ? progress.currentIndex % questions.length : progress.currentIndex;
@@ -70,8 +68,8 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
       const result = { ...evaluated, scoreDelta: comboResult.scoreDelta };
       const nextProgress = applyAnswerToProgress({ ...progress, combo: comboResult.combo }, currentQuestion, result);
       const attemptId = globalThis.crypto.randomUUID();
-      await onSubmit?.({ attemptId, question: currentQuestion, answer, result, progress: nextProgress });
-      setProgress(nextProgress);
+      const committed = await onSubmit?.({ attemptId, question: currentQuestion, answer, result, previousProgress: progress, progress: nextProgress });
+      setProgress(committed ?? nextProgress);
       return result;
     } finally {
       operationRef.current = false;
@@ -83,8 +81,12 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     operationRef.current = true;
     try {
       const nextProgress = moveToNextQuestion(progress, questions.length, { repeat: repeatQuestions });
-      await onProgress?.(nextProgress);
-      setProgress(nextProgress);
+      const committed = await onProgress?.({
+        operationId: globalThis.crypto.randomUUID(),
+        previousProgress: progress,
+        progress: nextProgress,
+      });
+      setProgress(committed ?? nextProgress);
       return true;
     } finally {
       operationRef.current = false;

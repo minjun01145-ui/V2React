@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { progressRevision, reconcileProgressSnapshot } from "./mutation.ts";
 import { subscribePlayerProgress, subscribeRoundAttempts, subscribeRoundProgress } from "./repository.ts";
 import type { RoundAttemptRecord, RoundProgressRecord } from "./types.ts";
 
@@ -33,9 +34,46 @@ function useSubscription<T>(initialValue: T, enabled: boolean, subscribe: (onVal
   return { value, loading, error };
 }
 
-export function usePlayerGameProgress(roomId: string, roundId: string, playerId: string): AsyncValue<unknown> {
+export function usePlayerGameProgress(roomId: string, roundId: string, playerId: string): AsyncValue<unknown> & { readonly revision: number } {
+  const scope = JSON.stringify([roomId, roundId, playerId]);
   const subscribe = useCallback((onValue: (value: unknown) => void, onError: (error: Error) => void) => subscribePlayerProgress(roomId, roundId, playerId, onValue, onError), [playerId, roomId, roundId]);
-  return useSubscription(null, Boolean(roomId && roundId && playerId), subscribe);
+  const enabled = Boolean(roomId && roundId && playerId);
+  const [snapshot, setSnapshot] = useState<{
+    readonly scope: string;
+    readonly value: unknown;
+    readonly loading: boolean;
+    readonly error: Error | null;
+  }>(() => ({ scope, value: null, loading: enabled, error: null }));
+
+  useEffect(() => {
+    if (!enabled) {
+      setSnapshot({ scope, value: null, loading: false, error: null });
+      return undefined;
+    }
+    let active = true;
+    setSnapshot({ scope, value: null, loading: true, error: null });
+    const unsubscribe = subscribe((incoming) => {
+      if (!active) return;
+      setSnapshot((current) => ({
+        scope,
+        value: current.scope === scope ? reconcileProgressSnapshot(current.value, incoming) : incoming,
+        loading: false,
+        error: null,
+      }));
+    }, (error) => {
+      console.error(error);
+      if (active) setSnapshot((current) => ({ ...current, scope, loading: false, error }));
+    });
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [enabled, scope, subscribe]);
+
+  const current = snapshot.scope === scope
+    ? snapshot
+    : { scope, value: null, loading: enabled, error: null };
+  return { ...current, revision: progressRevision(current.value) };
 }
 
 export function useRoundAttempts(roomId: string, roundId: string): AsyncValue<RoundAttemptRecord[]> {

@@ -1,10 +1,10 @@
 import { useCallback } from "react";
 import type { Player } from "../../../multiplayer/types.ts";
 import { usePlayerGameProgress } from "../../../multiplayer/game-progress/hooks.ts";
-import { persistGameAttempt, savePlayerProgress } from "../../../multiplayer/game-progress/repository.ts";
-import type { GameProgress } from "../../progress/index.ts";
+import { persistGameAttempt, persistGameProgress } from "../../../multiplayer/game-progress/repository.ts";
+import { normalizeProgress } from "../../progress/index.ts";
 import { useQuestionEngine } from "../useQuestionEngine.ts";
-import type { AnswerSubmission, BaseQuestion, Evaluator } from "../types.ts";
+import type { AnswerSubmission, BaseQuestion, Evaluator, ProgressSubmission } from "../types.ts";
 import type { ComboScoringConfig } from "../../scoring/combo.ts";
 
 export function useMultiplayerQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDetails>(input: {
@@ -21,17 +21,15 @@ export function useMultiplayerQuestionEngine<TQuestion extends BaseQuestion, TAn
 }) {
   const { roomId, roundId, gameId, player } = input;
   const progressSubscription = usePlayerGameProgress(roomId, roundId, player.id);
-  const persistProgress = useCallback((progress: GameProgress<TDetails>) => savePlayerProgress({
-    roomId,
-    roundId,
-    gameId,
-    player,
-    progress,
-  }), [gameId, player, roomId, roundId]);
-  const persistSubmission = useCallback((submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => {
+  const persistProgress = useCallback(async (submission: ProgressSubmission<TDetails>) => {
+    const committed = await persistGameProgress({ roomId, roundId, gameId, player, ...submission });
+    return normalizeProgress<TDetails>(committed.progress, input.questions.length);
+  }, [gameId, input.questions.length, player, roomId, roundId]);
+  const persistSubmission = useCallback(async (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => {
     const { question, ...attempt } = submission;
-    return persistGameAttempt({ roomId, roundId, gameId, player, ...attempt, item: question });
-  }, [gameId, player, roomId, roundId]);
+    const committed = await persistGameAttempt({ roomId, roundId, gameId, player, ...attempt, item: question });
+    return normalizeProgress<TDetails>(committed.progress, input.questions.length);
+  }, [gameId, input.questions.length, player, roomId, roundId]);
   const engine = useQuestionEngine({
     questions: input.questions,
     roundId,

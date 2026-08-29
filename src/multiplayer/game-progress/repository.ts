@@ -1,9 +1,10 @@
-import { collection, doc, onSnapshot, serverTimestamp, setDoc, writeBatch, type DocumentData, type Unsubscribe } from "firebase/firestore";
+import { collection, doc, onSnapshot, runTransaction, serverTimestamp, type DocumentData, type Unsubscribe } from "firebase/firestore";
 import type { AnswerResult } from "../../game-engine/core/types.ts";
-import type { GameProgress } from "../../game-engine/progress/index.ts";
+import { createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import { db } from "../../firebase/firebaseClient.ts";
 import { MULTIPLAYER_COLLECTION } from "../constants.ts";
 import type { Player } from "../types.ts";
+import { mergeProgressTransition, progressOperationId, type ProgressMutationResult } from "./mutation.ts";
 import type { RoundAttemptRecord, RoundProgressRecord } from "./types.ts";
 
 export interface GameProgressItem {
@@ -16,11 +17,29 @@ export interface GameAttemptSubmission<TItem extends GameProgressItem, TAnswer, 
   readonly item: TItem;
   readonly answer: TAnswer;
   readonly result: AnswerResult<TDetails>;
+  readonly previousProgress: GameProgress<TDetails>;
+  readonly progress: GameProgress<TDetails>;
+}
+
+export interface GameProgressTransition<TDetails> {
+  readonly operationId: string;
+  readonly previousProgress: GameProgress<TDetails>;
   readonly progress: GameProgress<TDetails>;
 }
 
 const answersRef = (roomId: string, roundId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "answers");
 const progressRef = (roomId: string, roundId: string, playerId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "progress", playerId);
+const progressOperationRef = (roomId: string, roundId: string, playerId: string, operationId: string) => doc(
+  db,
+  MULTIPLAYER_COLLECTION,
+  roomId,
+  "rounds",
+  roundId,
+  "operations",
+  playerId,
+  "items",
+  operationId,
+);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -47,7 +66,7 @@ function toStoredProgress<TDetails>(progress: GameProgress<TDetails>): Record<st
   };
 }
 
-function fromStoredProgress(data: DocumentData): unknown {
+function fromStoredProgress(data: unknown): unknown {
   const raw: unknown = data;
   if (!isRecord(raw)) return null;
   const lastResult = isRecord(raw.lastResult) && typeof raw.lastResult.questionId === "string"
@@ -58,6 +77,14 @@ function fromStoredProgress(data: DocumentData): unknown {
     completedItemIds: raw.completedQuestionIds,
     lastResult,
   };
+}
+
+function normalizedStoredProgress<TDetails>(data: unknown): GameProgress<TDetails> {
+  return normalizeProgress<TDetails>(fromStoredProgress(data), Number.MAX_SAFE_INTEGER);
+}
+
+function assertOperationId(operationId: string): void {
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(operationId)) throw new Error("operationId가 올바르지 않습니다.");
 }
 
 function parseRoundAttempt(id: string, data: DocumentData): RoundAttemptRecord | null {
@@ -99,7 +126,93 @@ function parseRoundProgress(id: string, data: DocumentData): RoundProgressRecord
     attemptCount: finiteNumber(raw.attemptCount),
     completedAtMs: typeof raw.completedAtMs === "number" && Number.isFinite(raw.completedAtMs) ? raw.completedAtMs : null,
     updatedAtMs: finiteNumber(raw.updatedAtMs),
+    revision: finiteNumber(raw.revision),
   };
+}
+
+async function commitProgressMutation<TDetails>(input: {
+  readonly roomId: string;
+  readonly roundId: string;
+  readonly gameId: string;
+  readonly player: Player;
+  readonly operationId: string;
+  readonly kind: "attempt" | "progress";
+  readonly previousProgress: GameProgress<TDetails>;
+  readonly progress: GameProgress<TDetails>;
+  readonly attempt?: {
+    readonly item: GameProgressItem;
+    readonly answer: unknown;
+    readonly result: AnswerResult<TDetails>;
+  };
+}): Promise<ProgressMutationResult<TDetails>> {
+  const { roomId, roundId, gameId, player, operationId, kind, previousProgress, progress, attempt } = input;
+  assertOperationId(operationId);
+  if (!player.id) throw new Error("playerId가 필요합니다.");
+  const operationRef = progressOperationRef(roomId, roundId, player.id, operationId);
+  const playerProgressRef = progressRef(roomId, roundId, player.id);
+
+  return runTransaction(db, async (tx) => {
+    const operationSnapshot = await tx.get(operationRef);
+    const progressSnapshot = await tx.get(playerProgressRef);
+    const currentProgress = progressSnapshot.exists()
+      ? normalizedStoredProgress<TDetails>(progressSnapshot.data())
+      : createEmptyProgress<TDetails>();
+    const currentRevision = progressSnapshot.exists() ? finiteNumber(progressSnapshot.data().revision) : 0;
+
+    if (operationSnapshot.exists()) {
+      const rawOperation: unknown = operationSnapshot.data();
+      if (!isRecord(rawOperation)
+        || rawOperation.playerId !== player.id
+        || rawOperation.gameId !== gameId
+        || rawOperation.kind !== kind
+        || rawOperation.itemId !== (attempt?.item.id ?? null)) {
+        throw new Error("operationId가 다른 progress mutation에 이미 사용되었습니다.");
+      }
+      return { progress: currentProgress, revision: currentRevision, duplicate: true };
+    }
+
+    const committedProgress = mergeProgressTransition(currentProgress, previousProgress, progress);
+    const revision = currentRevision + 1;
+    const now = Date.now();
+    tx.set(operationRef, {
+      operationId,
+      kind,
+      gameId,
+      playerId: player.id,
+      itemId: attempt?.item.id ?? null,
+      revision,
+      createdAt: serverTimestamp(),
+      createdAtMs: now,
+    });
+    if (attempt) {
+      tx.set(doc(answersRef(roomId, roundId), progressOperationId(player.id, operationId)), {
+        attemptId: operationId,
+        gameId,
+        playerId: player.id,
+        displayName: player.displayName,
+        questionId: attempt.item.id,
+        prompt: attempt.item.prompt ?? null,
+        answer: attempt.answer,
+        isCorrect: attempt.result.isCorrect,
+        scoreDelta: committedProgress.score - currentProgress.score,
+        totalScore: committedProgress.score,
+        attemptCount: committedProgress.attemptCount,
+        createdAt: serverTimestamp(),
+        createdAtMs: now,
+      });
+    }
+    tx.set(playerProgressRef, {
+      gameId,
+      playerId: player.id,
+      displayName: player.displayName,
+      ...toStoredProgress(committedProgress),
+      revision,
+      lastOperationId: operationId,
+      updatedAt: serverTimestamp(),
+      updatedAtMs: now,
+    }, { merge: true });
+    return { progress: committedProgress, revision, duplicate: false };
+  });
 }
 
 export async function persistGameAttempt<TItem extends GameProgressItem, TAnswer, TDetails>(input: {
@@ -107,52 +220,31 @@ export async function persistGameAttempt<TItem extends GameProgressItem, TAnswer
   readonly roundId: string;
   readonly gameId: string;
   readonly player: Player;
-} & GameAttemptSubmission<TItem, TAnswer, TDetails>): Promise<void> {
-  const { roomId, roundId, gameId, player, attemptId, item, answer, result, progress } = input;
-  if (!attemptId || !player.id) throw new Error("attemptId and playerId are required.");
-  const now = Date.now();
-  const batch = writeBatch(db);
-  batch.set(doc(answersRef(roomId, roundId), attemptId), {
-    attemptId,
+} & GameAttemptSubmission<TItem, TAnswer, TDetails>): Promise<ProgressMutationResult<TDetails>> {
+  const { roomId, roundId, gameId, player, attemptId, item, answer, result, previousProgress, progress } = input;
+  return commitProgressMutation({
+    roomId,
+    roundId,
     gameId,
-    playerId: player.id,
-    displayName: player.displayName,
-    questionId: item.id,
-    prompt: item.prompt ?? null,
-    answer,
-    isCorrect: result.isCorrect,
-    scoreDelta: result.scoreDelta,
-    totalScore: progress.score,
-    attemptCount: progress.attemptCount,
-    createdAt: serverTimestamp(),
-    createdAtMs: now,
+    player,
+    operationId: attemptId,
+    kind: "attempt",
+    previousProgress,
+    progress,
+    attempt: { item, answer, result },
   });
-  batch.set(progressRef(roomId, roundId, player.id), {
-    gameId,
-    playerId: player.id,
-    displayName: player.displayName,
-    ...toStoredProgress(progress),
-    updatedAt: serverTimestamp(),
-    updatedAtMs: now,
-  }, { merge: true });
-  await batch.commit();
 }
 
-export async function savePlayerProgress<TDetails>(input: {
+export async function persistGameProgress<TDetails>(input: {
   readonly roomId: string;
   readonly roundId: string;
   readonly gameId: string;
   readonly player: Player;
-  readonly progress: GameProgress<TDetails>;
-}): Promise<void> {
-  await setDoc(progressRef(input.roomId, input.roundId, input.player.id), {
-    gameId: input.gameId,
-    playerId: input.player.id,
-    displayName: input.player.displayName,
-    ...toStoredProgress(input.progress),
-    updatedAt: serverTimestamp(),
-    updatedAtMs: Date.now(),
-  }, { merge: true });
+} & GameProgressTransition<TDetails>): Promise<ProgressMutationResult<TDetails>> {
+  return commitProgressMutation({
+    ...input,
+    kind: "progress",
+  });
 }
 
 export function subscribePlayerProgress(roomId: string, roundId: string, playerId: string, onValue: (value: unknown) => void, onError: (error: Error) => void): Unsubscribe {

@@ -41,19 +41,21 @@ export function useMatchingAllGame(input: {
   const [feedbackTone, setFeedbackTone] = useState<"correct" | "incorrect" | "">("");
   const [combo, setCombo] = useState(0);
   const [lastOutcome, setLastOutcome] = useState<MatchingAllOutcome | null>(null);
-  const hydratedRoundRef = useRef<string | null>(null);
+  const appliedRemoteRef = useRef<{ readonly roundId: string; readonly revision: number } | null>(null);
   const busyRef = useRef(false);
 
   useEffect(() => {
-    if (remoteProgress.loading || hydratedRoundRef.current === session.roundId) return;
+    if (remoteProgress.loading) return;
+    const applied = appliedRemoteRef.current;
+    if (applied?.roundId === session.roundId && applied.revision >= remoteProgress.revision) return;
     const hydrated = normalizeProgress<MatchingAllDetails>(remoteProgress.value, pairs.length);
     setProgress(hydrated);
-    setCombo(hydrated.lastResult?.isCorrect ? (hydrated.lastResult.details?.combo ?? 0) : 0);
+    setCombo(hydrated.combo);
     setBoard(createAllMatchingBoard(pairs, hydrated.completedItemIds, `${session.roundId}:${player.id}:board:${hydrated.correctCount}`));
     setMatchedPairIds([]);
-    setLastOutcome(null);
-    hydratedRoundRef.current = session.roundId;
-  }, [pairs, player.id, remoteProgress.loading, remoteProgress.value, session.roundId]);
+    if (applied?.roundId !== session.roundId) setLastOutcome(null);
+    appliedRemoteRef.current = { roundId: session.roundId, revision: remoteProgress.revision };
+  }, [pairs, player.id, remoteProgress.loading, remoteProgress.revision, remoteProgress.value, session.roundId]);
 
   const persistResult = useCallback(async (correct: boolean, completedPairIds: readonly string[]): Promise<void> => {
     const boardComplete = correct && completedPairIds.length === ALL_MATCHING_PAIR_COUNT;
@@ -79,7 +81,7 @@ export function useMatchingAllGame(input: {
       lastResult: { itemId: boardId, ...result },
       completedAtMs: null,
     };
-    await persistGameAttempt({
+    const committedMutation = await persistGameAttempt({
       roomId,
       roundId: session.roundId,
       gameId: session.gameId,
@@ -88,13 +90,16 @@ export function useMatchingAllGame(input: {
       item,
       answer: details,
       result,
+      previousProgress: progress,
       progress: nextProgress,
     });
-    setProgress(nextProgress);
-    setCombo(roundResult.combo);
+    const committedProgress = normalizeProgress<MatchingAllDetails>(committedMutation.progress, pairs.length);
+    appliedRemoteRef.current = { roundId: session.roundId, revision: committedMutation.revision };
+    setProgress(committedProgress);
+    setCombo(committedProgress.combo);
     if (boardComplete) {
       setLastOutcome({ id: attemptId, scoreDelta: roundResult.scoreDelta, combo: roundResult.combo });
-      setBoard(createAllMatchingBoard(pairs, usedPairIds, `${session.roundId}:${player.id}:board:${nextProgress.correctCount}`));
+      setBoard(createAllMatchingBoard(pairs, committedProgress.completedItemIds, `${session.roundId}:${player.id}:board:${committedProgress.correctCount}`));
       setMatchedPairIds([]);
       setFeedback("판 완성! 새로운 8장의 카드가 나왔어요.");
       setFeedbackTone("correct");

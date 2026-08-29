@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { normalizeProgress } from "../src/game-engine/progress/index.ts";
 import { createLeaderboard } from "../src/game-engine/timed-game/leaderboard.ts";
-import { resolveStudentSessionState, type StudentSessionSnapshot } from "../src/features/student/session/studentSessionState.ts";
+import {
+  resolvePlayingParticipation,
+  resolveStudentSessionState,
+  type StudentSessionSnapshot,
+} from "../src/features/student/session/studentSessionState.ts";
 import { SESSION_STATUS } from "../src/multiplayer/constants.ts";
 import { participantIdentity, parseRoundParticipant, type RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
 import type { GameSession, Player } from "../src/multiplayer/types.ts";
@@ -28,19 +32,46 @@ const player: Player = {
   joinedAtMs: 1,
   lastSeenAtMs: 2,
 };
+const participant: RoundParticipant = {
+  id: player.id,
+  playerId: player.id,
+  studentNumber: player.studentNumber,
+  displayName: player.displayName,
+  nickname: player.nickname,
+  joinedAtMs: 10,
+};
 const base: Omit<StudentSessionSnapshot, "session" | "player"> = {
+  participant: null,
   sessionLoading: false,
   playerLoading: false,
+  participantLoading: false,
   joining: false,
   sessionError: null,
   playerError: null,
+  participantError: null,
   joinError: null,
   heartbeatError: null,
 };
 
 assert.equal(resolveStudentSessionState({ ...base, session: waitingSession, player }).view, "lobby", "WAITING refresh 후 같은 membership이면 lobby로 복원되어야 합니다.");
 assert.equal(resolveStudentSessionState({ ...base, session: playingSession, player: null }).view, "joining", "PLAYING 중 membership이 없으면 재입장을 시도해야 합니다.");
-assert.equal(resolveStudentSessionState({ ...base, session: playingSession, player }).view, "playing");
+assert.equal(
+  resolvePlayingParticipation({ session: playingSession, player, participant: null, participantLoading: false }),
+  "ensure",
+  "existing player라도 current round participant가 없으면 self-ensure가 필요합니다.",
+);
+assert.equal(resolveStudentSessionState({ ...base, session: playingSession, player }).view, "joining");
+assert.equal(resolveStudentSessionState({ ...base, session: playingSession, player, participant }).view, "playing");
+
+const teacherSnapshotRace = [
+  resolvePlayingParticipation({ session: playingSession, player, participant: null, participantLoading: false }),
+  resolvePlayingParticipation({ session: playingSession, player, participant, participantLoading: false }),
+];
+assert.deepEqual(
+  teacherSnapshotRace,
+  ["ensure", "ready"],
+  "teacher snapshot에서 누락된 학생은 PLAYING 진입 self-ensure 후 같은 round participant로 복구되어야 합니다.",
+);
 
 const restoredProgress = normalizeProgress({
   currentIndex: 3,

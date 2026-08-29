@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudentIdentity } from "../../../auth/types.ts";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
-import { usePlayer, usePlayerHeartbeat, useSession } from "../../../multiplayer/hooks.ts";
+import { usePlayer, usePlayerHeartbeat, useRoundParticipant, useSession } from "../../../multiplayer/hooks.ts";
 import { joinSession, leaveSession } from "../../../multiplayer/repository.ts";
-import { resolveStudentSessionState, type StudentSessionState } from "./studentSessionState.ts";
+import {
+  resolvePlayingParticipation,
+  resolveStudentSessionState,
+  type StudentSessionState,
+} from "./studentSessionState.ts";
 
 interface UseStudentSessionOptions {
   readonly roomId: string;
@@ -29,20 +33,33 @@ export function useStudentSession({
 }: UseStudentSessionOptions): UseStudentSessionResult {
   const { session, loading: sessionLoading, error: sessionError } = useSession(roomId);
   const { player, loading: playerLoading, error: playerError } = usePlayer(roomId, identity.uid);
+  const activeRoundId = session?.status === SESSION_STATUS.PLAYING && session.roundId
+    ? session.roundId
+    : undefined;
+  const {
+    value: participant,
+    loading: participantLoading,
+    error: participantError,
+  } = useRoundParticipant(roomId, activeRoundId, identity.uid);
   const heartbeat = usePlayerHeartbeat(roomId, identity.uid, Boolean(player));
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<Error | null>(null);
   const joinAttempt = useRef(0);
-  const activeJoin = useRef<{ readonly attempt: number; readonly roomId: string; readonly playerId: string } | null>(null);
+  const activeJoin = useRef<{
+    readonly attempt: number;
+    readonly roomId: string;
+    readonly playerId: string;
+    readonly roundId: string | null;
+  } | null>(null);
 
   const { uid: playerId, studentNumber, displayName } = identity;
 
-  const joinWithNickname = useCallback(
-    async ({ nickname }: JoinWithNicknameOptions): Promise<void> => {
-      if (joining || player) return;
+  const runJoin = useCallback(
+    async ({ nickname, roundId }: JoinWithNicknameOptions & { readonly roundId: string | null }): Promise<void> => {
+      if (activeJoin.current) return;
       const resolvedNickname = nickname?.trim() ? nickname.trim() : null;
       const attempt = ++joinAttempt.current;
-      activeJoin.current = { attempt, roomId, playerId };
+      activeJoin.current = { attempt, roomId, playerId, roundId };
       setJoining(true);
       setJoinError(null);
       try {
@@ -61,26 +78,58 @@ export function useStudentSession({
         throw error instanceof Error ? error : new Error("대기실 입장에 실패했습니다.");
       }
     },
-    [displayName, joining, player, playerId, roomId, studentNumber],
+    [displayName, playerId, roomId, studentNumber],
+  );
+
+  const joinWithNickname = useCallback(
+    async ({ nickname }: JoinWithNicknameOptions): Promise<void> => {
+      if (player || activeJoin.current) return;
+      await runJoin({ nickname, roundId: activeRoundId ?? null });
+    },
+    [activeRoundId, player, runJoin],
   );
 
   const retryJoin = useCallback((): void => {
     setJoinError(null);
   }, []);
 
-  useEffect(() => {
-    if (session?.status !== SESSION_STATUS.PLAYING || player || joining || joinError) return;
-    void joinWithNickname({ nickname: null }).catch(() => undefined);
-  }, [joinError, joinWithNickname, joining, player, session?.status]);
+  const participationDecision = resolvePlayingParticipation({
+    session,
+    player,
+    participant,
+    participantLoading,
+  });
 
   useEffect(() => {
-    if (!player || !activeJoin.current) return;
     activeJoin.current = null;
     setJoining(false);
-  }, [player]);
+    setJoinError(null);
+  }, [playerId, roomId]);
 
   useEffect(() => {
-    if (!joining || player) return undefined;
+    const active = activeJoin.current;
+    if (!active || active.roundId === (activeRoundId ?? null)) return;
+    activeJoin.current = null;
+    setJoining(false);
+    setJoinError(null);
+  }, [activeRoundId]);
+
+  useEffect(() => {
+    if (participationDecision !== "ensure" || activeJoin.current || joinError || participantError) return;
+    void runJoin({ nickname: player?.nickname ?? null, roundId: activeRoundId ?? null }).catch(() => undefined);
+  }, [activeRoundId, joinError, participantError, participationDecision, player?.nickname, runJoin]);
+
+  useEffect(() => {
+    const waitingMembershipConfirmed = Boolean(session && session.status !== SESSION_STATUS.PLAYING && player);
+    const playingMembershipConfirmed = participationDecision === "ready";
+    if (!waitingMembershipConfirmed && !playingMembershipConfirmed) return;
+    activeJoin.current = null;
+    setJoining(false);
+    setJoinError(null);
+  }, [participationDecision, player, session?.status]);
+
+  useEffect(() => {
+    if (!joining || !activeJoin.current) return undefined;
     const timer = window.setTimeout(() => {
       if (!activeJoin.current) return;
       activeJoin.current = null;
@@ -88,7 +137,7 @@ export function useStudentSession({
       setJoinError(new Error("입장 정보 확인이 늦어지고 있습니다. 다시 시도해 주세요."));
     }, 10_000);
     return () => window.clearTimeout(timer);
-  }, [joining, player]);
+  }, [joining, participant, player]);
 
   const leave = useCallback(async (): Promise<void> => {
     await leaveSession(roomId, playerId).catch(console.error);
@@ -99,11 +148,14 @@ export function useStudentSession({
     state: resolveStudentSessionState({
       session,
       player,
+      participant,
       sessionLoading,
       playerLoading,
+      participantLoading,
       joining,
       sessionError,
       playerError,
+      participantError,
       joinError,
       heartbeatError: heartbeat.error,
     }),
