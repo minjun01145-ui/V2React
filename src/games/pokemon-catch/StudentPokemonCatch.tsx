@@ -19,6 +19,7 @@ import styles from "./PokemonCatch.module.css";
 
 const wait = (milliseconds: number) => new Promise<void>((resolve) => globalThis.setTimeout(resolve, milliseconds));
 const randomRoll = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 4_294_967_296;
+type ActivePanel = "quiz" | "items" | "collection" | null;
 
 export default function StudentPokemonCatch({ roomId, session, player, set }: {
   readonly roomId: string;
@@ -37,9 +38,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   const [actionPhase, setActionPhase] = useState<EncounterActionPhase>("ready");
   const [asleep, setAsleep] = useState(false);
   const [timeBonusMs, setTimeBonusMs] = useState(0);
-  const [quizOpen, setQuizOpen] = useState(false);
-  const [itemsOpen, setItemsOpen] = useState(false);
-  const [collectionOpen, setCollectionOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const [quizFeedback, setQuizFeedback] = useState("");
   const [reward, setReward] = useState<PokemonItemId | null>(null);
   const [actionMessage, setActionMessage] = useState("");
@@ -59,7 +58,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   }, []);
   const expireEncounter = useCallback(() => {
     operationRef.current += 1;
-    setItemsOpen(false);
+    setActivePanel((panel) => panel === "items" ? null : panel);
     setActionPhase("escaped");
     setActionMessage("제한시간이 끝나 포켓몬이 도망갔어요.");
     void wait(950).then(() => { if (mountedRef.current) nextEncounter(); });
@@ -86,7 +85,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
         if (!consumed) setActionMessage("사용할 공이 없습니다.");
         return;
       }
-      setItemsOpen(false);
+      setActivePanel(null);
       setActionPhase("throwing");
       await wait(850);
       if (!mountedRef.current || operation !== operationRef.current) return;
@@ -144,7 +143,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
         setTimeBonusMs((value) => value + ANGER_TIME_BONUS_MS);
         setActionMessage("제한시간이 15초 늘어났어요.");
       }
-      setItemsOpen(false);
+      setActivePanel(null);
     } catch (error: unknown) {
       setActionMessage(toErrorMessage(error, "아이템을 사용하지 못했습니다."));
     } finally {
@@ -181,7 +180,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
     setSubmitting(true);
     try {
       await quiz.nextQuestion();
-      setQuizOpen(false);
+      setActivePanel(null);
       setQuizFeedback("");
       setReward(null);
     } finally {
@@ -192,15 +191,15 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   if (quiz.loading || studentData.loading) return <div className={styles.loadingPage}>게임 기록과 아이템을 연결하고 있습니다…</div>;
   if (quiz.error || studentData.error) return <div className={styles.loadingPage}>{quiz.error?.message ?? studentData.error?.message}</div>;
   const question = quiz.currentQuestion;
-  const currentResult = question && quiz.progress.lastResult?.questionId === question.id ? quiz.progress.lastResult : null;
+  const currentResult = question && quiz.progress.lastResult?.itemId === question.id ? quiz.progress.lastResult : null;
   const timerMaximum = ENCOUNTER_TIME_MS + timeBonusMs;
   const secondsRemaining = Math.ceil(timer.remainingMs / 1_000);
 
   return <div className={styles.gameShell}>
     <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} loadError={loadError} onReload={reload} />
-    <CommandPanel actionMessage={actionMessage} hasQuestion={Boolean(question)} submitting={submitting} phase={phase} usingItem={usingItem} captureCount={studentData.captures.length} onOpenQuiz={() => { setQuizOpen(true); setQuizFeedback(""); setReward(null); }} onOpenItems={() => setItemsOpen(true)} onOpenCollection={() => setCollectionOpen(true)} />
-    {itemsOpen ? <ItemBagDialog inventory={studentData.inventory} usingItem={usingItem} phase={phase} asleep={asleep} onClose={() => setItemsOpen(false)} onUseItem={useItem} /> : null}
-    {quizOpen && question ? <QuizDialog question={question} currentIndex={quiz.currentIndex} questionCount={quiz.questionCount} currentResult={currentResult} reward={reward} feedback={quizFeedback} submitting={submitting} onClose={() => setQuizOpen(false)} onAnswer={(optionId) => void answerQuiz(optionId)} onContinue={() => void finishQuestion()} /> : null}
-    {collectionOpen ? <CollectionDialog captures={studentData.captures} onClose={() => setCollectionOpen(false)} /> : null}
+    <CommandPanel actionMessage={actionMessage} hasQuestion={Boolean(question)} submitting={submitting} phase={phase} usingItem={usingItem} captureCount={studentData.captures.length} onOpenQuiz={() => { setActivePanel("quiz"); setQuizFeedback(""); setReward(null); }} onOpenItems={() => setActivePanel("items")} onOpenCollection={() => setActivePanel("collection")} />
+    {activePanel === "items" ? <ItemBagDialog inventory={studentData.inventory} usingItem={usingItem} phase={phase} asleep={asleep} onClose={() => setActivePanel(null)} onUseItem={useItem} /> : null}
+    {activePanel === "quiz" && question ? <QuizDialog question={question} currentIndex={quiz.currentIndex} questionCount={quiz.questionCount} currentResult={currentResult} reward={reward} feedback={quizFeedback} submitting={submitting} onClose={() => setActivePanel(null)} onAnswer={(optionId) => void answerQuiz(optionId)} onContinue={() => void finishQuestion()} /> : null}
+    {activePanel === "collection" ? <CollectionDialog captures={studentData.captures} onClose={() => setActivePanel(null)} /> : null}
   </div>;
 }

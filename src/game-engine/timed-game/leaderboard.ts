@@ -1,4 +1,4 @@
-import type { RoundProgressRecord } from "../question-engine/multiplayer/types.ts";
+import type { RoundProgressRecord } from "../../multiplayer/game-progress/types.ts";
 import type { Player } from "../../multiplayer/types.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
 

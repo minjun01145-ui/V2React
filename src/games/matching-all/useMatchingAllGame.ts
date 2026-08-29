@@ -1,21 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createAnswerResult } from "../../game-engine/core/answerResult.ts";
-import { usePlayerGameProgress } from "../../game-engine/question-engine/multiplayer/hooks.ts";
-import { persistAnswerAttempt } from "../../game-engine/question-engine/multiplayer/repository.ts";
-import { createEmptyProgress, normalizeProgress } from "../../game-engine/question-engine/progress.ts";
-import type { BaseQuestion, GameProgress } from "../../game-engine/question-engine/types.ts";
+import { isMatchingPair, type PairMatchingCard } from "../../game-engine/pair-matching/index.ts";
+import { createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import type { LearningSet } from "../../learning-sets/types.ts";
+import { adaptLearningSetToPairMatching } from "../../learning-sets/pairMatchingAdapter.ts";
+import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
+import { persistGameAttempt } from "../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
-import { isMatchingPair, matchingPairs, type MatchingCard } from "../matching/engine.ts";
 import { ALL_MATCHING_BASE_SCORE, ALL_MATCHING_PAIR_COUNT, allMatchingRoundResult, createAllMatchingBoard, nextUsedPairIds } from "./engine.ts";
 
 interface MatchingAllDetails {
   readonly combo: number;
   readonly completedPairIds: readonly string[];
-}
-
-interface MatchingAllQuestion extends BaseQuestion {
-  readonly prompt: string;
 }
 
 export interface MatchingAllOutcome {
@@ -34,11 +30,11 @@ export function useMatchingAllGame(input: {
   readonly disabled?: boolean;
 }) {
   const { roomId, session, player, set, disabled = false } = input;
-  const pairs = useMemo(() => matchingPairs(set, ALL_MATCHING_PAIR_COUNT), [set]);
+  const pairs = useMemo(() => adaptLearningSetToPairMatching(set), [set]);
   const remoteProgress = usePlayerGameProgress(roomId, session.roundId, player.id);
   const [progress, setProgress] = useState<GameProgress<MatchingAllDetails>>(() => createEmptyProgress());
-  const [board, setBoard] = useState<readonly MatchingCard[]>(() => createAllMatchingBoard(pairs, [], `${session.roundId}:${player.id}:initial`));
-  const [selectedCard, setSelectedCard] = useState<MatchingCard | null>(null);
+  const [board, setBoard] = useState<readonly PairMatchingCard[]>(() => createAllMatchingBoard(pairs, [], `${session.roundId}:${player.id}:initial`));
+  const [selectedCard, setSelectedCard] = useState<PairMatchingCard | null>(null);
   const [matchedPairIds, setMatchedPairIds] = useState<readonly string[]>([]);
   const [removingCardIds, setRemovingCardIds] = useState<readonly string[]>([]);
   const [feedback, setFeedback] = useState("");
@@ -53,7 +49,7 @@ export function useMatchingAllGame(input: {
     const hydrated = normalizeProgress<MatchingAllDetails>(remoteProgress.value, pairs.length);
     setProgress(hydrated);
     setCombo(hydrated.lastResult?.isCorrect ? (hydrated.lastResult.details?.combo ?? 0) : 0);
-    setBoard(createAllMatchingBoard(pairs, hydrated.completedQuestionIds, `${session.roundId}:${player.id}:board:${hydrated.correctCount}`));
+    setBoard(createAllMatchingBoard(pairs, hydrated.completedItemIds, `${session.roundId}:${player.id}:board:${hydrated.correctCount}`));
     setMatchedPairIds([]);
     setLastOutcome(null);
     hydratedRoundRef.current = session.roundId;
@@ -62,8 +58,8 @@ export function useMatchingAllGame(input: {
   const persistResult = useCallback(async (correct: boolean, completedPairIds: readonly string[]): Promise<void> => {
     const boardComplete = correct && completedPairIds.length === ALL_MATCHING_PAIR_COUNT;
     const roundResult = allMatchingRoundResult(combo, boardComplete);
-    const questionId = `board:${[...new Set(board.map((card) => card.pairId))].sort().join(":")}`;
-    const question: MatchingAllQuestion = { id: questionId, prompt: board.map((card) => card.text).join(" · ") };
+    const boardId = `board:${[...new Set(board.map((card) => card.pairId))].sort().join(":")}`;
+    const item = { id: boardId, prompt: board.map((card) => card.text).join(" · ") };
     const details: MatchingAllDetails = { combo: roundResult.combo, completedPairIds };
     const result = createAnswerResult({
       isCorrect: boardComplete,
@@ -72,24 +68,24 @@ export function useMatchingAllGame(input: {
       details,
     });
     const attemptId = crypto.randomUUID();
-    const usedPairIds = boardComplete ? nextUsedPairIds(progress.completedQuestionIds, board, pairs.length) : progress.completedQuestionIds;
+    const usedPairIds = boardComplete ? nextUsedPairIds(progress.completedItemIds, board, pairs.length) : progress.completedItemIds;
     const nextProgress: GameProgress<MatchingAllDetails> = {
       ...progress,
       currentIndex: progress.correctCount + (boardComplete ? 1 : 0),
       score: progress.score + roundResult.scoreDelta,
       correctCount: progress.correctCount + (boardComplete ? 1 : 0),
       attemptCount: progress.attemptCount + 1,
-      completedQuestionIds: usedPairIds,
-      lastResult: { questionId, ...result },
+      completedItemIds: usedPairIds,
+      lastResult: { itemId: boardId, ...result },
       completedAtMs: null,
     };
-    await persistAnswerAttempt({
+    await persistGameAttempt({
       roomId,
       roundId: session.roundId,
       gameId: session.gameId,
       player,
       attemptId,
-      question,
+      item,
       answer: details,
       result,
       progress: nextProgress,
@@ -108,7 +104,7 @@ export function useMatchingAllGame(input: {
     }
   }, [board, combo, pairs, player, progress, roomId, session.gameId, session.roundId]);
 
-  const submitPair = useCallback(async (first: MatchingCard, second: MatchingCard): Promise<void> => {
+  const submitPair = useCallback(async (first: PairMatchingCard, second: PairMatchingCard): Promise<void> => {
     if (busyRef.current || disabled) return;
     busyRef.current = true;
     const correct = isMatchingPair(first, second);
@@ -138,7 +134,7 @@ export function useMatchingAllGame(input: {
     }
   }, [disabled, matchedPairIds, persistResult]);
 
-  const selectCard = useCallback((card: MatchingCard): void => {
+  const selectCard = useCallback((card: PairMatchingCard): void => {
     if (busyRef.current || disabled || matchedPairIds.includes(card.pairId)) return;
     if (!selectedCard) {
       setSelectedCard(card);

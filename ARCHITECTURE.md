@@ -28,7 +28,7 @@ features/student               features/teacher
 1. 애플리케이션 코드는 `.ts/.tsx`만 사용합니다.
 2. 학생 app/feature와 교사 app/feature는 서로 import하지 않습니다.
 3. global CSS import는 `src/apps/student/main.tsx`, `src/apps/teacher/main.tsx` 두 entry에서만 허용합니다.
-4. `game-engine/core`와 `game-engine/question-engine`의 순수 모듈은 React/Firebase/구체 게임에 의존하지 않습니다. `useQuestionEngine.ts`만 React를 사용합니다.
+4. `game-engine/core`, `game-engine/progress`, `game-engine/pair-matching`과 `game-engine/question-engine`의 순수 모듈은 React/Firebase/구체 게임에 의존하지 않습니다. `useQuestionEngine.ts`와 multiplayer integration hook만 React를 사용합니다.
 5. `games/<game-id>`는 Firebase SDK나 app/feature UI를 직접 import하지 않습니다.
 6. `multiplayer`는 구체 게임을 import하지 않습니다.
 7. 게임 UI 스타일은 해당 게임의 `.module.css`가 소유합니다.
@@ -54,6 +54,7 @@ features/student               features/teacher
 27. `classroom-test`는 iframe 메시지 계약과 학생 화면 선택 같은 순수 로직만 소유합니다. 관리자 Callable transport는 `classroom-test-admin`, 임시 사용자·방 발급은 Functions의 `multiplayer-test`가 소유합니다.
 28. 테스트 학생은 별도 HTML entry와 메모리 인증을 사용하지만 기존 `features/student`, `multiplayer`, `games`를 그대로 실행합니다. 교사 테스트 UI는 실제 방 제어를 `features/teacher/room-control`을 통해서만 사용합니다.
 29. 학생의 장기 인벤토리와 수집 기록은 인증 신원이나 라운드 진행도에 섞지 않고 `student-data` 도메인에서 소유합니다. 게임은 이 도메인의 typed hook만 사용하며 Firebase SDK를 직접 import하지 않습니다.
+30. `games/<game-id>`는 다른 `games/<other-game-id>`를 직접 import하지 않습니다. 실제로 공유되는 순수 게임 개념은 `game-engine`, 학습 세트 변환은 `learning-sets`, 전송·저장은 `multiplayer`가 소유합니다.
 
 ## Persistent student game data
 
@@ -188,16 +189,22 @@ loadTeacher: () => import("./my-game/MyTeacherGame.tsx")
 
 ## Engine families
 
-현재 구현된 것은 **question-engine** 하나입니다. 모든 게임을 여기에 맞추지 않습니다.
+완전한 진행 엔진 패밀리로 구현된 것은 **question-engine** 하나입니다. pair-matching은 두 게임이 실제 공유하는 최소 모델과 판정만 제공하며, 모든 게임을 question-engine에 맞추지 않습니다.
 
 ```text
 game-engine/
   core/                  # 실제로 여러 엔진에서 공유되는 최소 계약/유틸
+  progress/              # 여러 게임이 공유하는 item-neutral 진행 상태와 순수 갱신
+  pair-matching/         # pair/card 모델, 카드 생성, 짝 판정만
   question-engine/       # 문제 → 답 → 판정 → 진행 형태의 게임만
     multiple-choice/     # 2~5지선다 생성·검증·판정
-    multiplayer/         # question-engine 진행/답안의 Firestore adapter
+    multiplayer/         # question-engine과 multiplayer progress를 잇는 얇은 hook
   contracts/             # 게임 registry 같은 앱 수준 계약
 ```
+
+`multiplayer/game-progress`는 여러 게임이 공유하는 라운드 진행 구독과 저장을 소유합니다. 메모리에서는 `itemId`/`completedItemIds`를 사용하고, 저장 경계에서 기존 Firestore 필드명인 `questionId`/`completedQuestionIds`로 변환해 스키마 호환성을 유지합니다.
+
+pair-matching 게임은 `learning-sets/pairMatchingAdapter.ts`에서 학습 세트를 pair로 바꾸고, 각 게임 폴더가 자체 board generation과 round rule을 소유합니다. 일부카드 refill 규칙과 모든카드 한 판 규칙을 mode 옵션으로 합치지 않습니다.
 
 ```text
 TQuestion → evaluator(TQuestion, TAnswer)
@@ -212,6 +219,10 @@ TQuestion → evaluator(TQuestion, TAnswer)
 ## Persistence rule
 
 정답 제출과 그 결과의 player progress는 하나의 Firestore batch로 commit합니다. UI는 shared repository가 resolve된 뒤에만 로컬 진행 상태를 확정합니다.
+
+## Game entry naming
+
+새 게임의 registry lazy entry는 `XStudentGame.tsx`와 `XTeacherGame.tsx`로 이름 짓습니다. 이 entry는 세트 로딩과 오류 경계를 조립하고 실제 역할별 화면으로 위임할 수 있습니다. 내부 화면은 `StudentX.tsx`/`TeacherX.tsx`를 사용하며, 새 코드에는 책임이 모호한 `Module` 접미사를 추가하지 않습니다. 기존 entry 이름은 import churn을 피하기 위해 점진적으로 유지합니다.
 
 ## CSS rule
 

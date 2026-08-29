@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import { evaluateMultipleChoice } from "../src/game-engine/question-engine/multiple-choice/evaluator.ts";
-import { buildMultipleChoiceSet } from "../src/game-engine/question-engine/multiple-choice/generator.ts";
-import { CHOICE_DIRECTION, type ChoiceCount, type MultipleChoicePair } from "../src/game-engine/question-engine/multiple-choice/types.ts";
+import { buildMultipleChoiceSet, CHOICE_DIRECTION, evaluateMultipleChoice, type ChoiceCount, type MultipleChoicePair } from "../src/game-engine/question-engine/multiple-choice/index.ts";
 import { adaptLearningSetToMultipleChoice, LEARNING_SET_QUESTION_SCOPE } from "../src/learning-sets/multipleChoiceAdapter.ts";
 import { parseLearningSetMultipleChoiceOptions } from "../src/learning-sets/multipleChoiceConfig.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../src/learning-sets/types.ts";

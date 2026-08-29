@@ -4,7 +4,7 @@ import { DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE, readTimedGameConfig, timedGam
 import { createLeaderboard } from "../src/game-engine/timed-game/leaderboard.ts";
 import { moveToNextQuestion } from "../src/game-engine/question-engine/progress.ts";
 import type { GameProgress } from "../src/game-engine/question-engine/types.ts";
-import type { RoundProgressRecord } from "../src/game-engine/question-engine/multiplayer/types.ts";
+import type { RoundProgressRecord } from "../src/multiplayer/game-progress/types.ts";
 import type { Player } from "../src/multiplayer/types.ts";
 
 assert.equal(DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE.THREE_MINUTES);
@@ -27,15 +27,15 @@ const progress: GameProgress = {
   correctCount: 2,
   attemptCount: 3,
   combo: 0,
-  completedQuestionIds: ["q1", "q2"],
-  lastResult: { questionId: "q2", status: "correct", isCorrect: true, scoreDelta: 100, feedback: null, details: null },
+  completedItemIds: ["q1", "q2"],
+  lastResult: { itemId: "q2", status: "correct", isCorrect: true, scoreDelta: 100, feedback: null, details: null },
   completedAtMs: null,
 };
 const repeated = moveToNextQuestion(progress, 2, { repeat: true });
 assert.equal(repeated.currentIndex, 0);
 assert.equal(repeated.score, 200);
 assert.equal(repeated.combo, 0);
-assert.deepEqual(repeated.completedQuestionIds, []);
+assert.deepEqual(repeated.completedItemIds, []);
 assert.equal(repeated.completedAtMs, null);
 
 function player(id: string, studentNumber: string, name: string, nickname: string | null = null): Player {

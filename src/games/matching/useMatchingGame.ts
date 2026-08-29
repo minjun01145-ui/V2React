@@ -1,21 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createAnswerResult } from "../../game-engine/core/answerResult.ts";
-import { usePlayerGameProgress } from "../../game-engine/question-engine/multiplayer/hooks.ts";
-import { persistAnswerAttempt } from "../../game-engine/question-engine/multiplayer/repository.ts";
-import { applyAnswerToProgress, createEmptyProgress, normalizeProgress } from "../../game-engine/question-engine/progress.ts";
-import type { BaseQuestion, GameProgress } from "../../game-engine/question-engine/types.ts";
+import { isMatchingPair, type PairMatchingCard } from "../../game-engine/pair-matching/index.ts";
+import { applyResultToProgress, createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import type { LearningSet } from "../../learning-sets/types.ts";
+import { adaptLearningSetToPairMatching } from "../../learning-sets/pairMatchingAdapter.ts";
+import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
+import { persistGameAttempt } from "../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
-import { createMatchingBoard, isMatchingPair, matchingComboResult, matchingPairs, refillMatchingBoard, type MatchingCard } from "./engine.ts";
+import { createMatchingBoard, matchingComboResult, refillMatchingBoard } from "./engine.ts";
 
 interface MatchingDetails {
   readonly firstCardId: string;
   readonly secondCardId: string;
   readonly combo: number;
-}
-
-interface MatchingQuestion extends BaseQuestion {
-  readonly prompt: string;
 }
 
 export interface MatchingOutcome {
@@ -35,11 +32,11 @@ export function useMatchingGame(input: {
   readonly disabled?: boolean;
 }) {
   const { roomId, session, player, set, disabled = false } = input;
-  const pairs = useMemo(() => matchingPairs(set), [set]);
+  const pairs = useMemo(() => adaptLearningSetToPairMatching(set), [set]);
   const remoteProgress = usePlayerGameProgress(roomId, session.roundId, player.id);
   const [progress, setProgress] = useState<GameProgress<MatchingDetails>>(() => createEmptyProgress());
-  const [board, setBoard] = useState<readonly MatchingCard[]>(() => createMatchingBoard(pairs, [], `${session.roundId}:${player.id}:initial`));
-  const [selectedCard, setSelectedCard] = useState<MatchingCard | null>(null);
+  const [board, setBoard] = useState<readonly PairMatchingCard[]>(() => createMatchingBoard(pairs, [], `${session.roundId}:${player.id}:initial`));
+  const [selectedCard, setSelectedCard] = useState<PairMatchingCard | null>(null);
   const [feedback, setFeedback] = useState("");
   const [feedbackTone, setFeedbackTone] = useState<"correct" | "incorrect" | "">("");
   const [removingCardIds, setRemovingCardIds] = useState<readonly string[]>([]);
@@ -54,11 +51,11 @@ export function useMatchingGame(input: {
     setProgress(hydrated);
     setLastOutcome(null);
     setCombo(hydrated.lastResult?.isCorrect ? (hydrated.lastResult.details?.combo ?? 0) : 0);
-    setBoard(createMatchingBoard(pairs, hydrated.completedQuestionIds, `${session.roundId}:${player.id}:${hydrated.completedQuestionIds.join(",")}`));
+    setBoard(createMatchingBoard(pairs, hydrated.completedItemIds, `${session.roundId}:${player.id}:${hydrated.completedItemIds.join(",")}`));
     hydratedRoundRef.current = session.roundId;
   }, [pairs.length, remoteProgress.loading, remoteProgress.value, session.roundId]);
 
-  const submitPair = useCallback(async (first: MatchingCard, second: MatchingCard): Promise<void> => {
+  const submitPair = useCallback(async (first: PairMatchingCard, second: PairMatchingCard): Promise<void> => {
     if (busyRef.current || disabled) return;
     busyRef.current = true;
     const correct = isMatchingPair(first, second);
@@ -71,7 +68,7 @@ export function useMatchingGame(input: {
       await wait(correct ? 380 : 340);
       const pair = pairs.find((candidate) => candidate.id === first.pairId) ?? pairs[0];
       if (!pair) return;
-      const question: MatchingQuestion = { id: pair.id, prompt: `${pair.term} ↔ ${pair.meaning}` };
+      const item = { id: pair.id, prompt: `${pair.term} ↔ ${pair.meaning}` };
       const comboResult = matchingComboResult(combo, correct);
       const nextCombo = comboResult.combo;
       const details: MatchingDetails = { firstCardId: first.id, secondCardId: second.id, combo: nextCombo };
@@ -81,30 +78,30 @@ export function useMatchingGame(input: {
         feedback: correct ? "짝을 찾았어요!" : "서로 다른 짝입니다.",
         details,
       });
-      const applied = applyAnswerToProgress(progress, question, result);
-      const completedCount = applied.completedQuestionIds.length;
+      const applied = applyResultToProgress(progress, pair.id, result);
+      const completedCount = applied.completedItemIds.length;
       const cycleComplete = correct && completedCount >= pairs.length;
       const nextProgress: GameProgress<MatchingDetails> = {
         ...applied,
         currentIndex: applied.correctCount,
-        completedQuestionIds: cycleComplete ? [] : applied.completedQuestionIds,
+        completedItemIds: cycleComplete ? [] : applied.completedItemIds,
         completedAtMs: null,
       };
       const attemptId = crypto.randomUUID();
-      await persistAnswerAttempt({
+      await persistGameAttempt({
         roomId,
         roundId: session.roundId,
         gameId: session.gameId,
         player,
         attemptId,
-        question,
+        item,
         answer: details,
         result,
         progress: nextProgress,
       });
       if (correct) setBoard(cycleComplete
         ? createMatchingBoard(pairs, [], `${session.roundId}:${player.id}:cycle:${applied.correctCount}`)
-        : refillMatchingBoard(board, pair.id, pairs, nextProgress.completedQuestionIds, `${session.roundId}:${completedCount}`));
+        : refillMatchingBoard(board, pair.id, pairs, nextProgress.completedItemIds, `${session.roundId}:${completedCount}`));
       setProgress(nextProgress);
       setCombo(nextCombo);
       setLastOutcome({ id: attemptId, isCorrect: correct, scoreDelta: comboResult.scoreDelta, combo: nextCombo });
@@ -121,7 +118,7 @@ export function useMatchingGame(input: {
     }
   }, [board, combo, disabled, pairs, player, progress, roomId, session.gameId, session.roundId]);
 
-  const selectCard = useCallback((card: MatchingCard): void => {
+  const selectCard = useCallback((card: PairMatchingCard): void => {
     if (busyRef.current || disabled) return;
     if (!selectedCard) {
       setSelectedCard(card);

@@ -1,4 +1,4 @@
-import type { ChoiceCount, ChoiceDirection } from "../game-engine/question-engine/multiple-choice/types.ts";
+import type { ChoiceCount, ChoiceDirection } from "../game-engine/question-engine/multiple-choice/index.ts";
 
 export const LEARNING_SET_QUESTION_SCOPE = Object.freeze({
   ENTRY: "entry",

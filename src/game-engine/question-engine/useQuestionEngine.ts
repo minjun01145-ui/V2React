@@ -50,7 +50,7 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     if (progressLoading || hydratedRoundRef.current === roundId) return;
     const normalized = normalizeProgress<TDetails>(initialProgress, questions.length);
     setProgress(repeatQuestions && questions.length > 0 && normalized.currentIndex >= questions.length
-      ? { ...normalized, currentIndex: 0, completedQuestionIds: [], lastResult: null, completedAtMs: null }
+      ? { ...normalized, currentIndex: 0, completedItemIds: [], lastResult: null, completedAtMs: null }
       : normalized);
     hydratedRoundRef.current = roundId;
   }, [initialProgress, progressLoading, questions.length, repeatQuestions, roundId]);

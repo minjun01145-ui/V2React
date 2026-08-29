@@ -1,5 +1,4 @@
-import { parseChoiceCount } from "../../game-engine/question-engine/multiple-choice/validation.ts";
-import type { ChoiceCount } from "../../game-engine/question-engine/multiple-choice/types.ts";
+import { parseChoiceCount, type ChoiceCount } from "../../game-engine/question-engine/multiple-choice/index.ts";
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 
 export const DEFAULT_SIMPLE_QUIZ_CHOICE_COUNT: ChoiceCount = 4;

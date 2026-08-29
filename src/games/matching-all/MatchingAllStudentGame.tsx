@@ -7,7 +7,6 @@ import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { LearningCardButton } from "../../shared/ui/LearningCard.tsx";
-import matchingStyles from "../matching/MatchingGame.module.css";
 import styles from "./MatchingAllGame.module.css";
 import { useMatchingAllGame } from "./useMatchingAllGame.ts";
 
@@ -34,33 +33,33 @@ export default function MatchingAllStudentGame({ roomId, session, player, set }:
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
   const matchedCount = game.matchedPairIds.length;
 
-  return <main className={matchingStyles.gameShell}>
+  return <main className={styles.gameShell}>
     <GameEffectLayer effect={effects.activeEffect} />
-    <header className={matchingStyles.topbar}>
+    <header className={styles.topbar}>
       <div><span>FULL PAIR MATCH</span><h1>짝맞추기 · 모든카드</h1></div>
-      <div className={matchingStyles.topMetrics}><div className={matchingStyles.stats}>
+      <div className={styles.topMetrics}><div className={styles.stats}>
         <div><small>완성한 판</small><strong>{game.progress.correctCount}</strong></div>
         <div><small>판 콤보</small><strong>{game.combo}</strong></div>
         <div><small>점수</small><strong>{game.progress.score}</strong></div>
       </div></div>
     </header>
 
-    <section className={matchingStyles.progress} aria-label={`현재 판 ${matchedCount}/4쌍`}>
+    <section className={styles.progress} aria-label={`현재 판 ${matchedCount}/4쌍`}>
       <div style={{ width: `${matchedCount * 25}%` }} />
     </section>
 
-    <section className={matchingStyles.instructions}>
+    <section className={styles.instructions}>
       <strong>8장의 카드는 모두 짝이 있습니다.</strong>
       <span>4쌍을 전부 찾으면 판 점수 {game.baseScore}점과 콤보 보너스를 받습니다.</span>
     </section>
 
-    <section className={matchingStyles.grid} aria-label="모두 짝이 있는 단어와 뜻 카드">
+    <section className={styles.grid} aria-label="모두 짝이 있는 단어와 뜻 카드">
       {game.board.map((card) => {
         const matched = game.matchedPairIds.includes(card.pairId);
         if (matched) return <div className={styles.clearedSlot} key={card.id} aria-hidden="true" />;
         const selected = game.selectedCardId === card.id;
         return <LearningCardButton
-          className={matchingStyles.matchCard}
+          className={styles.matchCard}
           eyebrow={card.kind === "term" ? "WORD" : "뜻"}
           marker={card.kind === "term" ? "A" : "가"}
           tone={card.kind === "term" ? "indigo" : "mint"}
@@ -75,7 +74,7 @@ export default function MatchingAllStudentGame({ roomId, session, player, set }:
       })}
     </section>
 
-    <div className={matchingStyles.feedback} data-tone={game.feedbackTone} role="status" aria-live="polite">
+    <div className={styles.feedback} data-tone={game.feedbackTone} role="status" aria-live="polite">
       {game.feedback || "카드 두 장을 골라 첫 번째 짝을 찾아보세요."}
     </div>
   </main>;

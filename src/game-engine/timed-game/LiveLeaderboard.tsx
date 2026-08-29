@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useRoundProgress } from "../question-engine/multiplayer/hooks.ts";
+import { useRoundProgress } from "../../multiplayer/game-progress/hooks.ts";
 import { usePlayers } from "../../multiplayer/hooks.ts";
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";

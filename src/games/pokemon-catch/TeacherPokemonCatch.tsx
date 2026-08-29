@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useRoundAnswers, useRoundProgress } from "../../game-engine/question-engine/multiplayer/hooks.ts";
+import { useRoundAttempts, useRoundProgress } from "../../multiplayer/game-progress/hooks.ts";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
@@ -14,7 +14,7 @@ export default function TeacherPokemonCatch({ roomId, session, set }: {
   readonly set: LearningSet;
 }) {
   const adapted = useMemo(() => adaptVocabularySet(set, `${session.roundId}:${set.id}:pokemon-quiz`), [session.roundId, set]);
-  const answers = useRoundAnswers(roomId, session.roundId);
+  const answers = useRoundAttempts(roomId, session.roundId);
   const progress = useRoundProgress(roomId, session.roundId);
   const error = answers.error ?? progress.error;
   if (error) return <StatusPanel title="게임 현황 연결 오류" tone="error">{error.message}</StatusPanel>;

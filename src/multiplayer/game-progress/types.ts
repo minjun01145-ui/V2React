@@ -1,10 +1,10 @@
-export interface RoundAnswerRecord {
+export interface RoundAttemptRecord {
   readonly id: string;
   readonly attemptId: string;
   readonly gameId: string;
   readonly playerId: string;
   readonly displayName: string;
-  readonly questionId: string;
+  readonly itemId: string;
   readonly prompt: string | null;
   readonly isCorrect: boolean;
   readonly scoreDelta: number;

@@ -41,7 +41,7 @@ function SimpleQuizGame({ roomId, session, player, set }: {
 
   useEffect(() => {
     const result = game.progress.lastResult;
-    if (!pendingQuestionId || result?.questionId !== pendingQuestionId) return;
+    if (!pendingQuestionId || result?.itemId !== pendingQuestionId) return;
     const timer = globalThis.setTimeout(() => {
       void game.nextQuestion()
         .then((advanced) => {

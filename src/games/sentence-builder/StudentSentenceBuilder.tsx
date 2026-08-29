@@ -46,7 +46,7 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
     .map((tokenId) => question.tokens.find((token) => token.id === tokenId))
     .filter((token): token is SentenceToken => token !== undefined);
   const unusedTokens = availableTokens.filter((token) => !selectedTokenIds.includes(token.id));
-  const lastResult = engine.progress.lastResult?.questionId === question.id ? engine.progress.lastResult : null;
+  const lastResult = engine.progress.lastResult?.itemId === question.id ? engine.progress.lastResult : null;
 
   const submitSelection = async (tokenIds: readonly string[]): Promise<void> => {
     if (tokenIds.length !== question.tokens.length || submitting) return;

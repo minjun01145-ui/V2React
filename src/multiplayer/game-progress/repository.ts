@@ -1,9 +1,23 @@
 import { collection, doc, onSnapshot, serverTimestamp, setDoc, writeBatch, type DocumentData, type Unsubscribe } from "firebase/firestore";
-import { db } from "../../../firebase/firebaseClient.ts";
-import { MULTIPLAYER_COLLECTION } from "../../../multiplayer/constants.ts";
-import type { Player } from "../../../multiplayer/types.ts";
-import type { AnswerSubmission, BaseQuestion, GameProgress } from "../types.ts";
-import type { RoundAnswerRecord, RoundProgressRecord } from "./types.ts";
+import type { AnswerResult } from "../../game-engine/core/types.ts";
+import type { GameProgress } from "../../game-engine/progress/index.ts";
+import { db } from "../../firebase/firebaseClient.ts";
+import { MULTIPLAYER_COLLECTION } from "../constants.ts";
+import type { Player } from "../types.ts";
+import type { RoundAttemptRecord, RoundProgressRecord } from "./types.ts";
+
+export interface GameProgressItem {
+  readonly id: string;
+  readonly prompt?: string;
+}
+
+export interface GameAttemptSubmission<TItem extends GameProgressItem, TAnswer, TDetails> {
+  readonly attemptId: string;
+  readonly item: TItem;
+  readonly answer: TAnswer;
+  readonly result: AnswerResult<TDetails>;
+  readonly progress: GameProgress<TDetails>;
+}
 
 const answersRef = (roomId: string, roundId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "answers");
 const progressRef = (roomId: string, roundId: string, playerId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "progress", playerId);
@@ -20,20 +34,46 @@ function finiteNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-function parseRoundAnswer(id: string, data: DocumentData): RoundAnswerRecord | null {
+function toStoredProgress<TDetails>(progress: GameProgress<TDetails>): Record<string, unknown> {
+  const { completedItemIds, lastResult, ...fields } = progress;
+  const storedLastResult = lastResult ? (() => {
+    const { itemId, ...result } = lastResult;
+    return { ...result, questionId: itemId };
+  })() : null;
+  return {
+    ...fields,
+    completedQuestionIds: completedItemIds,
+    lastResult: storedLastResult,
+  };
+}
+
+function fromStoredProgress(data: DocumentData): unknown {
+  const raw: unknown = data;
+  if (!isRecord(raw)) return null;
+  const lastResult = isRecord(raw.lastResult) && typeof raw.lastResult.questionId === "string"
+    ? { ...raw.lastResult, itemId: raw.lastResult.questionId }
+    : raw.lastResult;
+  return {
+    ...raw,
+    completedItemIds: raw.completedQuestionIds,
+    lastResult,
+  };
+}
+
+function parseRoundAttempt(id: string, data: DocumentData): RoundAttemptRecord | null {
   const raw: unknown = data;
   if (!isRecord(raw)) return null;
   const attemptId = text(raw.attemptId);
   const playerId = text(raw.playerId);
-  const questionId = text(raw.questionId);
-  if (!attemptId || !playerId || !questionId || typeof raw.isCorrect !== "boolean") return null;
+  const itemId = text(raw.questionId);
+  if (!attemptId || !playerId || !itemId || typeof raw.isCorrect !== "boolean") return null;
   return {
     id,
     attemptId,
     gameId: text(raw.gameId),
     playerId,
     displayName: text(raw.displayName),
-    questionId,
+    itemId,
     prompt: typeof raw.prompt === "string" ? raw.prompt : null,
     isCorrect: raw.isCorrect,
     scoreDelta: finiteNumber(raw.scoreDelta),
@@ -62,13 +102,13 @@ function parseRoundProgress(id: string, data: DocumentData): RoundProgressRecord
   };
 }
 
-export async function persistAnswerAttempt<TQuestion extends BaseQuestion, TAnswer, TDetails>(input: {
+export async function persistGameAttempt<TItem extends GameProgressItem, TAnswer, TDetails>(input: {
   readonly roomId: string;
   readonly roundId: string;
   readonly gameId: string;
   readonly player: Player;
-} & AnswerSubmission<TQuestion, TAnswer, TDetails>): Promise<void> {
-  const { roomId, roundId, gameId, player, attemptId, question, answer, result, progress } = input;
+} & GameAttemptSubmission<TItem, TAnswer, TDetails>): Promise<void> {
+  const { roomId, roundId, gameId, player, attemptId, item, answer, result, progress } = input;
   if (!attemptId || !player.id) throw new Error("attemptId and playerId are required.");
   const now = Date.now();
   const batch = writeBatch(db);
@@ -77,8 +117,8 @@ export async function persistAnswerAttempt<TQuestion extends BaseQuestion, TAnsw
     gameId,
     playerId: player.id,
     displayName: player.displayName,
-    questionId: question.id,
-    prompt: question.prompt ?? null,
+    questionId: item.id,
+    prompt: item.prompt ?? null,
     answer,
     isCorrect: result.isCorrect,
     scoreDelta: result.scoreDelta,
@@ -91,7 +131,7 @@ export async function persistAnswerAttempt<TQuestion extends BaseQuestion, TAnsw
     gameId,
     playerId: player.id,
     displayName: player.displayName,
-    ...progress,
+    ...toStoredProgress(progress),
     updatedAt: serverTimestamp(),
     updatedAtMs: now,
   }, { merge: true });
@@ -109,50 +149,30 @@ export async function savePlayerProgress<TDetails>(input: {
     gameId: input.gameId,
     playerId: input.player.id,
     displayName: input.player.displayName,
-    ...input.progress,
+    ...toStoredProgress(input.progress),
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),
   }, { merge: true });
 }
 
-export function subscribePlayerProgress(
-  roomId: string,
-  roundId: string,
-  playerId: string,
-  onValue: (value: unknown) => void,
-  onError: (error: Error) => void,
-): Unsubscribe {
+export function subscribePlayerProgress(roomId: string, roundId: string, playerId: string, onValue: (value: unknown) => void, onError: (error: Error) => void): Unsubscribe {
   return onSnapshot(progressRef(roomId, roundId, playerId), (snapshot) => {
-    const value: unknown = snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
-    onValue(value);
+    onValue(snapshot.exists() ? fromStoredProgress(snapshot.data()) : null);
   }, onError);
 }
 
-export function subscribeRoundAnswers(
-  roomId: string,
-  roundId: string,
-  onValue: (value: RoundAnswerRecord[]) => void,
-  onError: (error: Error) => void,
-): Unsubscribe {
+export function subscribeRoundAttempts(roomId: string, roundId: string, onValue: (value: RoundAttemptRecord[]) => void, onError: (error: Error) => void): Unsubscribe {
   return onSnapshot(answersRef(roomId, roundId), (snapshot) => {
-    const answers = snapshot.docs
-      .map((answerDoc) => parseRoundAnswer(answerDoc.id, answerDoc.data()))
-      .filter((answer): answer is RoundAnswerRecord => answer !== null)
+    const attempts = snapshot.docs.map((answerDoc) => parseRoundAttempt(answerDoc.id, answerDoc.data()))
+      .filter((answer): answer is RoundAttemptRecord => answer !== null)
       .sort((a, b) => b.createdAtMs - a.createdAtMs);
-    onValue(answers);
+    onValue(attempts);
   }, onError);
 }
 
-export function subscribeRoundProgress(
-  roomId: string,
-  roundId: string,
-  onValue: (value: RoundProgressRecord[]) => void,
-  onError: (error: Error) => void,
-): Unsubscribe {
+export function subscribeRoundProgress(roomId: string, roundId: string, onValue: (value: RoundProgressRecord[]) => void, onError: (error: Error) => void): Unsubscribe {
   return onSnapshot(collection(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "progress"), (snapshot) => {
-    const progress = snapshot.docs
-      .map((progressDoc) => parseRoundProgress(progressDoc.id, progressDoc.data()))
-      .filter((item): item is RoundProgressRecord => item !== null);
-    onValue(progress);
+    onValue(snapshot.docs.map((progressDoc) => parseRoundProgress(progressDoc.id, progressDoc.data()))
+      .filter((item): item is RoundProgressRecord => item !== null));
   }, onError);
 }

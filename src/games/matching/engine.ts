@@ -1,40 +1,13 @@
 import { hashString, shuffled } from "../../game-engine/core/random.ts";
+import { createPairCard, type PairMatchingCard, type PairMatchingPair } from "../../game-engine/pair-matching/index.ts";
 import { applyComboScore } from "../../game-engine/scoring/combo.ts";
-import { LEARNING_SET_TYPE, type LearningSet } from "../../learning-sets/types.ts";
-
-export type MatchingCardKind = "term" | "meaning";
-
-export interface MatchingPair {
-  readonly id: string;
-  readonly term: string;
-  readonly meaning: string;
-}
-
-export interface MatchingCard {
-  readonly id: string;
-  readonly pairId: string;
-  readonly kind: MatchingCardKind;
-  readonly text: string;
-}
-
-export function matchingPairs(set: LearningSet, minimumPairCount = 6): readonly MatchingPair[] {
-  if (set.type !== LEARNING_SET_TYPE.VOCABULARY) throw new Error("짝맞추기는 단어 세트만 사용할 수 있습니다.");
-  const pairs = set.items.map((item) => ({
-    id: item.id,
-    term: item.sourceText.trim(),
-    meaning: item.meaning.trim(),
-  }));
-  if (pairs.length < minimumPairCount) throw new Error(`짝맞추기에는 단어가 ${minimumPairCount}개 이상 필요합니다.`);
-  if (pairs.some((pair) => !pair.id || !pair.term || !pair.meaning)) throw new Error("비어 있는 단어나 뜻은 짝맞추기에 사용할 수 없습니다.");
-  if (new Set(pairs.map((pair) => pair.id)).size !== pairs.length) throw new Error("단어 ID는 서로 달라야 합니다.");
-  return pairs;
-}
 
 export function createMatchingBoard(
-  pairs: readonly MatchingPair[],
+  pairs: readonly PairMatchingPair[],
   completedPairIds: readonly string[],
   seed: string,
-): readonly MatchingCard[] {
+): readonly PairMatchingCard[] {
+  if (pairs.length < 6) throw new Error("짝맞추기에는 단어가 6개 이상 필요합니다.");
   const completed = new Set(completedPairIds);
   const remaining = pairs.filter((pair) => !completed.has(pair.id));
   const completedPairs = pairs.filter((pair) => completed.has(pair.id));
@@ -53,15 +26,11 @@ export function createMatchingBoard(
     .slice(0, Math.max(0, 4 - overlap.length - decoys.length));
   const meaningPairs = shuffled([...overlap, ...decoys, ...meaningFillers], `${seed}:meanings`).slice(0, 4);
 
-  const cards: MatchingCard[] = [
-    ...termPairs.map((pair) => ({ id: `term:${pair.id}`, pairId: pair.id, kind: "term" as const, text: pair.term })),
-    ...meaningPairs.map((pair) => ({ id: `meaning:${pair.id}`, pairId: pair.id, kind: "meaning" as const, text: pair.meaning })),
+  const cards: PairMatchingCard[] = [
+    ...termPairs.map((pair) => createPairCard(pair, "term")),
+    ...meaningPairs.map((pair) => createPairCard(pair, "meaning")),
   ];
   return shuffled(cards, `${seed}:grid`);
-}
-
-export function isMatchingPair(first: MatchingCard, second: MatchingCard): boolean {
-  return first.kind !== second.kind && first.pairId === second.pairId;
 }
 
 export function matchingComboResult(currentCombo: number, correct: boolean): { readonly combo: number; readonly scoreDelta: number } {
@@ -69,18 +38,18 @@ export function matchingComboResult(currentCombo: number, correct: boolean): { r
   return { combo: result.combo, scoreDelta: result.scoreDelta };
 }
 
-export function countVisiblePairs(cards: readonly MatchingCard[]): number {
+export function countVisiblePairs(cards: readonly PairMatchingCard[]): number {
   const terms = new Set(cards.filter((card) => card.kind === "term").map((card) => card.pairId));
   return new Set(cards.filter((card) => card.kind === "meaning" && terms.has(card.pairId)).map((card) => card.pairId)).size;
 }
 
 export function refillMatchingBoard(
-  cards: readonly MatchingCard[],
+  cards: readonly PairMatchingCard[],
   matchedPairId: string,
-  pairs: readonly MatchingPair[],
+  pairs: readonly PairMatchingPair[],
   completedPairIds: readonly string[],
   seed: string,
-): readonly MatchingCard[] {
+): readonly PairMatchingCard[] {
   const retained = cards.filter((card) => card.pairId !== matchedPairId);
   const completed = new Set(completedPairIds);
   const available = shuffled(pairs.filter((pair) => !completed.has(pair.id)), `${seed}:refill`);
@@ -91,8 +60,8 @@ export function refillMatchingBoard(
   const termCandidates = available.filter((pair) => !termIds.has(pair.id));
   const meaningCandidates = available.filter((pair) => !meaningIds.has(pair.id));
   const candidateTargets = targetPairCount === 1 ? [1, 2] : [2, 1];
-  let nextTerm: MatchingPair | undefined;
-  let nextMeaning: MatchingPair | undefined;
+  let nextTerm: PairMatchingPair | undefined;
+  let nextMeaning: PairMatchingPair | undefined;
 
   for (const target of candidateTargets) {
     for (const term of termCandidates) {
@@ -115,6 +84,6 @@ export function refillMatchingBoard(
   return cards.map((card) => {
     if (card.pairId !== matchedPairId) return card;
     const pair = card.kind === "term" ? nextTerm : nextMeaning;
-    return { id: `${card.kind}:${pair.id}`, pairId: pair.id, kind: card.kind, text: card.kind === "term" ? pair.term : pair.meaning };
+    return createPairCard(pair, card.kind);
   });
 }

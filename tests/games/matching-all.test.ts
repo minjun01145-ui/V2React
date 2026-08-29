@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { matchingPairs } from "../../src/games/matching/engine.ts";
 import { ALL_MATCHING_BASE_SCORE, allMatchingRoundResult, createAllMatchingBoard, nextUsedPairIds } from "../../src/games/matching-all/engine.ts";
+import { adaptLearningSetToPairMatching } from "../../src/learning-sets/pairMatchingAdapter.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
 
 const vocabularySet: LearningSet = {
@@ -13,7 +13,7 @@ const vocabularySet: LearningSet = {
   items: Array.from({ length: 10 }, (_, index) => ({ id: `pair-${index}`, sourceText: `word-${index}`, meaning: `뜻-${index}` })),
 };
 
-const pairs = matchingPairs(vocabularySet, 4);
+const pairs = adaptLearningSetToPairMatching(vocabularySet);
 const board = createAllMatchingBoard(pairs, [], "board-1");
 assert.equal(board.length, 8);
 assert.equal(new Set(board.map((card) => card.pairId)).size, 4);

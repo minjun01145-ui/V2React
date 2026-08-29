@@ -1,4 +1,4 @@
-import { parseChoiceCount, parseChoiceDirection } from "../game-engine/question-engine/multiple-choice/validation.ts";
+import { parseChoiceCount, parseChoiceDirection } from "../game-engine/question-engine/multiple-choice/index.ts";
 import { LEARNING_SET_QUESTION_SCOPE, type LearningSetMultipleChoiceOptions, type LearningSetQuestionScope } from "./multipleChoiceTypes.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> {

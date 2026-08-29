@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { usePlayerGameProgress } from "../question-engine/multiplayer/hooks.ts";
+import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { TimedGameOver, TimedGameStatus } from "./TimedGameStatus.tsx";
 import { useTimedGameClock } from "./useTimedGameClock.ts";

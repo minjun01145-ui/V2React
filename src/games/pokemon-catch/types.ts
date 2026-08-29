@@ -1,5 +1,5 @@
 import type { LearningSetQuestionSource } from "../../learning-sets/multipleChoiceTypes.ts";
-import type { MultipleChoiceQuestionSet } from "../../game-engine/question-engine/multiple-choice/types.ts";
+import type { MultipleChoiceQuestionSet } from "../../game-engine/question-engine/multiple-choice/index.ts";
 
 export interface PokemonEncounter {
   readonly id: number;

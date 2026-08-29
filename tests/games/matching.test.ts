@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { countVisiblePairs, createMatchingBoard, isMatchingPair, matchingComboResult, matchingPairs, refillMatchingBoard } from "../../src/games/matching/engine.ts";
+import { isMatchingPair } from "../../src/game-engine/pair-matching/index.ts";
+import { countVisiblePairs, createMatchingBoard, matchingComboResult, refillMatchingBoard } from "../../src/games/matching/engine.ts";
+import { adaptLearningSetToPairMatching } from "../../src/learning-sets/pairMatchingAdapter.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
 
 const vocabularySet: LearningSet = {
@@ -16,7 +18,7 @@ const vocabularySet: LearningSet = {
   })),
 };
 
-const pairs = matchingPairs(vocabularySet);
+const pairs = adaptLearningSetToPairMatching(vocabularySet);
 const firstBoard = createMatchingBoard(pairs, [], "round-1");
 assert.equal(firstBoard.length, 8);
 assert.equal(firstBoard.filter((card) => card.kind === "term").length, 4);
@@ -65,5 +67,5 @@ const lateBoard = createMatchingBoard(pairs, pairs.slice(0, 6).map((pair) => pai
 assert.equal(lateBoard.length, 8, "마지막 구간에도 가능한 동안 2×4 보드를 유지해야 합니다.");
 assert.equal(countVisiblePairs(lateBoard), 2);
 
-assert.throws(() => matchingPairs({ ...vocabularySet, itemCount: 5, items: vocabularySet.items.slice(0, 5) }), /6개 이상/);
+assert.throws(() => createMatchingBoard(pairs.slice(0, 5), [], "short"), /6개 이상/);
 console.log("matching game tests passed");

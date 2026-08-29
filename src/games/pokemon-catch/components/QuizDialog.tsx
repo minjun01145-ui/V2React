@@ -1,5 +1,5 @@
 import type { AnswerResult } from "../../../game-engine/core/types.ts";
-import type { MultipleChoiceEvaluationDetails, MultipleChoiceQuestion } from "../../../game-engine/question-engine/multiple-choice/types.ts";
+import type { MultipleChoiceEvaluationDetails, MultipleChoiceQuestion } from "../../../game-engine/question-engine/multiple-choice/index.ts";
 import type { PokemonItemId } from "../../../student-data/pokemon-catch/types.ts";
 import { itemDefinition } from "../itemRules.ts";
 import styles from "../PokemonCatch.module.css";

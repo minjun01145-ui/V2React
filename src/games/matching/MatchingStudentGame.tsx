@@ -31,7 +31,7 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
   if (game.loading) return <StatusPanel title="짝맞추기 준비 중">내 진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
 
-  const progressPercent = game.pairCount === 0 ? 0 : Math.round((game.progress.completedQuestionIds.length / game.pairCount) * 100);
+  const progressPercent = game.pairCount === 0 ? 0 : Math.round((game.progress.completedItemIds.length / game.pairCount) * 100);
 
   return <main className={styles.gameShell}>
     <GameEffectLayer effect={effects.activeEffect} />

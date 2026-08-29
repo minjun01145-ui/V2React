@@ -6,14 +6,14 @@
 
 ## TypeScript generic 구조
 
-`game-engine/core`는 여러 엔진이 실제로 공유할 최소 계약만 둡니다. 현재는 `AnswerResult<TDetails>`와 순수 유틸이 여기에 있습니다.
+`game-engine/core`는 여러 엔진이 실제로 공유할 최소 계약만 둡니다. 현재는 `AnswerResult<TDetails>`와 순수 유틸이 여기에 있습니다. `game-engine/progress`는 question/pair 같은 도메인 명칭을 쓰지 않는 item 단위 진행 상태만 소유합니다.
 
 `game-engine/question-engine`은 다음 계약을 소유합니다.
 
 ```text
 BaseQuestion
 CanonicalQuestionSet<TQuestion>
-GameProgress<TDetails>
+GameProgress<TDetails> (`completedItemIds`, `lastResult.itemId`)
 Evaluator<TQuestion, TAnswer, TDetails>
 AnswerSubmission<TQuestion, TAnswer, TDetails>
 useQuestionEngine<TQuestion, TAnswer, TDetails>()
@@ -85,7 +85,11 @@ Firestore `gameConfig`처럼 신뢰할 수 없는 설정은 `parseLearningSetMul
 
 ## Question-engine multiplayer boundary
 
-`question-engine/multiplayer`만 question-style 답안/진행 Firestore schema를 압니다. 다른 엔진은 이 repository를 억지로 재사용하지 않습니다.
+`multiplayer/game-progress`가 여러 게임에 공통인 진행 구독과 시도/진행 저장을 소유합니다. 기존 Firestore schema 호환을 위해 저장할 때만 `itemId`를 `questionId`, `completedItemIds`를 `completedQuestionIds`로 변환합니다. pure `game-engine`은 Firebase를 알지 않습니다.
+
+`question-engine/multiplayer/useMultiplayerQuestionEngine.ts`는 세 question-style consumer가 반복하던 구독, 두 persistence callback, `useQuestionEngine` 연결만 담당합니다. evaluator, adapter, scoring, config와 UI는 각 게임이 계속 소유합니다.
+
+pair-matching은 `game-engine/pair-matching`의 pair/card/짝 판정만 공유합니다. 학습 세트 변환은 `learning-sets/pairMatchingAdapter.ts`, 보드 생성과 라운드 규칙은 각 concrete game이 소유합니다.
 
 Firestore에서 읽은 진행 데이터는 즉시 앱 타입이라고 단언하지 않습니다. `unknown`으로 구독한 뒤 안전하게 파싱합니다. 교사용 응답/진행 목록도 repository에서 runtime parsing한 뒤 반환합니다.
 

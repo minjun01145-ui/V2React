@@ -51,6 +51,10 @@ function crossesRoleBoundary(rel, specifier) {
   return (isStudentOwner && importsTeacher) || (isTeacherOwner && importsStudent);
 }
 
+function concreteGameOwner(rel) {
+  return /^src\/games\/([^/]+)\//.exec(rel)?.[1] ?? null;
+}
+
 for (const file of sourceFiles) {
   const rel = relative(file);
 
@@ -83,6 +87,14 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: student and teacher app/feature layers must not import each other (${specifier})`);
     }
 
+    if (resolved) {
+      const owner = concreteGameOwner(rel);
+      const importedOwner = concreteGameOwner(relative(resolved));
+      if (owner && importedOwner && owner !== importedOwner) {
+        violations.push(`${rel}: concrete games must not import each other (${specifier})`);
+      }
+    }
+
     if (rel.startsWith("src/games/") && (specifier.includes("/firebase/") || specifier.startsWith("firebase/"))) {
       violations.push(`${rel}: game modules must not access Firebase directly (${specifier})`);
     }
@@ -96,6 +108,8 @@ for (const file of sourceFiles) {
     }
 
     if ((rel.startsWith("src/game-engine/core/") ||
+         rel.startsWith("src/game-engine/pair-matching/") ||
+         rel.startsWith("src/game-engine/progress/") ||
          rel.startsWith("src/game-engine/scoring/") ||
          rel === "src/game-engine/timed-game/config.ts" ||
          rel === "src/game-engine/timed-game/clock.ts" ||
