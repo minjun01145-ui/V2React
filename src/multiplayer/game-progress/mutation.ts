@@ -63,3 +63,9 @@ export function reconcileProgressSnapshot(current: unknown, incoming: unknown): 
 export function progressRevision(value: unknown): number {
   return versionOf(value).revision;
 }
+
+export function progressLastOperationId(value: unknown): string | null {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
+  const operationId = (value as Record<string, unknown>).lastOperationId;
+  return typeof operationId === "string" && operationId ? operationId : null;
+}

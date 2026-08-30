@@ -36,6 +36,8 @@ function SimpleQuizGame({ roomId, session, player, set }: {
   const [feedback, setFeedback] = useState("");
   const [feedbackTone, setFeedbackTone] = useState<"correct" | "incorrect" | "">("");
   const [pendingQuestionId, setPendingQuestionId] = useState<string | null>(null);
+  const [advanceRetry, setAdvanceRetry] = useState(0);
+  const [advanceFailed, setAdvanceFailed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const question = game.currentQuestion;
 
@@ -49,18 +51,27 @@ function SimpleQuizGame({ roomId, session, player, set }: {
           setSelectedOptionId(null);
           setFeedback("");
           setFeedbackTone("");
+          setAdvanceFailed(false);
+          setPendingQuestionId(null);
         })
         .catch(async (error: unknown) => {
           console.error(error);
+          setAdvanceFailed(true);
           await showMessage({ title: "다음 문제로 이동하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
         })
         .finally(() => {
-          setPendingQuestionId(null);
           setSubmitting(false);
         });
     }, result.isCorrect ? 720 : 920);
     return () => globalThis.clearTimeout(timer);
-  }, [game.nextQuestion, game.progress.lastResult, pendingQuestionId, showMessage]);
+  }, [advanceRetry, game.nextQuestion, game.progress.lastResult, pendingQuestionId, showMessage]);
+
+  useEffect(() => {
+    if (!pendingQuestionId || game.currentQuestion?.id === pendingQuestionId) return;
+    setPendingQuestionId(null);
+    setAdvanceFailed(false);
+    setSubmitting(false);
+  }, [game.currentQuestion?.id, pendingQuestionId]);
 
   if (game.loading) return <StatusPanel title="심플퀴즈 연결 중">내 진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
@@ -114,6 +125,9 @@ function SimpleQuizGame({ roomId, session, player, set }: {
         key={option.id}
       >{option.text}</LearningCardButton>)}
     </section>
-    <div className={styles.feedback} data-tone={feedbackTone} role="status" aria-live="polite">{feedback || "선택하는 즉시 채점됩니다."}</div>
+    <div className={styles.feedback} data-tone={feedbackTone} role="status" aria-live="polite">
+      {feedback || "선택하는 즉시 채점됩니다."}
+      {advanceFailed ? <button className={styles.retryButton} type="button" onClick={() => { setAdvanceFailed(false); setSubmitting(true); setAdvanceRetry((value) => value + 1); }}>다음 문제 다시 시도</button> : null}
+    </div>
   </main>;
 }

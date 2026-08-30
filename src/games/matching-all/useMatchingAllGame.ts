@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createAnswerResult } from "../../game-engine/core/answerResult.ts";
+import {
+  beginLogicalOperation,
+  completeLogicalOperation,
+  logicalOperationKey,
+  reconcileLogicalOperation,
+  type PendingLogicalOperation,
+} from "../../game-engine/core/logicalOperation.ts";
 import { isMatchingPair, type PairMatchingCard } from "../../game-engine/pair-matching/index.ts";
 import { createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import { adaptLearningSetToPairMatching } from "../../learning-sets/pairMatchingAdapter.ts";
 import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
-import { persistGameAttempt } from "../../multiplayer/game-progress/repository.ts";
+import { persistGameAttempt, type GameAttemptSubmission } from "../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { ALL_MATCHING_BASE_SCORE, ALL_MATCHING_PAIR_COUNT, allMatchingRoundResult, createAllMatchingBoard, nextUsedPairIds } from "./engine.ts";
 
@@ -42,10 +49,24 @@ export function useMatchingAllGame(input: {
   const [combo, setCombo] = useState(0);
   const [lastOutcome, setLastOutcome] = useState<MatchingAllOutcome | null>(null);
   const appliedRemoteRef = useRef<{ readonly roundId: string; readonly revision: number } | null>(null);
+  const pendingOperationRef = useRef<PendingLogicalOperation<Omit<GameAttemptSubmission<
+    { readonly id: string; readonly prompt: string },
+    MatchingAllDetails,
+    MatchingAllDetails
+  >, "attemptId">> | null>(null);
+  const canonicalResultRef = useRef<typeof pendingOperationRef.current>(null);
   const busyRef = useRef(false);
 
   useEffect(() => {
     if (remoteProgress.loading) return;
+    const pending = pendingOperationRef.current;
+    const reconciled = reconcileLogicalOperation(
+      pending,
+      remoteProgress.revision,
+      remoteProgress.lastOperationId,
+    );
+    if (pending && !reconciled) canonicalResultRef.current = pending;
+    pendingOperationRef.current = reconciled;
     const applied = appliedRemoteRef.current;
     if (applied?.roundId === session.roundId && applied.revision >= remoteProgress.revision) return;
     const hydrated = normalizeProgress<MatchingAllDetails>(remoteProgress.value, pairs.length);
@@ -57,7 +78,11 @@ export function useMatchingAllGame(input: {
     appliedRemoteRef.current = { roundId: session.roundId, revision: remoteProgress.revision };
   }, [pairs, player.id, remoteProgress.loading, remoteProgress.revision, remoteProgress.value, session.roundId]);
 
-  const persistResult = useCallback(async (correct: boolean, completedPairIds: readonly string[]): Promise<void> => {
+  const persistResult = useCallback(async (
+    correct: boolean,
+    completedPairIds: readonly string[],
+    selectedCardIds: readonly string[],
+  ): Promise<void> => {
     const boardComplete = correct && completedPairIds.length === ALL_MATCHING_PAIR_COUNT;
     const roundResult = allMatchingRoundResult(combo, boardComplete);
     const boardId = `board:${[...new Set(board.map((card) => card.pairId))].sort().join(":")}`;
@@ -69,7 +94,6 @@ export function useMatchingAllGame(input: {
       feedback: boardComplete ? "네 쌍을 모두 찾았습니다!" : "서로 다른 짝입니다.",
       details,
     });
-    const attemptId = crypto.randomUUID();
     const usedPairIds = boardComplete ? nextUsedPairIds(progress.completedItemIds, board, pairs.length) : progress.completedItemIds;
     const nextProgress: GameProgress<MatchingAllDetails> = {
       ...progress,
@@ -81,24 +105,45 @@ export function useMatchingAllGame(input: {
       lastResult: { itemId: boardId, ...result },
       completedAtMs: null,
     };
+    const logicalKey = logicalOperationKey([
+      "matching-all-result",
+      session.roundId,
+      board.map((card) => card.id).sort(),
+      [...selectedCardIds].sort(),
+      correct,
+      [...completedPairIds].sort(),
+    ]);
+    const canonicalResult = canonicalResultRef.current;
+    if (canonicalResult?.logicalKey === logicalKey) {
+      canonicalResultRef.current = null;
+      setFeedback(boardComplete ? "판 완성 결과가 저장된 것을 확인했어요." : "서로 다른 짝이에요. 콤보가 초기화됐어요.");
+      setFeedbackTone(boardComplete ? "correct" : "incorrect");
+      return;
+    }
+    canonicalResultRef.current = null;
+    const pending = beginLogicalOperation({
+      pending: pendingOperationRef.current,
+      logicalKey,
+      baseRevision: remoteProgress.revision,
+      createPayload: () => ({ item, answer: details, result, previousProgress: progress, progress: nextProgress }),
+    });
+    pendingOperationRef.current = pending;
     const committedMutation = await persistGameAttempt({
       roomId,
       roundId: session.roundId,
       gameId: session.gameId,
       player,
-      attemptId,
-      item,
-      answer: details,
-      result,
-      previousProgress: progress,
-      progress: nextProgress,
+      attemptId: pending.operationId,
+      ...pending.payload,
     });
+    pendingOperationRef.current = completeLogicalOperation(pendingOperationRef.current, pending.operationId);
+    canonicalResultRef.current = null;
     const committedProgress = normalizeProgress<MatchingAllDetails>(committedMutation.progress, pairs.length);
     appliedRemoteRef.current = { roundId: session.roundId, revision: committedMutation.revision };
     setProgress(committedProgress);
     setCombo(committedProgress.combo);
     if (boardComplete) {
-      setLastOutcome({ id: attemptId, scoreDelta: roundResult.scoreDelta, combo: roundResult.combo });
+      setLastOutcome({ id: pending.operationId, scoreDelta: roundResult.scoreDelta, combo: roundResult.combo });
       setBoard(createAllMatchingBoard(pairs, committedProgress.completedItemIds, `${session.roundId}:${player.id}:board:${committedProgress.correctCount}`));
       setMatchedPairIds([]);
       setFeedback("판 완성! 새로운 8장의 카드가 나왔어요.");
@@ -107,7 +152,7 @@ export function useMatchingAllGame(input: {
       setFeedback("서로 다른 짝이에요. 콤보가 초기화됐어요.");
       setFeedbackTone("incorrect");
     }
-  }, [board, combo, pairs, player, progress, roomId, session.gameId, session.roundId]);
+  }, [board, combo, pairs, player, progress, remoteProgress.revision, roomId, session.gameId, session.roundId]);
 
   const submitPair = useCallback(async (first: PairMatchingCard, second: PairMatchingCard): Promise<void> => {
     if (busyRef.current || disabled) return;
@@ -117,12 +162,12 @@ export function useMatchingAllGame(input: {
     try {
       await wait(correct ? 340 : 300);
       if (!correct) {
-        await persistResult(false, matchedPairIds);
+        await persistResult(false, matchedPairIds, [first.id, second.id]);
         return;
       }
       const completedPairIds = [...matchedPairIds, first.pairId];
       if (completedPairIds.length === ALL_MATCHING_PAIR_COUNT) {
-        await persistResult(true, completedPairIds);
+        await persistResult(true, completedPairIds, [first.id, second.id]);
       } else {
         setMatchedPairIds(completedPairIds);
         setFeedback(`좋아요! ${completedPairIds.length}/4쌍을 찾았습니다. 점수는 판을 완성하면 받아요.`);

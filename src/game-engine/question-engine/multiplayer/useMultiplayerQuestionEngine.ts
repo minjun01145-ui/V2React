@@ -36,6 +36,8 @@ export function useMultiplayerQuestionEngine<TQuestion extends BaseQuestion, TAn
     evaluator: input.evaluator,
     initialProgress: progressSubscription.value,
     progressLoading: progressSubscription.loading,
+    canonicalRevision: progressSubscription.revision,
+    canonicalOperationId: progressSubscription.lastOperationId,
     ...(input.repeatQuestions === undefined ? {} : { repeatQuestions: input.repeatQuestions }),
     ...(input.disabled === undefined ? {} : { disabled: input.disabled }),
     ...(input.comboScoring === undefined ? {} : { comboScoring: input.comboScoring }),

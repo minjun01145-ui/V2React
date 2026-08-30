@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { progressRevision, reconcileProgressSnapshot } from "./mutation.ts";
+import { progressLastOperationId, progressRevision, reconcileProgressSnapshot } from "./mutation.ts";
 import { subscribePlayerProgress, subscribeRoundAttempts, subscribeRoundProgress } from "./repository.ts";
 import type { RoundAttemptRecord, RoundProgressRecord } from "./types.ts";
 
@@ -34,7 +34,10 @@ function useSubscription<T>(initialValue: T, enabled: boolean, subscribe: (onVal
   return { value, loading, error };
 }
 
-export function usePlayerGameProgress(roomId: string, roundId: string, playerId: string): AsyncValue<unknown> & { readonly revision: number } {
+export function usePlayerGameProgress(roomId: string, roundId: string, playerId: string): AsyncValue<unknown> & {
+  readonly revision: number;
+  readonly lastOperationId: string | null;
+} {
   const scope = JSON.stringify([roomId, roundId, playerId]);
   const subscribe = useCallback((onValue: (value: unknown) => void, onError: (error: Error) => void) => subscribePlayerProgress(roomId, roundId, playerId, onValue, onError), [playerId, roomId, roundId]);
   const enabled = Boolean(roomId && roundId && playerId);
@@ -73,7 +76,11 @@ export function usePlayerGameProgress(roomId: string, roundId: string, playerId:
   const current = snapshot.scope === scope
     ? snapshot
     : { scope, value: null, loading: enabled, error: null };
-  return { ...current, revision: progressRevision(current.value) };
+  return {
+    ...current,
+    revision: progressRevision(current.value),
+    lastOperationId: progressLastOperationId(current.value),
+  };
 }
 
 export function useRoundAttempts(roomId: string, roundId: string): AsyncValue<RoundAttemptRecord[]> {
