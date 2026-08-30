@@ -3,8 +3,8 @@ import { createAnswerResult } from "../../game-engine/core/answerResult.ts";
 import {
   beginLogicalOperation,
   completeLogicalOperation,
+  LogicalOperationConflictError,
   logicalOperationKey,
-  reconcileLogicalOperation,
   type PendingLogicalOperation,
 } from "../../game-engine/core/logicalOperation.ts";
 import { isMatchingPair, type PairMatchingCard } from "../../game-engine/pair-matching/index.ts";
@@ -54,19 +54,13 @@ export function useMatchingAllGame(input: {
     MatchingAllDetails,
     MatchingAllDetails
   >, "attemptId">> | null>(null);
-  const canonicalResultRef = useRef<typeof pendingOperationRef.current>(null);
   const busyRef = useRef(false);
 
   useEffect(() => {
     if (remoteProgress.loading) return;
-    const pending = pendingOperationRef.current;
-    const reconciled = reconcileLogicalOperation(
-      pending,
-      remoteProgress.revision,
-      remoteProgress.lastOperationId,
-    );
-    if (pending && !reconciled) canonicalResultRef.current = pending;
-    pendingOperationRef.current = reconciled;
+    if (remoteProgress.lastOperationId) {
+      pendingOperationRef.current = completeLogicalOperation(pendingOperationRef.current, remoteProgress.lastOperationId);
+    }
     const applied = appliedRemoteRef.current;
     if (applied?.roundId === session.roundId && applied.revision >= remoteProgress.revision) return;
     const hydrated = normalizeProgress<MatchingAllDetails>(remoteProgress.value, pairs.length);
@@ -113,18 +107,9 @@ export function useMatchingAllGame(input: {
       correct,
       [...completedPairIds].sort(),
     ]);
-    const canonicalResult = canonicalResultRef.current;
-    if (canonicalResult?.logicalKey === logicalKey) {
-      canonicalResultRef.current = null;
-      setFeedback(boardComplete ? "판 완성 결과가 저장된 것을 확인했어요." : "서로 다른 짝이에요. 콤보가 초기화됐어요.");
-      setFeedbackTone(boardComplete ? "correct" : "incorrect");
-      return;
-    }
-    canonicalResultRef.current = null;
     const pending = beginLogicalOperation({
       pending: pendingOperationRef.current,
       logicalKey,
-      baseRevision: remoteProgress.revision,
       createPayload: () => ({ item, answer: details, result, previousProgress: progress, progress: nextProgress }),
     });
     pendingOperationRef.current = pending;
@@ -137,7 +122,6 @@ export function useMatchingAllGame(input: {
       ...pending.payload,
     });
     pendingOperationRef.current = completeLogicalOperation(pendingOperationRef.current, pending.operationId);
-    canonicalResultRef.current = null;
     const committedProgress = normalizeProgress<MatchingAllDetails>(committedMutation.progress, pairs.length);
     appliedRemoteRef.current = { roundId: session.roundId, revision: committedMutation.revision };
     setProgress(committedProgress);
@@ -152,7 +136,7 @@ export function useMatchingAllGame(input: {
       setFeedback("서로 다른 짝이에요. 콤보가 초기화됐어요.");
       setFeedbackTone("incorrect");
     }
-  }, [board, combo, pairs, player, progress, remoteProgress.revision, roomId, session.gameId, session.roundId]);
+  }, [board, combo, pairs, player, progress, roomId, session.gameId, session.roundId]);
 
   const submitPair = useCallback(async (first: PairMatchingCard, second: PairMatchingCard): Promise<void> => {
     if (busyRef.current || disabled) return;
@@ -175,7 +159,9 @@ export function useMatchingAllGame(input: {
       }
     } catch (error: unknown) {
       console.error(error);
-      setFeedback("결과를 저장하지 못했어요. 잠시 후 다시 눌러주세요.");
+      setFeedback(error instanceof LogicalOperationConflictError
+        ? error.message
+        : "결과를 저장하지 못했어요. 잠시 후 다시 눌러주세요.");
       setFeedbackTone("incorrect");
     } finally {
       setSelectedCard(null);

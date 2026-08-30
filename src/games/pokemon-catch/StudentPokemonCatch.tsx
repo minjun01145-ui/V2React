@@ -183,6 +183,9 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
       setActivePanel(null);
       setQuizFeedback("");
       setReward(null);
+    } catch (error: unknown) {
+      console.error(error);
+      setQuizFeedback(toErrorMessage(error, "다음 문제로 이동하지 못했습니다. 다시 시도해 주세요."));
     } finally {
       setSubmitting(false);
     }

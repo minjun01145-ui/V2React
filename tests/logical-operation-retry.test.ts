@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import {
   beginLogicalOperation,
   completeLogicalOperation,
+  LogicalOperationConflictError,
   logicalOperationKey,
-  reconcileLogicalOperation,
   type PendingLogicalOperation,
 } from "../src/game-engine/core/logicalOperation.ts";
 
@@ -14,12 +14,10 @@ function begin<T>(
   pending: PendingLogicalOperation<T> | null,
   logicalKey: string,
   payload: T,
-  baseRevision = 4,
 ): PendingLogicalOperation<T> {
   return beginLogicalOperation({
     pending,
     logicalKey,
-    baseRevision,
     createPayload: () => payload,
     createOperationId,
   });
@@ -39,12 +37,13 @@ assert.equal(afterConfirmedSubmit, null);
 const newSubmit = begin(afterConfirmedSubmit, submitKey, { answer: "answer-a" });
 assert.equal(newSubmit.operationId, "operation-2", "확인된 성공 뒤의 새 사용자 동작은 새 ID여야 합니다.");
 
-const uncertainSubmit = begin(null, logicalOperationKey(["answer", "round-1", "question-2", 1, { optionId: "answer-b" }]), { answer: "answer-b" }, 8);
-assert.equal(reconcileLogicalOperation(uncertainSubmit, 8, null), uncertainSubmit);
-assert.equal(reconcileLogicalOperation(uncertainSubmit, 9, uncertainSubmit.operationId), null, "remote progress에서 동일 operation이 확인되면 pending을 제거해야 합니다.");
-
-const overwrittenLastOperation = begin(null, logicalOperationKey(["answer", "round-1", "question-3", 2, { optionId: "answer-c" }]), { answer: "answer-c" }, 11);
-assert.equal(reconcileLogicalOperation(overwrittenLastOperation, 12, "later-operation"), null, "canonical revision이 앞서가면 불확실한 이전 동작을 다시 mutation하면 안 됩니다.");
+const uncertainSubmit = begin(null, logicalOperationKey(["answer", "round-1", "question-2", 1, { optionId: "answer-b" }]), { answer: "answer-b" });
+const unrelatedCanonicalProgress = { revision: 99, lastOperationId: "unrelated-operation-b" };
+const afterUnrelatedCanonicalOperation = completeLogicalOperation(uncertainSubmit, unrelatedCanonicalProgress.lastOperationId);
+assert.equal(afterUnrelatedCanonicalOperation, uncertainSubmit, "unrelated revision/operation은 pending A를 성공으로 확정하면 안 됩니다.");
+const retryAfterUnrelatedOperation = begin(afterUnrelatedCanonicalOperation, uncertainSubmit.logicalKey, { answer: "replacement" });
+assert.equal(retryAfterUnrelatedOperation.operationId, uncertainSubmit.operationId, "unrelated operation 이후에도 같은 action retry는 A를 유지해야 합니다.");
+assert.equal(completeLogicalOperation(uncertainSubmit, uncertainSubmit.operationId), null, "repository duplicate 결과나 exact operation snapshot은 A를 명시적으로 완료할 수 있어야 합니다.");
 
 const nextKey = logicalOperationKey(["next-question", "round-1", "question-3", 2]);
 const nextTransition = begin(null, nextKey, { from: 2, to: 3 });
@@ -71,6 +70,25 @@ const matchingAllRetry = begin(matchingAllAttempt, matchingAllKey, { scoreDelta:
 assert.equal(matchingAllRetry.operationId, matchingAllAttempt.operationId, "matching-all 동일 board result retry는 ID를 유지해야 합니다.");
 
 const differentPairKey = logicalOperationKey(["matching-pair", "round-1", matchingBoard, ["card-c", "card-d"].sort()]);
-assert.notEqual(begin(matchingAttempt, differentPairKey, { scoreDelta: 100 }).operationId, matchingAttempt.operationId, "다른 pair는 새로운 logical operation이어야 합니다.");
+const sequenceBeforeConflict = sequence;
+let conflictPayloadCreated = false;
+assert.throws(
+  () => beginLogicalOperation({
+    pending: matchingAttempt,
+    logicalKey: differentPairKey,
+    createOperationId,
+    createPayload: () => {
+      conflictPayloadCreated = true;
+      return { scoreDelta: 100 };
+    },
+  }),
+  LogicalOperationConflictError,
+  "unresolved matching operation이 있으면 다른 pair mutation을 시작하면 안 됩니다.",
+);
+assert.equal(sequence, sequenceBeforeConflict, "conflict는 B operationId를 생성하면 안 됩니다.");
+assert.equal(conflictPayloadCreated, false, "conflict는 B mutation payload도 만들면 안 됩니다.");
+const completedMatching = completeLogicalOperation(matchingAttempt, matchingAttempt.operationId);
+const differentPairAfterCompletion = begin(completedMatching, differentPairKey, { scoreDelta: 100 });
+assert.notEqual(differentPairAfterCompletion.operationId, matchingAttempt.operationId, "A가 명시적으로 완료된 뒤에는 B에 새 operationId를 허용해야 합니다.");
 
 console.log("logical operation retry identity tests passed");

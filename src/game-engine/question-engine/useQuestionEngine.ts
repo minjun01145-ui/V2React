@@ -4,7 +4,6 @@ import {
   beginLogicalOperation,
   completeLogicalOperation,
   logicalOperationKey,
-  reconcileLogicalOperation,
   type PendingLogicalOperation,
 } from "../core/logicalOperation.ts";
 import { applyComboScore, type ComboScoringConfig } from "../scoring/combo.ts";
@@ -22,8 +21,7 @@ interface UseQuestionEngineInput<TQuestion extends BaseQuestion, TAnswer, TDetai
   readonly disabled?: boolean;
   readonly comboScoring?: ComboScoringConfig;
   readonly advanceAfterAnyAnswer?: boolean;
-  readonly canonicalRevision?: number;
-  readonly canonicalOperationId?: string | null;
+  readonly confirmedOperationId?: string | null;
   readonly onSubmit?: (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => Promise<GameProgress<TDetails> | void> | GameProgress<TDetails> | void;
   readonly onProgress?: (submission: ProgressSubmission<TDetails>) => Promise<GameProgress<TDetails> | void> | GameProgress<TDetails> | void;
 }
@@ -48,8 +46,7 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
   disabled = false,
   comboScoring,
   advanceAfterAnyAnswer = false,
-  canonicalRevision = 0,
-  canonicalOperationId = null,
+  confirmedOperationId = null,
   onSubmit,
   onProgress,
 }: UseQuestionEngineInput<TQuestion, TAnswer, TDetails>): QuestionEngine<TQuestion, TAnswer, TDetails> {
@@ -60,28 +57,21 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     | { readonly kind: "answer"; readonly submission: Omit<AnswerSubmission<TQuestion, TAnswer, TDetails>, "attemptId">; readonly result: AnswerResult<TDetails> }
     | { readonly kind: "progress"; readonly submission: Omit<ProgressSubmission<TDetails>, "operationId"> }
   > | null>(null);
-  const canonicalResultRef = useRef<typeof pendingOperationRef.current>(null);
 
   useEffect(() => {
     if (operationRoundRef.current !== roundId) {
       operationRoundRef.current = roundId;
       pendingOperationRef.current = null;
-      canonicalResultRef.current = null;
     }
     if (progressLoading) return;
-    const pending = pendingOperationRef.current;
-    const reconciled = reconcileLogicalOperation(
-      pending,
-      canonicalRevision,
-      canonicalOperationId,
-    );
-    if (pending && !reconciled) canonicalResultRef.current = pending;
-    pendingOperationRef.current = reconciled;
+    if (confirmedOperationId) {
+      pendingOperationRef.current = completeLogicalOperation(pendingOperationRef.current, confirmedOperationId);
+    }
     const normalized = normalizeProgress<TDetails>(initialProgress, questions.length);
     setProgress(repeatQuestions && questions.length > 0 && normalized.currentIndex >= questions.length
       ? { ...normalized, currentIndex: 0, completedItemIds: [], lastResult: null, completedAtMs: null }
       : normalized);
-  }, [canonicalOperationId, canonicalRevision, initialProgress, progressLoading, questions.length, repeatQuestions, roundId]);
+  }, [confirmedOperationId, initialProgress, progressLoading, questions.length, repeatQuestions, roundId]);
 
   const displayIndex = repeatQuestions && questions.length > 0 ? progress.currentIndex % questions.length : progress.currentIndex;
   const currentQuestion = questions[displayIndex] ?? null;
@@ -92,16 +82,9 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
     operationRef.current = true;
     try {
       const logicalKey = logicalOperationKey(["answer", roundId, currentQuestion.id, progress.currentIndex, answer]);
-      const canonicalResult = canonicalResultRef.current;
-      if (canonicalResult?.logicalKey === logicalKey && canonicalResult.payload.kind === "answer") {
-        canonicalResultRef.current = null;
-        return canonicalResult.payload.result;
-      }
-      canonicalResultRef.current = null;
       const pending = beginLogicalOperation({
         pending: pendingOperationRef.current,
         logicalKey,
-        baseRevision: canonicalRevision,
         createPayload: () => {
           const evaluated = assertAnswerResult<TDetails>(evaluator(currentQuestion, answer));
           const comboResult = comboScoring
@@ -120,29 +103,21 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
       if (pending.payload.kind !== "answer") return null;
       const committed = await onSubmit?.({ attemptId: pending.operationId, ...pending.payload.submission });
       pendingOperationRef.current = completeLogicalOperation(pendingOperationRef.current, pending.operationId);
-      canonicalResultRef.current = null;
       setProgress(committed ?? pending.payload.submission.progress);
       return pending.payload.result;
     } finally {
       operationRef.current = false;
     }
-  }, [canonicalRevision, comboScoring, currentQuestion, disabled, evaluator, isComplete, onSubmit, progress, roundId]);
+  }, [comboScoring, currentQuestion, disabled, evaluator, isComplete, onSubmit, progress, roundId]);
 
   const nextQuestion = useCallback(async (): Promise<boolean> => {
     if (!currentQuestion || !progress.lastResult || (!advanceAfterAnyAnswer && !progress.lastResult.isCorrect) || disabled || operationRef.current) return false;
     operationRef.current = true;
     try {
       const logicalKey = logicalOperationKey(["next-question", roundId, currentQuestion.id, progress.currentIndex]);
-      const canonicalResult = canonicalResultRef.current;
-      if (canonicalResult?.logicalKey === logicalKey && canonicalResult.payload.kind === "progress") {
-        canonicalResultRef.current = null;
-        return true;
-      }
-      canonicalResultRef.current = null;
       const pending = beginLogicalOperation({
         pending: pendingOperationRef.current,
         logicalKey,
-        baseRevision: canonicalRevision,
         createPayload: () => ({
           kind: "progress" as const,
           submission: {
@@ -155,13 +130,12 @@ export function useQuestionEngine<TQuestion extends BaseQuestion, TAnswer, TDeta
       if (pending.payload.kind !== "progress") return false;
       const committed = await onProgress?.({ operationId: pending.operationId, ...pending.payload.submission });
       pendingOperationRef.current = completeLogicalOperation(pendingOperationRef.current, pending.operationId);
-      canonicalResultRef.current = null;
       setProgress(committed ?? pending.payload.submission.progress);
       return true;
     } finally {
       operationRef.current = false;
     }
-  }, [advanceAfterAnyAnswer, canonicalRevision, currentQuestion, disabled, onProgress, progress, questions.length, repeatQuestions, roundId]);
+  }, [advanceAfterAnyAnswer, currentQuestion, disabled, onProgress, progress, questions.length, repeatQuestions, roundId]);
 
   return useMemo(() => ({
     currentQuestion,

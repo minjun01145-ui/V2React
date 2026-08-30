@@ -88,6 +88,9 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
     setSubmitting(true);
     try {
       await engine.nextQuestion();
+    } catch (error: unknown) {
+      console.error(error);
+      await showMessage({ title: "다음 문제로 이동하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
     } finally {
       setSubmitting(false);
     }

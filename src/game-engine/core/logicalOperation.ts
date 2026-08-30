@@ -1,8 +1,14 @@
 export interface PendingLogicalOperation<TPayload> {
   readonly operationId: string;
   readonly logicalKey: string;
-  readonly baseRevision: number;
   readonly payload: TPayload;
+}
+
+export class LogicalOperationConflictError extends Error {
+  constructor() {
+    super("이전 결과 저장을 먼저 확인하거나 다시 시도해 주세요.");
+    this.name = "LogicalOperationConflictError";
+  }
 }
 
 function canonicalValue(value: unknown): unknown {
@@ -20,15 +26,16 @@ export function logicalOperationKey(parts: readonly unknown[]): string {
 export function beginLogicalOperation<TPayload>(input: {
   readonly pending: PendingLogicalOperation<TPayload> | null;
   readonly logicalKey: string;
-  readonly baseRevision: number;
   readonly createPayload: () => TPayload;
   readonly createOperationId?: () => string;
 }): PendingLogicalOperation<TPayload> {
-  if (input.pending?.logicalKey === input.logicalKey) return input.pending;
+  if (input.pending) {
+    if (input.pending.logicalKey === input.logicalKey) return input.pending;
+    throw new LogicalOperationConflictError();
+  }
   return {
     operationId: (input.createOperationId ?? (() => globalThis.crypto.randomUUID()))(),
     logicalKey: input.logicalKey,
-    baseRevision: input.baseRevision,
     payload: input.createPayload(),
   };
 }
@@ -38,15 +45,4 @@ export function completeLogicalOperation<TPayload>(
   operationId: string,
 ): PendingLogicalOperation<TPayload> | null {
   return pending?.operationId === operationId ? null : pending;
-}
-
-export function reconcileLogicalOperation<TPayload>(
-  pending: PendingLogicalOperation<TPayload> | null,
-  canonicalRevision: number,
-  canonicalOperationId: string | null,
-): PendingLogicalOperation<TPayload> | null {
-  if (!pending) return null;
-  const operationConfirmed = canonicalOperationId === pending.operationId;
-  const canonicalProgressAdvanced = canonicalRevision > pending.baseRevision;
-  return operationConfirmed || canonicalProgressAdvanced ? null : pending;
 }
