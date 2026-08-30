@@ -9,7 +9,7 @@
 ## 준비물
 
 - GitHub 저장소: `minjun01145-ui/V2React`
-- Firebase 프로젝트: `test2222-e2458`
+- Firebase 프로젝트: `v2react-jurye-classroom`
 - Node.js 22 이상
 - Firebase CLI
 
@@ -25,7 +25,7 @@ npm install -g firebase-tools
 
 ```powershell
 firebase login
-firebase use test2222-e2458
+firebase use v2react-jurye-classroom
 ```
 
 ## 2. Hosting 사이트와 GitHub 배포 권한 연결
@@ -47,7 +47,7 @@ firebase init hosting:github
 CLI가 생성하는 워크플로 파일이 이미 존재한다고 물으면 현재 저장소의 파일을 유지합니다. 설정이 끝나면 GitHub 저장소에 다음 Secret이 생성되어 있어야 합니다.
 
 ```text
-FIREBASE_SERVICE_ACCOUNT_TEST2222_E2458
+FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM
 ```
 
 ## 3. GitHub Actions Secrets 등록
@@ -84,8 +84,8 @@ GitHub Desktop에서 이 설정 파일들을 커밋하고 `main`에 Push합니�
 성공하면 다음 주소로 배포됩니다.
 
 ```text
-https://test2222-e2458.web.app/
-https://test2222-e2458.firebaseapp.com/
+https://v2react-jurye-classroom.web.app/
+https://v2react-jurye-classroom.firebaseapp.com/
 ```
 
 ## 5. 이후 작업 방법
@@ -129,6 +129,6 @@ firebase deploy --only "functions:jurye-v2,firestore:rules"
 reCAPTCHA Enterprise 키의 허용 도메인과 Firebase Authentication의 Authorized domains에 다음 Firebase Hosting 도메인이 등록되어 있는지 확인합니다.
 
 ```text
-test2222-e2458.web.app
-test2222-e2458.firebaseapp.com
+v2react-jurye-classroom.web.app
+v2react-jurye-classroom.firebaseapp.com
 ```

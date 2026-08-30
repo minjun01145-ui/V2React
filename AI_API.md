@@ -45,7 +45,7 @@ API 키 입력란은 저장 후 항상 비워집니다. 기존 키는 브라우�
 
 Firestore 규칙은 `aiProviderConfigs`의 브라우저 직접 읽기와 쓰기를 모두 거부합니다.
 
-현재 Firebase 프로젝트에는 빈 Secret 보관함이 생성되어 있고, Functions 실행 계정에는 이 Secret 하나에 대한 `Secret Accessor`와 `Secret Version Adder` 권한만 부여되어 있습니다. 실제 키는 관리자 로그인 후 [AI API 관리 화면](https://test2222-e2458.web.app/teacher/#/ai)에서 처음 저장합니다.
+현재 Firebase 프로젝트에는 Secret 보관함이 생성되어 있고, Functions 실행 계정에는 이 Secret 하나에 대한 `Secret Accessor`와 `Secret Version Adder` 권한만 부여되어 있습니다. 실제 키는 관리자 로그인 후 [AI API 관리 화면](https://v2react-jurye-classroom.web.app/teacher/#/ai)에서 저장합니다.
 
 Ollama API 키를 `.env`, `VITE_` 환경변수, Firestore, GitHub Actions secret에 중복 등록하지 않습니다. `VITE_` 값은 빌드 결과와 브라우저에서 확인할 수 있으므로 비밀 저장소로 사용할 수 없습니다.
 

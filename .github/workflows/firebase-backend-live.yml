@@ -42,11 +42,11 @@ jobs:
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TEST2222_E2458 }}
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM }}
 
       - name: Deploy Functions and Firestore rules
         run: >-
           npx --yes firebase-tools@15.28.1 deploy
           --only "functions:jurye-v2,firestore:rules"
-          --project test2222-e2458
+          --project v2react-jurye-classroom
           --non-interactive
