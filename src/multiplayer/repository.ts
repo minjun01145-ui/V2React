@@ -10,7 +10,6 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  writeBatch,
   type DocumentData,
   type DocumentSnapshot,
   type QueryDocumentSnapshot,
@@ -18,11 +17,11 @@ import {
 } from "firebase/firestore";
 import { appConfig } from "../config/appConfig.ts";
 import { db } from "../firebase/firebaseClient.ts";
-import { MULTIPLAYER_COLLECTION, SESSION_STATUS, type SessionStatus } from "./constants.ts";
+import { canStartSession, MULTIPLAYER_COLLECTION, SESSION_STATUS, type SessionStatus } from "./constants.ts";
 import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
 import { roundParticipantRef } from "./round-participants/repository.ts";
-import type { GameSession, JoinSessionInput, Player, StartSessionOptions } from "./types.ts";
+import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type StartSessionOptions } from "./types.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -66,7 +65,7 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     gameConfig: parseGameConfig(data.gameConfig),
     createdAtMs: numberOrNull(data.createdAtMs),
     updatedAtMs: numberOrNull(data.updatedAtMs),
-    startedAtMs: numberOrNull(data.startedAtMs),
+    startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs),
   };
 }
 
@@ -207,16 +206,20 @@ export async function startSession(roomId: string, options: StartSessionOptions 
     updatedAtMs: now,
   };
   if (options.gameConfig !== undefined) nextSession.gameConfig = options.gameConfig;
-  const batch = writeBatch(db);
-  batch.set(sessionRef(roomId), nextSession, { merge: true });
-  for (const player of activePlayers) {
-    batch.set(roundParticipantRef(roomId, roundId, player.id), {
-      ...participantIdentity(player),
-      joinedAt: serverTimestamp(),
-      joinedAtMs: now,
-    });
-  }
-  await batch.commit();
+  await runTransaction(db, async (tx) => {
+    const currentSession = await tx.get(sessionRef(roomId));
+    const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
+    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status))) return;
+
+    tx.set(sessionRef(roomId), nextSession, { merge: true });
+    for (const player of activePlayers) {
+      tx.set(roundParticipantRef(roomId, roundId, player.id), {
+        ...participantIdentity(player),
+        joinedAt: serverTimestamp(),
+        joinedAtMs: now,
+      });
+    }
+  });
 }
 
 export async function resetSession(roomId: string): Promise<void> {

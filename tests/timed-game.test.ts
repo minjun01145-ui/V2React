@@ -6,6 +6,7 @@ import { moveToNextQuestion } from "../src/game-engine/question-engine/progress.
 import type { GameProgress } from "../src/game-engine/question-engine/types.ts";
 import type { RoundProgressRecord } from "../src/multiplayer/game-progress/types.ts";
 import type { RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
+import { resolveSessionStartedAtMs } from "../src/multiplayer/types.ts";
 
 assert.equal(DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE.THREE_MINUTES);
 assert.deepEqual(timedGameConfig(TIMED_GAME_MODE.UNLIMITED), { mode: "unlimited", durationMs: null });
@@ -20,6 +21,14 @@ assert.equal(timedGameClockSnapshot(timedGameConfig(TIMED_GAME_MODE.THREE_MINUTE
 assert.equal(timedGameClockSnapshot(timedGameConfig(TIMED_GAME_MODE.UNLIMITED), 1_000, 999_000).expired, false);
 assert.equal(formatClock(120_000), "2:00");
 assert.equal(formatClock(null), "∞");
+assert.equal(
+  resolveSessionStartedAtMs({ toMillis: () => 50_000 }, 10_000),
+  50_000,
+  "Firestore startedAt timestamp가 legacy client milliseconds보다 우선해야 합니다.",
+);
+assert.equal(resolveSessionStartedAtMs(null, 10_000), 10_000, "legacy session은 startedAtMs를 계속 사용해야 합니다.");
+assert.equal(resolveSessionStartedAtMs({ toMillis: () => Number.NaN }, 10_000), 10_000);
+assert.equal(resolveSessionStartedAtMs({ toMillis: () => { throw new Error("partial snapshot"); } }, 10_000), 10_000);
 
 const progress: GameProgress = {
   currentIndex: 1,

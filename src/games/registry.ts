@@ -33,6 +33,45 @@ const definitions = [
     loadTeacher: () => import("./simple-quiz/SimpleQuizTeacherModule.tsx"),
   }),
   defineGame({
+    id: "typing",
+    title: "타자게임",
+    supportedSetTypes: ["vocabulary", "reading-chunks"],
+    settings: [
+      {
+        kind: "select",
+        key: "typing-target",
+        label: "입력할 쪽",
+        defaultValue: "source",
+        options: [
+          { value: "source", label: "왼쪽 (단어·문장)" },
+          { value: "meaning", label: "오른쪽 (뜻)" },
+        ],
+      },
+      {
+        kind: "select",
+        key: "ignore-case",
+        label: "영문 대소문자",
+        defaultValue: "no",
+        options: [
+          { value: "no", label: "구분" },
+          { value: "yes", label: "무시" },
+        ],
+      },
+      {
+        kind: "select",
+        key: "ignore-punctuation",
+        label: "특수문자",
+        defaultValue: "no",
+        options: [
+          { value: "no", label: "입력" },
+          { value: "yes", label: "생략 가능" },
+        ],
+      },
+    ],
+    loadStudent: () => import("./typing/TypingStudentGame.tsx"),
+    loadTeacher: () => import("./typing/TypingTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "matching",
     title: "짝맞추기(일부카드)",
     supportedSetTypes: ["vocabulary"],

@@ -44,6 +44,23 @@ export function displayLabel(displayName: string, nickname: string | null | unde
   return trimmed || displayName;
 }
 
+export function resolveSessionStartedAtMs(startedAt: unknown, legacyStartedAtMs: unknown): number | null {
+  if (typeof startedAt === "object" && startedAt !== null && "toMillis" in startedAt) {
+    const toMillis = (startedAt as { readonly toMillis?: unknown }).toMillis;
+    if (typeof toMillis === "function") {
+      try {
+        const milliseconds: unknown = toMillis.call(startedAt);
+        if (typeof milliseconds === "number" && Number.isFinite(milliseconds)) return milliseconds;
+      } catch {
+        // Fall through to the legacy field for malformed or partial snapshots.
+      }
+    }
+  }
+  return typeof legacyStartedAtMs === "number" && Number.isFinite(legacyStartedAtMs)
+    ? legacyStartedAtMs
+    : null;
+}
+
 export interface StartSessionOptions {
   readonly gameId?: string;
   readonly gameConfig?: Readonly<Record<string, unknown>>;

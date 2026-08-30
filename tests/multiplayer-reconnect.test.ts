@@ -6,7 +6,7 @@ import {
   resolveStudentSessionState,
   type StudentSessionSnapshot,
 } from "../src/features/student/session/studentSessionState.ts";
-import { SESSION_STATUS } from "../src/multiplayer/constants.ts";
+import { canStartSession, SESSION_STATUS } from "../src/multiplayer/constants.ts";
 import { participantIdentity, parseRoundParticipant, type RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
 import type { GameSession, Player } from "../src/multiplayer/types.ts";
 
@@ -22,6 +22,9 @@ const waitingSession: GameSession = {
   startedAtMs: null,
 };
 const playingSession: GameSession = { ...waitingSession, status: SESSION_STATUS.PLAYING, roundId: "round-1", startedAtMs: 1 };
+assert.equal(canStartSession(SESSION_STATUS.WAITING), true);
+assert.equal(canStartSession(SESSION_STATUS.PLAYING), false, "double-start transaction은 이미 PLAYING인 session을 다시 시작하면 안 됩니다.");
+assert.equal(canStartSession(SESSION_STATUS.FINISHED), false);
 const player: Player = {
   id: "student-1",
   playerId: "student-1",
