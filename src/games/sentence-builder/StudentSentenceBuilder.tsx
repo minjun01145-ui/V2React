@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { shuffled } from "../../game-engine/core/random.ts";
 import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createScoreCelebration } from "../../game-engine/effects/model.ts";
@@ -28,8 +28,10 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
   const effects = useGameEffectEngine();
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const autoAdvancedResultRef = useRef<string | null>(null);
   const { showMessage } = usePopup();
   const question = engine.currentQuestion;
+  const lastResult = question && engine.progress.lastResult?.itemId === question.id ? engine.progress.lastResult : null;
   const questionCycle = Math.floor(engine.progress.correctCount / Math.max(engine.questionCount, 1));
   const availableTokens = useMemo<SentenceToken[]>(
     () => question ? shuffled(question.tokens, `${session.roundId}:${player.id}:${question.id}:${questionCycle}:tokens`) : [],
@@ -37,6 +39,27 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
   );
 
   useEffect(() => setSelectedTokenIds([]), [question?.id, questionCycle]);
+
+  const goNext = useCallback(async (): Promise<void> => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await engine.nextQuestion();
+    } catch (error: unknown) {
+      console.error(error);
+      await showMessage({ title: "다음 문제로 이동하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+    } finally {
+      setSubmitting(false);
+    }
+  }, [engine.nextQuestion, showMessage, submitting]);
+
+  useEffect(() => {
+    if (!lastResult?.isCorrect || submitting) return;
+    const resultKey = `${session.roundId}:${lastResult.itemId}:${engine.progress.correctCount}`;
+    if (autoAdvancedResultRef.current === resultKey) return;
+    autoAdvancedResultRef.current = resultKey;
+    void goNext();
+  }, [engine.progress.correctCount, goNext, lastResult, session.roundId, submitting]);
 
   if (engine.loading) return <StatusPanel title="게임 불러오는 중">진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (engine.error) return <StatusPanel title="게임 연결 오류" tone="error">{engine.error.message}</StatusPanel>;
@@ -46,7 +69,6 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
     .map((tokenId) => question.tokens.find((token) => token.id === tokenId))
     .filter((token): token is SentenceToken => token !== undefined);
   const unusedTokens = availableTokens.filter((token) => !selectedTokenIds.includes(token.id));
-  const lastResult = engine.progress.lastResult?.itemId === question.id ? engine.progress.lastResult : null;
 
   const submitSelection = async (tokenIds: readonly string[]): Promise<void> => {
     if (tokenIds.length !== question.tokens.length || submitting) return;
@@ -83,19 +105,6 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
   const removeToken = (tokenId: string): void => {
     if (!submitting && !lastResult?.isCorrect) setSelectedTokenIds((current) => current.filter((id) => id !== tokenId));
   };
-  const goNext = async (): Promise<void> => {
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      await engine.nextQuestion();
-    } catch (error: unknown) {
-      console.error(error);
-      await showMessage({ title: "다음 문제로 이동하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return <div className={styles.game}>
     <GameEffectLayer effect={effects.activeEffect} />
     <div className={styles.topbar}><div><strong>{engine.currentIndex + 1} / {engine.questionCount}</strong></div><div className={styles.topbarStats}><div className={styles.comboChip}>{engine.progress.combo} COMBO</div><div className={styles.scoreChip}>{engine.progress.score}점</div></div></div>
