@@ -20,15 +20,22 @@ interface Props {
   readonly session: ActiveGameSession;
   readonly player: Player;
   readonly set: unknown;
+  readonly disabled?: boolean;
+  readonly embedded?: boolean;
+  readonly advanceRequestId?: number;
+  readonly onQuestionComplete?: (completionId: string) => void;
+  readonly onAdvanced?: () => void;
 }
 
-export default function StudentSentenceBuilder({ roomId, session, player, set }: Props) {
+export default function StudentSentenceBuilder({ roomId, session, player, set, disabled = false, embedded = false, advanceRequestId = 0, onQuestionComplete, onAdvanced }: Props) {
   const clock = useTimedGameClock(session);
-  const engine = useSentenceBuilderGame({ roomId, session, player, set, disabled: clock.expired });
+  const engine = useSentenceBuilderGame({ roomId, session, player, set, disabled: disabled || (!embedded && clock.expired) });
   const effects = useGameEffectEngine();
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const autoAdvancedResultRef = useRef<string | null>(null);
+  const reportedCompletionRef = useRef<string | null>(null);
+  const advanceRequestRef = useRef(advanceRequestId);
   const { showMessage } = usePopup();
   const question = engine.currentQuestion;
   const lastResult = question && engine.progress.lastResult?.itemId === question.id ? engine.progress.lastResult : null;
@@ -40,26 +47,42 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
 
   useEffect(() => setSelectedTokenIds([]), [question?.id, questionCycle]);
 
-  const goNext = useCallback(async (): Promise<void> => {
-    if (submitting) return;
+  const goNext = useCallback(async (): Promise<boolean> => {
+    if (submitting) return false;
     setSubmitting(true);
     try {
-      await engine.nextQuestion();
+      return await engine.nextQuestion();
     } catch (error: unknown) {
       console.error(error);
       await showMessage({ title: "다음 문제로 이동하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+      return false;
     } finally {
       setSubmitting(false);
     }
   }, [engine.nextQuestion, showMessage, submitting]);
 
   useEffect(() => {
-    if (!lastResult?.isCorrect || submitting) return;
+    if (!lastResult?.isCorrect || submitting || onQuestionComplete) return;
     const resultKey = `${session.roundId}:${lastResult.itemId}:${engine.progress.correctCount}`;
     if (autoAdvancedResultRef.current === resultKey) return;
     autoAdvancedResultRef.current = resultKey;
     void goNext();
-  }, [engine.progress.correctCount, goNext, lastResult, session.roundId, submitting]);
+  }, [engine.progress.correctCount, goNext, lastResult, onQuestionComplete, session.roundId, submitting]);
+
+  useEffect(() => {
+    if (!lastResult?.isCorrect || !onQuestionComplete) return;
+    const completionId = `${session.roundId}:${lastResult.itemId}:${engine.progress.correctCount}`;
+    if (reportedCompletionRef.current === completionId) return;
+    reportedCompletionRef.current = completionId;
+    onQuestionComplete(completionId);
+  }, [engine.progress.correctCount, lastResult, onQuestionComplete, session.roundId]);
+
+  useEffect(() => {
+    if (advanceRequestRef.current === advanceRequestId) return;
+    advanceRequestRef.current = advanceRequestId;
+    if (!lastResult?.isCorrect) return;
+    void goNext().then((advanced) => { if (advanced) onAdvanced?.(); });
+  }, [advanceRequestId, goNext, lastResult, onAdvanced]);
 
   if (engine.loading) return <StatusPanel title="게임 불러오는 중">진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (engine.error) return <StatusPanel title="게임 연결 오류" tone="error">{engine.error.message}</StatusPanel>;
@@ -105,7 +128,7 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
   const removeToken = (tokenId: string): void => {
     if (!submitting && !lastResult?.isCorrect) setSelectedTokenIds((current) => current.filter((id) => id !== tokenId));
   };
-  return <div className={styles.game}>
+  return <div className={`${styles.game} ${embedded ? styles.embedded : ""}`}>
     <GameEffectLayer effect={effects.activeEffect} />
     <div className={styles.topbar}><div><strong>{engine.currentIndex + 1} / {engine.questionCount}</strong></div><div className={styles.topbarStats}><div className={styles.comboChip}>{engine.progress.combo} COMBO</div><div className={styles.scoreChip}>{engine.progress.score}점</div></div></div>
     <LearningCardSurface className={styles.prompt} eyebrow="문장 뜻" marker="문장" tone="warm">{question.prompt}</LearningCardSurface>
@@ -114,7 +137,7 @@ export default function StudentSentenceBuilder({ roomId, session, player, set }:
       <div className={styles.answerZone} aria-label="선택한 문장 조각">{selectedTokens.length === 0 ? <span className={styles.placeholder}>아래 조각을 클릭</span> : selectedTokens.map((token, index) => <button key={token.id} type="button" className={`${styles.token} ${styles.selected}`} onClick={() => removeToken(token.id)}><span>{index + 1}</span>{token.text}</button>)}</div>
       <div className={styles.tokenBank} aria-label="사용 가능한 문장 조각">{unusedTokens.map((token) => <button key={token.id} type="button" className={styles.token} onClick={() => selectToken(token.id)} disabled={submitting || lastResult?.isCorrect}>{token.text}</button>)}</div>
       {lastResult ? <div className={`${styles.feedback} ${lastResult.isCorrect ? styles.correct : styles.incorrect}`} role="status">{lastResult.feedback}</div> : null}
-      <div className={styles.actions}>{lastResult?.isCorrect ? <Button onClick={() => void goNext()} disabled={submitting}>다음 문제</Button> : null}<Button variant="ghost" onClick={() => setSelectedTokenIds([])} disabled={submitting || selectedTokenIds.length === 0 || lastResult?.isCorrect}>다시 선택</Button></div>
+      <div className={styles.actions}>{lastResult?.isCorrect && !onQuestionComplete ? <Button onClick={() => void goNext()} disabled={submitting}>다음 문제</Button> : null}<Button variant="ghost" onClick={() => setSelectedTokenIds([])} disabled={submitting || selectedTokenIds.length === 0 || lastResult?.isCorrect}>다시 선택</Button></div>
     </Card>
   </div>;
 }

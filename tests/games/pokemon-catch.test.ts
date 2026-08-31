@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { adaptVocabularySet } from "../../src/games/pokemon-catch/adapter.ts";
+import { pokemonQuizKind } from "../../src/games/pokemon-catch/adapter.ts";
 import { captureChance, didCapture } from "../../src/games/pokemon-catch/captureRules.ts";
 import { encounterId, isFireRedWildEncounter } from "../../src/games/pokemon-catch/encounterRules.ts";
 import { POKEMON_ITEMS, rewardItem } from "../../src/games/pokemon-catch/itemRules.ts";
@@ -21,13 +21,8 @@ const vocabularySet: LearningSet = {
   ],
 };
 
-const questions = adaptVocabularySet(vocabularySet, "round-1");
-assert.equal(questions.questions.length, 4);
-assert.equal(questions.choiceCount, 4);
-assert.ok(questions.questions.every((question) => question.options.length === 4));
-assert.deepEqual(adaptVocabularySet(vocabularySet, "round-1"), questions, "같은 라운드는 같은 문제 순서를 재현해야 합니다.");
-
-assert.throws(() => adaptVocabularySet({ ...vocabularySet, type: LEARNING_SET_TYPE.READING_CHUNKS }, "round-1"), /단어 세트/);
+assert.equal(pokemonQuizKind(vocabularySet), "matching-all");
+assert.equal(pokemonQuizKind({ ...vocabularySet, type: LEARNING_SET_TYPE.READING_CHUNKS }), "sentence-builder");
 assert.equal(encounterId("same-seed"), encounterId("same-seed"));
 assert.equal(isFireRedWildEncounter(encounterId("range")), true);
 assert.equal(isFireRedWildEncounter(1), false, "선물 포켓몬인 이상해씨는 야생 조우 목록에서 제외되어야 합니다.");

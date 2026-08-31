@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createScoreCelebration } from "../../game-engine/effects/model.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
@@ -10,15 +10,19 @@ import { LearningCardButton } from "../../shared/ui/LearningCard.tsx";
 import styles from "./MatchingAllGame.module.css";
 import { useMatchingAllGame } from "./useMatchingAllGame.ts";
 
-export default function MatchingAllStudentGame({ roomId, session, player, set }: {
+export default function MatchingAllStudentGame({ roomId, session, player, set, disabled = false, embedded = false, onRoundComplete }: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
   readonly set: LearningSet;
+  readonly disabled?: boolean;
+  readonly embedded?: boolean;
+  readonly onRoundComplete?: (completionId: string) => void;
 }) {
   const clock = useTimedGameClock(session);
-  const game = useMatchingAllGame({ roomId, session, player, set, disabled: clock.expired });
+  const game = useMatchingAllGame({ roomId, session, player, set, disabled: disabled || (!embedded && clock.expired) });
   const effects = useGameEffectEngine();
+  const reportedCompletionRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!game.lastOutcome) return;
@@ -29,11 +33,17 @@ export default function MatchingAllStudentGame({ roomId, session, player, set }:
     }));
   }, [effects.play, game.baseScore, game.lastOutcome]);
 
+  useEffect(() => {
+    if (!game.lastOutcome || reportedCompletionRef.current === game.lastOutcome.id) return;
+    reportedCompletionRef.current = game.lastOutcome.id;
+    onRoundComplete?.(game.lastOutcome.id);
+  }, [game.lastOutcome, onRoundComplete]);
+
   if (game.loading) return <StatusPanel title="모든 카드 준비 중">짝이 모두 있는 카드를 준비하고 있습니다.</StatusPanel>;
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
   const matchedCount = game.matchedPairIds.length;
 
-  return <main className={styles.gameShell}>
+  return <main className={`${styles.gameShell} ${embedded ? styles.embedded : ""}`}>
     <GameEffectLayer effect={effects.activeEffect} />
     <header className={styles.topbar}>
       <div><span>FULL PAIR MATCH</span><h1>짝맞추기 · 모든카드</h1></div>

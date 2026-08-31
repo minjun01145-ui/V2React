@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
+import { minimumSetItemCountForType, type GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
 import { DEFAULT_TIMED_GAME_MODE, withTimedGameConfig, type TimedGameMode } from "../../../game-engine/timed-game/config.ts";
 import { getGame, listGames } from "../../../games/registry.ts";
 import { listLearningSets } from "../../../learning-sets/readRepository.ts";
@@ -21,6 +21,7 @@ export interface GameSetupState {
   readonly settingValues: Readonly<Record<string, string>>;
   readonly setError: string;
   readonly invalidSet: boolean;
+  readonly minimumSetItemCount: number;
   readonly selectGame: (gameId: string) => void;
   readonly selectSet: (setId: string) => void;
   readonly selectTimedMode: (mode: TimedGameMode) => void;
@@ -54,7 +55,10 @@ export function useGameSetup(): GameSetupState {
   const selectedGame = useMemo(() => getGame(gameId), [gameId]);
   const compatibleSets = useMemo(() => sets.filter((set) => selectedGame.supportedSetTypes.includes(set.type)), [selectedGame, sets]);
   const selectedSet = useMemo(() => compatibleSets.find((set) => set.id === selectedSetId) ?? null, [compatibleSets, selectedSetId]);
-  const invalidSet = Boolean(selectedSet && selectedSet.itemCount < selectedGame.minimumSetItemCount);
+  const minimumSetItemCount = selectedSet
+    ? minimumSetItemCountForType(selectedGame, selectedSet.type)
+    : selectedGame.minimumSetItemCount;
+  const invalidSet = Boolean(selectedSet && selectedSet.itemCount < minimumSetItemCount);
 
   const selectGame = (nextGameId: string): void => {
     const nextGame = getGame(nextGameId);
@@ -77,6 +81,7 @@ export function useGameSetup(): GameSetupState {
     settingValues,
     setError,
     invalidSet,
+    minimumSetItemCount,
     selectGame,
     selectSet: setSelectedSetId,
     selectTimedMode: setTimedMode,

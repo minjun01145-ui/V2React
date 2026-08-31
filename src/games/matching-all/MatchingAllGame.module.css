@@ -57,3 +57,7 @@
 .feedback { min-height: 2.8rem; max-width: 680px; margin: 1.15rem auto 0; padding: .78rem 1rem; border-radius: 999px; color: #667085; background: rgba(255,255,255,.7); text-align: center; font-size: .88rem; font-weight: 800; }
 .feedback[data-tone="correct"] { color: #067660; background: #dff8f0; }
 .feedback[data-tone="incorrect"] { color: #ad3f48; background: #fff0f1; animation: shake .28s ease; }
+.embedded { min-height: 0; padding: .85rem; border-radius: 1rem; box-shadow: none; }
+.embedded .topbar { display: none; }
+.embedded .instructions { margin-top: .7rem; }
+.embedded .matchCard,.embedded .clearedSlot { min-height: 108px; }

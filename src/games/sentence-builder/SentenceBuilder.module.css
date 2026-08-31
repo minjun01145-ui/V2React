@@ -29,6 +29,9 @@
 .feed { display:grid; gap:.55rem; }
 .feedRow { display:grid; grid-template-columns:minmax(90px,.8fr) minmax(180px,2fr) auto auto; align-items:center; gap:.7rem; padding:.75rem; border-radius:.75rem; background:#f9fafb; }
 .feedRow span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#4b5563; }
+.embedded .topbar { display:none; }
+.embedded { gap:.7rem; }
+.embedded .prompt { min-height:110px; }
 .ok { color:var(--color-success); }
 .no { color:var(--color-danger); }
 @media (max-width:700px) { .statGrid{grid-template-columns:repeat(2,minmax(0,1fr));}.feedRow{grid-template-columns:1fr auto}.feedRow span{grid-column:1/-1;white-space:normal;} }

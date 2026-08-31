@@ -50,7 +50,7 @@ export function usePokemonCatchData({ uid, studentNumber }: { readonly uid: stri
     return () => { stopInventory(); stopCaptures(); };
   }, [accountId]);
 
-  const addItem = useCallback((itemId: PokemonItemId) => accountId ? addPokemonItem(accountId, itemId) : Promise.reject(new Error("학생 게임 데이터를 준비하는 중입니다.")), [accountId]);
+  const addItem = useCallback((itemId: PokemonItemId, rewardId: string) => accountId ? addPokemonItem(accountId, itemId, rewardId) : Promise.reject(new Error("학생 게임 데이터를 준비하는 중입니다.")), [accountId]);
   const consumeItem = useCallback((itemId: PokemonItemId) => accountId ? consumePokemonItem(accountId, itemId) : Promise.resolve(false), [accountId]);
   const saveCapture = useCallback((capture: StoredCapturedPokemon) => accountId ? saveCapturedPokemon(accountId, capture) : Promise.reject(new Error("학생 게임 데이터를 준비하는 중입니다.")), [accountId]);
   return { inventory, captures, loading, error, addItem, consumeItem, saveCapture } as const;

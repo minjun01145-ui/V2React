@@ -1,9 +1,14 @@
 import { collection, doc, onSnapshot, runTransaction, serverTimestamp, setDoc, type DocumentData, type Unsubscribe } from "firebase/firestore";
 import { db } from "../../firebase/firebaseClient.ts";
-import { EMPTY_POKEMON_INVENTORY, NEW_PLAYER_POKEMON_INVENTORY, type PokemonInventory, type PokemonItemId, type StoredCapturedPokemon } from "./types.ts";
+import { EMPTY_POKEMON_INVENTORY, NEW_PLAYER_POKEMON_INVENTORY, POKEMON_ITEM, type PokemonInventory, type PokemonItemId, type StoredCapturedPokemon } from "./types.ts";
 
 const gameDocument = (accountId: string) => doc(db, "studentGameData", accountId, "games", "pokemon-catch");
 const capturesCollection = (accountId: string) => collection(gameDocument(accountId), "captured");
+const rewardDocument = (accountId: string, rewardId: string) => doc(gameDocument(accountId), "rewards", rewardId);
+
+function pokemonItemId(value: unknown): PokemonItemId | null {
+  return Object.values(POKEMON_ITEM).find((itemId) => itemId === value) ?? null;
+}
 
 function count(value: unknown): number {
   return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
@@ -60,8 +65,11 @@ export function subscribeCapturedPokemon(accountId: string, onValue: (captures: 
   }, onError);
 }
 
-export async function addPokemonItem(accountId: string, itemId: PokemonItemId): Promise<void> {
-  await runTransaction(db, async (transaction) => {
+export async function addPokemonItem(accountId: string, itemId: PokemonItemId, rewardId: string): Promise<PokemonItemId> {
+  return runTransaction(db, async (transaction) => {
+    const claimRef = rewardDocument(accountId, rewardId);
+    const claimSnapshot = await transaction.get(claimRef);
+    if (claimSnapshot.exists()) return pokemonItemId(claimSnapshot.data().itemId) ?? itemId;
     const ref = gameDocument(accountId);
     const snapshot = await transaction.get(ref);
     const inventory = snapshot.exists() ? parseInventory(snapshot.data()) : NEW_PLAYER_POKEMON_INVENTORY;
@@ -70,6 +78,12 @@ export async function addPokemonItem(accountId: string, itemId: PokemonItemId): 
       updatedAt: serverTimestamp(),
       updatedAtMs: Date.now(),
     }, { merge: true });
+    transaction.set(claimRef, {
+      itemId,
+      awardedAt: serverTimestamp(),
+      awardedAtMs: Date.now(),
+    });
+    return itemId;
   });
 }
 

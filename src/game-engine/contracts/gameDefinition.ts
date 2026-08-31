@@ -33,14 +33,16 @@ export interface GameDefinition {
   readonly supportedSetTypes: readonly string[];
   readonly timing: GameTiming;
   readonly minimumSetItemCount: number;
+  readonly minimumSetItemCountByType: Readonly<Record<string, number>>;
   readonly settings: readonly GameSelectSetting[];
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "settings"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "settings"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
+  readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;
   readonly settings?: readonly GameSelectSetting[];
 };
 
@@ -60,6 +62,12 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
   if (!Number.isInteger(minimumSetItemCount) || minimumSetItemCount < 0) {
     throw new Error(`Game ${definition.id} requires a non-negative minimum set item count.`);
   }
+  const minimumSetItemCountByType = definition.minimumSetItemCountByType ?? {};
+  for (const [setType, count] of Object.entries(minimumSetItemCountByType)) {
+    if (!definition.supportedSetTypes.includes(setType) || !Number.isInteger(count) || count < 0) {
+      throw new Error(`Game ${definition.id} has an invalid minimum item count for set type ${setType}.`);
+    }
+  }
   const settings = definition.settings ?? [];
   const settingKeys = new Set<string>();
   for (const setting of settings) {
@@ -74,6 +82,11 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     supportedSetTypes: Object.freeze([...new Set(definition.supportedSetTypes)]),
     timing: definition.timing ?? "timed",
     minimumSetItemCount,
+    minimumSetItemCountByType: Object.freeze({ ...minimumSetItemCountByType }),
     settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
+}
+
+export function minimumSetItemCountForType(game: GameDefinition, setType: string): number {
+  return game.minimumSetItemCountByType[setType] ?? game.minimumSetItemCount;
 }

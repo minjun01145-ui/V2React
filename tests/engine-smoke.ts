@@ -3,7 +3,7 @@ import { createAnswerResult } from "../src/game-engine/core/answerResult.ts";
 import { shuffled } from "../src/game-engine/core/random.ts";
 import { createQuestionDeck } from "../src/game-engine/question-engine/questionDeck.ts";
 import { applyAnswerToProgress, createEmptyProgress, moveToNextQuestion } from "../src/game-engine/question-engine/progress.ts";
-import { defineGame, type StudentGameModuleProps, type TeacherGameModuleProps } from "../src/game-engine/contracts/gameDefinition.ts";
+import { defineGame, minimumSetItemCountForType, type StudentGameModuleProps, type TeacherGameModuleProps } from "../src/game-engine/contracts/gameDefinition.ts";
 import { normalizeRoomId } from "../src/multiplayer/roomId.ts";
 import { adaptReadingChunksSet } from "../src/games/sentence-builder/readingChunksAdapter.ts";
 import { evaluateSentenceSequence } from "../src/games/sentence-builder/evaluator.ts";
@@ -64,6 +64,7 @@ const game = defineGame({
 assert.deepEqual(game.supportedSetTypes, ["reading-chunks"]);
 assert.equal(game.timing, "timed", "새 게임은 기본적으로 시간제여야 합니다.");
 assert.equal(game.minimumSetItemCount, 1);
+assert.deepEqual(game.minimumSetItemCountByType, {});
 assert.deepEqual(game.settings, []);
 const configurableGame = defineGame({
   id: "configurable-game",
@@ -87,6 +88,17 @@ const invalidGame = {
   loadTeacher: async () => ({ default: (_props: TeacherGameModuleProps) => null }),
 };
 assert.throws(() => defineGame(invalidGame));
+
+const typedMinimumGame = defineGame({
+  id: "typed-minimum-game",
+  title: "Typed Minimum Game",
+  supportedSetTypes: ["vocabulary", "reading-chunks"],
+  minimumSetItemCountByType: { vocabulary: 4, "reading-chunks": 1 },
+  loadStudent: async () => ({ default: (_props: StudentGameModuleProps) => null }),
+  loadTeacher: async () => ({ default: (_props: TeacherGameModuleProps) => null }),
+});
+assert.equal(minimumSetItemCountForType(typedMinimumGame, "vocabulary"), 4);
+assert.equal(minimumSetItemCountForType(typedMinimumGame, "reading-chunks"), 1);
 
 const result = createAnswerResult({ isCorrect: true, scoreDelta: 50 });
 assert.equal(result.status, "correct");

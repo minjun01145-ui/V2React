@@ -4,10 +4,17 @@ const definitions = [
   defineGame({
     id: "pokemon-catch",
     title: "포켓몬 잡기",
-    supportedSetTypes: ["vocabulary"],
+    supportedSetTypes: ["vocabulary", "reading-chunks"],
     timing: "untimed",
-    minimumSetItemCount: 4,
-    loadStudent: () => import("./pokemon-catch/PokemonCatchStudentGame.tsx"),
+    minimumSetItemCountByType: { vocabulary: 4, "reading-chunks": 1 },
+    loadStudent: async () => {
+      const [pokemonCatch, matchingAll, sentenceBuilder] = await Promise.all([
+        import("./pokemon-catch/PokemonCatchStudentGame.tsx"),
+        import("./matching-all/MatchingAllStudentGame.tsx"),
+        import("./sentence-builder/StudentSentenceBuilder.tsx"),
+      ]);
+      return { default: pokemonCatch.createPokemonCatchStudentGame(matchingAll.default, sentenceBuilder.default) };
+    },
     loadTeacher: () => import("./pokemon-catch/PokemonCatchTeacherGame.tsx"),
   }),
   defineGame({

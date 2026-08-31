@@ -132,6 +132,16 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isAdmin();
       }
+
+      match /rewards/{rewardId} {
+        allow read: if ownsStudentGameData(accountId) || isAdmin();
+        allow create: if ownsStudentGameData(accountId)
+          && request.resource.data.keys().hasOnly(["itemId", "awardedAt", "awardedAtMs"])
+          && request.resource.data.itemId in ["pokeBall", "greatBall", "sleepSpray", "anger"]
+          && request.resource.data.awardedAtMs is int;
+        allow update: if false;
+        allow delete: if isAdmin();
+      }
     }
 
     match /multiplayerSessions/{roomId} {

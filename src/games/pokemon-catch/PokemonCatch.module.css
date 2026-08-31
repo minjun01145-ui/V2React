@@ -58,6 +58,8 @@
 .collectionButton b { display: inline-grid; place-content: center; min-width: 22px; height: 22px; margin-left: 5px; border-radius: 999px; color: white; background: #4e656a; }
 .modalBackdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(13,38,42,.66); backdrop-filter: blur(7px); }
 .quizCard, .collectionCard, .itemCard { position: relative; width: min(100%, 510px); max-height: min(90vh, 720px); overflow: auto; padding: 30px; border: 5px solid white; border-radius: 24px 8px 24px 8px; background: #fffdf4; box-shadow: 0 22px 0 rgba(8,31,34,.2); animation: modalIn .26s cubic-bezier(.2,1.25,.4,1); }
+.quizWorkspace { width: min(100%, 1100px); max-height: 94vh; }
+.quizModule { margin-top: 16px; }
 .closeButton { position: absolute; right: 15px; top: 14px; width: 36px; height: 36px; border: 0; border-radius: 50%; color: white; background: #213f45; font: inherit; font-size: 1.35rem; cursor: pointer; }
 .quizStep { color: #ec464d; font-size: .7rem; font-weight: 1000; letter-spacing: .16em; }
 .quizCard > p { margin: 20px 0 4px; color: #738185; font-weight: 750; }
@@ -72,6 +74,10 @@
 .quizFeedback { margin-top: 14px; padding: 12px; text-align: center; border-radius: 12px; color: #a84246; background: #fff0ed; font-weight: 850; }
 .quizFeedback[data-correct="true"] { color: #277141; background: #eaf8e9; }
 .continueButton { width: 100%; margin-top: 12px; padding: 14px; border: 0; border-radius: 13px; color: white; background: #e7464d; font: inherit; font-weight: 900; cursor: pointer; }
+.rewardActions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rewardActions .continueButton { margin-top: 12px; }
+.stopButton { width: 100%; margin-top: 12px; padding: 14px; border: 2px solid #d8d5c8; border-radius: 13px; color: var(--ink); background: white; font: inherit; font-weight: 900; cursor: pointer; }
+.closeButton:disabled,.continueButton:disabled,.stopButton:disabled { opacity:.45; cursor:not-allowed; }
 .rewardCard { margin-top: 14px; display: grid; justify-items: center; gap: 3px; padding: 15px; border: 2px solid #e8c344; border-radius: 15px; color: #8b5c08; background: #fff5b8; animation: pop .4s cubic-bezier(.2,1.5,.4,1); }
 .rewardCard strong { font-size: 1.15rem; }
 .rewardCard span { font-size: .75rem; font-weight: 800; }
@@ -123,6 +129,7 @@
   .commands { gap: 7px; }
   .commands button { min-height: 62px; font-size: .82rem; }
   .quizCard, .collectionCard, .itemCard { padding: 24px 18px; }
+  .rewardActions { grid-template-columns:1fr; gap:0; }
   .itemGrid > div { grid-template-columns: 42px 1fr auto; }
   .itemGrid > div > button { grid-column: 2 / -1; }
   .options { grid-template-columns: 1fr; }

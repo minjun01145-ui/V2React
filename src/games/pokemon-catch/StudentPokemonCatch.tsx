@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { POKEMON_ITEM, type PokemonItemId, type StoredCapturedPokemon } from "../../student-data/pokemon-catch/types.ts";
 import { usePokemonCatchData } from "../../student-data/pokemon-catch/usePokemonCatchData.ts";
+import { pokemonQuizKind } from "./adapter.ts";
 import { captureChance, didCapture } from "./captureRules.ts";
 import { CollectionDialog } from "./components/CollectionDialog.tsx";
 import { CommandPanel } from "./components/CommandPanel.tsx";
@@ -13,7 +14,6 @@ import { QuizDialog } from "./components/QuizDialog.tsx";
 import { ANGER_TIME_BONUS_MS, ENCOUNTER_TIME_MS, SLEEP_CAPTURE_MULTIPLIER, itemDefinition, rewardItem } from "./itemRules.ts";
 import type { EncounterActionPhase, EncounterPhase } from "./types.ts";
 import { useEncounterTimer } from "./useEncounterTimer.ts";
-import { usePokemonQuiz } from "./usePokemonQuiz.ts";
 import { useWildPokemonEncounter } from "./useWildPokemonEncounter.ts";
 import styles from "./PokemonCatch.module.css";
 
@@ -21,14 +21,38 @@ const wait = (milliseconds: number) => new Promise<void>((resolve) => globalThis
 const randomRoll = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 4_294_967_296;
 type ActivePanel = "quiz" | "items" | "collection" | null;
 
-export default function StudentPokemonCatch({ roomId, session, player, set }: {
+export type PokemonMatchingQuizComponent = ComponentType<{
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
   readonly set: LearningSet;
+  readonly disabled?: boolean;
+  readonly embedded?: boolean;
+  readonly onRoundComplete?: (completionId: string) => void;
+}>;
+
+export type PokemonSentenceQuizComponent = ComponentType<{
+  readonly roomId: string;
+  readonly session: ActiveGameSession;
+  readonly player: Player;
+  readonly set: unknown;
+  readonly disabled?: boolean;
+  readonly embedded?: boolean;
+  readonly advanceRequestId?: number;
+  readonly onQuestionComplete?: (completionId: string) => void;
+  readonly onAdvanced?: () => void;
+}>;
+
+export default function StudentPokemonCatch({ roomId, session, player, set, MatchingQuiz, SentenceQuiz }: {
+  readonly roomId: string;
+  readonly session: ActiveGameSession;
+  readonly player: Player;
+  readonly set: LearningSet;
+  readonly MatchingQuiz: PokemonMatchingQuizComponent;
+  readonly SentenceQuiz: PokemonSentenceQuizComponent;
 }) {
-  const quiz = usePokemonQuiz({ roomId, session, player, set });
   const studentData = usePokemonCatchData({ uid: player.id, studentNumber: player.studentNumber });
+  const quizKind = pokemonQuizKind(set);
   const [encounterIndex, setEncounterIndex] = useState(0);
   const { encounter, status: encounterStatus, loadError, reload } = useWildPokemonEncounter({
     roundId: session.roundId,
@@ -43,9 +67,13 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   const [reward, setReward] = useState<PokemonItemId | null>(null);
   const [actionMessage, setActionMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [advanceRequestId, setAdvanceRequestId] = useState(0);
+  const [postAdvanceAction, setPostAdvanceAction] = useState<"continue" | "close" | null>(null);
   const [usingItem, setUsingItem] = useState(false);
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
+  const awardedCompletionIdsRef = useRef(new Set<string>());
+  const pendingCompletionIdsRef = useRef(new Set<string>());
 
   const phase: EncounterPhase = encounterStatus === "ready" ? actionPhase : encounterStatus;
   const nextEncounter = useCallback(() => {
@@ -156,53 +184,75 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
     else void useEffectItem(itemId);
   };
 
-  const answerQuiz = async (optionId: string): Promise<void> => {
-    if (submitting) return;
+  const awardQuizCompletion = useCallback(async (completionId: string): Promise<void> => {
+    if (awardedCompletionIdsRef.current.has(completionId) || pendingCompletionIdsRef.current.has(completionId)) return;
+    pendingCompletionIdsRef.current.add(completionId);
     setSubmitting(true);
+    setQuizFeedback("");
     try {
-      const result = await quiz.submitAnswer({ optionId });
-      if (result?.isCorrect) {
-        const itemId = rewardItem(randomRoll());
-        await studentData.addItem(itemId);
-        setReward(itemId);
-        setQuizFeedback(`정답! ${itemDefinition(itemId).name}을(를) 얻어 가방에 저장했어요.`);
-      } else {
-        setQuizFeedback("아쉬워요. 다른 답을 골라 보세요.");
-      }
+      const itemId = await studentData.addItem(rewardItem(randomRoll()), completionId);
+      awardedCompletionIdsRef.current.add(completionId);
+      if (!mountedRef.current) return;
+      setReward(itemId);
+      setQuizFeedback(`완료! ${itemDefinition(itemId).name}을(를) 얻어 가방에 저장했어요.`);
     } catch (error: unknown) {
-      setQuizFeedback(toErrorMessage(error, "정답 또는 보상 저장에 실패했습니다."));
+      setQuizFeedback(toErrorMessage(error, "아이템 보상 저장에 실패했습니다. 창을 닫았다가 다시 열어 주세요."));
     } finally {
-      setSubmitting(false);
+      pendingCompletionIdsRef.current.delete(completionId);
+      if (mountedRef.current) setSubmitting(false);
+    }
+  }, [studentData.addItem]);
+
+  const continueQuiz = (): void => {
+    setReward(null);
+    setQuizFeedback("");
+    if (quizKind === "sentence-builder") {
+      setPostAdvanceAction("continue");
+      setAdvanceRequestId((value) => value + 1);
     }
   };
 
-  const finishQuestion = async (): Promise<void> => {
-    setSubmitting(true);
-    try {
-      await quiz.nextQuestion();
-      setActivePanel(null);
-      setQuizFeedback("");
+  const stopQuiz = (): void => {
+    if (quizKind === "sentence-builder" && reward) {
       setReward(null);
-    } catch (error: unknown) {
-      console.error(error);
-      setQuizFeedback(toErrorMessage(error, "다음 문제로 이동하지 못했습니다. 다시 시도해 주세요."));
-    } finally {
-      setSubmitting(false);
+      setQuizFeedback("");
+      setPostAdvanceAction("close");
+      setAdvanceRequestId((value) => value + 1);
+      return;
     }
+    setActivePanel(null);
+    setReward(null);
+    setQuizFeedback("");
   };
 
-  if (quiz.loading || studentData.loading) return <div className={styles.loadingPage}>게임 기록과 아이템을 연결하고 있습니다…</div>;
-  if (quiz.error || studentData.error) return <div className={styles.loadingPage}>{quiz.error?.message ?? studentData.error?.message}</div>;
-  const question = quiz.currentQuestion;
-  const currentResult = question && quiz.progress.lastResult?.itemId === question.id ? quiz.progress.lastResult : null;
+  const finishSentenceAdvance = (): void => {
+    if (postAdvanceAction === "close") setActivePanel(null);
+    setPostAdvanceAction(null);
+  };
+
+  if (studentData.loading) return <div className={styles.loadingPage}>게임 기록과 아이템을 연결하고 있습니다…</div>;
+  if (studentData.error) return <div className={styles.loadingPage}>{studentData.error.message}</div>;
   const timerMaximum = ENCOUNTER_TIME_MS + timeBonusMs;
   const secondsRemaining = Math.ceil(timer.remainingMs / 1_000);
 
   return <div className={styles.gameShell}>
     <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} loadError={loadError} onReload={reload} />
-    <CommandPanel actionMessage={actionMessage} hasQuestion={Boolean(question)} submitting={submitting} phase={phase} usingItem={usingItem} captureCount={studentData.captures.length} onOpenQuiz={() => { setActivePanel("quiz"); setQuizFeedback(""); setReward(null); }} onOpenItems={() => setActivePanel("items")} onOpenCollection={() => setActivePanel("collection")} />
+    <CommandPanel actionMessage={actionMessage} hasQuestion={set.items.length > 0} submitting={submitting} phase={phase} usingItem={usingItem} captureCount={studentData.captures.length} onOpenQuiz={() => { setActivePanel("quiz"); setQuizFeedback(""); setReward(null); }} onOpenItems={() => setActivePanel("items")} onOpenCollection={() => setActivePanel("collection")} />
     {activePanel === "items" ? <ItemBagDialog inventory={studentData.inventory} usingItem={usingItem} phase={phase} asleep={asleep} onClose={() => setActivePanel(null)} onUseItem={useItem} /> : null}
-    {activePanel === "quiz" && question ? <QuizDialog question={question} currentIndex={quiz.currentIndex} questionCount={quiz.questionCount} currentResult={currentResult} reward={reward} feedback={quizFeedback} submitting={submitting} onClose={() => setActivePanel(null)} onAnswer={(optionId) => void answerQuiz(optionId)} onContinue={() => void finishQuestion()} /> : null}
+    {activePanel === "quiz" ? <QuizDialog
+      title={quizKind === "matching-all" ? "8장 짝맞추기" : "문장 만들기"}
+      description={quizKind === "matching-all" ? "4쌍을 모두 찾으면 아이템 하나를 얻습니다." : "문장을 올바르게 완성하면 아이템 하나를 얻습니다."}
+      reward={reward}
+      feedback={quizFeedback}
+      submitting={submitting}
+      onClose={stopQuiz}
+      onMore={continueQuiz}
+      onStop={stopQuiz}
+    >
+      {quizKind === "matching-all"
+        ? <MatchingQuiz roomId={roomId} session={session} player={player} set={set} embedded disabled={submitting || Boolean(reward)} onRoundComplete={(completionId) => void awardQuizCompletion(completionId)} />
+        : <SentenceQuiz roomId={roomId} session={session} player={player} set={set} embedded disabled={submitting || Boolean(reward)} advanceRequestId={advanceRequestId} onQuestionComplete={(completionId) => void awardQuizCompletion(completionId)} onAdvanced={finishSentenceAdvance} />}
+    </QuizDialog> : null}
     {activePanel === "collection" ? <CollectionDialog captures={studentData.captures} onClose={() => setActivePanel(null)} /> : null}
   </div>;
 }
