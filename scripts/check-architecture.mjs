@@ -142,6 +142,18 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: learning set domain must not depend on app, feature, game, or multiplayer layers (${specifier})`);
     }
 
+    if (rel.startsWith("src/characters/") &&
+        (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/apps/") ||
+         specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/") ||
+         specifier.includes("/student-data/") || specifier.includes("/auth/") || specifier.includes("/firebase/"))) {
+      violations.push(`${rel}: character catalog must remain independent from UI, accounts, games, and persistence (${specifier})`);
+    }
+
+    if (rel.startsWith("src/student-data/cosmetics/") &&
+        (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
+      violations.push(`${rel}: student cosmetics data must not depend on app, feature, game, or multiplayer layers (${specifier})`);
+    }
+
     if (rel.startsWith("src/classroom-test/") &&
         (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/apps/") || specifier.includes("/features/") ||
          specifier.includes("/games/") || specifier.includes("/multiplayer/") || specifier.includes("/firebase/"))) {

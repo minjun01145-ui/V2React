@@ -7,11 +7,13 @@ export type StudentSessionState =
   | { readonly view: "session-error"; readonly error: Error }
   | { readonly view: "player-error"; readonly error: Error }
   | { readonly view: "participant-error"; readonly error: Error }
+  | { readonly view: "readiness-error"; readonly error: Error }
   | { readonly view: "join-error"; readonly error: Error }
   | { readonly view: "heartbeat-error"; readonly error: Error }
   | { readonly view: "waiting-for-session" }
   | { readonly view: "awaiting-nickname" }
   | { readonly view: "joining" }
+  | { readonly view: "preparing" }
   | { readonly view: "playing"; readonly session: GameSession; readonly player: Player }
   | { readonly view: "lobby"; readonly session: GameSession; readonly player: Player };
 
@@ -28,6 +30,7 @@ export interface StudentSessionSnapshot {
   readonly sessionError: Error | null;
   readonly playerError: Error | null;
   readonly participantError: Error | null;
+  readonly readinessError: Error | null;
   readonly joinError: Error | null;
   readonly heartbeatError: Error | null;
 }
@@ -48,6 +51,12 @@ export function resolveStudentSessionState(snapshot: StudentSessionSnapshot): St
   if (snapshot.sessionError) return { view: "session-error", error: snapshot.sessionError };
   if (snapshot.playerError) return { view: "player-error", error: snapshot.playerError };
   if (!snapshot.session) return { view: "waiting-for-session" };
+
+  if (snapshot.session.status === SESSION_STATUS.PREPARING) {
+    if (snapshot.participantError) return { view: "participant-error", error: snapshot.participantError };
+    if (snapshot.readinessError) return { view: "readiness-error", error: snapshot.readinessError };
+    return { view: "preparing" };
+  }
 
   const playingParticipation = resolvePlayingParticipation(snapshot);
   if (playingParticipation !== "not-playing") {

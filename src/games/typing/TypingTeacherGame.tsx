@@ -1,15 +1,15 @@
 import { useMemo } from "react";
 import type { TeacherGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
-import LiveLeaderboard from "../../game-engine/timed-game/LiveLeaderboard.tsx";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { adaptLearningSetToTyping } from "./typingAdapter.ts";
 import { typingGameOptions } from "./config.ts";
+import TypingLeaderboard from "./TypingLeaderboard.tsx";
 import { useTypingSet } from "./useTypingSet.ts";
 
 function TypingMonitor({ roomId, session, set }: TeacherGameModuleProps & { readonly set: unknown }) {
   const options = useMemo(() => typingGameOptions(session), [session]);
   const adaptedSet = useMemo(() => adaptLearningSetToTyping(set, options.target), [options.target, set]);
-  return <LiveLeaderboard roomId={roomId} session={session} title={`${adaptedSet.title} · 타자게임`} />;
+  return <TypingLeaderboard roomId={roomId} session={session} title={`${adaptedSet.title} · 타자게임`} />;
 }
 
 export default function TypingTeacherGame(props: TeacherGameModuleProps) {

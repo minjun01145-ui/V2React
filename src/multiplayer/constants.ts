@@ -1,5 +1,6 @@
 export const SESSION_STATUS = {
   WAITING: "waiting",
+  PREPARING: "preparing",
   PLAYING: "playing",
   FINISHED: "finished",
 } as const;

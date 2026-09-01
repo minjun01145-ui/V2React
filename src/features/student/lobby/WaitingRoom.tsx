@@ -1,8 +1,8 @@
 import { usePlayers } from "../../../multiplayer/hooks.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
-import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
+import CharacterShop from "../shop/CharacterShop.tsx";
 import TypingGameButton from "./TypingGameButton.tsx";
 import { displayLabel } from "./nickname.ts";
 import styles from "./WaitingRoom.module.css";
@@ -12,9 +12,10 @@ interface Props {
   readonly selfStudentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
+  readonly uid: string;
 }
 
-export default function WaitingRoom({ roomId, selfStudentNumber, displayName, nickname }: Props) {
+export default function WaitingRoom({ roomId, selfStudentNumber, displayName, nickname, uid }: Props) {
   const { activePlayers } = usePlayers(roomId);
   return (
     <div className={styles.stack}>
@@ -25,8 +26,10 @@ export default function WaitingRoom({ roomId, selfStudentNumber, displayName, ni
       </Card>
       <div className={styles.actions}>
         <TypingGameButton />
-        <Button variant="ghost" disabled>상점 보기</Button>
       </div>
+      <Card className={styles.shopCard}>
+        <CharacterShop identity={{ uid, studentNumber: selfStudentNumber }} />
+      </Card>
       <p className={styles.selfHint}>현재 닉네임: {displayLabel(displayName, nickname)}</p>
     </div>
   );

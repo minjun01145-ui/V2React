@@ -36,6 +36,13 @@ export default function StudentStatusScreen({ roomId, state, onRetryJoin, onLeav
           <StatusPanel title="라운드 참가 정보 오류" tone="error">{state.error.message}</StatusPanel>
         </PageShell>
       );
+    case "readiness-error":
+      return (
+        <PageShell title="접속 확인 오류" roomId={roomId}>
+          <StatusPanel title="게임 시작 확인 실패" tone="error">{state.error.message}</StatusPanel>
+          <Button onClick={onRetryJoin}>다시 시도</Button>
+        </PageShell>
+      );
     case "join-error":
       return (
         <PageShell title="입장 오류" roomId={roomId}>
@@ -60,6 +67,12 @@ export default function StudentStatusScreen({ roomId, state, onRetryJoin, onLeav
       return (
         <PageShell title="대기 중" roomId={roomId}>
           <StatusPanel title="현재 라운드로 복귀 중">진행 상황을 확인하고 게임에 다시 연결합니다.</StatusPanel>
+        </PageShell>
+      );
+    case "preparing":
+      return (
+        <PageShell title="게임 시작 준비" roomId={roomId}>
+          <StatusPanel title="친구들의 접속을 확인 중" tone="waiting">모두 준비되면 게임이 자동으로 시작됩니다.</StatusPanel>
         </PageShell>
       );
   }

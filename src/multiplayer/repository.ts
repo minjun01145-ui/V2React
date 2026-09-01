@@ -44,8 +44,12 @@ function numberValue(value: unknown, fallback = 0): number {
 }
 
 function parseStatus(value: unknown): SessionStatus {
-  if (value === SESSION_STATUS.PLAYING || value === SESSION_STATUS.FINISHED) return value;
+  if (value === SESSION_STATUS.PREPARING || value === SESSION_STATUS.PLAYING || value === SESSION_STATUS.FINISHED) return value;
   return SESSION_STATUS.WAITING;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && Boolean(item)) : [];
 }
 
 function parseGameConfig(value: unknown): Readonly<Record<string, unknown>> | null {
@@ -66,6 +70,7 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     createdAtMs: numberOrNull(data.createdAtMs),
     updatedAtMs: numberOrNull(data.updatedAtMs),
     startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs),
+    expectedPlayerIds: stringArray(data.expectedPlayerIds),
   };
 }
 
@@ -103,6 +108,7 @@ export async function ensureSession(roomId: string): Promise<void> {
     createdAtMs: now,
     updatedAt: serverTimestamp(),
     updatedAtMs: now,
+    expectedPlayerIds: [],
   });
 }
 
@@ -132,7 +138,7 @@ export async function joinSession({ roomId, playerId, studentNumber, displayName
     const sessionData: unknown = sessionSnapshot.exists() ? sessionSnapshot.data() : null;
     const sessionStatus = isRecord(sessionData) ? parseStatus(sessionData.status) : null;
     const roundId = isRecord(sessionData) && typeof sessionData.roundId === "string" ? sessionData.roundId : null;
-    if (sessionStatus !== SESSION_STATUS.WAITING && sessionStatus !== SESSION_STATUS.PLAYING) {
+    if (sessionStatus !== SESSION_STATUS.WAITING && sessionStatus !== SESSION_STATUS.PREPARING && sessionStatus !== SESSION_STATUS.PLAYING) {
       throw new Error("참여할 수 있는 수업 세션이 없습니다.");
     }
     const current = await tx.get(pRef);
@@ -198,10 +204,11 @@ export async function startSession(roomId: string, options: StartSessionOptions 
   const roundId = crypto.randomUUID();
   const nextSession: Record<string, unknown> = {
     gameId: options.gameId ?? appConfig.defaultGameId,
-    status: SESSION_STATUS.PLAYING,
+    status: SESSION_STATUS.PREPARING,
     roundId,
-    startedAt: serverTimestamp(),
-    startedAtMs: now,
+    expectedPlayerIds: activePlayers.map((player) => player.id),
+    startedAt: deleteField(),
+    startedAtMs: deleteField(),
     updatedAt: serverTimestamp(),
     updatedAtMs: now,
   };
@@ -222,6 +229,31 @@ export async function startSession(roomId: string, options: StartSessionOptions 
   });
 }
 
+export async function confirmRoundReady(roomId: string, roundId: string, playerId: string): Promise<void> {
+  await setDoc(doc(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "readiness", playerId), {
+    playerId,
+    readyAt: serverTimestamp(),
+    readyAtMs: Date.now(),
+  });
+}
+
+export async function finalizeSessionStart(roomId: string, roundId: string): Promise<void> {
+  const now = Date.now();
+  await runTransaction(db, async (tx) => {
+    const ref = sessionRef(roomId);
+    const snapshot = await tx.get(ref);
+    const data: unknown = snapshot.exists() ? snapshot.data() : null;
+    if (!isRecord(data) || parseStatus(data.status) !== SESSION_STATUS.PREPARING || data.roundId !== roundId) return;
+    tx.set(ref, {
+      status: SESSION_STATUS.PLAYING,
+      startedAt: serverTimestamp(),
+      startedAtMs: now,
+      updatedAt: serverTimestamp(),
+      updatedAtMs: now,
+    }, { merge: true });
+  });
+}
+
 export async function resetSession(roomId: string): Promise<void> {
   await ensureSession(roomId);
   await setDoc(sessionRef(roomId), {
@@ -229,6 +261,7 @@ export async function resetSession(roomId: string): Promise<void> {
     roundId: null,
     startedAt: deleteField(),
     startedAtMs: deleteField(),
+    expectedPlayerIds: [],
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),
   }, { merge: true });

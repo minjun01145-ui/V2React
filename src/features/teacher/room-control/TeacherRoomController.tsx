@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import GameHost from "../../../games/GameHost.tsx";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
-import { usePlayers, useSession } from "../../../multiplayer/hooks.ts";
-import { resetSession, startSession } from "../../../multiplayer/repository.ts";
+import { usePlayers, useRoundReadiness, useSession } from "../../../multiplayer/hooks.ts";
+import { countExpectedReady } from "../../../multiplayer/round-readiness/model.ts";
+import { finalizeSessionStart, resetSession, startSession } from "../../../multiplayer/repository.ts";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
@@ -24,7 +25,10 @@ interface Props {
 export default function TeacherRoomController({ roomId, embedded = false }: Props) {
   const { session, loading, error } = useSession(roomId, { ensure: true });
   const { activePlayers, players } = usePlayers(roomId);
+  const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
+  const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
   const [working, setWorking] = useState(false);
+  const finalizingRound = useRef<string | null>(null);
   const gameSetup = useGameSetup();
   const { showMessage } = usePopup();
 
@@ -42,22 +46,41 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   };
 
   const isPlaying = session?.status === SESSION_STATUS.PLAYING;
+  const isPreparing = session?.status === SESSION_STATUS.PREPARING;
   const staleCount = Math.max(players.length - activePlayers.length, 0);
+  const expectedPlayerIds = session?.expectedPlayerIds ?? [];
+  const readyCount = countExpectedReady(expectedPlayerIds, readiness);
+  const expectedCount = new Set(expectedPlayerIds).size;
+
+  useEffect(() => {
+    if (!isPreparing || !preparingRoundId || expectedCount === 0 || readyCount !== expectedCount) return;
+    if (finalizingRound.current === preparingRoundId) return;
+    finalizingRound.current = preparingRoundId;
+    setWorking(true);
+    void finalizeSessionStart(roomId, preparingRoundId).catch(async (startError: unknown) => {
+      console.error(startError);
+      finalizingRound.current = null;
+      await showMessage({ title: "게임을 시작하지 못했습니다", message: toErrorMessage(startError, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+    }).finally(() => setWorking(false));
+  }, [expectedCount, isPreparing, preparingRoundId, readyCount, roomId, showMessage]);
 
   const startGame = (id: string): Promise<void> => {
     return startSession(id, { gameId: gameSetup.selectedGame.id, gameConfig: gameSetup.buildGameConfig() });
   };
 
   const actions = <>
-    <Button disabled={working || loading || isPlaying || activePlayers.length === 0 || gameSetup.invalidSet} onClick={() => void run(startGame)}>게임 시작</Button>
+    <Button disabled={working || loading || isPlaying || isPreparing || activePlayers.length === 0 || gameSetup.invalidSet} onClick={() => void run(startGame)}>게임 시작</Button>
     <Button variant="ghost" disabled={working || loading} onClick={() => void run(resetSession)}>대기실로</Button>
   </>;
 
   const content = <>
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
+    {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
     {isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : <>
-      <StatusPanel title="학생 대기 중" tone="waiting">접속 {activePlayers.length}명{staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}</StatusPanel>
-      <GameSetupPanel setup={gameSetup} disabled={working} />
+      <StatusPanel title={isPreparing ? "게임 접속 확인 중" : "학생 대기 중"} tone="waiting">
+        {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
+      </StatusPanel>
+      <GameSetupPanel setup={gameSetup} disabled={working || isPreparing} />
       <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div><PlayerGrid players={activePlayers} showStudentNumber emptyMessage="접속한 학생이 없습니다." /></Card>
     </>}
   </>;

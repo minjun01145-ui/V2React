@@ -55,6 +55,14 @@ service cloud.firestore {
         && inventory.anger is int && inventory.anger >= 0;
     }
 
+    function validStudentCosmetics(data) {
+      return data.keys().hasOnly(["equippedCharacterId", "updatedAt", "updatedAtMs"])
+        && data.equippedCharacterId is string
+        && data.equippedCharacterId.size() >= 1
+        && data.equippedCharacterId.size() <= 120
+        && data.updatedAtMs is int;
+    }
+
     function publicLearningSetRead() {
       return true;
     }
@@ -62,6 +70,12 @@ service cloud.firestore {
     function activeRound(roomId, roundId) {
       return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "playing"
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId;
+    }
+
+    function preparingRound(roomId, roundId) {
+      return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "preparing"
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId;
     }
 
@@ -144,6 +158,13 @@ service cloud.firestore {
       }
     }
 
+    match /studentGameData/{accountId}/cosmetics/profile {
+      allow read: if ownsStudentGameData(accountId) || isAdmin();
+      allow create, update: if ownsStudentGameData(accountId)
+        && validStudentCosmetics(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
     match /multiplayerSessions/{roomId} {
       allow read: if isRoomStudent(roomId) || isAdmin();
       allow create, update, delete: if isAdmin();
@@ -155,7 +176,7 @@ service cloud.firestore {
         allow read: if isAdmin() || isRoomStudent(roomId);
         allow create: if isRoomStudent(roomId)
           && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
-          && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status in ["waiting", "playing"]
+          && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status in ["waiting", "preparing", "playing"]
           && request.auth.uid == uid
           && request.resource.data.playerId == uid
           && request.resource.data.studentNumber == request.auth.token.studentNumber
@@ -190,6 +211,18 @@ service cloud.firestore {
 
       match /rounds/{roundId} {
         allow read, write: if isAdmin();
+
+        match /readiness/{uid} {
+          allow read: if isAdmin();
+          allow create, update: if isRoomStudent(roomId)
+            && preparingRound(roomId, roundId)
+            && request.auth.uid == uid
+            && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))
+            && request.resource.data.playerId == uid
+            && request.resource.data.readyAtMs is int
+            && request.resource.data.keys().hasOnly(["playerId", "readyAt", "readyAtMs"]);
+          allow delete: if isAdmin();
+        }
 
         match /participants/{uid} {
           allow read: if isAdmin() || isRoomStudent(roomId);
@@ -310,6 +343,39 @@ service cloud.firestore {
             ])
             && request.resource.data.combo is int
             && request.resource.data.combo >= 0;
+          allow delete: if isAdmin();
+        }
+
+        match /liveMetrics/{uid} {
+          allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow create, update: if isRoomStudent(roomId)
+            && request.auth.uid == uid
+            && activeRound(roomId, roundId)
+            && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))
+            && request.resource.data.playerId == uid
+            && request.resource.data.displayName == request.auth.token.displayName
+            && request.resource.data.gameId == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId
+            && request.resource.data.kind == "typing-cpm"
+            && request.resource.data.currentCpm is int
+            && request.resource.data.currentCpm >= 0
+            && request.resource.data.currentCpm <= 5000
+            && request.resource.data.averageCpm is int
+            && request.resource.data.averageCpm >= 0
+            && request.resource.data.averageCpm <= 5000
+            && request.resource.data.bestCpm is int
+            && request.resource.data.bestCpm >= 0
+            && request.resource.data.bestCpm <= 5000
+            && request.resource.data.bestCpm >= request.resource.data.currentCpm
+            && request.resource.data.bestCpm >= request.resource.data.averageCpm
+            && request.resource.data.totalValidStrokes is int
+            && request.resource.data.totalValidStrokes >= 0
+            && request.resource.data.totalValidStrokes <= 1000000
+            && request.resource.data.sampledAtMs is int
+            && request.resource.data.committedAt == request.time
+            && request.resource.data.keys().hasOnly([
+              "kind", "gameId", "playerId", "displayName", "currentCpm", "averageCpm",
+              "bestCpm", "totalValidStrokes", "sampledAtMs", "committedAt"
+            ]);
           allow delete: if isAdmin();
         }
       }

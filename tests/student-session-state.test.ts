@@ -18,6 +18,7 @@ const session: GameSession = {
   createdAtMs: null,
   updatedAtMs: null,
   startedAtMs: null,
+  expectedPlayerIds: [],
 };
 
 const player: Player = {
@@ -56,11 +57,17 @@ const baseSnapshot: StudentSessionSnapshot = {
   sessionError: null,
   playerError: null,
   participantError: null,
+  readinessError: null,
   joinError: null,
   heartbeatError: null,
 };
 
 assert.equal(resolveStudentSessionState(baseSnapshot).view, "lobby");
+assert.equal(resolveStudentSessionState({
+  ...baseSnapshot,
+  session: { ...session, status: SESSION_STATUS.PREPARING, roundId: "round-1", expectedPlayerIds: [player.id] },
+  participant,
+}).view, "preparing", "시작 확인 중에는 게임 화면을 먼저 열면 안 됩니다.");
 assert.equal(resolveStudentSessionState({ ...baseSnapshot, player: null, joining: true }).view, "loading");
 assert.equal(resolveStudentSessionState({ ...baseSnapshot, session: null, player: null }).view, "waiting-for-session");
 assert.equal(resolveStudentSessionState({ ...baseSnapshot, player: null }).view, "awaiting-nickname");

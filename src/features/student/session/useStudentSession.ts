@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudentIdentity } from "../../../auth/types.ts";
+import { getGame } from "../../../games/registry.ts";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayer, usePlayerHeartbeat, useRoundParticipant, useSession } from "../../../multiplayer/hooks.ts";
-import { joinSession, leaveSession } from "../../../multiplayer/repository.ts";
+import { confirmRoundReady, joinSession, leaveSession } from "../../../multiplayer/repository.ts";
 import {
   resolvePlayingParticipation,
   resolveStudentSessionState,
@@ -33,7 +34,7 @@ export function useStudentSession({
 }: UseStudentSessionOptions): UseStudentSessionResult {
   const { session, loading: sessionLoading, error: sessionError } = useSession(roomId);
   const { player, loading: playerLoading, error: playerError } = usePlayer(roomId, identity.uid);
-  const activeRoundId = session?.status === SESSION_STATUS.PLAYING && session.roundId
+  const activeRoundId = (session?.status === SESSION_STATUS.PREPARING || session?.status === SESSION_STATUS.PLAYING) && session.roundId
     ? session.roundId
     : undefined;
   const {
@@ -44,6 +45,8 @@ export function useStudentSession({
   const heartbeat = usePlayerHeartbeat(roomId, identity.uid, Boolean(player));
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<Error | null>(null);
+  const [readinessError, setReadinessError] = useState<Error | null>(null);
+  const confirmingRound = useRef<string | null>(null);
   const joinAttempt = useRef(0);
   const activeJoin = useRef<{
     readonly attempt: number;
@@ -91,6 +94,8 @@ export function useStudentSession({
 
   const retryJoin = useCallback((): void => {
     setJoinError(null);
+    setReadinessError(null);
+    confirmingRound.current = null;
   }, []);
 
   const participationDecision = resolvePlayingParticipation({
@@ -113,6 +118,19 @@ export function useStudentSession({
     setJoining(false);
     setJoinError(null);
   }, [activeRoundId]);
+
+  useEffect(() => {
+    if (session?.status !== SESSION_STATUS.PREPARING || !activeRoundId || participant?.playerId !== playerId) return;
+    if (confirmingRound.current === activeRoundId) return;
+    confirmingRound.current = activeRoundId;
+    setReadinessError(null);
+    void getGame(session.gameId).loadStudent()
+      .then(() => confirmRoundReady(roomId, activeRoundId, playerId))
+      .catch((error: unknown) => {
+      confirmingRound.current = null;
+      setReadinessError(error instanceof Error ? error : new Error("게임 시작 접속 확인에 실패했습니다."));
+      });
+  }, [activeRoundId, participant?.playerId, playerId, roomId, session?.gameId, session?.status]);
 
   useEffect(() => {
     if (participationDecision !== "ensure" || activeJoin.current || joinError || participantError) return;
@@ -156,6 +174,7 @@ export function useStudentSession({
       sessionError,
       playerError,
       participantError,
+      readinessError,
       joinError,
       heartbeatError: heartbeat.error,
     }),

@@ -104,6 +104,9 @@ if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.include
 if (!rules.includes("match /participants/{uid}") || !rules.includes("activeRound(roomId, roundId)") || !rules.includes('affectedKeys().hasOnly(["nickname"])')) {
   violations.push("security/firestore.rules.secure: round participants must be round-scoped, self-owned, and identity-immutable");
 }
+if (!rules.includes("match /readiness/{uid}") || !rules.includes("preparingRound(roomId, roundId)") || !rules.includes('keys().hasOnly(["playerId", "readyAt", "readyAtMs"])')) {
+  violations.push("security/firestore.rules.secure: round readiness must be preparation-scoped and self-owned");
+}
 if (!/match \/players\/\{uid\}[\s\S]*?allow read: if isAdmin\(\) \|\| isRoomStudent\(roomId\);/.test(rules)) {
   violations.push("security/firestore.rules.secure: room students must be able to query the lobby player roster");
 }

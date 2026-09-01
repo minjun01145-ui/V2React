@@ -21,6 +21,7 @@ export interface GameSession {
   readonly createdAtMs: number | null;
   readonly updatedAtMs: number | null;
   readonly startedAtMs: number | null;
+  readonly expectedPlayerIds: readonly string[];
 }
 
 export type ActiveGameSession = GameSession & {

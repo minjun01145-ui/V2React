@@ -9,8 +9,12 @@ import {
   getNewValidProgress,
   getTypingComparisonState,
   isTypingAnswerComplete,
+  evaluateTypingAnswer,
 } from "../../src/games/typing/typingEngine.ts";
 import { TYPING_TARGET } from "../../src/games/typing/types.ts";
+import { createTypingLeaderboard } from "../../src/games/typing/typingLeaderboard.ts";
+import type { RoundLiveMetricRecord } from "../../src/multiplayer/live-metrics/types.ts";
+import type { RoundParticipant } from "../../src/multiplayer/round-participants/model.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
 
 assert.equal(countTypingStrokes("가"), 2);
@@ -58,6 +62,10 @@ assert.equal(getTypingComparisonState("a b", "ab").isComplete, false);
 assert.equal(getTypingComparisonState("a b ", "a b").isComplete, false, "완료 판정은 끝 공백도 안정적으로 구분해야 합니다.");
 assert.equal(isTypingAnswerComplete("문장입니다.", "문장입니다."), true);
 assert.equal(isTypingAnswerComplete("문장입니다.", "문장입니다"), false);
+assert.equal(evaluateTypingAnswer(
+  { id: "q", prompt: "abc", targetText: "abc", helperText: "", source: { setId: "set", itemIndex: 0 } },
+  { inputText: "abc", speed: { currentCpm: 300, averageCpm: 280, bestCpm: 320, totalValidStrokes: 3 } },
+).scoreDelta, 0, "타자게임은 문장 완료 점수를 별도로 적립하지 않아야 합니다.");
 
 const readingSet: LearningSet = {
   id: "reading-typing",
@@ -98,5 +106,37 @@ windowTracker.addValidStrokes(20, 12_000);
 assert.equal(windowTracker.getCurrentCpm(12_000), 120, "현재 CPM은 window 안의 최근 입력만 사용해야 합니다.");
 assert.equal(windowTracker.getAverageCpm(12_000), 150, "평균 CPM은 전체 유효 타수를 사용해야 합니다.");
 assert.equal(windowTracker.getStats(12_000).totalValidStrokes, 30);
+
+const typingParticipants: RoundParticipant[] = [
+  { id: "a", playerId: "a", studentNumber: "101", displayName: "가람", nickname: null, joinedAtMs: 1 },
+  { id: "b", playerId: "b", studentNumber: "102", displayName: "나래", nickname: "별", joinedAtMs: 1 },
+  { id: "c", playerId: "c", studentNumber: "103", displayName: "다온", nickname: null, joinedAtMs: 1 },
+];
+const typingMetric = (playerId: string, averageCpm: number, currentCpm: number, totalValidStrokes: number): RoundLiveMetricRecord => ({
+  id: playerId,
+  kind: "typing-cpm",
+  gameId: "typing",
+  playerId,
+  displayName: playerId,
+  currentCpm,
+  averageCpm,
+  bestCpm: Math.max(currentCpm, averageCpm),
+  totalValidStrokes,
+  sampledAtMs: 1,
+  committedAtMs: 1,
+});
+const typingLeaderboard = createTypingLeaderboard(typingParticipants, [
+  typingMetric("a", 310, 280, 90),
+  typingMetric("b", 420, 390, 80),
+]);
+assert.deepEqual(typingLeaderboard.map((entry) => entry.playerId), ["b", "a", "c"], "점수가 아니라 서버 동기화 평균 타수로 정렬해야 합니다.");
+assert.deepEqual(typingLeaderboard.map((entry) => entry.averageCpm), [420, 310, 0]);
+assert.equal(typingLeaderboard[0]?.displayName, "별");
+
+const equalCpm = createTypingLeaderboard(typingParticipants.slice(0, 2), [
+  typingMetric("a", 300, 280, 100),
+  typingMetric("b", 300, 290, 120),
+]);
+assert.deepEqual(equalCpm.map((entry) => entry.playerId), ["b", "a"], "평균 타수가 같으면 누적 유효 타수로 순서를 안정화해야 합니다.");
 
 console.log("typing game tests passed");

@@ -23,7 +23,7 @@
     "test": "npm run check",
     "test:routing": "node --experimental-strip-types tests/teacher-route-smoke.ts",
     "test:student-session": "node --experimental-strip-types tests/student-session-state.test.ts",
-    "test:presence": "node --experimental-strip-types tests/multiplayer-presence.test.ts",
+    "test:presence": "node --experimental-strip-types tests/multiplayer-presence.test.ts && node --experimental-strip-types tests/multiplayer-readiness.test.ts",
     "test:reconnect": "node --experimental-strip-types tests/multiplayer-reconnect.test.ts",
     "test:multiplayer-progress": "node --experimental-strip-types tests/multiplayer-progress.test.ts",
     "test:retry-idempotency": "node --experimental-strip-types tests/logical-operation-retry.test.ts",

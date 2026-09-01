@@ -1,4 +1,5 @@
 import type { Player } from "../../../multiplayer/types.ts";
+import type { StudentIdentity } from "../../../auth/types.ts";
 import { usePlayers } from "../../../multiplayer/hooks.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
@@ -10,6 +11,7 @@ import WaitingRoom from "./WaitingRoom.tsx";
 interface LobbyProps {
   readonly roomId: string;
   readonly player: Player;
+  readonly identity: StudentIdentity;
 }
 
 interface EntryProps {
@@ -36,7 +38,7 @@ export default function StudentLobbyPage(props: Props) {
     );
   }
 
-  const { roomId, player } = props;
+  const { roomId, player, identity } = props;
   return (
     <PageShell title="게임 대기실" roomId={roomId}>
       <WaitingRoom
@@ -44,6 +46,7 @@ export default function StudentLobbyPage(props: Props) {
         selfStudentNumber={player.studentNumber}
         displayName={player.displayName}
         nickname={player.nickname}
+        uid={identity.uid}
       />
     </PageShell>
   );

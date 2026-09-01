@@ -11,6 +11,8 @@ import {
 import { selectActivePlayers } from "./presence.ts";
 import { subscribeRoundParticipant, subscribeRoundParticipants } from "./round-participants/repository.ts";
 import type { RoundParticipant } from "./round-participants/model.ts";
+import { subscribeRoundReadiness } from "./round-readiness/repository.ts";
+import type { RoundReadiness } from "./round-readiness/model.ts";
 import type { GameSession, Player } from "./types.ts";
 
 interface SubscriptionResult<T> {
@@ -139,6 +141,17 @@ export function useRoundParticipants(roomId: string, roundId: string): Subscript
     [roomId, roundId],
   );
   return useSubscription(subscribe, []);
+}
+
+export function useRoundReadiness(roomId: string, roundId: string | undefined): SubscriptionResult<RoundReadiness[]> {
+  const scope = roundId ? subscriptionKey(roomId, roundId, "readiness") : null;
+  const subscribe = useMemo<SubscribeFunction<RoundReadiness[]> | null>(
+    () => roundId
+      ? (onValue, onError) => subscribeRoundReadiness(roomId, roundId, onValue, onError)
+      : null,
+    [roomId, roundId],
+  );
+  return useScopedSubscription(subscribe, scope, []);
 }
 
 export function useRoundParticipant(

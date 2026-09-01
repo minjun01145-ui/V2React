@@ -20,9 +20,11 @@ const waitingSession: GameSession = {
   createdAtMs: 1,
   updatedAtMs: 1,
   startedAtMs: null,
+  expectedPlayerIds: [],
 };
 const playingSession: GameSession = { ...waitingSession, status: SESSION_STATUS.PLAYING, roundId: "round-1", startedAtMs: 1 };
 assert.equal(canStartSession(SESSION_STATUS.WAITING), true);
+assert.equal(canStartSession(SESSION_STATUS.PREPARING), false, "준비 확인 중인 session은 중복 시작하면 안 됩니다.");
 assert.equal(canStartSession(SESSION_STATUS.PLAYING), false, "double-start transaction은 이미 PLAYING인 session을 다시 시작하면 안 됩니다.");
 assert.equal(canStartSession(SESSION_STATUS.FINISHED), false);
 const player: Player = {
@@ -52,6 +54,7 @@ const base: Omit<StudentSessionSnapshot, "session" | "player"> = {
   sessionError: null,
   playerError: null,
   participantError: null,
+  readinessError: null,
   joinError: null,
   heartbeatError: null,
 };

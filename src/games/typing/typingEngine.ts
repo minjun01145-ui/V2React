@@ -264,7 +264,7 @@ export function evaluateTypingAnswer(
   return {
     status: isCorrect ? ANSWER_STATUS.CORRECT : ANSWER_STATUS.INCORRECT,
     isCorrect,
-    scoreDelta: isCorrect ? 100 : 0,
+    scoreDelta: 0,
     feedback: isCorrect ? "문장을 정확하게 입력했어요!" : "문장을 다시 확인해 주세요.",
     details: {
       accuracy: calculateCurrentAccuracy(question.targetText, answer.inputText, options),
