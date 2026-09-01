@@ -58,4 +58,15 @@ for (const file of multiplayerTestSources) {
   if (relative === "types.ts") assert.equal([...source.matchAll(importPattern)].length, 0, "Multiplayer test types must remain dependency-free");
 }
 
+const aiTutorRoot = path.join(srcRoot, "ai-tutor");
+const aiTutorSources = walk(aiTutorRoot).filter((file) => file.endsWith(".ts"));
+for (const file of aiTutorSources) {
+  const relative = path.relative(aiTutorRoot, file).replaceAll(path.sep, "/");
+  const source = fs.readFileSync(file, "utf8");
+  if (relative !== "callables.ts" && relative !== "rateLimit.ts") {
+    assert.equal(source.includes("/v2/https"), false, `${relative} must not depend on callable transport`);
+  }
+  if (relative === "types.ts") assert.equal([...source.matchAll(importPattern)].length, 0, "AI tutor types must remain dependency-free");
+}
+
 console.log("Functions architecture tests passed");

@@ -2,6 +2,25 @@ import { defineGame, type GameDefinition } from "../game-engine/contracts/gameDe
 
 const definitions = [
   defineGame({
+    id: "ai-tutor",
+    title: "AI 문답",
+    supportedSetTypes: ["vocabulary", "reading-chunks"],
+    timing: "untimed",
+    requiresStoredSet: true,
+    settings: [{
+      kind: "select",
+      key: "direction",
+      label: "문제 방향",
+      defaultValue: "source-to-meaning",
+      options: [
+        { value: "source-to-meaning", label: "영어 → 한국어 (해석·뜻)" },
+        { value: "meaning-to-source", label: "한국어 → 영어 (영작·단어)" },
+      ],
+    }],
+    loadStudent: () => import("./ai-tutor/AiTutorStudentGame.tsx"),
+    loadTeacher: () => import("./ai-tutor/AiTutorTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "pokemon-catch",
     title: "포켓몬 잡기",
     supportedSetTypes: ["vocabulary", "reading-chunks"],

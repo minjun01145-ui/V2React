@@ -100,6 +100,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /aiTutorRateLimits/{uid} {
+      allow read, write: if false;
+    }
+
     match /multiplayerTestRuns/{adminUid} {
       allow read, write: if false;
     }

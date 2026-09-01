@@ -138,6 +138,12 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: AI admin domain must not depend on app, feature, or game UI layers (${specifier})`);
     }
 
+    if (rel.startsWith("src/ai-tutor-engine/") &&
+        (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") ||
+         specifier.includes("/learning-sets/") || specifier.includes("/multiplayer/"))) {
+      violations.push(`${rel}: AI tutor engine must remain reusable and independent from concrete games, sets, multiplayer, and UI features (${specifier})`);
+    }
+
     if (rel.startsWith("src/learning-sets/") && (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
       violations.push(`${rel}: learning set domain must not depend on app, feature, game, or multiplayer layers (${specifier})`);
     }

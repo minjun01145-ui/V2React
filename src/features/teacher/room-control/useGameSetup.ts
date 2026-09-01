@@ -16,6 +16,7 @@ export interface GameSetupState {
   readonly availableGames: readonly GameDefinition[];
   readonly selectedGame: GameDefinition;
   readonly compatibleSets: readonly LearningSetSummary[];
+  readonly selectedSet: LearningSetSummary | null;
   readonly selectedSetId: string;
   readonly timedMode: TimedGameMode;
   readonly settingValues: Readonly<Record<string, string>>;
@@ -58,7 +59,8 @@ export function useGameSetup(): GameSetupState {
   const minimumSetItemCount = selectedSet
     ? minimumSetItemCountForType(selectedGame, selectedSet.type)
     : selectedGame.minimumSetItemCount;
-  const invalidSet = Boolean(selectedSet && selectedSet.itemCount < minimumSetItemCount);
+  const invalidSet = (selectedGame.requiresStoredSet && !selectedSet)
+    || Boolean(selectedSet && selectedSet.itemCount < minimumSetItemCount);
 
   const selectGame = (nextGameId: string): void => {
     const nextGame = getGame(nextGameId);
@@ -76,6 +78,7 @@ export function useGameSetup(): GameSetupState {
     availableGames,
     selectedGame,
     compatibleSets,
+    selectedSet,
     selectedSetId,
     timedMode,
     settingValues,

@@ -34,15 +34,17 @@ export interface GameDefinition {
   readonly timing: GameTiming;
   readonly minimumSetItemCount: number;
   readonly minimumSetItemCountByType: Readonly<Record<string, number>>;
+  readonly requiresStoredSet: boolean;
   readonly settings: readonly GameSelectSetting[];
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "settings"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
   readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;
+  readonly requiresStoredSet?: boolean;
   readonly settings?: readonly GameSelectSetting[];
 };
 
@@ -83,6 +85,7 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     timing: definition.timing ?? "timed",
     minimumSetItemCount,
     minimumSetItemCountByType: Object.freeze({ ...minimumSetItemCountByType }),
+    requiresStoredSet: definition.requiresStoredSet ?? false,
     settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
 }

@@ -66,7 +66,6 @@ export default function CharacterShopDialog({
           <div>
             <p>CHARACTER SHOP</p>
             <h2 id="character-shop-title">캐릭터 상점</h2>
-            <span>학생들이 만든 캐릭터 {CHARACTER_CATALOG.length}종을 만나 보세요.</span>
           </div>
           <button className={styles.close} type="button" aria-label="상점 닫기" onClick={onClose}>×</button>
         </header>

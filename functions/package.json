@@ -6,7 +6,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node tests/architecture.test.mjs && node tests/pin.test.mjs && node tests/ollama-provider.test.mjs",
+    "test": "npm run build && node tests/architecture.test.mjs && node tests/pin.test.mjs && node tests/ollama-provider.test.mjs && node tests/ai-tutor.test.mjs",
     "deploy": "npm run build && firebase deploy --only functions"
   },
   "dependencies": {
