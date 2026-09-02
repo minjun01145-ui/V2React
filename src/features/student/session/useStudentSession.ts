@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudentIdentity } from "../../../auth/types.ts";
-import { getGame } from "../../../games/registry.ts";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayer, usePlayerHeartbeat, useRoundParticipant, useSession } from "../../../multiplayer/hooks.ts";
 import { confirmRoundReady, joinSession, leaveSession } from "../../../multiplayer/repository.ts";
@@ -9,6 +8,7 @@ import {
   resolveStudentSessionState,
   type StudentSessionState,
 } from "./studentSessionState.ts";
+import { prepareStudentRound } from "./prepareStudentRound.ts";
 
 interface UseStudentSessionOptions {
   readonly roomId: string;
@@ -42,11 +42,14 @@ export function useStudentSession({
     loading: participantLoading,
     error: participantError,
   } = useRoundParticipant(roomId, activeRoundId, identity.uid);
-  const heartbeat = usePlayerHeartbeat(roomId, identity.uid, Boolean(player));
+  const heartbeat = usePlayerHeartbeat(roomId, identity.uid, Boolean(player) && session?.status !== SESSION_STATUS.PLAYING);
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<Error | null>(null);
   const [readinessError, setReadinessError] = useState<Error | null>(null);
+  const [readinessRetry, setReadinessRetry] = useState(0);
   const confirmingRound = useRef<string | null>(null);
+  const preparationAttempt = useRef(0);
+  const preparedRound = useRef<{ readonly roundId: string; readonly release: () => void } | null>(null);
   const joinAttempt = useRef(0);
   const activeJoin = useRef<{
     readonly attempt: number;
@@ -96,6 +99,7 @@ export function useStudentSession({
     setJoinError(null);
     setReadinessError(null);
     confirmingRound.current = null;
+    setReadinessRetry((value) => value + 1);
   }, []);
 
   const participationDecision = resolvePlayingParticipation({
@@ -107,6 +111,9 @@ export function useStudentSession({
 
   useEffect(() => {
     activeJoin.current = null;
+    preparationAttempt.current += 1;
+    preparedRound.current?.release();
+    preparedRound.current = null;
     setJoining(false);
     setJoinError(null);
   }, [playerId, roomId]);
@@ -120,17 +127,53 @@ export function useStudentSession({
   }, [activeRoundId]);
 
   useEffect(() => {
-    if (session?.status !== SESSION_STATUS.PREPARING || !activeRoundId || participant?.playerId !== playerId) return;
+    if (session?.status === SESSION_STATUS.PREPARING && activeRoundId) return;
+    preparationAttempt.current += 1;
+    confirmingRound.current = null;
+  }, [activeRoundId, session?.status]);
+
+  useEffect(() => {
+    if (session?.status !== SESSION_STATUS.PREPARING || !activeRoundId || participant?.playerId !== playerId || !player) return;
     if (confirmingRound.current === activeRoundId) return;
+    const attempt = ++preparationAttempt.current;
     confirmingRound.current = activeRoundId;
     setReadinessError(null);
-    void getGame(session.gameId).loadStudent()
-      .then(() => confirmRoundReady(roomId, activeRoundId, playerId))
+    void prepareStudentRound({ roomId, session, player })
+      .then(async (prepared) => {
+        if (preparationAttempt.current !== attempt) {
+          prepared.release();
+          return;
+        }
+        preparedRound.current?.release();
+        preparedRound.current = { roundId: activeRoundId, release: prepared.release };
+        await confirmRoundReady(roomId, activeRoundId, playerId);
+      })
       .catch((error: unknown) => {
-      confirmingRound.current = null;
-      setReadinessError(error instanceof Error ? error : new Error("게임 시작 접속 확인에 실패했습니다."));
+        if (preparationAttempt.current !== attempt) return;
+        confirmingRound.current = null;
+        setReadinessError(error instanceof Error ? error : new Error("게임 시작 접속 확인에 실패했습니다."));
       });
-  }, [activeRoundId, participant?.playerId, playerId, roomId, session?.gameId, session?.status]);
+  }, [activeRoundId, participant?.playerId, player, playerId, readinessRetry, roomId, session?.gameId, session?.status]);
+
+  useEffect(() => {
+    const prepared = preparedRound.current;
+    if (!prepared) return undefined;
+    if (session?.status === SESSION_STATUS.PLAYING && session.roundId === prepared.roundId) {
+      const timer = window.setTimeout(() => {
+        if (preparedRound.current !== prepared) return;
+        prepared.release();
+        preparedRound.current = null;
+      }, 5_000);
+      return () => window.clearTimeout(timer);
+    }
+    if (session?.status !== SESSION_STATUS.PREPARING || session.roundId !== prepared.roundId) {
+      prepared.release();
+      preparedRound.current = null;
+    }
+    return undefined;
+  }, [session?.roundId, session?.status]);
+
+  useEffect(() => () => preparedRound.current?.release(), []);
 
   useEffect(() => {
     if (participationDecision !== "ensure" || activeJoin.current || joinError || participantError) return;

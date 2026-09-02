@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
+import type { ActiveGameSession, GameSession, Player } from "../../multiplayer/types.ts";
 
 export type TeacherGameModuleProps = {
   readonly role: "teacher";
@@ -19,6 +19,11 @@ export type StudentGameModuleComponent = ComponentType<StudentGameModuleProps>;
 
 export type GameTiming = "timed" | "untimed";
 
+export interface StudentGamePreparationContext {
+  readonly session: GameSession;
+  readonly player: Player;
+}
+
 export interface GameSelectSetting {
   readonly kind: "select";
   readonly key: string;
@@ -36,16 +41,19 @@ export interface GameDefinition {
   readonly minimumSetItemCountByType: Readonly<Record<string, number>>;
   readonly requiresStoredSet: boolean;
   readonly settings: readonly GameSelectSetting[];
+  readonly preloadPlayerProgress: boolean;
+  readonly prepareStudent?: (context: StudentGamePreparationContext) => Promise<(() => void) | void>;
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
   readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;
   readonly requiresStoredSet?: boolean;
   readonly settings?: readonly GameSelectSetting[];
+  readonly preloadPlayerProgress?: boolean;
 };
 
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -86,6 +94,7 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     minimumSetItemCount,
     minimumSetItemCountByType: Object.freeze({ ...minimumSetItemCountByType }),
     requiresStoredSet: definition.requiresStoredSet ?? false,
+    preloadPlayerProgress: definition.preloadPlayerProgress ?? false,
     settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
 }

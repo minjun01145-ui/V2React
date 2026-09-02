@@ -123,8 +123,18 @@ export function usePlayers(roomId: string): {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 15_000);
-    return () => window.clearInterval(timer);
+    const refreshNow = (): void => setNow(Date.now());
+    const onVisibilityChange = (): void => {
+      if (document.visibilityState === "visible") refreshNow();
+    };
+    const timer = window.setInterval(refreshNow, 5_000);
+    window.addEventListener("focus", refreshNow);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshNow);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, []);
 
   return {
@@ -213,11 +223,17 @@ export function usePlayerHeartbeat(
     const onVisibilityChange = (): void => {
       if (document.visibilityState === "visible") void tick();
     };
+    const onFocus = (): void => { void tick(); };
+    const onOnline = (): void => { void tick(); };
     document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("online", onOnline);
     return () => {
       active = false;
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("online", onOnline);
     };
   }, [roomId, playerId, enabled]);
 

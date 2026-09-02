@@ -17,7 +17,7 @@ import {
 } from "firebase/firestore";
 import { appConfig } from "../config/appConfig.ts";
 import { db } from "../firebase/firebaseClient.ts";
-import { canStartSession, MULTIPLAYER_COLLECTION, SESSION_STATUS, type SessionStatus } from "./constants.ts";
+import { canStartSession, MULTIPLAYER_COLLECTION, ROUND_START_COUNTDOWN_MS, SESSION_STATUS, type SessionStatus } from "./constants.ts";
 import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
 import { roundParticipantRef } from "./round-participants/repository.ts";
@@ -69,7 +69,7 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     gameConfig: parseGameConfig(data.gameConfig),
     createdAtMs: numberOrNull(data.createdAtMs),
     updatedAtMs: numberOrNull(data.updatedAtMs),
-    startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs),
+    startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs),
     expectedPlayerIds: stringArray(data.expectedPlayerIds),
   };
 }
@@ -209,6 +209,7 @@ export async function startSession(roomId: string, options: StartSessionOptions 
     expectedPlayerIds: activePlayers.map((player) => player.id),
     startedAt: deleteField(),
     startedAtMs: deleteField(),
+    startDelayMs: deleteField(),
     updatedAt: serverTimestamp(),
     updatedAtMs: now,
   };
@@ -247,7 +248,8 @@ export async function finalizeSessionStart(roomId: string, roundId: string): Pro
     tx.set(ref, {
       status: SESSION_STATUS.PLAYING,
       startedAt: serverTimestamp(),
-      startedAtMs: now,
+      startedAtMs: now + ROUND_START_COUNTDOWN_MS,
+      startDelayMs: ROUND_START_COUNTDOWN_MS,
       updatedAt: serverTimestamp(),
       updatedAtMs: now,
     }, { merge: true });
@@ -261,6 +263,7 @@ export async function resetSession(roomId: string): Promise<void> {
     roundId: null,
     startedAt: deleteField(),
     startedAtMs: deleteField(),
+    startDelayMs: deleteField(),
     expectedPlayerIds: [],
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),

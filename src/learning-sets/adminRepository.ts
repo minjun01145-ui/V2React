@@ -2,6 +2,7 @@ import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../firebase/firebaseClient.ts";
 import type { LearningSet, SaveLearningSetInput } from "./types.ts";
 import { validateLearningSetName } from "./validation.ts";
+import { invalidateLearningSetCache } from "./readRepository.ts";
 
 const SET_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 
@@ -34,6 +35,7 @@ export async function saveLearningSet(input: SaveLearningSetInput): Promise<Lear
     updatedAtMs: now,
   });
   await batch.commit();
+  invalidateLearningSetCache(id);
   return { id, name, type: input.type, itemCount: items.length, createdAtMs, updatedAtMs: now, items };
 }
 
@@ -43,4 +45,5 @@ export async function deleteLearningSet(setId: string): Promise<void> {
   batch.delete(doc(db, "learningSets", id, "content", "main"));
   batch.delete(doc(db, "learningSets", id));
   await batch.commit();
+  invalidateLearningSetCache(id);
 }

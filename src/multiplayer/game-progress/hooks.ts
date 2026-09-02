@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { progressLastOperationId, progressRevision, reconcileProgressSnapshot } from "./mutation.ts";
-import { subscribePlayerProgress, subscribeRoundAttempts, subscribeRoundProgress } from "./repository.ts";
+import { progressLastOperationId, progressRevision } from "./mutation.ts";
+import { subscribeSharedPlayerProgress } from "./playerProgressChannel.ts";
+import { subscribeRoundAttempts, subscribeRoundProgress } from "./repository.ts";
 import type { RoundAttemptRecord, RoundProgressRecord } from "./types.ts";
 
 interface AsyncValue<T> {
@@ -39,7 +40,6 @@ export function usePlayerGameProgress(roomId: string, roundId: string, playerId:
   readonly lastOperationId: string | null;
 } {
   const scope = JSON.stringify([roomId, roundId, playerId]);
-  const subscribe = useCallback((onValue: (value: unknown) => void, onError: (error: Error) => void) => subscribePlayerProgress(roomId, roundId, playerId, onValue, onError), [playerId, roomId, roundId]);
   const enabled = Boolean(roomId && roundId && playerId);
   const [snapshot, setSnapshot] = useState<{
     readonly scope: string;
@@ -55,23 +55,20 @@ export function usePlayerGameProgress(roomId: string, roundId: string, playerId:
     }
     let active = true;
     setSnapshot({ scope, value: null, loading: true, error: null });
-    const unsubscribe = subscribe((incoming) => {
+    const unsubscribe = subscribeSharedPlayerProgress(roomId, roundId, playerId, (incoming) => {
       if (!active) return;
-      setSnapshot((current) => ({
+      setSnapshot({
         scope,
-        value: current.scope === scope ? reconcileProgressSnapshot(current.value, incoming) : incoming,
-        loading: false,
-        error: null,
-      }));
-    }, (error) => {
-      console.error(error);
-      if (active) setSnapshot((current) => ({ ...current, scope, loading: false, error }));
+        value: incoming.value,
+        loading: incoming.loading,
+        error: incoming.error,
+      });
     });
     return () => {
       active = false;
       unsubscribe();
     };
-  }, [enabled, scope, subscribe]);
+  }, [enabled, playerId, roomId, roundId, scope]);
 
   const current = snapshot.scope === scope
     ? snapshot

@@ -7,6 +7,7 @@ const definitions = [
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     timing: "untimed",
     requiresStoredSet: true,
+    preloadPlayerProgress: true,
     settings: [{
       kind: "select",
       key: "direction",
@@ -25,6 +26,11 @@ const definitions = [
     title: "포켓몬 잡기",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     timing: "untimed",
+    preloadPlayerProgress: true,
+    prepareStudent: async (context) => {
+      const preparation = await import("./pokemon-catch/prepareStudent.ts");
+      return preparation.default(context);
+    },
     minimumSetItemCountByType: { vocabulary: 4, "reading-chunks": 1 },
     loadStudent: async () => {
       const [pokemonCatch, matchingAll, sentenceBuilder] = await Promise.all([
@@ -40,6 +46,7 @@ const definitions = [
     id: "sentence-builder",
     title: "문장 만들기",
     supportedSetTypes: ["reading-chunks"],
+    preloadPlayerProgress: true,
     loadStudent: () => import("./sentence-builder/SentenceBuilderStudentGame.tsx"),
     loadTeacher: () => import("./sentence-builder/SentenceBuilderTeacherGame.tsx"),
   }),
@@ -48,6 +55,7 @@ const definitions = [
     title: "심플퀴즈",
     supportedSetTypes: ["vocabulary"],
     minimumSetItemCount: 5,
+    preloadPlayerProgress: true,
     settings: [{
       kind: "select",
       key: "choice-count",
@@ -62,6 +70,7 @@ const definitions = [
     id: "typing",
     title: "타자게임",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
+    preloadPlayerProgress: true,
     settings: [
       {
         kind: "select",
@@ -102,6 +111,7 @@ const definitions = [
     title: "짝맞추기(일부카드)",
     supportedSetTypes: ["vocabulary"],
     minimumSetItemCount: 6,
+    preloadPlayerProgress: true,
     loadStudent: () => import("./matching/MatchingStudentModule.tsx"),
     loadTeacher: () => import("./matching/MatchingTeacherModule.tsx"),
   }),
@@ -110,6 +120,7 @@ const definitions = [
     title: "짝맞추기(모든카드)",
     supportedSetTypes: ["vocabulary"],
     minimumSetItemCount: 4,
+    preloadPlayerProgress: true,
     loadStudent: () => import("./matching-all/MatchingAllStudentModule.tsx"),
     loadTeacher: () => import("./matching-all/MatchingAllTeacherModule.tsx"),
   }),

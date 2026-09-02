@@ -18,7 +18,7 @@ export function useLearningSet(setId: string | null, reloadKey = ""): LearningSe
       return () => { active = false; };
     }
     setState({ set: null, loading: true, error: null });
-    void getLearningSet(setId)
+    void getLearningSet(setId, reloadKey || "default")
       .then((set) => { if (active) setState({ set, loading: false, error: null }); })
       .catch((value: unknown) => { if (active) setState({ set: null, loading: false, error: value instanceof Error ? value : new Error("학습 세트를 불러오지 못했습니다.") }); });
     return () => { active = false; };

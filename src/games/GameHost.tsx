@@ -6,6 +6,7 @@ import type {
 import TimedStudentGameBoundary from "../game-engine/timed-game/TimedStudentGameBoundary.tsx";
 import { SESSION_STATUS } from "../multiplayer/constants.ts";
 import type { ActiveGameSession, GameSession, Player } from "../multiplayer/types.ts";
+import RoundStartGate from "../multiplayer/ui/RoundStartGate.tsx";
 import StatusPanel from "../shared/StatusPanel.tsx";
 import GameErrorBoundary from "../shared/errors/GameErrorBoundary.tsx";
 import { getGame } from "./registry.ts";
@@ -50,21 +51,21 @@ export default function GameHost(props: Props) {
     const game = getGame(activeSession.gameId);
     const StudentGame = getStudentComponent(game.id);
     const content = <StudentGame role="student" roomId={props.roomId} session={activeSession} player={props.player} />;
-    return (
+    return <RoundStartGate startedAtMs={activeSession.startedAtMs}>
       <GameErrorBoundary resetKey={resetKey}>
         <Suspense fallback={<StatusPanel title="게임 불러오는 중">학생용 게임 모듈을 불러오고 있습니다.</StatusPanel>}>
           {game.timing === "timed" ? <TimedStudentGameBoundary roomId={props.roomId} session={activeSession} player={props.player}>{content}</TimedStudentGameBoundary> : content}
         </Suspense>
       </GameErrorBoundary>
-    );
+    </RoundStartGate>;
   }
 
   const TeacherGame = getTeacherComponent(activeSession.gameId);
-  return (
+  return <RoundStartGate startedAtMs={activeSession.startedAtMs}>
     <GameErrorBoundary resetKey={resetKey}>
       <Suspense fallback={<StatusPanel title="게임 현황 불러오는 중">교사용 모니터링 모듈을 불러오고 있습니다.</StatusPanel>}>
         <TeacherGame role="teacher" roomId={props.roomId} session={activeSession} />
       </Suspense>
     </GameErrorBoundary>
-  );
+  </RoundStartGate>;
 }

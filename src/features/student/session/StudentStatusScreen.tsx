@@ -72,7 +72,7 @@ export default function StudentStatusScreen({ roomId, state, onRetryJoin, onLeav
     case "preparing":
       return (
         <PageShell title="게임 시작 준비" roomId={roomId}>
-          <StatusPanel title="친구들의 접속을 확인 중" tone="waiting">모두 준비되면 게임이 자동으로 시작됩니다.</StatusPanel>
+          <StatusPanel title="게임을 미리 준비하는 중" tone="waiting">게임 코드·문제·진행 기록을 불러오고 있습니다. 모두 준비되면 함께 카운트다운합니다.</StatusPanel>
         </PageShell>
       );
   }

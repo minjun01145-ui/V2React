@@ -45,13 +45,14 @@ export function displayLabel(displayName: string, nickname: string | null | unde
   return trimmed || displayName;
 }
 
-export function resolveSessionStartedAtMs(startedAt: unknown, legacyStartedAtMs: unknown): number | null {
+export function resolveSessionStartedAtMs(startedAt: unknown, legacyStartedAtMs: unknown, startDelayMs: unknown = 0): number | null {
+  const delay = typeof startDelayMs === "number" && Number.isFinite(startDelayMs) && startDelayMs >= 0 ? startDelayMs : 0;
   if (typeof startedAt === "object" && startedAt !== null && "toMillis" in startedAt) {
     const toMillis = (startedAt as { readonly toMillis?: unknown }).toMillis;
     if (typeof toMillis === "function") {
       try {
         const milliseconds: unknown = toMillis.call(startedAt);
-        if (typeof milliseconds === "number" && Number.isFinite(milliseconds)) return milliseconds;
+        if (typeof milliseconds === "number" && Number.isFinite(milliseconds)) return milliseconds + delay;
       } catch {
         // Fall through to the legacy field for malformed or partial snapshots.
       }

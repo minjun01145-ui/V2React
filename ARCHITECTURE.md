@@ -191,7 +191,9 @@ features/student/session             game-engine/timed-game
 
 participant 문서는 `playerId`, `studentNumber`, `displayName`, `nickname`, `joinedAt`, `joinedAtMs`만 저장합니다. 교사가 라운드를 시작할 때 현재 online roster를 한 번 snapshot하고, PLAYING 중 처음 접속한 학생도 자신의 UID 문서에 upsert합니다. 학생 session orchestration은 현재 round의 자기 participant 문서를 별도로 확인하며, player와 participant가 모두 확인되기 전에는 게임 UI를 열지 않습니다. 같은 UID의 reconnect는 같은 participant 문서를 재사용하며 최초 참가 시각과 identity를 보존합니다. offline/stale presence는 participant를 삭제하지 않으므로 교사 새로고침 후에도 `participants + progress`로 순위를 복원할 수 있습니다.
 
-라운드 시작은 `waiting → preparing → playing` 장벽을 사용합니다. `preparing` 진입 시 online roster와 participant를 고정하고, 각 학생은 participant 및 학생용 게임 모듈을 확인한 뒤 `rounds/{roundId}/readiness/{uid}`에 자기 준비 응답을 기록합니다. 교사 화면은 준비 수/전체 수를 실시간 표시하며 고정 명단 전원의 응답이 확인된 경우에만 같은 session 문서를 `playing`으로 전환합니다. 응답하지 않는 학생이 있으면 교사가 대기실로 취소할 수 있습니다.
+라운드 시작은 `waiting → preparing → playing` 장벽을 사용합니다. `preparing` 진입 시 online roster와 participant를 고정하고, 학생 feature orchestration은 선택된 학생 게임 모듈·라운드 범위 학습 세트·학생 progress 및 게임별 선택 준비기를 병렬로 준비한 뒤 `rounds/{roundId}/readiness/{uid}`에 자기 준비 응답을 기록합니다. 학습 세트 Promise cache는 같은 round의 준비 단계와 실제 게임이 같은 두 문서 읽기를 재사용하며, 학생 progress channel은 준비기·타이머 경계·게임 로직의 동일 문서 구독을 multiplex합니다. 구체 게임의 추가 준비는 `GameDefinition.prepareStudent` 계약으로만 확장하므로 multiplayer base는 concrete game을 알지 않습니다. 교사 화면은 준비 수/전체 수를 실시간 표시하며 고정 명단 전원의 응답이 확인되면 같은 session 문서를 `playing`으로 전환합니다. 이때 server timestamp에 3초의 공통 delay를 더해 모든 client가 같은 목표 시각까지 카운트다운합니다. 응답하지 않는 학생이 있으면 교사가 대기실로 취소하거나 현재 준비 인원으로 강제 시작할 수 있습니다.
+
+Firestore presence heartbeat는 roster 판단이 필요한 `waiting`·`preparing`에서만 실행하고 `playing`에서는 중단합니다. 라운드 순위는 participant를 source로 사용하므로 게임 중 heartbeat 중단은 순위 보존에 영향을 주지 않으며, 대기실 복귀 시 즉시 heartbeat를 다시 기록합니다.
 
 Stale player housekeeping은 start snapshot과 동시에 수행하지 않습니다. snapshot 이후 heartbeat와 삭제가 경쟁하면 정상 membership을 지울 수 있기 때문입니다. 이후 WAITING/reset 경계에 최신 `lastSeenAtMs`를 다시 확인하는 안전한 정리 작업을 둘 수 있지만, round participant와 history는 정리 대상에 포함하지 않습니다.
 

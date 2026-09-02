@@ -12,3 +12,4 @@ export function canStartSession(status: SessionStatus): boolean {
 }
 
 export const MULTIPLAYER_COLLECTION = "multiplayerSessions";
+export const ROUND_START_COUNTDOWN_MS = 3_000;
