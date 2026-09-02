@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { aiTutorAnswerResult } from "../../src/ai-tutor-engine/result.ts";
 import { parseAiTutorReply } from "../../src/ai-tutor-engine/validation.ts";
-import { adaptLearningSetToAiTutor } from "../../src/games/ai-tutor/adapter.ts";
+import { adaptLearningSetToAiTutor } from "../../src/learning-sets/aiTutorAdapter.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
 
 const vocabularySet: LearningSet = {
@@ -38,4 +38,3 @@ assert.equal(retry.hint, "과거형을 떠올려 보세요");
 
 assert.throws(() => parseAiTutorReply({ kind: "chat", feedback: "무관한 답" }), /형식/);
 console.log("AI tutor adapter/contract tests passed");
-

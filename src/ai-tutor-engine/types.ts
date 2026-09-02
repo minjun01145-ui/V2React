@@ -16,6 +16,7 @@ export interface AiTutorTurnInput {
   readonly message: string;
   readonly attemptNumber: number;
   readonly previousFeedback: string | null;
+  readonly direction?: AiTutorDirection;
 }
 
 export interface AiTutorReply {
@@ -32,4 +33,3 @@ export interface AiTutorEvaluationDetails {
   readonly focus: string | null;
   readonly hint: string | null;
 }
-

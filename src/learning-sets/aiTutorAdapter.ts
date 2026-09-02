@@ -1,5 +1,5 @@
-import type { AiTutorDirection, AiTutorQuestion } from "../../ai-tutor-engine/types.ts";
-import { LEARNING_SET_TYPE, type LearningSet } from "../../learning-sets/types.ts";
+import type { AiTutorDirection, AiTutorQuestion } from "../ai-tutor-engine/types.ts";
+import { LEARNING_SET_TYPE, type LearningSet } from "./types.ts";
 
 export function adaptLearningSetToAiTutor(set: LearningSet, direction: AiTutorDirection): readonly AiTutorQuestion[] {
   const sentence = set.type === LEARNING_SET_TYPE.READING_CHUNKS;
@@ -17,4 +17,3 @@ export function adaptLearningSetToAiTutor(set: LearningSet, direction: AiTutorDi
     answerLabel: "영어로 답하기",
   });
 }
-

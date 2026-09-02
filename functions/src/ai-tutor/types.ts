@@ -1,4 +1,5 @@
 export const AI_TUTOR_GAME_ID = "ai-tutor" as const;
+export const POKEMON_CATCH_GAME_ID = "pokemon-catch" as const;
 
 export type AiTutorDirection = "source-to-meaning" | "meaning-to-source";
 export type AiTutorSetType = "vocabulary" | "reading-chunks";
@@ -11,6 +12,7 @@ export interface AiTutorTurnInput {
   readonly message: string;
   readonly attemptNumber: number;
   readonly previousFeedback: string | null;
+  readonly direction: AiTutorDirection | null;
 }
 
 export interface AiTutorLearningItem {
@@ -33,4 +35,3 @@ export interface AiTutorReply {
   readonly focus: string | null;
   readonly scoreDelta: number;
 }
-

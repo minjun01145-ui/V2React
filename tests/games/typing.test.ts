@@ -13,6 +13,9 @@ import {
 } from "../../src/games/typing/typingEngine.ts";
 import { TYPING_TARGET } from "../../src/games/typing/types.ts";
 import { createTypingLeaderboard } from "../../src/games/typing/typingLeaderboard.ts";
+import { adaptLearningSetToTypingPractice } from "../../src/games/typing/typingPracticeAdapter.ts";
+import { ACID_RAIN_MAX_STAGE, getAcidRainStageRule } from "../../src/games/typing/acidRainEngine.ts";
+import { createWaitingTypingConfig, parseWaitingTypingConfig } from "../../src/games/typing/waitingTypingConfig.ts";
 import type { RoundLiveMetricRecord } from "../../src/multiplayer/live-metrics/types.ts";
 import type { RoundParticipant } from "../../src/multiplayer/round-participants/model.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
@@ -82,6 +85,17 @@ assert.equal(sourceQuestions.questions[0]?.helperText, "나는 매일 학교에 
 const meaningQuestions = adaptLearningSetToTyping(readingSet, TYPING_TARGET.MEANING);
 assert.equal(meaningQuestions.questions[0]?.targetText, "나는 매일 학교에 간다.");
 assert.equal(meaningQuestions.questions[0]?.helperText, "I go to school every day.");
+const practiceQuestions = adaptLearningSetToTypingPractice(readingSet);
+assert.deepEqual(practiceQuestions.questions.map((question) => question.targetText), ["I go", "to school", "every day."], "대기실 끊어읽기 연습은 문장이 아니라 청크 단위로 떨어져야 합니다.");
+assert.equal(ACID_RAIN_MAX_STAGE, 10);
+assert.ok(getAcidRainStageRule(10).fallDurationMs < getAcidRainStageRule(1).fallDurationMs, "후반 스테이지일수록 더 빠르게 떨어져야 합니다.");
+assert.ok(getAcidRainStageRule(10).spawnIntervalMs < getAcidRainStageRule(1).spawnIntervalMs, "후반 스테이지일수록 더 자주 출제되어야 합니다.");
+assert.deepEqual(parseWaitingTypingConfig(createWaitingTypingConfig("set-1")), {
+  setId: "set-1",
+  target: "source",
+  ignoreCase: true,
+  ignorePunctuation: true,
+});
 assert.deepEqual(parseTypingGameOptions({ "typing-target": "meaning", "ignore-case": "yes", "ignore-punctuation": "yes" }), {
   target: "meaning",
   ignoreCase: true,

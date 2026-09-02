@@ -11,6 +11,9 @@ const turn = parseAiTutorTurnInput({
   previousFeedback: null,
 });
 assert.equal(turn.message, "나는 매일 학교에 간다");
+assert.equal(turn.direction, null);
+assert.equal(parseAiTutorTurnInput({ ...turn, direction: "meaning-to-source" }).direction, "meaning-to-source");
+assert.throws(() => parseAiTutorTurnInput({ ...turn, direction: "sideways" }), /문제 방향/);
 assert.equal(parseAiTutorTurnInput({ ...turn, roomId: "영어-1반" }).roomId, "영어-1반");
 assert.throws(() => parseAiTutorTurnInput({ ...turn, message: "" }), /답변/);
 assert.throws(() => parseAiTutorTurnInput({ ...turn, roomId: "../room" }), /대기실/);

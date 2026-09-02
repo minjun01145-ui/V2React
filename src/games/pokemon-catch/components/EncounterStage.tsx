@@ -10,11 +10,12 @@ interface Props {
   readonly secondsRemaining: number;
   readonly timerMaximum: number;
   readonly remainingMs: number;
+  readonly captureForecasts: readonly { readonly label: string; readonly percent: number }[];
   readonly loadError: string;
   readonly onReload: () => void;
 }
 
-export function EncounterStage({ encounter, encounterStatus, phase, asleep, secondsRemaining, timerMaximum, remainingMs, loadError, onReload }: Props) {
+export function EncounterStage({ encounter, encounterStatus, phase, asleep, secondsRemaining, timerMaximum, remainingMs, captureForecasts, loadError, onReload }: Props) {
   return <main className={styles.field} data-phase={phase}>
     <div className={styles.skyGlow} />
     <div className={styles.encounterCard}>
@@ -25,6 +26,13 @@ export function EncounterStage({ encounter, encounterStatus, phase, asleep, seco
     {encounterStatus === "ready" ? <div className={styles.timerPanel} data-warning={secondsRemaining <= 10}>
       <strong>{secondsRemaining}초</strong><progress max={timerMaximum} value={remainingMs} />
     </div> : null}
+    {encounterStatus === "ready" ? <section className={styles.capturePanel} aria-label="현재 포획 예상 확률">
+      <span>현재 포획 예상</span>
+      {captureForecasts.map((forecast, index) => <div key={forecast.label} data-primary={index === 0}>
+        <small>{forecast.label}</small><progress max={100} value={forecast.percent} /><strong>{forecast.percent}%</strong>
+      </div>)}
+      {asleep ? <em>잠듦 효과 적용 중 · 확률 상승</em> : <em>상태 효과와 아이템에 따라 실시간 변경</em>}
+    </section> : null}
     <div className={styles.pokemonStage}>
       {encounter ? <PokemonSprite className={styles.pokemon} pokemon={encounter} alt={encounter.name} /> : null}
       {phase === "loading" ? <div className={styles.scanner}>탐색 중</div> : null}

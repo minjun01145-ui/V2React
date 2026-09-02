@@ -18,7 +18,7 @@ export default function StudentPage({ roomId, identity, onChangeStudent }: Props
   }
 
   if (state.view === "lobby") {
-    return <StudentLobbyPage roomId={roomId} player={state.player} identity={identity} />;
+    return <StudentLobbyPage roomId={roomId} session={state.session} player={state.player} identity={identity} />;
   }
 
   if (state.view === "awaiting-nickname") {

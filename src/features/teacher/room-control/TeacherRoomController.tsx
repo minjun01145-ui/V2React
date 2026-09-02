@@ -14,6 +14,7 @@ import Card from "../../../shared/ui/Card.tsx";
 import { GameSetupPanel } from "./GameSetupPanel.tsx";
 import styles from "./TeacherRoomController.module.css";
 import { useGameSetup } from "./useGameSetup.ts";
+import WaitingTypingSetupPanel from "./WaitingTypingSetupPanel.tsx";
 
 type RoomAction = (roomId: string) => Promise<void>;
 
@@ -105,6 +106,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
         {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
       </StatusPanel>
       <GameSetupPanel setup={gameSetup} disabled={working || isPreparing} />
+      <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working || isPreparing} />
       <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div><PlayerGrid players={activePlayers} showStudentNumber emptyMessage="접속한 학생이 없습니다." /></Card>
     </>}
   </>;

@@ -1,16 +1,16 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { POKEMON_ITEM, type PokemonItemId, type StoredCapturedPokemon } from "../../student-data/pokemon-catch/types.ts";
 import { usePokemonCatchData } from "../../student-data/pokemon-catch/usePokemonCatchData.ts";
-import { pokemonQuizKind } from "./adapter.ts";
-import { captureChance, didCapture } from "./captureRules.ts";
+import { captureChance, captureChancePercent, didCapture } from "./captureRules.ts";
 import { CollectionDialog } from "./components/CollectionDialog.tsx";
 import { CommandPanel } from "./components/CommandPanel.tsx";
 import { EncounterStage } from "./components/EncounterStage.tsx";
 import { ItemBagDialog } from "./components/ItemBagDialog.tsx";
 import { QuizDialog } from "./components/QuizDialog.tsx";
+import { PokemonAiQuiz } from "./components/PokemonAiQuiz.tsx";
 import { ANGER_TIME_BONUS_MS, ENCOUNTER_TIME_MS, SLEEP_CAPTURE_MULTIPLIER, itemDefinition, rewardItem } from "./itemRules.ts";
 import type { EncounterActionPhase, EncounterPhase } from "./types.ts";
 import { useEncounterTimer } from "./useEncounterTimer.ts";
@@ -21,38 +21,13 @@ const wait = (milliseconds: number) => new Promise<void>((resolve) => globalThis
 const randomRoll = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 4_294_967_296;
 type ActivePanel = "quiz" | "items" | "collection" | null;
 
-export type PokemonMatchingQuizComponent = ComponentType<{
+export default function StudentPokemonCatch({ roomId, session, player, set }: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
   readonly set: LearningSet;
-  readonly disabled?: boolean;
-  readonly embedded?: boolean;
-  readonly onRoundComplete?: (completionId: string) => void;
-}>;
-
-export type PokemonSentenceQuizComponent = ComponentType<{
-  readonly roomId: string;
-  readonly session: ActiveGameSession;
-  readonly player: Player;
-  readonly set: unknown;
-  readonly disabled?: boolean;
-  readonly embedded?: boolean;
-  readonly advanceRequestId?: number;
-  readonly onQuestionComplete?: (completionId: string) => void;
-  readonly onAdvanced?: () => void;
-}>;
-
-export default function StudentPokemonCatch({ roomId, session, player, set, MatchingQuiz, SentenceQuiz }: {
-  readonly roomId: string;
-  readonly session: ActiveGameSession;
-  readonly player: Player;
-  readonly set: LearningSet;
-  readonly MatchingQuiz: PokemonMatchingQuizComponent;
-  readonly SentenceQuiz: PokemonSentenceQuizComponent;
 }) {
   const studentData = usePokemonCatchData({ uid: player.id, studentNumber: player.studentNumber });
-  const quizKind = pokemonQuizKind(set);
   const [encounterIndex, setEncounterIndex] = useState(0);
   const { encounter, status: encounterStatus, loadError, reload } = useWildPokemonEncounter({
     roundId: session.roundId,
@@ -206,14 +181,12 @@ export default function StudentPokemonCatch({ roomId, session, player, set, Matc
   const continueQuiz = (): void => {
     setReward(null);
     setQuizFeedback("");
-    if (quizKind === "sentence-builder") {
-      setPostAdvanceAction("continue");
-      setAdvanceRequestId((value) => value + 1);
-    }
+    setPostAdvanceAction("continue");
+    setAdvanceRequestId((value) => value + 1);
   };
 
   const stopQuiz = (): void => {
-    if (quizKind === "sentence-builder" && reward) {
+    if (reward) {
       setReward(null);
       setQuizFeedback("");
       setPostAdvanceAction("close");
@@ -225,23 +198,31 @@ export default function StudentPokemonCatch({ roomId, session, player, set, Matc
     setQuizFeedback("");
   };
 
-  const finishSentenceAdvance = (): void => {
+  const finishQuizAdvance = useCallback((): void => {
     if (postAdvanceAction === "close") setActivePanel(null);
     setPostAdvanceAction(null);
-  };
+  }, [postAdvanceAction]);
 
   if (studentData.loading) return <div className={styles.loadingPage}>게임 기록과 아이템을 연결하고 있습니다…</div>;
   if (studentData.error) return <div className={styles.loadingPage}>{studentData.error.message}</div>;
   const timerMaximum = ENCOUNTER_TIME_MS + timeBonusMs;
   const secondsRemaining = Math.ceil(timer.remainingMs / 1_000);
+  const statusMultiplier = asleep ? SLEEP_CAPTURE_MULTIPLIER : 1;
+  const ballChances = {
+    [POKEMON_ITEM.POKE_BALL]: encounter ? captureChance(encounter.captureRate, { ballMultiplier: itemDefinition(POKEMON_ITEM.POKE_BALL).ballMultiplier ?? 1, statusMultiplier }) : 0,
+    [POKEMON_ITEM.GREAT_BALL]: encounter ? captureChance(encounter.captureRate, { ballMultiplier: itemDefinition(POKEMON_ITEM.GREAT_BALL).ballMultiplier ?? 1, statusMultiplier }) : 0,
+  } as const;
 
   return <div className={styles.gameShell}>
-    <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} loadError={loadError} onReload={reload} />
+    <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} captureForecasts={[
+      { label: "포켓볼", percent: captureChancePercent(ballChances[POKEMON_ITEM.POKE_BALL]) },
+      { label: "슈퍼볼", percent: captureChancePercent(ballChances[POKEMON_ITEM.GREAT_BALL]) },
+    ]} loadError={loadError} onReload={reload} />
     <CommandPanel actionMessage={actionMessage} hasQuestion={set.items.length > 0} submitting={submitting} phase={phase} usingItem={usingItem} captureCount={studentData.captures.length} onOpenQuiz={() => { setActivePanel("quiz"); setQuizFeedback(""); setReward(null); }} onOpenItems={() => setActivePanel("items")} onOpenCollection={() => setActivePanel("collection")} />
-    {activePanel === "items" ? <ItemBagDialog inventory={studentData.inventory} usingItem={usingItem} phase={phase} asleep={asleep} onClose={() => setActivePanel(null)} onUseItem={useItem} /> : null}
+    {activePanel === "items" ? <ItemBagDialog inventory={studentData.inventory} usingItem={usingItem} phase={phase} asleep={asleep} ballChances={ballChances} onClose={() => setActivePanel(null)} onUseItem={useItem} /> : null}
     {activePanel === "quiz" ? <QuizDialog
-      title={quizKind === "matching-all" ? "8장 짝맞추기" : "문장 만들기"}
-      description={quizKind === "matching-all" ? "4쌍을 모두 찾으면 아이템 하나를 얻습니다." : "문장을 올바르게 완성하면 아이템 하나를 얻습니다."}
+      title="AI 영어 문답"
+      description="영어→뜻 또는 뜻→영어 문제가 무작위로 나옵니다. AI가 정답으로 인정하면 아이템을 얻습니다."
       reward={reward}
       feedback={quizFeedback}
       submitting={submitting}
@@ -249,9 +230,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set, Matc
       onMore={continueQuiz}
       onStop={stopQuiz}
     >
-      {quizKind === "matching-all"
-        ? <MatchingQuiz roomId={roomId} session={session} player={player} set={set} embedded disabled={submitting || Boolean(reward)} onRoundComplete={(completionId) => void awardQuizCompletion(completionId)} />
-        : <SentenceQuiz roomId={roomId} session={session} player={player} set={set} embedded disabled={submitting || Boolean(reward)} advanceRequestId={advanceRequestId} onQuestionComplete={(completionId) => void awardQuizCompletion(completionId)} onAdvanced={finishSentenceAdvance} />}
+      <PokemonAiQuiz roomId={roomId} session={session} player={player} set={set} disabled={submitting || Boolean(reward)} advanceRequestId={advanceRequestId} onQuestionComplete={(completionId) => void awardQuizCompletion(completionId)} onAdvanced={finishQuizAdvance} />
     </QuizDialog> : null}
     {activePanel === "collection" ? <CollectionDialog captures={studentData.captures} onClose={() => setActivePanel(null)} /> : null}
   </div>;

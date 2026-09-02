@@ -21,3 +21,8 @@ export function captureChance(captureRate: number, modifiers: {
 export function didCapture(chance: number, roll: number): boolean {
   return roll >= 0 && roll < Math.min(Math.max(chance, 0), 1);
 }
+
+export function captureChancePercent(chance: number): number {
+  const bounded = Math.min(Math.max(chance, 0), 1);
+  return bounded > 0 && bounded < .01 ? 1 : Math.round(bounded * 100);
+}

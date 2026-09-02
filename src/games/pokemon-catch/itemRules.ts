@@ -1,6 +1,6 @@
 import { POKEMON_ITEM, type PokemonItemId } from "../../student-data/pokemon-catch/types.ts";
 
-export const ENCOUNTER_TIME_MS = 45_000;
+export const ENCOUNTER_TIME_MS = 90_000;
 export const ANGER_TIME_BONUS_MS = 15_000;
 export const SLEEP_CAPTURE_MULTIPLIER = 2;
 

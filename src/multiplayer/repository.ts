@@ -67,6 +67,7 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     status: parseStatus(data.status),
     roundId: typeof data.roundId === "string" && data.roundId ? data.roundId : null,
     gameConfig: parseGameConfig(data.gameConfig),
+    waitingTypingConfig: parseGameConfig(data.waitingTypingConfig),
     createdAtMs: numberOrNull(data.createdAtMs),
     updatedAtMs: numberOrNull(data.updatedAtMs),
     startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs),
@@ -268,4 +269,16 @@ export async function resetSession(roomId: string): Promise<void> {
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),
   }, { merge: true });
+}
+
+export async function updateWaitingTypingConfig(
+  roomId: string,
+  config: Readonly<Record<string, unknown>> | null,
+): Promise<void> {
+  await ensureSession(roomId);
+  await updateDoc(sessionRef(roomId), {
+    waitingTypingConfig: config ?? deleteField(),
+    updatedAt: serverTimestamp(),
+    updatedAtMs: Date.now(),
+  });
 }

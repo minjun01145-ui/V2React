@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { aiTutorAnswerResult } from "../../ai-tutor-engine/result.ts";
+import { adaptLearningSetToAiTutor } from "../../learning-sets/aiTutorAdapter.ts";
 import { submitAiTutorTurn } from "../../ai-tutor-engine/repository.ts";
 import type { AiTutorEvaluationDetails, AiTutorQuestion, AiTutorReply } from "../../ai-tutor-engine/types.ts";
 import { applyResultToProgress, createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
@@ -7,7 +8,6 @@ import type { LearningSet } from "../../learning-sets/types.ts";
 import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
 import { persistGameAttempt, persistGameProgress } from "../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
-import { adaptLearningSetToAiTutor } from "./adapter.ts";
 import { aiTutorDirection } from "./config.ts";
 
 export function useAiTutorGame(input: {

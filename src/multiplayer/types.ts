@@ -18,6 +18,7 @@ export interface GameSession {
   readonly status: SessionStatus;
   readonly roundId: string | null;
   readonly gameConfig: Readonly<Record<string, unknown>> | null;
+  readonly waitingTypingConfig?: Readonly<Record<string, unknown>> | null;
   readonly createdAtMs: number | null;
   readonly updatedAtMs: number | null;
   readonly startedAtMs: number | null;

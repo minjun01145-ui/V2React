@@ -12,4 +12,9 @@
 .setPicker select:focus { border-color: var(--color-primary); outline: 3px solid var(--color-primary-soft); }
 .pickerControls { display: grid; gap: .7rem; }
 .setError { grid-column: 1 / -1; margin: 0; color: var(--color-danger-text); font-weight: 700; }
-@media (max-width: 680px) { .setPicker { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } }
+.waitingTypingPicker { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,.65fr); gap:1rem; align-items:end; border-color:#b8ddef; background:linear-gradient(135deg,var(--color-surface),#effaff); }
+.waitingTypingPicker h2 { margin:.2rem 0; }
+.waitingTypingPicker label { display:grid; gap:.4rem; font-size:.82rem; font-weight:800; }
+.waitingTypingPicker select { width:100%; border:1px solid var(--color-border-strong); border-radius:.75rem; padding:.78rem .85rem; color:var(--color-text); background:var(--color-surface); font:inherit; }
+.waitingTypingPicker select:focus { border-color:#2993c7; outline:3px solid rgba(41,147,199,.14); }
+@media (max-width: 680px) { .setPicker, .waitingTypingPicker { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } }

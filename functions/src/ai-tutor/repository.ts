@@ -1,6 +1,6 @@
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
-import { AI_TUTOR_GAME_ID, type AiTutorDirection, type AiTutorLearningItem, type AiTutorRoundContext, type AiTutorSetType } from "./types.js";
+import { AI_TUTOR_GAME_ID, POKEMON_CATCH_GAME_ID, type AiTutorDirection, type AiTutorLearningItem, type AiTutorRoundContext, type AiTutorSetType } from "./types.js";
 import { AiTutorValidationError } from "./validation.js";
 
 function direction(value: unknown): AiTutorDirection {
@@ -24,6 +24,7 @@ export async function loadAiTutorRoundContext(input: {
   readonly roomId: string;
   readonly roundId: string;
   readonly itemId: string;
+  readonly requestedDirection: AiTutorDirection | null;
 }): Promise<AiTutorRoundContext> {
   const sessionRef = db.collection("multiplayerSessions").doc(input.roomId);
   const [sessionSnapshot, participantSnapshot] = await Promise.all([
@@ -34,7 +35,7 @@ export async function loadAiTutorRoundContext(input: {
   if (!isRecord(session)
     || session.status !== "playing"
     || session.roundId !== input.roundId
-    || session.gameId !== AI_TUTOR_GAME_ID
+    || (session.gameId !== AI_TUTOR_GAME_ID && session.gameId !== POKEMON_CATCH_GAME_ID)
     || !participantSnapshot.exists) {
     throw new AiTutorValidationError("현재 참여 중인 AI 문답 라운드를 확인해주세요.");
   }
@@ -52,6 +53,8 @@ export async function loadAiTutorRoundContext(input: {
   const items = isRecord(content) && Array.isArray(content.items) ? content.items : [];
   const item = items.map(parseItem).find((candidate) => candidate?.id === input.itemId) ?? null;
   if (!type || !item) throw new AiTutorValidationError("선택한 학습 세트의 문항을 찾을 수 없습니다.");
-  return { setType: type, direction: direction(config?.direction), item };
+  const resolvedDirection = session.gameId === POKEMON_CATCH_GAME_ID
+    ? input.requestedDirection ?? "source-to-meaning"
+    : direction(config?.direction);
+  return { setType: type, direction: resolvedDirection, item };
 }
-

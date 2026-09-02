@@ -20,6 +20,11 @@ export function parseAiTutorTurnInput(value: unknown): AiTutorTurnInput {
   const attemptNumber = typeof value.attemptNumber === "number" ? Math.trunc(value.attemptNumber) : 0;
   if (attemptNumber < 1 || attemptNumber > 20) throw new AiTutorValidationError("시도 횟수가 올바르지 않습니다.");
   const previousFeedback = value.previousFeedback == null ? null : limitedText(value.previousFeedback, 600, "이전 피드백");
+  const direction = value.direction == null
+    ? null
+    : value.direction === "source-to-meaning" || value.direction === "meaning-to-source"
+      ? value.direction
+      : (() => { throw new AiTutorValidationError("문제 방향이 올바르지 않습니다."); })();
   return {
     roomId: requiredId(value.roomId, "대기실 ID"),
     roundId: requiredId(value.roundId, "라운드 ID"),
@@ -27,6 +32,7 @@ export function parseAiTutorTurnInput(value: unknown): AiTutorTurnInput {
     message: limitedText(value.message, 1000, "답변"),
     attemptNumber,
     previousFeedback,
+    direction,
   };
 }
 
