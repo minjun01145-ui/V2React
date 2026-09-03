@@ -24,7 +24,6 @@ export interface GameSession {
   readonly updatedAtMs: number | null;
   readonly startedAtMs: number | null;
   readonly expectedPlayerIds: readonly string[];
-  readonly sessionData: Readonly<Record<string, unknown>>;
 }
 
 export type PlayerAvatar =
@@ -79,5 +78,4 @@ export function resolveSessionStartedAtMs(startedAt: unknown, legacyStartedAtMs:
 export interface StartSessionOptions {
   readonly gameId?: string;
   readonly gameConfig?: Readonly<Record<string, unknown>>;
-  readonly fieldsToDelete?: readonly string[];
 }

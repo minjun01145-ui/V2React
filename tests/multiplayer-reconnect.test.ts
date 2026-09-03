@@ -21,7 +21,6 @@ const waitingSession: GameSession = {
   updatedAtMs: 1,
   startedAtMs: null,
   expectedPlayerIds: [],
-  sessionData: {},
 };
 const playingSession: GameSession = { ...waitingSession, status: SESSION_STATUS.PLAYING, roundId: "round-1", startedAtMs: 1 };
 assert.equal(canStartSession(SESSION_STATUS.WAITING), true);

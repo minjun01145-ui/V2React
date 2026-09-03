@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import GameHost from "../../../games/GameHost.tsx";
 import TeacherQuizGameRuntime from "../quiz-game-runtime/TeacherQuizGameRuntime.tsx";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
-import { usePlayers, useRoundReadiness, useSession } from "../../../multiplayer/hooks.ts";
+import { usePlayers, useRoundReadiness, useSessionSubscription } from "../../../multiplayer/hooks.ts";
 import { countExpectedReady } from "../../../multiplayer/round-readiness/model.ts";
-import { finalizeSessionStart, resetSession, startSession } from "../../../multiplayer/repository.ts";
+import { finalizeSessionStart } from "../../../multiplayer/repository.ts";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
-import { QUIZ_GAME_SESSION_FIELD, quizGameSessionState, startQuizGame } from "../../../quiz-game/multiplayerService.ts";
+import { resetQuizAwareSession, startQuizGame, startRegularGameSession, subscribeQuizGameSession } from "../../../quiz-game/multiplayerService.ts";
 import PageShell from "../../../shared/PageShell.tsx";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -27,7 +27,9 @@ interface Props {
 }
 
 export default function TeacherRoomController({ roomId, embedded = false }: Props) {
-  const { session, loading, error } = useSession(roomId, { ensure: true });
+  const { value: sessionSnapshot, loading, error } = useSessionSubscription(roomId, subscribeQuizGameSession, { ensure: true });
+  const session = sessionSnapshot ? sessionSnapshot.session : null;
+  const quizGame = sessionSnapshot ? sessionSnapshot.quizGame : null;
   const { activePlayers, players } = usePlayers(roomId);
   const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
   const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
@@ -70,7 +72,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   }, [expectedCount, isPreparing, preparingRoundId, readyCount, roomId, showMessage]);
 
   const startGame = (id: string): Promise<void> => {
-    return startSession(id, { gameId: gameSetup.selectedGame.id, gameConfig: gameSetup.buildGameConfig(), fieldsToDelete: [QUIZ_GAME_SESSION_FIELD] });
+    return startRegularGameSession(id, { gameId: gameSetup.selectedGame.id, gameConfig: gameSetup.buildGameConfig() });
   };
 
   const forceStart = async (): Promise<void> => {
@@ -99,13 +101,13 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const actions = <>
     <Button disabled={working || loading || isPlaying || isPreparing || activePlayers.length === 0 || gameSetup.invalidSet} onClick={() => void run(startGame)}>게임 시작</Button>
     {isPreparing ? <Button disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
-    <Button variant="ghost" disabled={working || loading} onClick={() => void run((id) => resetSession(id, [QUIZ_GAME_SESSION_FIELD]))}>대기실로</Button>
+    <Button variant="ghost" disabled={working || loading} onClick={() => void run(resetQuizAwareSession)}>대기실로</Button>
   </>;
 
   const content = <>
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
-    {isPlaying && session ? (quizGameSessionState(session) ? <TeacherQuizGameRuntime roomId={roomId} session={session} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : <>
+    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : <>
       <StatusPanel title={isPreparing ? "게임 접속 확인 중" : "학생 대기 중"} tone="waiting">
         {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
       </StatusPanel>

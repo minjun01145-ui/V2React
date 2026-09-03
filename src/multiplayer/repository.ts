@@ -92,7 +92,6 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     updatedAtMs: numberOrNull(data.updatedAtMs),
     startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs),
     expectedPlayerIds: stringArray(data.expectedPlayerIds),
-    sessionData: data,
   };
 }
 
@@ -139,6 +138,28 @@ export function subscribeSession(roomId: string, onValue: (value: GameSession | 
   return onSnapshot(sessionRef(roomId), (snapshot) => onValue(parseSession(snapshot)), onError);
 }
 
+export function subscribeSessionField<T>(
+  roomId: string,
+  fieldName: string,
+  parseField: (value: unknown) => T,
+  onValue: (value: { readonly session: GameSession; readonly field: T } | null) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return onSnapshot(sessionRef(roomId), (snapshot) => {
+    const session = parseSession(snapshot);
+    if (!session) {
+      onValue(null);
+      return;
+    }
+    const data: unknown = snapshot.data();
+    if (!isRecord(data)) {
+      onValue(null);
+      return;
+    }
+    onValue({ session, field: parseField(data[fieldName]) });
+  }, onError);
+}
+
 export function subscribePlayers(roomId: string, onValue: (value: Player[]) => void, onError: (error: Error) => void): Unsubscribe {
   return onSnapshot(playersRef(roomId), (snapshot) => {
     const players = deduplicatePlayers(snapshot.docs
@@ -158,9 +179,9 @@ export async function joinSession({ roomId, playerId, studentNumber, displayName
   const pRef = playerRef(roomId, playerId);
   await runTransaction(db, async (tx) => {
     const sessionSnapshot = await tx.get(sRef);
-    const sessionData: unknown = sessionSnapshot.exists() ? sessionSnapshot.data() : null;
-    const sessionStatus = isRecord(sessionData) ? parseStatus(sessionData.status) : null;
-    const roundId = isRecord(sessionData) && typeof sessionData.roundId === "string" ? sessionData.roundId : null;
+    const snapshotData: unknown = sessionSnapshot.exists() ? sessionSnapshot.data() : null;
+    const sessionStatus = isRecord(snapshotData) ? parseStatus(snapshotData.status) : null;
+    const roundId = isRecord(snapshotData) && typeof snapshotData.roundId === "string" ? snapshotData.roundId : null;
     if (sessionStatus !== SESSION_STATUS.WAITING && sessionStatus !== SESSION_STATUS.PREPARING && sessionStatus !== SESSION_STATUS.PLAYING) {
       throw new Error("참여할 수 있는 수업 세션이 없습니다.");
     }
@@ -242,9 +263,6 @@ export async function startSession(roomId: string, options: StartSessionOptions 
     updatedAtMs: now,
   };
   if (options.gameConfig !== undefined) nextSession.gameConfig = options.gameConfig;
-  if (options.fieldsToDelete) {
-    for (const field of options.fieldsToDelete) nextSession[field] = deleteField();
-  }
   await runTransaction(db, async (tx) => {
     const currentSession = await tx.get(sessionRef(roomId));
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
@@ -293,9 +311,9 @@ export async function finalizeSessionStart(roomId: string, roundId: string): Pro
   });
 }
 
-export async function resetSession(roomId: string, fieldsToDelete: readonly string[]): Promise<void> {
+export async function resetSession(roomId: string): Promise<void> {
   await ensureSession(roomId);
-  const nextSession: Record<string, unknown> = {
+  await setDoc(sessionRef(roomId), {
     status: SESSION_STATUS.WAITING,
     roundId: null,
     startedAt: deleteField(),
@@ -304,9 +322,7 @@ export async function resetSession(roomId: string, fieldsToDelete: readonly stri
     expectedPlayerIds: [],
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),
-  };
-  for (const field of fieldsToDelete) nextSession[field] = deleteField();
-  await setDoc(sessionRef(roomId), nextSession, { merge: true });
+  }, { merge: true });
 }
 
 export async function updateWaitingTypingConfig(

@@ -26,6 +26,12 @@ type SubscribeFunction<T> = (
   onError: (error: Error) => void,
 ) => Unsubscribe;
 
+type RoomSubscribeFunction<T> = (
+  roomId: string,
+  onValue: (value: T) => void,
+  onError: (error: Error) => void,
+) => Unsubscribe;
+
 function useSubscription<T>(subscribe: SubscribeFunction<T>, initialValue: T): SubscriptionResult<T> {
   const [value, setValue] = useState<T>(initialValue);
   const [loading, setLoading] = useState(true);
@@ -107,6 +113,21 @@ export function useSession(roomId: string, options: { readonly ensure?: boolean 
   }, [options.ensure, roomId]);
   const result = useSubscription(subscribe, null);
   return { session: result.value, loading: result.loading, error: result.error };
+}
+
+export function useSessionSubscription<T>(
+  roomId: string,
+  subscribeSessionValue: RoomSubscribeFunction<T | null>,
+  options: { readonly ensure?: boolean } = {},
+): SubscriptionResult<T | null> {
+  const subscribe = useMemo<SubscribeFunction<T | null>>(
+    () => (onValue, onError) => subscribeSessionValue(roomId, onValue, onError),
+    [roomId, subscribeSessionValue],
+  );
+  useEffect(() => {
+    if (options.ensure) void ensureSession(roomId).catch(console.error);
+  }, [options.ensure, roomId]);
+  return useSubscription(subscribe, null);
 }
 
 export function usePlayers(roomId: string): {

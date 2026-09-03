@@ -6,8 +6,8 @@ import { useRoundAttempts, useRoundProgress } from "../../../multiplayer/game-pr
 import { loadRoundProgress } from "../../../multiplayer/game-progress/repository.ts";
 import { useRoundParticipants } from "../../../multiplayer/hooks.ts";
 import type { GameSession } from "../../../multiplayer/types.ts";
-import { advanceQuizGame, quizGameSessionState, setQuizGamePhase } from "../../../quiz-game/multiplayerService.ts";
-import type { QuizGameRound } from "../../../quiz-game/types.ts";
+import { advanceQuizGame, setQuizGamePhase } from "../../../quiz-game/multiplayerService.ts";
+import type { QuizGameRound, QuizGameSessionState } from "../../../quiz-game/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import Button from "../../../shared/ui/Button.tsx";
@@ -41,10 +41,9 @@ function SubmissionStatus({ roomId, session, round }: { readonly roomId: string;
 
 interface RankingEntry { readonly playerId: string; readonly displayName: string; readonly score: number; readonly correctCount: number; readonly attemptCount: number; }
 
-function CumulativeLeaderboard({ roomId, session }: { readonly roomId: string; readonly session: GameSession }) {
+function CumulativeLeaderboard({ roomId, roundIds }: { readonly roomId: string; readonly roundIds: readonly string[] }) {
   const [entries, setEntries] = useState<readonly RankingEntry[]>([]);
   const [error, setError] = useState("");
-  const roundIds = quizGameSessionState(session)?.roundIds ?? [];
   const scope = roundIds.join(":");
   useEffect(() => {
     let active = true;
@@ -63,8 +62,8 @@ function CumulativeLeaderboard({ roomId, session }: { readonly roomId: string; r
   return <Card><h2>현재까지 리더보드</h2><div className={styles.ranking}>{entries.length === 0 ? <p>아직 저장된 점수가 없습니다.</p> : entries.map((entry, index) => <div key={entry.playerId}><b>{index + 1}</b><strong>{entry.displayName}</strong><span>{entry.correctCount}/{entry.attemptCount}</span><em>{entry.score.toLocaleString("ko-KR")}점</em></div>)}</div></Card>;
 }
 
-export default function TeacherQuizGameRuntime({ roomId, session }: { readonly roomId: string; readonly session: GameSession }) {
-  const quiz = quizGameSessionState(session);
+export default function TeacherQuizGameRuntime({ roomId, session, quizGame }: { readonly roomId: string; readonly session: GameSession; readonly quizGame: QuizGameSessionState }) {
+  const quiz = quizGame;
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const round = quiz?.plan.rounds[quiz.currentRoundIndex];
@@ -79,7 +78,7 @@ export default function TeacherQuizGameRuntime({ roomId, session }: { readonly r
     {error ? <StatusPanel title="퀴즈 진행 오류" tone="error">{error}</StatusPanel> : null}
     {quiz.phase === "answering" ? <QuizAnswering roomId={roomId} session={session} round={round} onClosed={closeAnswers} /> : null}
     {quiz.phase === "submissions" ? <><SubmissionStatus roomId={roomId} session={session} round={round} /><Button disabled={working} onClick={() => void run(() => setQuizGamePhase(roomId, session.roundId ?? "", "leaderboard"))}>리더보드 보기</Button></> : null}
-    {quiz.phase === "leaderboard" ? <><CumulativeLeaderboard roomId={roomId} session={session} /><Button disabled={working} onClick={() => void run(() => advanceQuizGame(roomId))}>{quiz.currentRoundIndex + 1 < quiz.plan.rounds.length ? "다음 문제" : "퀴즈 종료"}</Button></> : null}
-    {quiz.phase === "complete" ? <><CumulativeLeaderboard roomId={roomId} session={session} /><StatusPanel title="퀴즈 종료">대기실로 돌아가면 새 게임을 시작할 수 있습니다.</StatusPanel></> : null}
+    {quiz.phase === "leaderboard" ? <><CumulativeLeaderboard roomId={roomId} roundIds={quiz.roundIds} /><Button disabled={working} onClick={() => void run(() => advanceQuizGame(roomId))}>{quiz.currentRoundIndex + 1 < quiz.plan.rounds.length ? "다음 문제" : "퀴즈 종료"}</Button></> : null}
+    {quiz.phase === "complete" ? <><CumulativeLeaderboard roomId={roomId} roundIds={quiz.roundIds} /><StatusPanel title="퀴즈 종료">대기실로 돌아가면 새 게임을 시작할 수 있습니다.</StatusPanel></> : null}
   </section>;
 }

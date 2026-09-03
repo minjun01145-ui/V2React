@@ -13,6 +13,14 @@ const globalCssEntries = new Set([
 const sourceFiles = walk(srcRoot).filter((file) => /\.(ts|tsx)$/.test(file));
 const dependencyGraph = new Map(sourceFiles.map((file) => [file, []]));
 
+const multiplayerTypesSource = fs.readFileSync(path.join(srcRoot, "multiplayer/types.ts"), "utf8");
+if (/\bsessionData\s*:/.test(multiplayerTypesSource)) {
+  violations.push("src/multiplayer/types.ts: GameSession must not expose raw Firestore session data");
+}
+if (/\bfieldsToDelete\s*[?:]/.test(multiplayerTypesSource)) {
+  violations.push("src/multiplayer/types.ts: multiplayer APIs must not accept arbitrary persistence fields to delete");
+}
+
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);

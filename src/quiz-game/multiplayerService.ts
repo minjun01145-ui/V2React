@@ -1,9 +1,9 @@
-import { deleteField, doc, runTransaction, serverTimestamp } from "firebase/firestore";
+import { deleteField, doc, runTransaction, serverTimestamp, setDoc, type Unsubscribe } from "firebase/firestore";
 import { appConfig } from "../config/appConfig.ts";
 import { db } from "../firebase/firebaseClient.ts";
 import { canStartSession, MULTIPLAYER_COLLECTION, SESSION_STATUS, type SessionStatus } from "../multiplayer/constants.ts";
 import { selectActivePlayers } from "../multiplayer/presence.ts";
-import { ensureSession, loadPlayers } from "../multiplayer/repository.ts";
+import { ensureSession, loadPlayers, subscribeSessionField } from "../multiplayer/repository.ts";
 import { participantIdentity } from "../multiplayer/round-participants/model.ts";
 import { roundParticipantRef } from "../multiplayer/round-participants/repository.ts";
 import type { GameSession } from "../multiplayer/types.ts";
@@ -12,7 +12,7 @@ import { advanceQuizGameRound, assertQuizGamePhaseTransition, completeQuizGame, 
 import type { QuizGamePhase, QuizGamePlan, QuizGameSessionState } from "./types.ts";
 import { parseQuizGameSessionState, validateQuizGameRounds } from "./validation.ts";
 
-export const QUIZ_GAME_SESSION_FIELD = "quizGame";
+const QUIZ_GAME_SESSION_FIELD = "quizGame";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 
@@ -25,8 +25,69 @@ function parseStatus(value: unknown): SessionStatus {
   return SESSION_STATUS.WAITING;
 }
 
-export function quizGameSessionState(session: GameSession): QuizGameSessionState | null {
-  return parseQuizGameSessionState(session.sessionData[QUIZ_GAME_SESSION_FIELD]);
+export interface QuizGameSessionSnapshot {
+  readonly session: GameSession;
+  readonly quizGame: QuizGameSessionState | null;
+}
+
+interface RegularGameSessionOptions {
+  readonly gameId: string;
+  readonly gameConfig?: Readonly<Record<string, unknown>>;
+}
+
+export function subscribeQuizGameSession(
+  roomId: string,
+  onValue: (value: QuizGameSessionSnapshot | null) => void,
+  onError: (error: Error) => void,
+): Unsubscribe {
+  return subscribeSessionField(roomId, QUIZ_GAME_SESSION_FIELD, parseQuizGameSessionState, (value) => {
+    onValue(value ? { session: value.session, quizGame: value.field } : null);
+  }, onError);
+}
+
+export async function startRegularGameSession(roomId: string, options: RegularGameSessionOptions): Promise<void> {
+  await ensureSession(roomId);
+  const now = Date.now();
+  const activePlayers = selectActivePlayers(await loadPlayers(roomId), now, appConfig.playerStaleAfterMs);
+  const roundId = crypto.randomUUID();
+  const nextSession: Record<string, unknown> = {
+    gameId: options.gameId,
+    status: SESSION_STATUS.PREPARING,
+    roundId,
+    expectedPlayerIds: activePlayers.map((player) => player.id),
+    startedAt: deleteField(),
+    startedAtMs: deleteField(),
+    startDelayMs: deleteField(),
+    [QUIZ_GAME_SESSION_FIELD]: deleteField(),
+    updatedAt: serverTimestamp(),
+    updatedAtMs: now,
+  };
+  if (options.gameConfig !== undefined) nextSession.gameConfig = options.gameConfig;
+  await runTransaction(db, async (tx) => {
+    const ref = sessionRef(roomId);
+    const currentSession = await tx.get(ref);
+    const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
+    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status))) return;
+    tx.set(ref, nextSession, { merge: true });
+    for (const player of activePlayers) {
+      tx.set(roundParticipantRef(roomId, roundId, player.id), { ...participantIdentity(player), joinedAt: serverTimestamp(), joinedAtMs: now });
+    }
+  });
+}
+
+export async function resetQuizAwareSession(roomId: string): Promise<void> {
+  await ensureSession(roomId);
+  await setDoc(sessionRef(roomId), {
+    status: SESSION_STATUS.WAITING,
+    roundId: null,
+    startedAt: deleteField(),
+    startedAtMs: deleteField(),
+    startDelayMs: deleteField(),
+    expectedPlayerIds: [],
+    [QUIZ_GAME_SESSION_FIELD]: deleteField(),
+    updatedAt: serverTimestamp(),
+    updatedAtMs: Date.now(),
+  }, { merge: true });
 }
 
 export async function startQuizGame(roomId: string, plan: QuizGamePlan): Promise<void> {
