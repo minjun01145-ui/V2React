@@ -89,6 +89,20 @@ assert.equal(meaningQuestions.questions[0]?.helperText, "I go to school every da
 const practiceQuestions = adaptLearningSetToTypingPractice(readingSet);
 assert.deepEqual(practiceQuestions.questions.map((question) => question.targetText), ["I go", "to school", "every day."], "대기실 끊어읽기 연습은 문장이 아니라 청크 단위로 떨어져야 합니다.");
 assert.equal(ACID_RAIN_MAX_STAGE, 10);
+assert.deepEqual(getAcidRainStageRule(1), {
+  stage: 1,
+  targetHits: 4,
+  spawnIntervalMs: 4_000,
+  fallDurationMs: 22_000,
+  maxVisibleWords: 2,
+}, "1단계는 충분히 천천히 시작하고 네 단어만 맞히면 통과해야 합니다.");
+assert.deepEqual(getAcidRainStageRule(5), {
+  stage: 5,
+  targetHits: 8,
+  spawnIntervalMs: 1_850,
+  fallDurationMs: 11_000,
+  maxVisibleWords: 3,
+}, "새 5단계는 조정 전 1단계와 같은 난이도여야 합니다.");
 assert.ok(getAcidRainStageRule(10).fallDurationMs < getAcidRainStageRule(1).fallDurationMs, "후반 스테이지일수록 더 빠르게 떨어져야 합니다.");
 assert.ok(getAcidRainStageRule(10).spawnIntervalMs < getAcidRainStageRule(1).spawnIntervalMs, "후반 스테이지일수록 더 자주 출제되어야 합니다.");
 assert.deepEqual(parseWaitingTypingConfig(createWaitingTypingConfig("set-1")), {
