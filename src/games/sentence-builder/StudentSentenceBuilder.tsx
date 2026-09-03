@@ -86,7 +86,9 @@ export default function StudentSentenceBuilder({ roomId, session, player, set, d
 
   if (engine.loading) return <StatusPanel title="게임 불러오는 중">진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (engine.error) return <StatusPanel title="게임 연결 오류" tone="error">{engine.error.message}</StatusPanel>;
-  if (!question) return <StatusPanel title="문제가 없습니다" tone="error">세트에 사용할 수 있는 문항이 없습니다.</StatusPanel>;
+  if (!question) return engine.isComplete
+    ? <StatusPanel title="문제를 모두 풀었어요">라운드가 끝날 때까지 잠시 기다려 주세요. 답안을 집계하고 있습니다.</StatusPanel>
+    : <StatusPanel title="문제가 없습니다" tone="error">세트에 사용할 수 있는 문항이 없습니다.</StatusPanel>;
 
   const selectedTokens = selectedTokenIds
     .map((tokenId) => question.tokens.find((token) => token.id === tokenId))

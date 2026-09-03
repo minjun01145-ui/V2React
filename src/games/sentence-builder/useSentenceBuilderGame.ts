@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { createQuestionDeck } from "../../game-engine/question-engine/questionDeck.ts";
 import type { QuestionEngine } from "../../game-engine/question-engine/useQuestionEngine.ts";
 import { useMultiplayerQuestionEngine } from "../../game-engine/question-engine/multiplayer/useMultiplayerQuestionEngine.ts";
+import { usesFiniteQuestionSequence } from "../../game-engine/question-engine/sessionConfig.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { evaluateSentenceSequence } from "./evaluator.ts";
 import { adaptReadingChunksSet } from "./readingChunksAdapter.ts";
@@ -35,7 +36,7 @@ export function useSentenceBuilderGame(input: {
     player,
     questions,
     evaluator: evaluateSentenceSequence,
-    repeatQuestions: true,
+    repeatQuestions: !usesFiniteQuestionSequence(session.gameConfig),
     disabled,
     comboScoring: SENTENCE_COMBO_SCORING,
   });

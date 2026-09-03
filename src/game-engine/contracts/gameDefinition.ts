@@ -32,6 +32,16 @@ export interface GameSelectSetting {
   readonly options: readonly { readonly value: string; readonly label: string }[];
 }
 
+export interface GameQuizQuestionInput {
+  readonly sourceText: string;
+  readonly meaning: string;
+}
+
+export interface GameQuizQuestionPresentation {
+  readonly prompt: string;
+  readonly answer: string;
+}
+
 export interface GameDefinition {
   readonly id: string;
   readonly title: string;
@@ -42,18 +52,21 @@ export interface GameDefinition {
   readonly requiresStoredSet: boolean;
   readonly settings: readonly GameSelectSetting[];
   readonly preloadPlayerProgress: boolean;
+  readonly supportsFiniteQuizQuestions: boolean;
+  readonly presentQuizQuestion?: (item: GameQuizQuestionInput, config: Readonly<Record<string, string>>) => GameQuizQuestionPresentation;
   readonly prepareStudent?: (context: StudentGamePreparationContext) => Promise<(() => void) | void>;
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
   readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;
   readonly requiresStoredSet?: boolean;
   readonly settings?: readonly GameSelectSetting[];
   readonly preloadPlayerProgress?: boolean;
+  readonly supportsFiniteQuizQuestions?: boolean;
 };
 
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -67,6 +80,9 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
   }
   if (typeof definition.loadStudent !== "function" || typeof definition.loadTeacher !== "function") {
     throw new Error(`Game ${definition.id} requires role-specific lazy loaders.`);
+  }
+  if (definition.supportsFiniteQuizQuestions && typeof definition.presentQuizQuestion !== "function") {
+    throw new Error(`Game ${definition.id} must describe quiz question presentation when finite quiz questions are supported.`);
   }
   const minimumSetItemCount = definition.minimumSetItemCount ?? 1;
   if (!Number.isInteger(minimumSetItemCount) || minimumSetItemCount < 0) {
@@ -95,6 +111,7 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     minimumSetItemCountByType: Object.freeze({ ...minimumSetItemCountByType }),
     requiresStoredSet: definition.requiresStoredSet ?? false,
     preloadPlayerProgress: definition.preloadPlayerProgress ?? false,
+    supportsFiniteQuizQuestions: definition.supportsFiniteQuizQuestions ?? false,
     settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
 }

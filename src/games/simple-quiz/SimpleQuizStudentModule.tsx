@@ -75,7 +75,9 @@ function SimpleQuizGame({ roomId, session, player, set }: {
 
   if (game.loading) return <StatusPanel title="심플퀴즈 연결 중">내 진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
-  if (!question) return <StatusPanel title="문제가 없습니다" tone="error">서로 다른 답을 가진 단어가 충분한지 확인해 주세요.</StatusPanel>;
+  if (!question) return game.isComplete
+    ? <StatusPanel title="문제를 모두 풀었어요">라운드가 끝날 때까지 잠시 기다려 주세요. 답안을 집계하고 있습니다.</StatusPanel>
+    : <StatusPanel title="문제가 없습니다" tone="error">서로 다른 답을 가진 단어가 충분한지 확인해 주세요.</StatusPanel>;
 
   const chooseOption = async (optionId: string): Promise<void> => {
     if (submitting || pendingQuestionId) return;

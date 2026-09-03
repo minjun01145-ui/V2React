@@ -73,7 +73,7 @@ features/teacher/room-control → multiplayer session.quizGame
              submissions/ranking           answer/wait screens
 ```
 
-퀴즈 계획은 라운드별 `gameId`, `setId`, 제한 시간, registry가 제공한 엔진 설정값만 저장합니다. 실행 시 계획을 방 세션에 스냅샷으로 고정해 편집 중인 원본과 진행 중 수업이 섞이지 않게 합니다. 답안 단계에서는 기존 게임 UI와 progress 저장을 그대로 사용하고, 마감 이후에는 세션 phase로 학생 입력을 내리며 보안 규칙도 progress 쓰기를 차단합니다. 라운드 간 점수 집계는 각 runtime round의 기존 progress 문서를 읽어 누적합니다.
+퀴즈 계획은 라운드별 `gameId`, 문제 공급 방식, 제한 시간, registry가 제공한 엔진 설정값만 저장합니다. 문제 공급은 저장된 `setId`를 반복하는 방식과 교사가 입력한 항목을 session-local inline learning set으로 변환해 한 번만 푸는 방식으로 나뉩니다. 직접 출제 지원 여부는 `GameDefinition.supportsFiniteQuizQuestions`가 선언하므로 편집기와 오케스트레이터에 게임 ID 조건문을 두지 않습니다. 실행 시 계획을 방 세션에 스냅샷으로 고정해 편집 중인 원본과 진행 중 수업이 섞이지 않게 합니다. 답안 단계에서는 기존 게임 UI와 adapter/progress 저장을 그대로 사용하고, 직접 출제 문항을 모두 푼 학생은 제한 시간이 끝날 때까지 집계 대기 화면에 머뭅니다. 마감 이후에는 세션 phase로 학생 입력을 내리며 보안 규칙도 progress 쓰기를 차단합니다. 라운드 간 점수 집계는 각 runtime round의 기존 progress 문서를 읽어 누적합니다.
 
 ## Persistent student game data
 

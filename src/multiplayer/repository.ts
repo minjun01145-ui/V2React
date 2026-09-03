@@ -22,9 +22,10 @@ import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
 import { roundParticipantRef } from "./round-participants/repository.ts";
 import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type PlayerAvatar, type StartSessionOptions } from "./types.ts";
-import type { QuizGamePhase, QuizGamePlan, QuizGameRound, QuizGameSessionState } from "../quiz-game/types.ts";
+import type { QuizGamePhase, QuizGamePlan, QuizGameSessionState } from "../quiz-game/types.ts";
 import { parseQuizGameSessionState, validateQuizGameRounds } from "../quiz-game/validation.ts";
 import { assertQuizGamePhaseTransition } from "../quiz-game/stateMachine.ts";
+import { quizRoundGameConfig } from "../quiz-game/runtimeConfig.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -255,14 +256,6 @@ export async function startSession(roomId: string, options: StartSessionOptions 
       });
     }
   });
-}
-
-function quizRoundGameConfig(round: QuizGameRound): Readonly<Record<string, unknown>> {
-  return {
-    ...(round.setId ? { setId: round.setId } : {}),
-    ...round.gameConfig,
-    quizRoundDurationMs: round.durationSeconds * 1_000,
-  };
 }
 
 export async function startQuizGame(roomId: string, plan: QuizGamePlan): Promise<void> {

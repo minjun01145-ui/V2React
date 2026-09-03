@@ -4,7 +4,7 @@ import { getGame, listGames } from "../../../games/registry.ts";
 import { listLearningSets } from "../../../learning-sets/readRepository.ts";
 import type { LearningSetSummary } from "../../../learning-sets/types.ts";
 import { deleteQuizGamePlan, getQuizGamePlan, listQuizGamePlans, saveQuizGamePlan } from "../../../quiz-game/repository.ts";
-import type { QuizGamePlan, QuizGamePlanSummary, QuizGameRound } from "../../../quiz-game/types.ts";
+import type { QuizGameCustomItem, QuizGamePlan, QuizGamePlanSummary, QuizGameRound } from "../../../quiz-game/types.ts";
 import { validateQuizGameName, validateQuizGameRounds } from "../../../quiz-game/validation.ts";
 import PageShell from "../../../shared/PageShell.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -22,10 +22,14 @@ function newRound(index: number): QuizGameRound {
     id: crypto.randomUUID(),
     title: `${index + 1}번 문제`,
     gameId: game.id,
-    setId: null,
+    source: { kind: "stored-set", setId: null },
     durationSeconds: 30,
     gameConfig: Object.fromEntries(game.settings.map((setting) => [setting.key, setting.defaultValue])),
   };
+}
+
+function newCustomItem(): QuizGameCustomItem {
+  return { id: crypto.randomUUID(), sourceText: "", meaning: "" };
 }
 
 function compatibleSets(round: QuizGameRound, sets: readonly LearningSetSummary[]): readonly LearningSetSummary[] {
@@ -58,9 +62,15 @@ export default function TeacherQuizGamePage({ roomId }: { readonly roomId: strin
       validateQuizGameRounds(rounds);
       for (const round of rounds) {
         const game = getGame(round.gameId);
-        const set = sets.find((item) => item.id === round.setId);
-        if (game.requiresStoredSet && !set) throw new Error(`${round.title}: 학습 세트를 선택해 주세요.`);
-        if (set && set.itemCount < minimumSetItemCountForType(game, set.type)) throw new Error(`${round.title}: ${game.title}에 필요한 문항 수가 부족합니다.`);
+        const source = round.source;
+        if (source.kind === "stored-set") {
+          const set = sets.find((item) => item.id === source.setId);
+          if (game.requiresStoredSet && !set) throw new Error(`${round.title}: 학습 세트를 선택해 주세요.`);
+          if (set && set.itemCount < minimumSetItemCountForType(game, set.type)) throw new Error(`${round.title}: ${game.title}에 필요한 문항 수가 부족합니다.`);
+        } else {
+          if (!game.supportsFiniteQuizQuestions || !game.supportedSetTypes.includes(source.setType)) throw new Error(`${round.title}: 이 엔진은 선택한 직접 출제 형식을 지원하지 않습니다.`);
+          if (source.items.length < minimumSetItemCountForType(game, source.setType)) throw new Error(`${round.title}: ${game.title}에 필요한 문항 수가 부족합니다.`);
+        }
       }
       return "";
     } catch (value: unknown) {
@@ -78,7 +88,7 @@ export default function TeacherQuizGamePage({ roomId }: { readonly roomId: strin
     updateRound(round.id, (current) => ({
       ...current,
       gameId: game.id,
-      setId: candidates[0]?.id ?? null,
+      source: { kind: "stored-set", setId: candidates[0]?.id ?? null },
       gameConfig: Object.fromEntries(game.settings.map((setting) => [setting.key, setting.defaultValue])),
     }));
   };
@@ -155,14 +165,24 @@ export default function TeacherQuizGamePage({ roomId }: { readonly roomId: strin
         <div className={styles.rounds}>{rounds.map((round, index) => {
           const game = getGame(round.gameId);
           const candidates = compatibleSets(round, sets);
+          const source = round.source;
+          const sourceType = source.kind === "custom" ? source.setType : (game.supportedSetTypes[0] ?? "vocabulary");
+          const readingChunks = sourceType === "reading-chunks";
           return <section className={styles.round} key={round.id}>
             <header><strong>{index + 1}</strong><input aria-label={`${index + 1}번 라운드 제목`} value={round.title} maxLength={80} onChange={(event) => updateRound(round.id, (current) => ({ ...current, title: event.target.value }))} disabled={Boolean(busy)} /><Button variant="ghost" onClick={() => setRounds((current) => current.filter((item) => item.id !== round.id))} disabled={Boolean(busy) || rounds.length === 1}>삭제</Button></header>
             <div className={styles.fields}>
               <label>문제 엔진<select value={round.gameId} onChange={(event) => selectEngine(round, event.target.value)} disabled={Boolean(busy)}>{engines.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label>
-              <label>학습 세트<select value={round.setId ?? ""} onChange={(event) => updateRound(round.id, (current) => ({ ...current, setId: event.target.value || null }))} disabled={Boolean(busy)}><option value="">{game.requiresStoredSet ? "세트 선택" : "내장 세트"}</option>{candidates.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount})</option>)}</select></label>
+              <label>문제 공급<select value={round.source.kind} onChange={(event) => updateRound(round.id, (current) => event.target.value === "custom" ? { ...current, source: { kind: "custom", setType: (game.supportedSetTypes[0] === "reading-chunks" ? "reading-chunks" : "vocabulary"), items: [newCustomItem()] } } : { ...current, source: { kind: "stored-set", setId: candidates[0]?.id ?? null } })} disabled={Boolean(busy) || !game.supportsFiniteQuizQuestions}><option value="stored-set">학습 세트 반복</option>{game.supportsFiniteQuizQuestions ? <option value="custom">교사 직접 출제</option> : null}</select></label>
+              {round.source.kind === "stored-set" ? <label>학습 세트<select value={round.source.setId ?? ""} onChange={(event) => updateRound(round.id, (current) => ({ ...current, source: { kind: "stored-set", setId: event.target.value || null } }))} disabled={Boolean(busy)}><option value="">{game.requiresStoredSet ? "세트 선택" : "내장 세트"}</option>{candidates.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount})</option>)}</select></label> : null}
+              {round.source.kind === "custom" && game.supportedSetTypes.length > 1 ? <label>문항 형식<select value={round.source.setType} onChange={(event) => updateRound(round.id, (current) => current.source.kind === "custom" ? { ...current, source: { ...current.source, setType: event.target.value === "reading-chunks" ? "reading-chunks" : "vocabulary" } } : current)} disabled={Boolean(busy)}>{game.supportedSetTypes.includes("vocabulary") ? <option value="vocabulary">단어·뜻</option> : null}{game.supportedSetTypes.includes("reading-chunks") ? <option value="reading-chunks">문장 조각·뜻</option> : null}</select></label> : null}
               <label>답안 시간(초)<input type="number" min={10} max={600} value={round.durationSeconds} onChange={(event) => updateRound(round.id, (current) => ({ ...current, durationSeconds: Number(event.target.value) }))} disabled={Boolean(busy)} /></label>
               {game.settings.map((setting) => <label key={setting.key}>{setting.label}<select value={round.gameConfig[setting.key] ?? setting.defaultValue} onChange={(event) => updateRound(round.id, (current) => ({ ...current, gameConfig: { ...current.gameConfig, [setting.key]: event.target.value } }))} disabled={Boolean(busy)}>{setting.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>)}
             </div>
+            {source.kind === "custom" ? <div className={styles.customQuestions}>
+              <div className={styles.customHeading}><strong>직접 출제 문항</strong><small>{readingChunks ? "문장을 / 기호로 두 조각 이상 나누세요." : "왼쪽 내용과 뜻을 입력하세요."}</small></div>
+              {source.items.map((item, itemIndex) => <div className={styles.customRow} key={item.id}><b>{itemIndex + 1}</b><label>{readingChunks ? "문장 조각" : "단어·문장"}<input value={item.sourceText} onChange={(event) => updateRound(round.id, (current) => current.source.kind === "custom" ? { ...current, source: { ...current.source, items: current.source.items.map((candidate) => candidate.id === item.id ? { ...candidate, sourceText: event.target.value } : candidate) } } : current)} placeholder={readingChunks ? "I go / to school." : "apple"} disabled={Boolean(busy)} /></label><label>뜻·문제<input value={item.meaning} onChange={(event) => updateRound(round.id, (current) => current.source.kind === "custom" ? { ...current, source: { ...current.source, items: current.source.items.map((candidate) => candidate.id === item.id ? { ...candidate, meaning: event.target.value } : candidate) } } : current)} placeholder={readingChunks ? "나는 학교에 간다." : "사과"} disabled={Boolean(busy)} /></label><Button variant="ghost" onClick={() => updateRound(round.id, (current) => current.source.kind === "custom" ? { ...current, source: { ...current.source, items: current.source.items.filter((candidate) => candidate.id !== item.id) } } : current)} disabled={Boolean(busy) || source.items.length === 1}>삭제</Button></div>)}
+              <Button variant="ghost" onClick={() => updateRound(round.id, (current) => current.source.kind === "custom" ? { ...current, source: { ...current.source, items: [...current.source.items, newCustomItem()] } } : current)} disabled={Boolean(busy) || source.items.length >= 100}>+ 문제 추가</Button>
+            </div> : null}
           </section>;
         })}</div>
         <Button variant="ghost" onClick={() => setRounds((current) => [...current, newRound(current.length)])} disabled={Boolean(busy) || rounds.length >= 50}>+ 라운드 추가</Button>

@@ -7,6 +7,10 @@ const definitions = [
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     requiresStoredSet: true,
     preloadPlayerProgress: true,
+    supportsFiniteQuizQuestions: true,
+    presentQuizQuestion: (item, config) => config.direction === "meaning-to-source"
+      ? { prompt: item.meaning, answer: item.sourceText.replaceAll("/", " ") }
+      : { prompt: item.sourceText.replaceAll("/", " "), answer: item.meaning },
     settings: [{
       kind: "select",
       key: "direction",
@@ -40,6 +44,8 @@ const definitions = [
     title: "문장 만들기",
     supportedSetTypes: ["reading-chunks"],
     preloadPlayerProgress: true,
+    supportsFiniteQuizQuestions: true,
+    presentQuizQuestion: (item) => ({ prompt: item.meaning, answer: item.sourceText.replaceAll("/", " ") }),
     loadStudent: () => import("./sentence-builder/SentenceBuilderStudentGame.tsx"),
     loadTeacher: () => import("./sentence-builder/SentenceBuilderTeacherGame.tsx"),
   }),
@@ -49,6 +55,8 @@ const definitions = [
     supportedSetTypes: ["vocabulary"],
     minimumSetItemCount: 5,
     preloadPlayerProgress: true,
+    supportsFiniteQuizQuestions: true,
+    presentQuizQuestion: (item) => ({ prompt: item.meaning, answer: item.sourceText }),
     settings: [{
       kind: "select",
       key: "choice-count",
@@ -64,6 +72,10 @@ const definitions = [
     title: "타자게임",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     preloadPlayerProgress: true,
+    supportsFiniteQuizQuestions: true,
+    presentQuizQuestion: (item, config) => config["typing-target"] === "meaning"
+      ? { prompt: item.sourceText.replaceAll("/", " "), answer: item.meaning }
+      : { prompt: item.meaning, answer: item.sourceText.replaceAll("/", " ") },
     settings: [
       {
         kind: "select",

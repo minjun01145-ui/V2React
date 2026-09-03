@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { evaluateMultipleChoice, type MultipleChoiceAnswer } from "../../game-engine/question-engine/multiple-choice/index.ts";
 import { useMultiplayerQuestionEngine } from "../../game-engine/question-engine/multiplayer/useMultiplayerQuestionEngine.ts";
+import { usesFiniteQuestionSequence } from "../../game-engine/question-engine/sessionConfig.ts";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { adaptSimpleQuizSet } from "./adapter.ts";
@@ -28,7 +29,7 @@ export function useSimpleQuizGame(input: {
     player,
     questions: questionSet.questions,
     evaluator,
-    repeatQuestions: true,
+    repeatQuestions: !usesFiniteQuestionSequence(session.gameConfig),
     disabled,
     comboScoring: SIMPLE_QUIZ_COMBO_SCORING,
     advanceAfterAnyAnswer: true,

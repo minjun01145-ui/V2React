@@ -2,11 +2,25 @@ export const QUIZ_GAME_SCHEMA_VERSION = 1 as const;
 
 export type QuizGamePhase = "answering" | "submissions" | "leaderboard" | "complete";
 
+export type QuizGameQuestionSource =
+  | { readonly kind: "stored-set"; readonly setId: string | null }
+  | {
+      readonly kind: "custom";
+      readonly setType: "vocabulary" | "reading-chunks";
+      readonly items: readonly QuizGameCustomItem[];
+    };
+
+export interface QuizGameCustomItem {
+  readonly id: string;
+  readonly sourceText: string;
+  readonly meaning: string;
+}
+
 export interface QuizGameRound {
   readonly id: string;
   readonly title: string;
   readonly gameId: string;
-  readonly setId: string | null;
+  readonly source: QuizGameQuestionSource;
   readonly durationSeconds: number;
   readonly gameConfig: Readonly<Record<string, string>>;
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createQuestionDeck } from "../../game-engine/question-engine/questionDeck.ts";
 import { useMultiplayerQuestionEngine } from "../../game-engine/question-engine/multiplayer/useMultiplayerQuestionEngine.ts";
+import { usesFiniteQuestionSequence } from "../../game-engine/question-engine/sessionConfig.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { publishTypingLiveMetric } from "../../multiplayer/live-metrics/repository.ts";
 import { adaptLearningSetToTyping } from "./typingAdapter.ts";
@@ -44,7 +45,7 @@ export function useTypingGame(input: {
     player,
     questions,
     evaluator,
-    repeatQuestions: true,
+    repeatQuestions: !usesFiniteQuestionSequence(session.gameConfig),
     disabled,
   });
   const tracker = useMemo(() => createTypingSpeedTracker(), [player.id, session.roundId]);
