@@ -20,7 +20,7 @@
   color: var(--color-text);
 }
 
-.brandMark { flex: 0 0 auto; width: 3.4rem; height: 3.4rem; }
+.brandMark { flex: 0 0 auto; width: 4.25rem; height: 3.4rem; object-fit: contain; }
 .brand strong { font-size: 1.05rem; font-weight: 700; }
 
 .links {
@@ -51,5 +51,5 @@
 
 @media (max-width: 620px) {
   .nav { align-items: stretch; flex-direction: column; gap: .5rem; }
-  .brand span { display: none; }
+  .brandMark { width: 3.6rem; height: 2.9rem; }
 }

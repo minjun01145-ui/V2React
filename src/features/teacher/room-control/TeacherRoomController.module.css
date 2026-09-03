@@ -3,8 +3,16 @@
 .embeddedHeader h2 { margin: .25rem 0 0; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
 .heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.headingTitle { display: flex; align-items: center; gap: .65rem; min-width: 0; }
 .heading h2 { margin: 0; }
 .count { display: inline-grid; place-content: center; min-width: 2.4rem; height: 2.4rem; border-radius: 999px; background: var(--color-primary-soft); color: #4338ca; font-weight: 900; }
+.studentNumberToggle { display: inline-flex; align-items: center; gap: .55rem; min-height: 2.5rem; padding: .45rem .7rem; border: 1px solid var(--color-border-strong); border-radius: 999px; background: var(--color-surface); color: var(--color-text); font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; transition: border-color 150ms ease, background 150ms ease; }
+.studentNumberToggle:hover { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.studentNumberToggle:focus-visible { outline: 3px solid var(--color-primary-soft); outline-offset: 2px; }
+.toggleTrack { position: relative; width: 2rem; height: 1.15rem; flex: 0 0 auto; border-radius: 999px; background: var(--color-border-strong); transition: background 150ms ease; }
+.toggleThumb { position: absolute; top: .15rem; left: .15rem; width: .85rem; height: .85rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .3); transition: transform 150ms ease; }
+.studentNumberToggle[aria-pressed="true"] .toggleTrack { background: var(--color-primary); }
+.studentNumberToggle[aria-pressed="true"] .toggleThumb { transform: translateX(.85rem); }
 .setPicker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .6fr); gap: 1rem; align-items: end; }
 .quizPicker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 1rem; align-items: end; border-color: #c4b5fd; background: linear-gradient(135deg, var(--color-surface), #f5f3ff); }
 .quizPicker h2 { margin: .25rem 0; }
@@ -22,4 +30,5 @@
 .waitingTypingPicker label { display:grid; gap:.4rem; font-size:.82rem; font-weight:800; }
 .waitingTypingPicker select { width:100%; border:1px solid var(--color-border-strong); border-radius:.75rem; padding:.78rem .85rem; color:var(--color-text); background:var(--color-surface); font:inherit; }
 .waitingTypingPicker select:focus { border-color:#2993c7; outline:3px solid rgba(41,147,199,.14); }
-@media (max-width: 680px) { .setPicker, .quizPicker, .waitingTypingPicker { grid-template-columns: 1fr; } .quizPickerControls { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } }
+@media (max-width: 680px) { .setPicker, .quizPicker, .waitingTypingPicker { grid-template-columns: 1fr; } .quizPickerControls { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } .heading { align-items: flex-start; } }
+@media (prefers-reduced-motion: reduce) { .studentNumberToggle, .toggleTrack, .toggleThumb { transition: none; } }

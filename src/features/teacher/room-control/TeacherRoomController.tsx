@@ -31,6 +31,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
   const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
   const [working, setWorking] = useState(false);
+  const [showStudentNumbers, setShowStudentNumbers] = useState(true);
   const finalizingRound = useRef<string | null>(null);
   const gameSetup = useGameSetup();
   const { requestConfirmation, showMessage } = usePopup();
@@ -110,7 +111,21 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
       {!isPreparing ? <><GameSetupPanel setup={gameSetup} disabled={working} />
       <QuizGameLaunchPanel disabled={working || activePlayers.length === 0} onStart={(plan) => run((id) => startQuizGame(id, plan))} />
       <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working} /></> : null}
-      <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div><PlayerGrid players={activePlayers} showStudentNumber emptyMessage="접속한 학생이 없습니다." /></Card>
+      <Card>
+        <div className={styles.heading}>
+          <div className={styles.headingTitle}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div>
+          <button
+            className={styles.studentNumberToggle}
+            type="button"
+            aria-pressed={showStudentNumbers}
+            onClick={() => setShowStudentNumbers((visible) => !visible)}
+          >
+            <span className={styles.toggleTrack} aria-hidden="true"><span className={styles.toggleThumb} /></span>
+            학번 {showStudentNumbers ? "표시" : "숨김"}
+          </button>
+        </div>
+        <PlayerGrid players={activePlayers} showStudentNumber={showStudentNumbers} emptyMessage="접속한 학생이 없습니다." />
+      </Card>
     </>}
   </>;
 

@@ -109,49 +109,51 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
           <BrandMark className={styles.brandMark} />
         </a>
 
-        <form className={styles.form} onSubmit={(event) => void submitIdentity(event)}>
-          <h2 id="login-title">수업에 참여해요</h2>
-          <p className={styles.sub}>학번과 이름을 입력하면 비밀번호 창이 열려요.</p>
+        <div className={styles.loginPanel}>
+          <form className={styles.form} onSubmit={(event) => void submitIdentity(event)}>
+            <h2 id="login-title">수업에 참여해요</h2>
+            <p className={styles.sub}>학번과 이름을 입력하면 비밀번호 창이 열려요.</p>
 
-          <div className={styles.field}>
-            <label htmlFor="student-number">학번</label>
-            <input
-              id="student-number"
-              name="studentNumber"
-              inputMode="numeric"
-              autoComplete="off"
-              maxLength={12}
-              pattern="[0-9０-９]+"
-              placeholder="예) 20315"
-              value={studentNumber}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setStudentNumber(event.target.value)}
-              disabled={submitting}
-              required
-              autoFocus
-            />
-          </div>
+            <div className={styles.field}>
+              <label htmlFor="student-number">학번</label>
+              <input
+                id="student-number"
+                name="studentNumber"
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={12}
+                pattern="[0-9０-９]+"
+                placeholder="예) 20315"
+                value={studentNumber}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => setStudentNumber(event.target.value)}
+                disabled={submitting}
+                required
+                autoFocus
+              />
+            </div>
 
-          <div className={styles.field}>
-            <label htmlFor="student-name">이름</label>
-            <input
-              id="student-name"
-              name="name"
-              autoComplete="name"
-              maxLength={30}
-              placeholder="이름"
-              value={name}
-              onChange={(event: ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
-              disabled={submitting}
-              required
-            />
-          </div>
+            <div className={styles.field}>
+              <label htmlFor="student-name">이름</label>
+              <input
+                id="student-name"
+                name="name"
+                autoComplete="name"
+                maxLength={30}
+                placeholder="이름"
+                value={name}
+                onChange={(event: ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
+                disabled={submitting}
+                required
+              />
+            </div>
 
-          {error ? <p className={styles.error} role="alert">{error}</p> : null}
+            {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
-          <Button type="submit" full disabled={submitting}>{submitting ? "확인 중…" : "로그인"}</Button>
-        </form>
+            <Button type="submit" full disabled={submitting}>{submitting ? "확인 중…" : "로그인"}</Button>
+          </form>
 
-        <a className={styles.adminLink} href={teacherUrl(roomId)}>교사용 관리자 페이지 →</a>
+          <a className={styles.adminLink} href={teacherUrl(roomId)}>교사용 관리자 페이지 →</a>
+        </div>
       </div>
     </main>
   );
