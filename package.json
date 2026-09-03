@@ -21,7 +21,7 @@
     "check:architecture": "node scripts/check-architecture.mjs",
     "check": "npm run typecheck && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:timed-game && npm run test:effects && npm run test:scoring && npm run test:multiple-choice && npm run test:games && npm run test:routing && npm run test:student-session && npm run test:presence && npm run test:reconnect && npm run test:multiplayer-progress && npm run test:retry-idempotency && npm run test:auth && npm run test:popup && npm run test:sets && npm run test:ai && npm run test:test-tool",
     "test": "npm run check",
-    "test:routing": "node --experimental-strip-types tests/teacher-route-smoke.ts",
+    "test:routing": "node --experimental-strip-types tests/teacher-route-smoke.ts && node --experimental-strip-types tests/quiz-game-model.test.ts",
     "test:student-session": "node --experimental-strip-types tests/student-session-state.test.ts",
     "test:presence": "node --experimental-strip-types tests/multiplayer-presence.test.ts && node --experimental-strip-types tests/multiplayer-readiness.test.ts",
     "test:reconnect": "node --experimental-strip-types tests/multiplayer-reconnect.test.ts",

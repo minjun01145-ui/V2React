@@ -1,4 +1,5 @@
 import type { SessionStatus } from "./constants.ts";
+import type { QuizGameSessionState } from "../quiz-game/types.ts";
 
 export interface Player {
   readonly id: string;
@@ -24,6 +25,7 @@ export interface GameSession {
   readonly updatedAtMs: number | null;
   readonly startedAtMs: number | null;
   readonly expectedPlayerIds: readonly string[];
+  readonly quizGame?: QuizGameSessionState | null;
 }
 
 export type PlayerAvatar =

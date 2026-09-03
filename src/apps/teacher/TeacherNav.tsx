@@ -8,6 +8,7 @@ const items: readonly { readonly view: TeacherView; readonly label: string }[] =
   { view: TEACHER_VIEW.LOBBY, label: "게임 대기실" },
   { view: TEACHER_VIEW.STUDENTS, label: "학생 관리" },
   { view: TEACHER_VIEW.SETS, label: "학습 세트" },
+  { view: TEACHER_VIEW.QUIZ_GAME, label: "퀴즈게임" },
   { view: TEACHER_VIEW.AI, label: "AI API" },
   { view: TEACHER_VIEW.TEST_TOOL, label: "테스트 툴" },
   { view: TEACHER_VIEW.SETTINGS, label: "설정" },

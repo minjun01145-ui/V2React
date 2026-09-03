@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import type { ActiveGameSession } from "../../multiplayer/types.ts";
+import type { GameSession } from "../../multiplayer/types.ts";
 import { timedGameClockSnapshot } from "./clock.ts";
 import { readTimedGameConfig } from "./config.ts";
 
-export function useTimedGameClock(session: ActiveGameSession) {
+export function useTimedGameClock(session: Pick<GameSession, "gameConfig" | "roundId" | "startedAtMs">) {
   const config = useMemo(() => readTimedGameConfig(session.gameConfig), [session.gameConfig]);
   const [nowMs, setNowMs] = useState(Date.now());
 

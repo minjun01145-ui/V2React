@@ -1,0 +1,5 @@
+.runtime { display: grid; gap: 1rem; }
+.runtime > header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem .8rem; align-items: center; padding: .8rem 1rem; border-radius: .85rem; color: white; background: linear-gradient(135deg, #4338ca, #7c3aed); }
+.runtime > header span { overflow: hidden; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.runtime > header strong { grid-row: 1 / 3; grid-column: 2; font-size: 1.2rem; }
+.runtime > header small { opacity: .82; }

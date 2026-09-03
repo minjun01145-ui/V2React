@@ -1,0 +1,13 @@
+.runtime { display: grid; gap: 1rem; }
+.header { padding: 1rem 1.2rem; border-radius: 1rem; color: white; background: linear-gradient(135deg, #4338ca, #7c3aed); }
+.header span { font-size: .78rem; font-weight: 900; letter-spacing: .08em; }
+.header h1 { margin: .25rem 0; }
+.header p { margin: 0; opacity: .82; }
+.submissionGrid, .ranking { display: grid; gap: .5rem; }
+.submissionGrid > div, .ranking > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .7rem; align-items: center; padding: .7rem; border: 1px solid var(--color-border); border-radius: .65rem; }
+.submissionGrid > div[data-submitted="true"] { border-color: #22c55e; background: color-mix(in srgb, #22c55e 9%, transparent); }
+.submissionGrid span { color: var(--color-muted); font-weight: 800; }
+.ranking > div { grid-template-columns: 2rem minmax(0, 1fr) auto auto; }
+.ranking b { color: var(--color-primary); font-size: 1.1rem; }
+.ranking span { color: var(--color-muted); }
+.ranking em { font-style: normal; font-weight: 900; }

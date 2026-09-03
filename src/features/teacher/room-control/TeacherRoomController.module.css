@@ -6,6 +6,11 @@
 .heading h2 { margin: 0; }
 .count { display: inline-grid; place-content: center; min-width: 2.4rem; height: 2.4rem; border-radius: 999px; background: var(--color-primary-soft); color: #4338ca; font-weight: 900; }
 .setPicker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .6fr); gap: 1rem; align-items: end; }
+.quizPicker { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .8fr); gap: 1rem; align-items: end; border-color: #c4b5fd; background: linear-gradient(135deg, var(--color-surface), #f5f3ff); }
+.quizPicker h2 { margin: .25rem 0; }
+.quizPickerControls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .55rem; align-items: end; }
+.quizPickerControls label { display: grid; gap: .4rem; font-size: .82rem; font-weight: 800; }
+.quizPickerControls select { width: 100%; border: 1px solid var(--color-border-strong); border-radius: .75rem; padding: .78rem .85rem; color: var(--color-text); background: var(--color-surface); font: inherit; }
 .setPicker h2 { margin: .25rem 0; }
 .setPicker label { display: grid; gap: .4rem; font-size: .82rem; font-weight: 800; }
 .setPicker select { width: 100%; border: 1px solid var(--color-border-strong); border-radius: .75rem; padding: .78rem .85rem; color: var(--color-text); background: var(--color-surface); font: inherit; }
@@ -17,4 +22,4 @@
 .waitingTypingPicker label { display:grid; gap:.4rem; font-size:.82rem; font-weight:800; }
 .waitingTypingPicker select { width:100%; border:1px solid var(--color-border-strong); border-radius:.75rem; padding:.78rem .85rem; color:var(--color-text); background:var(--color-surface); font:inherit; }
 .waitingTypingPicker select:focus { border-color:#2993c7; outline:3px solid rgba(41,147,199,.14); }
-@media (max-width: 680px) { .setPicker, .waitingTypingPicker { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } }
+@media (max-width: 680px) { .setPicker, .quizPicker, .waitingTypingPicker { grid-template-columns: 1fr; } .quizPickerControls { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } }

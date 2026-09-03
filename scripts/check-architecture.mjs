@@ -148,6 +148,10 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: learning set domain must not depend on app, feature, game, or multiplayer layers (${specifier})`);
     }
 
+    if (rel.startsWith("src/quiz-game/") && (specifier === "react" || specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
+      violations.push(`${rel}: quiz game plan domain must not depend on React, app, feature, concrete game, or multiplayer layers (${specifier})`);
+    }
+
     if (rel.startsWith("src/characters/") &&
         (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/apps/") ||
          specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/") ||

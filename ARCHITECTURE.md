@@ -58,6 +58,22 @@ features/student               features/teacher
 31. 브라우저 lifecycle은 room membership 삭제 명령이 아닙니다. 새로고침·탭 종료·background·일시적 단절은 heartbeat만 stale하게 만들며, 명시적 학생 변경/로그아웃/나가기 또는 관리자 작업만 membership을 삭제합니다.
 32. 라운드 순위의 참가자 source는 `round participants`이며 presence roster가 아닙니다. participant는 게임별 진행 상태를 갖지 않고, 점수와 완료 항목은 계속 `multiplayer/game-progress`가 소유합니다.
 33. 캐릭터 정적 카탈로그는 `characters`, 학생별 캐릭터·포켓몬 장착 상태는 `student-data/cosmetics`, 대기실 표시와 선택 UI는 `features/student/shop`이 각각 소유합니다. 구매·재화 책임은 해당 기능을 실제로 만들기 전까지 이 모듈들에 추가하지 않습니다.
+34. `quiz-game`은 기존 게임을 순서대로 실행하는 계획과 상태만 소유합니다. 문제 생성·채점·학생 진행도는 선택된 `games/<game-id>`와 기존 engine/progress 계층을 그대로 사용합니다.
+
+## Quiz game orchestration
+
+```text
+features/teacher/quiz-game editor → quiz-game plan repository
+                                      ↓ plan snapshot
+features/teacher/room-control → multiplayer session.quizGame
+                                      ↓ current gameId/config
+                          games registry + GameHost
+                             ↙                    ↘
+             teacher quiz runtime          student quiz runtime
+             submissions/ranking           answer/wait screens
+```
+
+퀴즈 계획은 라운드별 `gameId`, `setId`, 제한 시간, registry가 제공한 엔진 설정값만 저장합니다. 실행 시 계획을 방 세션에 스냅샷으로 고정해 편집 중인 원본과 진행 중 수업이 섞이지 않게 합니다. 답안 단계에서는 기존 게임 UI와 progress 저장을 그대로 사용하고, 마감 이후에는 세션 phase로 학생 입력을 내리며 보안 규칙도 progress 쓰기를 차단합니다. 라운드 간 점수 집계는 각 runtime round의 기존 progress 문서를 읽어 누적합니다.
 
 ## Persistent student game data
 

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import GameHost from "../../../games/GameHost.tsx";
+import TeacherQuizGameRuntime from "../quiz-game-runtime/TeacherQuizGameRuntime.tsx";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayers, useRoundReadiness, useSession } from "../../../multiplayer/hooks.ts";
 import { countExpectedReady } from "../../../multiplayer/round-readiness/model.ts";
-import { finalizeSessionStart, resetSession, startSession } from "../../../multiplayer/repository.ts";
+import { finalizeSessionStart, resetSession, startQuizGame, startSession } from "../../../multiplayer/repository.ts";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
@@ -15,6 +16,7 @@ import { GameSetupPanel } from "./GameSetupPanel.tsx";
 import styles from "./TeacherRoomController.module.css";
 import { useGameSetup } from "./useGameSetup.ts";
 import WaitingTypingSetupPanel from "./WaitingTypingSetupPanel.tsx";
+import QuizGameLaunchPanel from "./QuizGameLaunchPanel.tsx";
 
 type RoomAction = (roomId: string) => Promise<void>;
 
@@ -101,12 +103,13 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const content = <>
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
-    {isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : <>
+    {isPlaying && session ? (session.quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : <>
       <StatusPanel title={isPreparing ? "게임 접속 확인 중" : "학생 대기 중"} tone="waiting">
         {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
       </StatusPanel>
-      <GameSetupPanel setup={gameSetup} disabled={working || isPreparing} />
-      <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working || isPreparing} />
+      {!isPreparing ? <><GameSetupPanel setup={gameSetup} disabled={working} />
+      <QuizGameLaunchPanel disabled={working || activePlayers.length === 0} onStart={(plan) => run((id) => startQuizGame(id, plan))} />
+      <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working} /></> : null}
       <Card><div className={styles.heading}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div><PlayerGrid players={activePlayers} showStudentNumber emptyMessage="접속한 학생이 없습니다." /></Card>
     </>}
   </>;

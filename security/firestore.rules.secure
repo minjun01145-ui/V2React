@@ -115,7 +115,9 @@ service cloud.firestore {
     function activeRound(roomId, roundId) {
       return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "playing"
-        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId;
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId
+        && (!("quizGame" in get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data)
+          || get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.quizGame.phase == "answering");
     }
 
     function preparingRound(roomId, roundId) {
@@ -230,6 +232,10 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isAdmin();
       }
+    }
+
+    match /quizGamePlans/{planId} {
+      allow read, create, update, delete: if isAdmin();
     }
 
     match /studentGameData/{accountId}/cosmetics/profile {

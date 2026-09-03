@@ -1,4 +1,4 @@
-import { collection, doc, onSnapshot, runTransaction, serverTimestamp, type DocumentData, type Unsubscribe } from "firebase/firestore";
+import { collection, doc, getDocs, onSnapshot, runTransaction, serverTimestamp, type DocumentData, type Unsubscribe } from "firebase/firestore";
 import type { AnswerResult } from "../../game-engine/core/types.ts";
 import { createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import { db } from "../../firebase/firebaseClient.ts";
@@ -267,4 +267,10 @@ export function subscribeRoundProgress(roomId: string, roundId: string, onValue:
     onValue(snapshot.docs.map((progressDoc) => parseRoundProgress(progressDoc.id, progressDoc.data()))
       .filter((item): item is RoundProgressRecord => item !== null));
   }, onError);
+}
+
+export async function loadRoundProgress(roomId: string, roundId: string): Promise<readonly RoundProgressRecord[]> {
+  const snapshot = await getDocs(collection(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "progress"));
+  return snapshot.docs.map((progressDoc) => parseRoundProgress(progressDoc.id, progressDoc.data()))
+    .filter((item): item is RoundProgressRecord => item !== null);
 }

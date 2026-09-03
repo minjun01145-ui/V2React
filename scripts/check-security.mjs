@@ -72,6 +72,9 @@ if (!rules.includes("aiProviderConfigs") || !rules.includes("allow read, write: 
 if (!rules.includes("match /learningSets/{setId}") || !rules.includes("publicLearningSetRead()") || !rules.includes("allow create, update, delete: if isAdmin()")) {
   violations.push("security/firestore.rules.secure: learning sets must be public-read and admin-write");
 }
+if (!rules.includes("match /quizGamePlans/{planId}") || !rules.includes("allow read, create, update, delete: if isAdmin()")) {
+  violations.push("security/firestore.rules.secure: quiz game plans must be admin-only");
+}
 
 const aiCallables = read("functions/src/ai/callables.ts");
 const aiSecretStore = read("functions/src/ai/secretStore.ts");

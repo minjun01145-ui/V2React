@@ -37,6 +37,10 @@ export function timedGameConfig(mode: TimedGameMode): TimedGameConfig {
 }
 
 export function readTimedGameConfig(gameConfig: Readonly<Record<string, unknown>> | null): TimedGameConfig {
+  const quizDuration = gameConfig?.quizRoundDurationMs;
+  if (typeof quizDuration === "number" && Number.isInteger(quizDuration) && quizDuration >= 10_000 && quizDuration <= 600_000) {
+    return { mode: TIMED_GAME_MODE.UNLIMITED, durationMs: quizDuration };
+  }
   const mode = gameConfig?.timedGameMode;
   return timedGameConfig(isTimedGameMode(mode) ? mode : DEFAULT_TIMED_GAME_MODE);
 }
