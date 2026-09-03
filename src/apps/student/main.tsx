@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { installDeploymentRecovery } from "../../app/installDeploymentRecovery.ts";
 import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
 import "../../styles/tokens.css";
 import "../../styles/reset.css";
@@ -7,6 +8,8 @@ import "../../styles/global.css";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) throw new Error("#root element not found");
+
+installDeploymentRecovery();
 
 const root = createRoot(rootElement);
 root.render(<StrictMode><AuthStatusPage eyebrow="JURYE" title="수업을 준비하고 있어요" message="잠시만 기다려 주세요." /></StrictMode>);
