@@ -80,6 +80,8 @@ const simpleQuiz = getGame("simple-quiz");
 assert.equal(simpleQuiz.title, "심플퀴즈");
 assert.equal(simpleQuiz.settings[0]?.key, "choice-count");
 assert.equal(simpleQuiz.settings[0]?.defaultValue, "4");
+const pokemonCatch = getGame("pokemon-catch");
+assert.equal(pokemonCatch.timing, "timed", "포켓몬 잡기는 공용 시간제 게임 계약을 사용해야 합니다.");
 const invalidGame = {
   id: "Bad Game",
   title: "x",

@@ -23,6 +23,7 @@ const definitions = [
   defineGame({
     id: "pokemon-catch",
     title: "포켓몬 잡기",
+    timing: "timed",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     requiresStoredSet: true,
     preloadPlayerProgress: true,

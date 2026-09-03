@@ -149,17 +149,6 @@
 .collectionGrid small { margin-top: 3px; color: #e7464d; font-weight: 800; }
 .emptyCollection { padding: 35px 10px; text-align: center; color: #738185; }
 .loadingPage { min-height: 360px; display: grid; place-content: center; font-weight: 800; }
-.teacherView { display: grid; gap: 16px; }
-.teacherStats { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
-.teacherStats div { display: grid; gap: 4px; padding: 18px; border: 1px solid #eadfd5; border-radius: 16px; background: #fffaf2; }
-.teacherStats span { color: #7a6f69; font-size: .75rem; font-weight: 800; }
-.teacherStats strong { font-size: 1.8rem; }
-.teacherTitle { margin: 5px 0 18px; }
-.answerFeed { display: grid; gap: 8px; }
-.answerFeed > div { display: grid; grid-template-columns: 1.2fr 2fr auto auto; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 11px; background: #f8faf9; }
-.answerFeed b { color: #bd383e; }
-.answerFeed b[data-correct="true"] { color: #267a43; }
-.answerFeed small { color: #6b7779; }
 @keyframes appear { from { opacity: 0; transform: translateY(-35px) scale(.72); } }
 @keyframes caughtBounce { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
 @keyframes wriggle { 0%,68%,100% { transform: translate(0,0) rotate(0); } 73% { transform: translate(-5px,-4px) rotate(-3deg); } 78% { transform: translate(6px,0) rotate(3deg); } 83% { transform: translate(-3px,-7px) rotate(-2deg); } 88% { transform: translate(3px,0) rotate(1deg); } 93% { transform: translate(0,0) rotate(0); } }
@@ -189,7 +178,4 @@
   .itemGrid > div { grid-template-columns: 42px 1fr auto; }
   .itemGrid > div > button { grid-column: 2 / -1; }
   .options { grid-template-columns: 1fr; }
-  .teacherStats { grid-template-columns: 1fr 1fr; }
-  .answerFeed > div { grid-template-columns: 1fr auto; }
-  .answerFeed span { grid-column: 1 / -1; grid-row: 2; }
 }
