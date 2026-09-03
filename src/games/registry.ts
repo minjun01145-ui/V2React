@@ -5,7 +5,6 @@ const definitions = [
     id: "ai-tutor",
     title: "AI 문답",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
-    timing: "untimed",
     requiresStoredSet: true,
     preloadPlayerProgress: true,
     settings: [{
@@ -25,7 +24,6 @@ const definitions = [
     id: "pokemon-catch",
     title: "포켓몬 잡기",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
-    timing: "untimed",
     requiresStoredSet: true,
     preloadPlayerProgress: true,
     prepareStudent: async (context) => {

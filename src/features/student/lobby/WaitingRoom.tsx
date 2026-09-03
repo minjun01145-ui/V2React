@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState } from "react";
-import { parseWaitingTypingConfig } from "../../../games/typing/waitingTypingConfig.ts";
+import { createWaitingTypingConfig, parseWaitingTypingConfig } from "../../../games/typing/waitingTypingConfig.ts";
+import { typingDemoSet } from "../../../games/typing/demoSet.ts";
 import { usePlayers } from "../../../multiplayer/hooks.ts";
 import type { GameSession } from "../../../multiplayer/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
@@ -24,7 +25,8 @@ interface Props {
 export default function WaitingRoom({ roomId, session, selfStudentNumber, displayName, nickname, uid }: Props) {
   const { activePlayers } = usePlayers(roomId);
   const [typingOpen, setTypingOpen] = useState(false);
-  const typingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
+  const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
+  const typingConfig = savedTypingConfig ?? createWaitingTypingConfig(typingDemoSet.id);
   if (typingOpen && typingConfig) {
     return <Suspense fallback={<StatusPanel title="타자 연습 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}><TypingPracticeGame config={typingConfig} onExit={() => setTypingOpen(false)} /></Suspense>;
   }
@@ -36,8 +38,8 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
         <PlayerGrid players={activePlayers} selfStudentNumber={selfStudentNumber} />
       </Card>
       <div className={styles.actions}>
-        <TypingGameButton disabled={!typingConfig} onClick={() => setTypingOpen(true)} />
-        {!typingConfig ? <p className={styles.activityHint}>선생님이 타자 연습 세트를 선택하면 시작할 수 있어요.</p> : null}
+        <TypingGameButton onClick={() => setTypingOpen(true)} />
+        {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
       </div>
       <Card className={styles.shopCard}>
         <CharacterShop identity={{ uid, studentNumber: selfStudentNumber }} />

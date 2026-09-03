@@ -3,8 +3,8 @@ import { getLearningSet } from "../../learning-sets/readRepository.ts";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Button from "../../shared/ui/Button.tsx";
-import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { adaptLearningSetToTypingPractice } from "./typingPracticeAdapter.ts";
+import { typingDemoSet } from "./demoSet.ts";
 import { useTypingPracticeGame } from "./useTypingPracticeGame.ts";
 import type { WaitingTypingConfig } from "./waitingTypingConfig.ts";
 import styles from "./TypingPractice.module.css";
@@ -19,11 +19,21 @@ export default function TypingPracticeGame({ config, onExit }: Props) {
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
+    if (config.setId === typingDemoSet.id) {
+      setSet(typingDemoSet);
+      setError("");
+      return () => { active = false; };
+    }
     setSet(null);
     setError("");
     void getLearningSet(config.setId, `waiting-typing:${config.setId}`)
       .then((value) => { if (active) setSet(value); })
-      .catch((value: unknown) => { if (active) setError(toErrorMessage(value, "타자 연습 세트를 불러오지 못했습니다.")); });
+      .catch((value: unknown) => {
+        if (!active) return;
+        console.error(value);
+        setSet(typingDemoSet);
+        setError("");
+      });
     return () => { active = false; };
   }, [config.setId]);
 

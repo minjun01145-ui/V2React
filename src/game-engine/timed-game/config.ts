@@ -13,7 +13,7 @@ export interface TimedGameModeOption {
 }
 
 export const TIMED_GAME_MODE_OPTIONS: readonly TimedGameModeOption[] = Object.freeze([
-  { mode: TIMED_GAME_MODE.UNLIMITED, label: "무제한", durationMs: null },
+  { mode: TIMED_GAME_MODE.UNLIMITED, label: "무제한 (교사가 종료)", durationMs: null },
   { mode: TIMED_GAME_MODE.THREE_MINUTES, label: "3분", durationMs: 3 * 60 * 1_000 },
   { mode: TIMED_GAME_MODE.FIVE_MINUTES, label: "5분", durationMs: 5 * 60 * 1_000 },
 ]);

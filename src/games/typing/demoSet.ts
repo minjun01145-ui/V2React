@@ -11,8 +11,8 @@ export const typingDemoSet: LearningSet = {
     ["Hello, world!", "안녕, 세상아!"],
     ["I like reading books.", "나는 책 읽는 것을 좋아해요."],
     ["Practice makes progress.", "연습은 발전을 만들어요."],
-    ["오늘도 즐겁게 공부해요.", "Let's enjoy studying today."],
-    ["한 걸음씩 천천히 가요.", "Take it one step at a time."],
+    ["Let's enjoy studying today.", "오늘도 즐겁게 공부해요."],
+    ["Take it one step at a time.", "한 걸음씩 천천히 가요."],
     ["You can do it!", "할 수 있어요!"],
   ].map(([sourceText, meaning], index) => ({
     id: `typing-demo-${index + 1}`,

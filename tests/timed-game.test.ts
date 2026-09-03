@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { formatClock, timedGameClockSnapshot } from "../src/game-engine/timed-game/clock.ts";
-import { DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE, readTimedGameConfig, timedGameConfig, withTimedGameConfig } from "../src/game-engine/timed-game/config.ts";
+import { DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE, TIMED_GAME_MODE_OPTIONS, readTimedGameConfig, timedGameConfig, withTimedGameConfig } from "../src/game-engine/timed-game/config.ts";
 import { createLeaderboard } from "../src/game-engine/timed-game/leaderboard.ts";
 import { moveToNextQuestion } from "../src/game-engine/question-engine/progress.ts";
 import type { GameProgress } from "../src/game-engine/question-engine/types.ts";
@@ -8,8 +8,11 @@ import type { RoundProgressRecord } from "../src/multiplayer/game-progress/types
 import type { RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
 import { millisecondsUntilRoundStart, roundStartCountdownValue } from "../src/multiplayer/startSchedule.ts";
 import { resolveSessionStartedAtMs } from "../src/multiplayer/types.ts";
+import { listGames } from "../src/games/registry.ts";
 
 assert.equal(DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE.THREE_MINUTES);
+assert.ok(TIMED_GAME_MODE_OPTIONS.some((option) => option.mode === TIMED_GAME_MODE.UNLIMITED && option.durationMs === null));
+assert.ok(listGames().filter((game) => game.supportedSetTypes.length > 0).every((game) => game.timing === "timed"), "선택 가능한 모든 게임은 무제한을 포함한 공통 시간 설정을 제공해야 합니다.");
 assert.deepEqual(timedGameConfig(TIMED_GAME_MODE.UNLIMITED), { mode: "unlimited", durationMs: null });
 assert.equal(readTimedGameConfig(null).durationMs, 180_000);
 assert.equal(readTimedGameConfig(withTimedGameConfig({ setId: "set-1" }, TIMED_GAME_MODE.FIVE_MINUTES)).durationMs, 300_000);

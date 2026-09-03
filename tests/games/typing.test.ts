@@ -16,6 +16,7 @@ import { createTypingLeaderboard } from "../../src/games/typing/typingLeaderboar
 import { adaptLearningSetToTypingPractice } from "../../src/games/typing/typingPracticeAdapter.ts";
 import { ACID_RAIN_MAX_STAGE, getAcidRainStageRule } from "../../src/games/typing/acidRainEngine.ts";
 import { createWaitingTypingConfig, parseWaitingTypingConfig } from "../../src/games/typing/waitingTypingConfig.ts";
+import { typingDemoSet } from "../../src/games/typing/demoSet.ts";
 import type { RoundLiveMetricRecord } from "../../src/multiplayer/live-metrics/types.ts";
 import type { RoundParticipant } from "../../src/multiplayer/round-participants/model.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
@@ -96,6 +97,7 @@ assert.deepEqual(parseWaitingTypingConfig(createWaitingTypingConfig("set-1")), {
   ignoreCase: true,
   ignorePunctuation: true,
 });
+assert.ok(typingDemoSet.items.every((item) => /[A-Za-z]/.test(item.sourceText)), "기본 대기실 타자 세트는 모두 영어 입력이어야 합니다.");
 assert.deepEqual(parseTypingGameOptions({ "typing-target": "meaning", "ignore-case": "yes", "ignore-punctuation": "yes" }), {
   target: "meaning",
   ignoreCase: true,
