@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { auth } from "../../firebase/firebaseClient.ts";
-import { equipCharacter, subscribeStudentCosmetics } from "./repository.ts";
-import { EMPTY_STUDENT_COSMETICS, type StudentCosmetics } from "./types.ts";
+import { equipCharacter, equipPokemon, subscribeStudentCosmetics } from "./repository.ts";
+import { EMPTY_STUDENT_COSMETICS, type EquippedPokemonAvatar, type StudentCosmetics } from "./types.ts";
 
 interface StudentAccount {
   readonly uid: string;
@@ -46,9 +46,13 @@ export function useStudentCosmetics({ uid, studentNumber }: StudentAccount) {
     });
   }, [accountId]);
 
-  const equip = useCallback((characterId: string) => accountId
+  const equipStudentCharacter = useCallback((characterId: string) => accountId
     ? equipCharacter(accountId, characterId)
     : Promise.reject(new Error("학생 상점 정보를 준비하는 중입니다.")), [accountId]);
 
-  return { cosmetics, loading, error, equip } as const;
+  const equipCapturedPokemon = useCallback((pokemon: EquippedPokemonAvatar) => accountId
+    ? equipPokemon(accountId, pokemon)
+    : Promise.reject(new Error("학생 상점 정보를 준비하는 중입니다.")), [accountId]);
+
+  return { cosmetics, loading, error, equipStudentCharacter, equipCapturedPokemon } as const;
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { captureChance, captureChancePercent, didCapture } from "../../src/games/pokemon-catch/captureRules.ts";
+import { CAPTURE_REVEAL_DELAY_MS, CAPTURE_SHAKE_INTERVAL_MS, captureAnimationPlan } from "../../src/games/pokemon-catch/captureAnimation.ts";
 import { encounterId, isFireRedWildEncounter } from "../../src/games/pokemon-catch/encounterRules.ts";
 import { POKEMON_ITEMS, rewardItem } from "../../src/games/pokemon-catch/itemRules.ts";
 import { POKEMON_ITEM } from "../../src/student-data/pokemon-catch/types.ts";
@@ -19,6 +20,17 @@ assert.equal(captureChancePercent(.004), 1);
 assert.equal(captureChancePercent(.426), 43);
 assert.equal(didCapture(.5, .49), true);
 assert.equal(didCapture(.5, .5), false);
+assert.deepEqual(captureAnimationPlan(.5, .49, 0), {
+  captured: true,
+  shakeCount: 3,
+  durationMs: 3 * CAPTURE_SHAKE_INTERVAL_MS + CAPTURE_REVEAL_DELAY_MS,
+});
+assert.deepEqual(captureAnimationPlan(.5, .5, 0), {
+  captured: false,
+  shakeCount: 1,
+  durationMs: CAPTURE_SHAKE_INTERVAL_MS + CAPTURE_REVEAL_DELAY_MS,
+});
+assert.equal(captureAnimationPlan(0, .9, .999).shakeCount, 3);
 assert.equal(rewardItem(0), POKEMON_ITEM.POKE_BALL);
 assert.equal(rewardItem(.349), POKEMON_ITEM.POKE_BALL);
 assert.equal(rewardItem(.35), POKEMON_ITEM.SLEEP_SPRAY);

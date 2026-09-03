@@ -17,5 +17,5 @@ export interface PokemonEncounter extends PokemonProfile {
 }
 
 export type EncounterLoadStatus = "loading" | "ready" | "error";
-export type EncounterActionPhase = "ready" | "throwing" | "failed" | "caught" | "escaped";
+export type EncounterActionPhase = "ready" | "throwing" | "shaking" | "failed" | "caught" | "escaped";
 export type EncounterPhase = "loading" | EncounterActionPhase | "error";

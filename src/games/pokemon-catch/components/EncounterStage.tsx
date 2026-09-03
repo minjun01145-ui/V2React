@@ -10,13 +10,14 @@ interface Props {
   readonly secondsRemaining: number;
   readonly timerMaximum: number;
   readonly remainingMs: number;
+  readonly shakeCount: 1 | 2 | 3;
   readonly captureForecasts: readonly { readonly label: string; readonly percent: number }[];
   readonly loadError: string;
   readonly onReload: () => void;
 }
 
-export function EncounterStage({ encounter, encounterStatus, phase, asleep, secondsRemaining, timerMaximum, remainingMs, captureForecasts, loadError, onReload }: Props) {
-  return <main className={styles.field} data-phase={phase}>
+export function EncounterStage({ encounter, encounterStatus, phase, asleep, secondsRemaining, timerMaximum, remainingMs, shakeCount, captureForecasts, loadError, onReload }: Props) {
+  return <main className={styles.field} data-phase={phase} data-shakes={shakeCount}>
     <div className={styles.skyGlow} />
     <div className={styles.encounterCard}>
       <span>{encounter ? `No.${String(encounter.id).padStart(3, "0")}` : "SEARCHING"}</span>
@@ -36,6 +37,7 @@ export function EncounterStage({ encounter, encounterStatus, phase, asleep, seco
     <div className={styles.pokemonStage}>
       {encounter ? <PokemonSprite className={styles.pokemon} pokemon={encounter} alt={encounter.name} /> : null}
       {phase === "loading" ? <div className={styles.scanner}>탐색 중</div> : null}
+      {phase === "shaking" ? <div className={styles.captureTension}>잡힐까…?</div> : null}
       {phase === "error" ? <div className={styles.apiError}><strong>연결 실패</strong><span>{loadError}</span><button type="button" onClick={onReload}>다시 불러오기</button></div> : null}
       <div className={styles.shadow} /><div className={styles.ball} aria-hidden="true"><i /></div>
       {phase === "caught" ? <div className={styles.resultBurst}>GET!</div> : null}

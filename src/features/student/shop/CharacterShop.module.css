@@ -3,6 +3,7 @@
 .currentCharacter span { display: grid; gap: .1rem; }
 .currentCharacter small { color: var(--color-muted); font-size: .72rem; }
 .currentCharacter strong { overflow: hidden; font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
+.currentPokemon { width: 3.25rem; height: 3.25rem; object-fit: contain; image-rendering: pixelated; }
 .noCharacter { margin: 0; color: var(--color-muted); font-size: .85rem; }
 
 .dialog {
@@ -25,6 +26,10 @@
 .close { width: 2.5rem; height: 2.5rem; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface-muted); color: var(--color-text); font-size: 1.45rem; line-height: 1; }
 .close:hover { background: var(--color-primary-soft); }
 .notice { margin: 0 0 1rem; border-radius: var(--radius-md); padding: .7rem .85rem; background: var(--color-primary-soft); color: var(--color-primary-text); font-size: .85rem; }
+.tabs { display: flex; gap: .4rem; margin: 0 0 1rem; border-radius: .85rem; padding: .3rem; background: var(--color-surface-muted); }
+.tabs button { flex: 1; border: 0; border-radius: .65rem; padding: .7rem .8rem; color: var(--color-muted); background: transparent; font-weight: 800; }
+.tabs button[aria-selected="true"] { color: var(--color-primary-text); background: var(--color-surface); box-shadow: 0 2px 8px rgba(15, 23, 42, .1); }
+.tabs span { display: inline-grid; min-width: 1.35rem; min-height: 1.35rem; margin-left: .2rem; place-items: center; border-radius: 999px; background: var(--color-primary-soft); font-size: .72rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 .item { overflow: hidden; border: 1px solid var(--color-border); border-radius: 1rem; background: var(--color-surface); transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease; }
 .item:hover { transform: translateY(-2px); border-color: var(--color-border-strong); box-shadow: var(--shadow-card); }
@@ -32,10 +37,15 @@
 .stage { position: relative; display: grid; min-height: 10rem; place-items: center; background: linear-gradient(145deg, #eef2ff, #f8fafc 58%, #fff7ed); }
 .stage::after { position: absolute; right: 18%; bottom: 1rem; left: 18%; height: .65rem; border-radius: 50%; background: rgba(15, 23, 42, .12); content: ""; filter: blur(3px); }
 .stage > :not(.badge) { z-index: 1; }
+.pokemonStage { background: linear-gradient(145deg, #e0f2fe, #f0fdf4 58%, #fefce8); }
+.pokemonSprite { z-index: 1; width: 8.5rem; height: 8.5rem; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 8px 3px rgba(15, 23, 42, .15)); }
 .badge { position: absolute; z-index: 2; top: .7rem; right: .7rem; border-radius: 999px; padding: .3rem .55rem; background: var(--color-primary); color: white; font-size: .7rem; font-weight: 800; }
 .itemBody { display: grid; gap: .85rem; padding: 1rem; }
 .itemBody h3 { margin: 0; font-size: 1rem; }
 .itemBody p { margin: .2rem 0 0; color: var(--color-muted); font-size: .8rem; }
+.emptyPokemon { display: grid; min-height: 13rem; place-content: center; text-align: center; }
+.emptyPokemon strong { font-size: 1rem; }
+.emptyPokemon p { margin: .4rem 0 0; color: var(--color-muted); font-size: .85rem; }
 
 @media (max-width: 560px) {
   .launcher { align-items: stretch; flex-direction: column; }

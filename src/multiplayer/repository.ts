@@ -21,7 +21,7 @@ import { canStartSession, MULTIPLAYER_COLLECTION, ROUND_START_COUNTDOWN_MS, SESS
 import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
 import { roundParticipantRef } from "./round-participants/repository.ts";
-import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type StartSessionOptions } from "./types.ts";
+import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type PlayerAvatar, type StartSessionOptions } from "./types.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -54,6 +54,26 @@ function stringArray(value: unknown): string[] {
 
 function parseGameConfig(value: unknown): Readonly<Record<string, unknown>> | null {
   return isRecord(value) ? value : null;
+}
+
+function parsePlayerAvatar(value: unknown): PlayerAvatar | null {
+  if (!isRecord(value)) return null;
+  if (value.kind === "character" && typeof value.characterId === "string" && value.characterId) {
+    return { kind: "character", characterId: value.characterId };
+  }
+  if (value.kind === "pokemon"
+    && typeof value.captureId === "string"
+    && typeof value.name === "string"
+    && typeof value.spriteUrl === "string") {
+    return {
+      kind: "pokemon",
+      captureId: value.captureId,
+      name: value.name,
+      spriteUrl: value.spriteUrl,
+      fallbackSpriteUrl: typeof value.fallbackSpriteUrl === "string" ? value.fallbackSpriteUrl : null,
+    };
+  }
+  return null;
 }
 
 function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | null {
@@ -89,6 +109,7 @@ function parsePlayer(snapshot: QueryDocumentSnapshot<DocumentData> | DocumentSna
     studentNumber,
     displayName,
     nickname: rawNickname ? rawNickname : null,
+    avatar: parsePlayerAvatar(data.avatar),
     state: parseStatus(data.state),
     joinedAtMs: numberValue(data.joinedAtMs),
     lastSeenAtMs: numberValue(data.lastSeenAtMs),
@@ -228,6 +249,12 @@ export async function startSession(roomId: string, options: StartSessionOptions 
         joinedAtMs: now,
       });
     }
+  });
+}
+
+export async function updatePlayerAvatar(roomId: string, playerId: string, avatar: PlayerAvatar | null): Promise<void> {
+  await updateDoc(playerRef(roomId, playerId), {
+    avatar: avatar ?? deleteField(),
   });
 }
 

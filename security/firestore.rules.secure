@@ -56,11 +56,56 @@ service cloud.firestore {
     }
 
     function validStudentCosmetics(data) {
-      return data.keys().hasOnly(["equippedCharacterId", "updatedAt", "updatedAtMs"])
-        && data.equippedCharacterId is string
-        && data.equippedCharacterId.size() >= 1
-        && data.equippedCharacterId.size() <= 120
-        && data.updatedAtMs is int;
+      return data.updatedAtMs is int && (
+        (data.keys().hasOnly(["equippedKind", "equippedCharacterId", "updatedAt", "updatedAtMs"])
+          && data.equippedKind == "character"
+          && data.equippedCharacterId is string
+          && data.equippedCharacterId.size() >= 1
+          && data.equippedCharacterId.size() <= 120)
+        ||
+        (data.keys().hasOnly([
+            "equippedKind", "equippedPokemonCaptureId", "equippedPokemonName",
+            "equippedPokemonSpriteUrl", "equippedPokemonFallbackSpriteUrl", "updatedAt", "updatedAtMs"
+          ])
+          && data.equippedKind == "pokemon"
+          && data.equippedPokemonCaptureId is string
+          && data.equippedPokemonCaptureId.size() >= 1
+          && data.equippedPokemonCaptureId.size() <= 120
+          && data.equippedPokemonName is string
+          && data.equippedPokemonName.size() >= 1
+          && data.equippedPokemonName.size() <= 80
+          && data.equippedPokemonSpriteUrl is string
+          && data.equippedPokemonSpriteUrl.matches("https://.*")
+          && (data.equippedPokemonFallbackSpriteUrl == null || (
+            data.equippedPokemonFallbackSpriteUrl is string
+            && data.equippedPokemonFallbackSpriteUrl.matches("https://.*")
+          )))
+      );
+    }
+
+    function validPlayerAvatar(avatar) {
+      return avatar is map && (
+        (avatar.keys().hasOnly(["kind", "characterId"])
+          && avatar.kind == "character"
+          && avatar.characterId is string
+          && avatar.characterId.size() >= 1
+          && avatar.characterId.size() <= 120)
+        ||
+        (avatar.keys().hasOnly(["kind", "captureId", "name", "spriteUrl", "fallbackSpriteUrl"])
+          && avatar.kind == "pokemon"
+          && avatar.captureId is string
+          && avatar.captureId.size() >= 1
+          && avatar.captureId.size() <= 120
+          && avatar.name is string
+          && avatar.name.size() >= 1
+          && avatar.name.size() <= 80
+          && avatar.spriteUrl is string
+          && avatar.spriteUrl.matches("https://.*")
+          && (avatar.fallbackSpriteUrl == null || (
+            avatar.fallbackSpriteUrl is string
+            && avatar.fallbackSpriteUrl.matches("https://.*")
+          )))
+      );
     }
 
     function publicLearningSetRead() {
@@ -217,8 +262,9 @@ service cloud.firestore {
               && request.resource.data.nickname.size() <= 12))
           && request.resource.data.keys().hasOnly([
             "playerId", "studentNumber", "displayName", "nickname", "state",
-            "joinedAt", "joinedAtMs", "lastSeenAt", "lastSeenAtMs"
-          ]);
+            "joinedAt", "joinedAtMs", "lastSeenAt", "lastSeenAtMs", "avatar"
+          ])
+          && (!("avatar" in request.resource.data) || validPlayerAvatar(request.resource.data.avatar));
         allow update: if isRoomStudent(roomId)
           && request.auth.uid == uid
           && resource.data.playerId == uid
@@ -234,7 +280,8 @@ service cloud.firestore {
             request.resource.data.state == resource.data.state
             || request.resource.data.state == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status
           )
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs", "nickname"]);
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs", "nickname", "avatar"])
+          && (!("avatar" in request.resource.data) || validPlayerAvatar(request.resource.data.avatar));
         allow delete: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
       }
 

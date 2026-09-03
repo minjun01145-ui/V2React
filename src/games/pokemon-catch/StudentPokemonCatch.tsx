@@ -4,7 +4,8 @@ import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { POKEMON_ITEM, type PokemonItemId } from "../../student-data/pokemon-catch/types.ts";
 import { usePokemonCatchData } from "../../student-data/pokemon-catch/usePokemonCatchData.ts";
-import { captureChance, captureChancePercent, didCapture } from "./captureRules.ts";
+import { captureChance, captureChancePercent } from "./captureRules.ts";
+import { captureAnimationPlan } from "./captureAnimation.ts";
 import { capturedPokemonFromEncounter } from "./captureRecord.ts";
 import { CaptureResultDialog } from "./components/CaptureResultDialog.tsx";
 import { CollectionDialog } from "./components/CollectionDialog.tsx";
@@ -47,6 +48,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   const [advanceRequestId, setAdvanceRequestId] = useState(0);
   const [postAdvanceAction, setPostAdvanceAction] = useState<"continue" | "close" | null>(null);
   const [usingItem, setUsingItem] = useState(false);
+  const [shakeCount, setShakeCount] = useState<1 | 2 | 3>(3);
   const [pendingCapture, setPendingCapture] = useState<PokemonEncounter | null>(null);
   const [savingCapture, setSavingCapture] = useState(false);
   const [captureSaveError, setCaptureSaveError] = useState("");
@@ -64,6 +66,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
     setPendingCapture(null);
     setCaptureSaveError("");
     setSavingCapture(false);
+    setShakeCount(3);
     setActionMessage("");
     setEncounterIndex((value) => value + 1);
   }, []);
@@ -105,7 +108,13 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
         ballMultiplier: ball.ballMultiplier ?? 1,
         statusMultiplier: asleep ? SLEEP_CAPTURE_MULTIPLIER : 1,
       });
-      if (!didCapture(chance, randomRoll())) {
+      const animation = captureAnimationPlan(chance, randomRoll(), randomRoll());
+      setShakeCount(animation.shakeCount);
+      setActionPhase("shaking");
+      setActionMessage("포켓볼이 흔들리고 있어요…");
+      await wait(animation.durationMs);
+      if (!mountedRef.current || operation !== operationRef.current) return;
+      if (!animation.captured) {
         setActionPhase("failed");
         setActionMessage("포켓몬이 공에서 빠져나왔어요. 시간 안에 다시 도전하세요!");
         await wait(850);
@@ -227,7 +236,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   } as const;
 
   return <div className={styles.gameShell}>
-    <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} captureForecasts={[
+    <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} shakeCount={shakeCount} captureForecasts={[
       { label: "포켓볼", percent: captureChancePercent(ballChances[POKEMON_ITEM.POKE_BALL]) },
       { label: "슈퍼볼", percent: captureChancePercent(ballChances[POKEMON_ITEM.GREAT_BALL]) },
     ]} loadError={loadError} onReload={reload} />

@@ -42,7 +42,7 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
         {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
       </div>
       <Card className={styles.shopCard}>
-        <CharacterShop identity={{ uid, studentNumber: selfStudentNumber }} />
+        <CharacterShop identity={{ uid, studentNumber: selfStudentNumber }} roomId={roomId} />
       </Card>
       <p className={styles.selfHint}>현재 닉네임: {displayLabel(displayName, nickname)}</p>
     </div>

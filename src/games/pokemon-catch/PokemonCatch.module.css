@@ -40,12 +40,17 @@
 .ball i { position: absolute; width: 22px; height: 7px; top: 7px; left: 10px; border-radius: 50%; background: rgba(255,255,255,.45); transform: rotate(-20deg); }
 .field[data-phase="throwing"] .ball { opacity: 1; animation: throw .85s cubic-bezier(.18,.72,.28,1) forwards; }
 .field[data-phase="throwing"] .pokemon { animation: hit .85s ease forwards; }
+.field[data-phase="shaking"] .pokemon { opacity: 0; transform: scale(.1); }
+.field[data-phase="shaking"] .ball { opacity: 1; bottom: 45%; transform: translateX(-50%) scale(.55); animation: ballShake .9s ease-in-out; }
+.field[data-phase="shaking"][data-shakes="2"] .ball { animation-iteration-count: 2; }
+.field[data-phase="shaking"][data-shakes="3"] .ball { animation-iteration-count: 3; }
 .field[data-phase="caught"] .pokemon { opacity: 0; transform: scale(.1); transition: .3s; }
 .field[data-phase="escaped"] .pokemon { animation: escape .42s ease-in forwards; }
 .resultBurst, .escapeText, .failedText { position: absolute; z-index: 8; top: 46%; left: 50%; transform: translate(-50%,-50%) rotate(-5deg); font-size: 2.7rem; font-weight: 1000; color: #fff; -webkit-text-stroke: 7px #e44247; paint-order: stroke fill; text-shadow: 4px 5px 0 rgba(71,32,26,.2); animation: pop .45s cubic-bezier(.2,1.5,.4,1); }
 .escapeText { font-size: 1.7rem; -webkit-text-stroke-color: #38575a; }
 .failedText { font-size: 1.8rem; -webkit-text-stroke-color: #d58224; }
 .scanner { position: absolute; z-index: 6; top: 44%; padding: 9px 15px; border-radius: 999px; color: white; background: rgba(24,52,59,.74); font-weight: 900; animation: pulse 1s ease infinite; }
+.captureTension { position: absolute; z-index: 7; top: 68%; padding: 7px 13px; border-radius: 999px; color: white; background: rgba(24,52,59,.72); font-size: .78rem; font-weight: 950; letter-spacing: .04em; animation: pulse .9s ease-in-out infinite; }
 .apiError { z-index: 9; width: min(80%, 360px); display: grid; gap: 8px; padding: 20px; text-align: center; border-radius: 18px; background: rgba(255,255,255,.94); box-shadow: 0 12px 30px rgba(0,0,0,.18); }
 .apiError span { font-size: .82rem; color: #68777a; }
 .apiError button { justify-self: center; border: 0; border-radius: 999px; padding: 9px 16px; color: white; background: var(--red); font: inherit; font-weight: 850; cursor: pointer; }
@@ -159,6 +164,7 @@
 @keyframes caughtBounce { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
 @keyframes wriggle { 0%,68%,100% { transform: translate(0,0) rotate(0); } 73% { transform: translate(-5px,-4px) rotate(-3deg); } 78% { transform: translate(6px,0) rotate(3deg); } 83% { transform: translate(-3px,-7px) rotate(-2deg); } 88% { transform: translate(3px,0) rotate(1deg); } 93% { transform: translate(0,0) rotate(0); } }
 @keyframes throw { 0% { transform: translateX(-50%) rotate(0); } 62% { bottom: 51%; transform: translateX(-50%) rotate(600deg) scale(.75); } 100% { bottom: 45%; transform: translateX(-50%) rotate(780deg) scale(.55); } }
+@keyframes ballShake { 0%,18%,82%,100% { transform: translateX(-50%) scale(.55) rotate(0); } 40% { transform: translateX(calc(-50% - 7px)) scale(.55) rotate(-16deg); } 62% { transform: translateX(calc(-50% + 7px)) scale(.55) rotate(16deg); } }
 @keyframes hit { 0%,62% { opacity: 1; transform: scale(1); } 100% { opacity: .12; transform: scale(.18); } }
 @keyframes escape { to { opacity: 0; transform: translate(190px,-90px) scale(.72); } }
 @keyframes pop { from { opacity: 0; transform: translate(-50%,-50%) scale(.25) rotate(-12deg); } }

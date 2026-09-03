@@ -57,7 +57,7 @@ features/student               features/teacher
 30. `games/<game-id>`는 다른 `games/<other-game-id>`를 직접 import하지 않습니다. 실제로 공유되는 순수 게임 개념은 `game-engine`, 학습 세트 변환은 `learning-sets`, 전송·저장은 `multiplayer`가 소유합니다.
 31. 브라우저 lifecycle은 room membership 삭제 명령이 아닙니다. 새로고침·탭 종료·background·일시적 단절은 heartbeat만 stale하게 만들며, 명시적 학생 변경/로그아웃/나가기 또는 관리자 작업만 membership을 삭제합니다.
 32. 라운드 순위의 참가자 source는 `round participants`이며 presence roster가 아닙니다. participant는 게임별 진행 상태를 갖지 않고, 점수와 완료 항목은 계속 `multiplayer/game-progress`가 소유합니다.
-33. 캐릭터 정적 카탈로그는 `characters`, 학생별 장착 상태는 `student-data/cosmetics`, 대기실 표시와 선택 UI는 `features/student/shop`이 각각 소유합니다. 구매·재화 책임은 해당 기능을 실제로 만들기 전까지 이 모듈들에 추가하지 않습니다.
+33. 캐릭터 정적 카탈로그는 `characters`, 학생별 캐릭터·포켓몬 장착 상태는 `student-data/cosmetics`, 대기실 표시와 선택 UI는 `features/student/shop`이 각각 소유합니다. 구매·재화 책임은 해당 기능을 실제로 만들기 전까지 이 모듈들에 추가하지 않습니다.
 
 ## Persistent student game data
 
@@ -72,7 +72,7 @@ Firestore studentGameData/{studentNumber}/games/pokemon-catch
 
 인벤토리는 실제 계정의 안정적인 학번 키를 사용하는 학생별 게임 문서에 저장하고 포획 기록은 문서 크기 증가를 막기 위해 하위 컬렉션으로 분리합니다. 보안 규칙은 인증 토큰의 학번이 일치하는 본인 또는 관리자만 읽도록 하고, 인벤토리 필드와 포획 문서 형식을 검증합니다. 테스트 학생은 `test-{uid}` 격리 키를 사용하며 임시 게임 데이터는 테스트 사용자를 삭제하기 전에 서버에서 함께 정리합니다.
 
-캐릭터 장착 정보는 같은 학생 계정 키 아래의 `studentGameData/{studentNumber}/cosmetics/profile`에 저장합니다. 테스트 학생은 다른 장기 데이터와 동일하게 `test-{uid}` 키로 격리합니다. 구매와 재화 데이터는 아직 저장하지 않습니다.
+캐릭터 또는 포켓몬 장착 정보는 같은 학생 계정 키 아래의 `studentGameData/{studentNumber}/cosmetics/profile`에 저장합니다. 현재 대기실의 다른 참가자에게 보이도록 검증된 표시용 스냅샷도 본인 `multiplayerSessions/{roomId}/players/{uid}` 문서에 동기화합니다. 테스트 학생은 다른 장기 데이터와 동일하게 `test-{uid}` 키로 격리합니다. 구매와 재화 데이터는 아직 저장하지 않습니다.
 
 캐릭터 원본은 `src/assets/characters/<캐릭터 이름>(<만든이>)` 폴더에 애니메이션 전체를 보존합니다. 독립 `characters/catalog.ts`가 각 폴더의 `stand1_0.png`부터 `stand1_3.png`까지를 빌드 시 자동 발견하며, 다른 동작과 표정 파일은 이후 게임에서 같은 원본을 사용합니다.
 

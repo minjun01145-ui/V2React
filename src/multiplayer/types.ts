@@ -6,6 +6,7 @@ export interface Player {
   readonly studentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
+  readonly avatar?: PlayerAvatar | null;
   readonly state: SessionStatus;
   readonly joinedAtMs: number;
   readonly lastSeenAtMs: number;
@@ -24,6 +25,16 @@ export interface GameSession {
   readonly startedAtMs: number | null;
   readonly expectedPlayerIds: readonly string[];
 }
+
+export type PlayerAvatar =
+  | { readonly kind: "character"; readonly characterId: string }
+  | {
+      readonly kind: "pokemon";
+      readonly captureId: string;
+      readonly name: string;
+      readonly spriteUrl: string;
+      readonly fallbackSpriteUrl: string | null;
+    };
 
 export type ActiveGameSession = GameSession & {
   readonly status: "playing";
