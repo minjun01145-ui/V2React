@@ -65,7 +65,29 @@
 .collectionButton { display: block; margin: 18px auto 0; border: 0; color: #4e656a; background: none; font: inherit; font-size: .78rem; font-weight: 850; cursor: pointer; }
 .collectionButton b { display: inline-grid; place-content: center; min-width: 22px; height: 22px; margin-left: 5px; border-radius: 999px; color: white; background: #4e656a; }
 .modalBackdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(13,38,42,.66); backdrop-filter: blur(7px); }
-.quizCard, .collectionCard, .itemCard { position: relative; width: min(100%, 510px); max-height: min(90vh, 720px); overflow: auto; padding: 30px; border: 5px solid white; border-radius: 24px 8px 24px 8px; background: #fffdf4; box-shadow: 0 22px 0 rgba(8,31,34,.2); animation: modalIn .26s cubic-bezier(.2,1.25,.4,1); }
+.quizCard, .collectionCard, .itemCard, .captureResultCard { position: relative; width: min(100%, 510px); max-height: min(90vh, 720px); overflow: auto; padding: 30px; border: 5px solid white; border-radius: 24px 8px 24px 8px; background: #fffdf4; box-shadow: 0 22px 0 rgba(8,31,34,.2); animation: modalIn .26s cubic-bezier(.2,1.25,.4,1); }
+.captureResultCard { text-align: center; background: radial-gradient(circle at 50% 12%,#fff7b7 0 13%,transparent 34%),#fffdf4; }
+.captureResultEyebrow { color: #e7474e; font-size: .7rem; font-weight: 1000; letter-spacing: .18em; }
+.captureResultCard h2 { margin: 5px 0 12px; font-size: clamp(1.8rem,7vw,2.5rem); }
+.captureResultHero { display: flex; justify-content: center; align-items: center; gap: 18px; min-height: 190px; }
+.captureResultSprite { width: 180px; height: 180px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 10px 3px rgba(13,55,50,.18)); animation: caughtBounce 1.8s ease-in-out infinite; }
+.captureResultHero > div { display: grid; justify-items: start; gap: 6px; text-align: left; }
+.captureResultHero small { color: #6b7779; font-weight: 800; }
+.captureResultHero strong { font-size: 1.3rem; }
+.typeBadges { display: flex; flex-wrap: wrap; gap: 5px; }
+.typeBadges b { padding: 5px 9px; border-radius: 999px; color: white; background: #4e797f; font-size: .7rem; }
+.captureDescription { margin: 2px 0 13px; padding: 12px; border-radius: 12px; color: #4f666a; background: rgba(255,255,255,.72); font-size: .82rem; font-weight: 700; line-height: 1.55; }
+.captureFacts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 16px; }
+.captureFacts div { padding: 9px; border-radius: 10px; background: #eef7ed; }
+.captureFacts dt { color: #718083; font-size: .67rem; font-weight: 800; }
+.captureFacts dd { margin: 2px 0 0; font-weight: 900; }
+.captureResultCard form { display: grid; gap: 9px; text-align: left; }
+.captureResultCard label { font-size: .8rem; font-weight: 900; }
+.captureResultCard label small { color: #718083; font-weight: 700; }
+.captureResultCard input { padding: 12px 13px; border: 2px solid #d8dedb; border-radius: 12px; color: var(--ink); background: white; font: inherit; }
+.captureResultCard form button { padding: 14px; border: 0; border-radius: 13px; color: white; background: #e7464d; font: inherit; font-weight: 950; cursor: pointer; }
+.captureResultCard form button:disabled { opacity: .5; cursor: wait; }
+.captureSaveError { margin: 0; color: #bd2832; font-size: .78rem; font-weight: 800; }
 .quizWorkspace { width: min(100%, 1100px); max-height: 94vh; }
 .quizModule { margin-top: 16px; }
 .aiQuiz { display: grid; gap: 14px; margin-top: 16px; }
@@ -118,6 +140,7 @@
 .collectionGrid > div { display: grid; justify-items: center; padding: 10px; border: 1px solid #e2dfd3; border-radius: 15px; background: white; }
 .collectionGrid img { width: 82px; height: 82px; object-fit: contain; image-rendering: pixelated; }
 .collectionGrid strong { font-size: .8rem; }
+.collectionGrid span { color: #6b7779; font-size: .64rem; font-weight: 750; }
 .collectionGrid small { margin-top: 3px; color: #e7464d; font-weight: 800; }
 .emptyCollection { padding: 35px 10px; text-align: center; color: #738185; }
 .loadingPage { min-height: 360px; display: grid; place-content: center; font-weight: 800; }
@@ -133,6 +156,7 @@
 .answerFeed b[data-correct="true"] { color: #267a43; }
 .answerFeed small { color: #6b7779; }
 @keyframes appear { from { opacity: 0; transform: translateY(-35px) scale(.72); } }
+@keyframes caughtBounce { 0%,100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-9px) rotate(2deg); } }
 @keyframes wriggle { 0%,68%,100% { transform: translate(0,0) rotate(0); } 73% { transform: translate(-5px,-4px) rotate(-3deg); } 78% { transform: translate(6px,0) rotate(3deg); } 83% { transform: translate(-3px,-7px) rotate(-2deg); } 88% { transform: translate(3px,0) rotate(1deg); } 93% { transform: translate(0,0) rotate(0); } }
 @keyframes throw { 0% { transform: translateX(-50%) rotate(0); } 62% { bottom: 51%; transform: translateX(-50%) rotate(600deg) scale(.75); } 100% { bottom: 45%; transform: translateX(-50%) rotate(780deg) scale(.55); } }
 @keyframes hit { 0%,62% { opacity: 1; transform: scale(1); } 100% { opacity: .12; transform: scale(.18); } }
@@ -152,7 +176,9 @@
   .commandPanel { padding: 20px 12px 18px; }
   .commands { gap: 7px; }
   .commands button { min-height: 62px; font-size: .82rem; }
-  .quizCard, .collectionCard, .itemCard { padding: 24px 18px; }
+  .quizCard, .collectionCard, .itemCard, .captureResultCard { padding: 24px 18px; }
+  .captureResultHero { gap: 8px; }
+  .captureResultSprite { width: 145px; height: 145px; }
   .rewardActions { grid-template-columns:1fr; gap:0; }
   .itemGrid > div { grid-template-columns: 42px 1fr auto; }
   .itemGrid > div > button { grid-column: 2 / -1; }

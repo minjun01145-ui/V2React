@@ -3,6 +3,8 @@ import { captureChance, captureChancePercent, didCapture } from "../../src/games
 import { encounterId, isFireRedWildEncounter } from "../../src/games/pokemon-catch/encounterRules.ts";
 import { POKEMON_ITEMS, rewardItem } from "../../src/games/pokemon-catch/itemRules.ts";
 import { POKEMON_ITEM } from "../../src/student-data/pokemon-catch/types.ts";
+import { capturedPokemonDisplayName, capturedPokemonFromEncounter, normalizePokemonNickname } from "../../src/games/pokemon-catch/captureRecord.ts";
+import { encounterLevel, pokemonTypeLabel } from "../../src/games/pokemon-catch/pokemonMetadata.ts";
 assert.equal(encounterId("same-seed"), encounterId("same-seed"));
 assert.equal(isFireRedWildEncounter(encounterId("range")), true);
 assert.equal(isFireRedWildEncounter(1), false, "선물 포켓몬인 이상해씨는 야생 조우 목록에서 제외되어야 합니다.");
@@ -23,5 +25,26 @@ assert.equal(rewardItem(.35), POKEMON_ITEM.SLEEP_SPRAY);
 assert.equal(rewardItem(.70), POKEMON_ITEM.ANGER);
 assert.equal(rewardItem(.90), POKEMON_ITEM.GREAT_BALL);
 assert.deepEqual(POKEMON_ITEMS.map((item) => item.rewardWeight), [35, 35, 20, 10]);
+assert.equal(pokemonTypeLabel("fire"), "불꽃");
+assert.equal(encounterLevel("same", 25, 190), encounterLevel("same", 25, 190));
+assert.ok(encounterLevel("legend", 150, 3) >= 50);
+assert.equal(normalizePokemonNickname("  불꽃   왕자  "), "불꽃 왕자");
+const captured = capturedPokemonFromEncounter({
+  id: 4,
+  name: "파이리",
+  level: 12,
+  types: ["불꽃"],
+  description: "꼬리의 불꽃은 생명력의 상징이다.",
+  heightMeters: .6,
+  weightKg: 8.5,
+  spriteUrl: "https://example.com/4.png",
+  fallbackSpriteUrl: null,
+  shinySpriteUrl: null,
+  cryUrl: null,
+  captureRate: 45,
+}, "  숯돌이 ");
+assert.equal(captured.nickname, "숯돌이");
+assert.equal(capturedPokemonDisplayName(captured), "숯돌이");
+assert.equal(captured.level, 12);
 
 console.log("pokemon catch tests passed");

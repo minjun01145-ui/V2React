@@ -12,6 +12,11 @@ export function usePokemonCatchData({ uid, studentNumber }: { readonly uid: stri
 
   useEffect(() => {
     let active = true;
+    setAccountId(null);
+    setInventory(EMPTY_POKEMON_INVENTORY);
+    setCaptures([]);
+    setError(null);
+    setLoading(true);
     void pokemonCatchAccountId(uid, studentNumber).then((resolvedAccountId) => {
       if (!active) return;
       setAccountId(resolvedAccountId);

@@ -1,4 +1,4 @@
-export interface PokemonEncounter {
+export interface PokemonProfile {
   readonly id: number;
   readonly name: string;
   readonly spriteUrl: string;
@@ -6,6 +6,14 @@ export interface PokemonEncounter {
   readonly shinySpriteUrl: string | null;
   readonly cryUrl: string | null;
   readonly captureRate: number;
+  readonly types: readonly string[];
+  readonly description: string;
+  readonly heightMeters: number | null;
+  readonly weightKg: number | null;
+}
+
+export interface PokemonEncounter extends PokemonProfile {
+  readonly level: number;
 }
 
 export type EncounterLoadStatus = "loading" | "ready" | "error";

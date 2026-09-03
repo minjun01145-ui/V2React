@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
-import { POKEMON_ITEM, type PokemonItemId, type StoredCapturedPokemon } from "../../student-data/pokemon-catch/types.ts";
+import { POKEMON_ITEM, type PokemonItemId } from "../../student-data/pokemon-catch/types.ts";
 import { usePokemonCatchData } from "../../student-data/pokemon-catch/usePokemonCatchData.ts";
 import { captureChance, captureChancePercent, didCapture } from "./captureRules.ts";
+import { capturedPokemonFromEncounter } from "./captureRecord.ts";
+import { CaptureResultDialog } from "./components/CaptureResultDialog.tsx";
 import { CollectionDialog } from "./components/CollectionDialog.tsx";
 import { CommandPanel } from "./components/CommandPanel.tsx";
 import { EncounterStage } from "./components/EncounterStage.tsx";
@@ -12,7 +14,7 @@ import { ItemBagDialog } from "./components/ItemBagDialog.tsx";
 import { QuizDialog } from "./components/QuizDialog.tsx";
 import { PokemonAiQuiz } from "./components/PokemonAiQuiz.tsx";
 import { ANGER_TIME_BONUS_MS, ENCOUNTER_TIME_MS, SLEEP_CAPTURE_MULTIPLIER, itemDefinition, rewardItem } from "./itemRules.ts";
-import type { EncounterActionPhase, EncounterPhase } from "./types.ts";
+import type { EncounterActionPhase, EncounterPhase, PokemonEncounter } from "./types.ts";
 import { useEncounterTimer } from "./useEncounterTimer.ts";
 import { useWildPokemonEncounter } from "./useWildPokemonEncounter.ts";
 import styles from "./PokemonCatch.module.css";
@@ -45,6 +47,9 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   const [advanceRequestId, setAdvanceRequestId] = useState(0);
   const [postAdvanceAction, setPostAdvanceAction] = useState<"continue" | "close" | null>(null);
   const [usingItem, setUsingItem] = useState(false);
+  const [pendingCapture, setPendingCapture] = useState<PokemonEncounter | null>(null);
+  const [savingCapture, setSavingCapture] = useState(false);
+  const [captureSaveError, setCaptureSaveError] = useState("");
   const mountedRef = useRef(true);
   const operationRef = useRef(0);
   const awardedCompletionIdsRef = useRef(new Set<string>());
@@ -56,6 +61,9 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
     setActionPhase("ready");
     setAsleep(false);
     setTimeBonusMs(0);
+    setPendingCapture(null);
+    setCaptureSaveError("");
+    setSavingCapture(false);
     setActionMessage("");
     setEncounterIndex((value) => value + 1);
   }, []);
@@ -68,7 +76,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   }, [nextEncounter]);
   const timer = useEncounterTimer({
     encounterKey: encounterStatus === "ready" && encounter ? `${encounterIndex}:${encounter.id}` : null,
-    running: encounterStatus === "ready" && !["caught", "escaped"].includes(actionPhase),
+    running: encounterStatus === "ready" && actionPhase === "ready",
     onExpired: expireEncounter,
   });
 
@@ -99,26 +107,16 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
       });
       if (!didCapture(chance, randomRoll())) {
         setActionPhase("failed");
-        setActionMessage("포켓몬이 공에서 빠져나왔지만 아직 도망가지는 않았어요.");
+        setActionMessage("포켓몬이 공에서 빠져나왔어요. 시간 안에 다시 도전하세요!");
         await wait(850);
         if (mountedRef.current && operation === operationRef.current) setActionPhase("ready");
         return;
       }
 
       setActionPhase("caught");
-      const capture: StoredCapturedPokemon = {
-        captureId: crypto.randomUUID(),
-        speciesId: encounter.id,
-        name: encounter.name,
-        spriteUrl: encounter.spriteUrl,
-        fallbackSpriteUrl: encounter.fallbackSpriteUrl,
-        caughtAtMs: Date.now(),
-      };
-      await studentData.saveCapture(capture);
-      if (!mountedRef.current || operation !== operationRef.current) return;
-      setActionMessage(`${encounter.name}을(를) 잡아 계정의 포획함에 저장했어요!`);
-      await wait(1_250);
-      if (mountedRef.current && operation === operationRef.current) nextEncounter();
+      setPendingCapture(encounter);
+      setCaptureSaveError("");
+      setActionMessage(`${encounter.name}을(를) 잡았어요!`);
     } catch (error: unknown) {
       if (operation === operationRef.current) {
         setActionPhase("ready");
@@ -185,6 +183,21 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
     setAdvanceRequestId((value) => value + 1);
   };
 
+  const confirmCapture = async (nickname: string): Promise<void> => {
+    if (!pendingCapture || savingCapture) return;
+    setSavingCapture(true);
+    setCaptureSaveError("");
+    try {
+      await studentData.saveCapture(capturedPokemonFromEncounter(pendingCapture, nickname));
+      if (!mountedRef.current) return;
+      nextEncounter();
+    } catch (error: unknown) {
+      if (mountedRef.current) setCaptureSaveError(toErrorMessage(error, "포획함에 저장하지 못했습니다. 다시 시도해 주세요."));
+    } finally {
+      if (mountedRef.current) setSavingCapture(false);
+    }
+  };
+
   const stopQuiz = (): void => {
     if (reward) {
       setReward(null);
@@ -233,5 +246,6 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
       <PokemonAiQuiz roomId={roomId} session={session} player={player} set={set} disabled={submitting || Boolean(reward)} advanceRequestId={advanceRequestId} onQuestionComplete={(completionId) => void awardQuizCompletion(completionId)} onAdvanced={finishQuizAdvance} />
     </QuizDialog> : null}
     {activePanel === "collection" ? <CollectionDialog captures={studentData.captures} onClose={() => setActivePanel(null)} /> : null}
+    {pendingCapture ? <CaptureResultDialog pokemon={pendingCapture} saving={savingCapture} error={captureSaveError} onContinue={(nickname) => void confirmCapture(nickname)} /> : null}
   </div>;
 }

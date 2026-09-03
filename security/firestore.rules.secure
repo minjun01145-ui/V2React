@@ -135,7 +135,8 @@ service cloud.firestore {
         allow read: if ownsStudentGameData(accountId) || isAdmin();
         allow create: if ownsStudentGameData(accountId)
           && request.resource.data.keys().hasOnly([
-            "speciesId", "name", "spriteUrl", "fallbackSpriteUrl", "caughtAt", "caughtAtMs"
+            "speciesId", "name", "nickname", "level", "types", "description", "heightMeters", "weightKg",
+            "spriteUrl", "fallbackSpriteUrl", "caughtAt", "caughtAtMs"
           ])
           && request.resource.data.speciesId is int
           && request.resource.data.speciesId >= 1
@@ -143,6 +144,30 @@ service cloud.firestore {
           && request.resource.data.name is string
           && request.resource.data.name.size() >= 1
           && request.resource.data.name.size() <= 80
+          && (request.resource.data.nickname == null || (
+            request.resource.data.nickname is string
+            && request.resource.data.nickname.size() >= 1
+            && request.resource.data.nickname.size() <= 12
+          ))
+          && request.resource.data.level is int
+          && request.resource.data.level >= 1
+          && request.resource.data.level <= 100
+          && request.resource.data.types is list
+          && request.resource.data.types.size() <= 2
+          && (request.resource.data.types.size() == 0 || request.resource.data.types[0] is string)
+          && (request.resource.data.types.size() < 2 || request.resource.data.types[1] is string)
+          && request.resource.data.description is string
+          && request.resource.data.description.size() <= 1000
+          && (request.resource.data.heightMeters == null || (
+            request.resource.data.heightMeters is number
+            && request.resource.data.heightMeters > 0
+            && request.resource.data.heightMeters <= 100
+          ))
+          && (request.resource.data.weightKg == null || (
+            request.resource.data.weightKg is number
+            && request.resource.data.weightKg > 0
+            && request.resource.data.weightKg <= 10000
+          ))
           && request.resource.data.spriteUrl is string
           && request.resource.data.spriteUrl.matches("https://.*")
           && (request.resource.data.fallbackSpriteUrl == null || request.resource.data.fallbackSpriteUrl is string)

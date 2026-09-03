@@ -18,6 +18,12 @@ export interface StoredCapturedPokemon {
   readonly captureId: string;
   readonly speciesId: number;
   readonly name: string;
+  readonly nickname: string | null;
+  readonly level: number;
+  readonly types: readonly string[];
+  readonly description: string;
+  readonly heightMeters: number | null;
+  readonly weightKg: number | null;
   readonly spriteUrl: string;
   readonly fallbackSpriteUrl: string | null;
   readonly caughtAtMs: number;

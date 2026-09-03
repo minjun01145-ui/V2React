@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { encounterId } from "./encounterRules.ts";
+import { encounterLevel } from "./pokemonMetadata.ts";
 import { fetchPokemonEncounter, prefetchPokemonEncounter } from "./pokeApi.ts";
 import type { EncounterLoadStatus, PokemonEncounter } from "./types.ts";
 
@@ -21,8 +22,10 @@ export function useWildPokemonEncounter({ roundId, playerId, encounterIndex }: {
     setStatus("loading");
     setLoadError("");
 
-    void fetchPokemonEncounter(encounterId(seed), controller.signal).then((next) => {
+    const speciesId = encounterId(seed);
+    void fetchPokemonEncounter(speciesId, controller.signal).then((profile) => {
       if (controller.signal.aborted) return;
+      const next: PokemonEncounter = { ...profile, level: encounterLevel(seed, profile.id, profile.captureRate) };
       setEncounter(next);
       setStatus("ready");
       prefetchPokemonEncounter(encounterId(`${roundId}:${playerId}:${encounterIndex + 1}`));

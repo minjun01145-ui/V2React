@@ -6,24 +6,27 @@ export function useEncounterTimer({ encounterKey, running, onExpired }: {
   readonly running: boolean;
   readonly onExpired: () => void;
 }) {
-  const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
   const [remainingMs, setRemainingMs] = useState(ENCOUNTER_TIME_MS);
+  const remainingRef = useRef(ENCOUNTER_TIME_MS);
   const expiredRef = useRef(false);
   const onExpiredRef = useRef(onExpired);
   onExpiredRef.current = onExpired;
 
   useEffect(() => {
     if (!encounterKey) return;
-    const nextDeadline = Date.now() + ENCOUNTER_TIME_MS;
     expiredRef.current = false;
-    setDeadlineMs(nextDeadline);
+    remainingRef.current = ENCOUNTER_TIME_MS;
     setRemainingMs(ENCOUNTER_TIME_MS);
   }, [encounterKey]);
 
   useEffect(() => {
-    if (!running || deadlineMs === null) return;
+    if (!running || !encounterKey || expiredRef.current) return;
+    let previousTickMs = Date.now();
     const update = () => {
-      const nextRemaining = Math.max(0, deadlineMs - Date.now());
+      const now = Date.now();
+      const nextRemaining = Math.max(0, remainingRef.current - (now - previousTickMs));
+      previousTickMs = now;
+      remainingRef.current = nextRemaining;
       setRemainingMs(nextRemaining);
       if (nextRemaining === 0 && !expiredRef.current) {
         expiredRef.current = true;
@@ -33,12 +36,12 @@ export function useEncounterTimer({ encounterKey, running, onExpired }: {
     update();
     const intervalId = globalThis.setInterval(update, 100);
     return () => globalThis.clearInterval(intervalId);
-  }, [deadlineMs, running]);
+  }, [encounterKey, running]);
 
   const extend = useCallback((milliseconds: number) => {
     if (expiredRef.current || milliseconds <= 0) return false;
-    setDeadlineMs((current) => current === null ? current : current + milliseconds);
-    setRemainingMs((current) => current + milliseconds);
+    remainingRef.current += milliseconds;
+    setRemainingMs(remainingRef.current);
     return true;
   }, []);
 
