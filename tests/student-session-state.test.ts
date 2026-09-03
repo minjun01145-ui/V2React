@@ -19,6 +19,7 @@ const session: GameSession = {
   updatedAtMs: null,
   startedAtMs: null,
   expectedPlayerIds: [],
+  sessionData: {},
 };
 
 const player: Player = {

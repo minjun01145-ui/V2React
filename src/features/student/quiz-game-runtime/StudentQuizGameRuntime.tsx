@@ -1,6 +1,7 @@
 import GameHost from "../../../games/GameHost.tsx";
 import { getGame } from "../../../games/registry.ts";
 import type { GameSession, Player } from "../../../multiplayer/types.ts";
+import { quizGameSessionState } from "../../../quiz-game/multiplayerService.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import styles from "./StudentQuizGameRuntime.module.css";
@@ -10,7 +11,7 @@ export default function StudentQuizGameRuntime({ roomId, session, player }: {
   readonly session: GameSession;
   readonly player: Player;
 }) {
-  const quiz = session.quizGame;
+  const quiz = quizGameSessionState(session);
   const round = quiz?.plan.rounds[quiz.currentRoundIndex];
   if (!quiz || !round) return <StatusPanel title="퀴즈 상태 오류" tone="error">현재 문제 정보를 찾을 수 없습니다.</StatusPanel>;
 

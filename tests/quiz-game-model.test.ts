@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { QUIZ_GAME_SCHEMA_VERSION, type QuizGamePlan } from "../src/quiz-game/types.ts";
 import { parseQuizGamePlan, parseQuizGameSessionState, validateQuizGameRounds } from "../src/quiz-game/validation.ts";
-import { assertQuizGamePhaseTransition, canTransitionQuizGamePhase } from "../src/quiz-game/stateMachine.ts";
+import { advanceQuizGameRound, assertQuizGamePhaseTransition, canTransitionQuizGamePhase, completeQuizGame, createQuizGameSessionState } from "../src/quiz-game/stateMachine.ts";
 import { quizRoundGameConfig } from "../src/quiz-game/runtimeConfig.ts";
 import { usesFiniteQuestionSequence } from "../src/game-engine/question-engine/sessionConfig.ts";
 
@@ -36,6 +36,14 @@ assert.throws(() => validateQuizGameRounds([{
 assert.equal(canTransitionQuizGamePhase("answering", "submissions"), true);
 assert.equal(canTransitionQuizGamePhase("answering", "leaderboard"), false);
 assert.throws(() => assertQuizGamePhaseTransition("submissions", "complete"), /허용되지 않은/);
+const twoRoundPlan: QuizGamePlan = { ...plan, rounds: [...plan.rounds, { ...plan.rounds[0]!, id: "round-2", title: "2번 문제" }] };
+const initialState = createQuizGameSessionState(twoRoundPlan, "runtime-1");
+assert.deepEqual(initialState, { plan: twoRoundPlan, currentRoundIndex: 0, phase: "answering", roundIds: ["runtime-1"] });
+const leaderboardState = { ...initialState, phase: "leaderboard" as const };
+const advanced = advanceQuizGameRound(leaderboardState, "runtime-2");
+assert.equal(advanced.round.id, "round-2");
+assert.deepEqual(advanced.state, { plan: twoRoundPlan, currentRoundIndex: 1, phase: "answering", roundIds: ["runtime-1", "runtime-2"] });
+assert.deepEqual(completeQuizGame({ ...advanced.state, phase: "leaderboard" }), { ...advanced.state, phase: "complete" });
 const directConfig = quizRoundGameConfig({
   ...plan.rounds[0]!,
   gameId: "sentence-builder",

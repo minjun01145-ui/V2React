@@ -1,5 +1,4 @@
 import type { SessionStatus } from "./constants.ts";
-import type { QuizGameSessionState } from "../quiz-game/types.ts";
 
 export interface Player {
   readonly id: string;
@@ -25,7 +24,7 @@ export interface GameSession {
   readonly updatedAtMs: number | null;
   readonly startedAtMs: number | null;
   readonly expectedPlayerIds: readonly string[];
-  readonly quizGame?: QuizGameSessionState | null;
+  readonly sessionData: Readonly<Record<string, unknown>>;
 }
 
 export type PlayerAvatar =
@@ -80,4 +79,5 @@ export function resolveSessionStartedAtMs(startedAt: unknown, legacyStartedAtMs:
 export interface StartSessionOptions {
   readonly gameId?: string;
   readonly gameConfig?: Readonly<Record<string, unknown>>;
+  readonly fieldsToDelete?: readonly string[];
 }

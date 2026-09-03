@@ -134,6 +134,10 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: multiplayer base may not depend on a concrete game (${specifier})`);
     }
 
+    if (rel.startsWith("src/multiplayer/") && specifier.includes("/quiz-game/")) {
+      violations.push(`${rel}: multiplayer base may not depend on quiz game (${specifier})`);
+    }
+
     if (rel.startsWith("src/ai-admin/") && (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/"))) {
       violations.push(`${rel}: AI admin domain must not depend on app, feature, or game UI layers (${specifier})`);
     }
@@ -148,7 +152,7 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: learning set domain must not depend on app, feature, game, or multiplayer layers (${specifier})`);
     }
 
-    if (rel.startsWith("src/quiz-game/") && (specifier === "react" || specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
+    if (rel.startsWith("src/quiz-game/") && (specifier === "react" || specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || (rel !== "src/quiz-game/multiplayerService.ts" && specifier.includes("/multiplayer/")))) {
       violations.push(`${rel}: quiz game plan domain must not depend on React, app, feature, concrete game, or multiplayer layers (${specifier})`);
     }
 

@@ -22,10 +22,6 @@ import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
 import { roundParticipantRef } from "./round-participants/repository.ts";
 import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type PlayerAvatar, type StartSessionOptions } from "./types.ts";
-import type { QuizGamePhase, QuizGamePlan, QuizGameSessionState } from "../quiz-game/types.ts";
-import { parseQuizGameSessionState, validateQuizGameRounds } from "../quiz-game/validation.ts";
-import { assertQuizGamePhaseTransition } from "../quiz-game/stateMachine.ts";
-import { quizRoundGameConfig } from "../quiz-game/runtimeConfig.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -96,7 +92,7 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     updatedAtMs: numberOrNull(data.updatedAtMs),
     startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs),
     expectedPlayerIds: stringArray(data.expectedPlayerIds),
-    quizGame: parseQuizGameSessionState(data.quizGame),
+    sessionData: data,
   };
 }
 
@@ -219,6 +215,11 @@ export async function leaveSession(roomId: string, playerId: string): Promise<vo
   await deleteDoc(playerRef(roomId, playerId));
 }
 
+export async function loadPlayers(roomId: string): Promise<Player[]> {
+  const snapshot = await getDocs(playersRef(roomId));
+  return deduplicatePlayers(snapshot.docs.map(parsePlayer).filter((player): player is Player => player !== null));
+}
+
 export async function startSession(roomId: string, options: StartSessionOptions = {}): Promise<void> {
   await ensureSession(roomId);
   const now = Date.now();
@@ -241,7 +242,9 @@ export async function startSession(roomId: string, options: StartSessionOptions 
     updatedAtMs: now,
   };
   if (options.gameConfig !== undefined) nextSession.gameConfig = options.gameConfig;
-  nextSession.quizGame = deleteField();
+  if (options.fieldsToDelete) {
+    for (const field of options.fieldsToDelete) nextSession[field] = deleteField();
+  }
   await runTransaction(db, async (tx) => {
     const currentSession = await tx.get(sessionRef(roomId));
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
@@ -254,96 +257,6 @@ export async function startSession(roomId: string, options: StartSessionOptions 
         joinedAt: serverTimestamp(),
         joinedAtMs: now,
       });
-    }
-  });
-}
-
-export async function startQuizGame(roomId: string, plan: QuizGamePlan): Promise<void> {
-  validateQuizGameRounds(plan.rounds);
-  await ensureSession(roomId);
-  const now = Date.now();
-  const playerSnapshot = await getDocs(playersRef(roomId));
-  const activePlayers = selectActivePlayers(
-    playerSnapshot.docs.map(parsePlayer).filter((player): player is Player => player !== null),
-    now,
-    appConfig.playerStaleAfterMs,
-  );
-  const roundId = crypto.randomUUID();
-  const firstRound = plan.rounds[0];
-  if (!firstRound) throw new Error("시작할 퀴즈 라운드가 없습니다.");
-  const quizGame: QuizGameSessionState = { plan, currentRoundIndex: 0, phase: "answering", roundIds: [roundId] };
-  await runTransaction(db, async (tx) => {
-    const currentSession = await tx.get(sessionRef(roomId));
-    const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
-    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status))) return;
-    tx.set(sessionRef(roomId), {
-      gameId: firstRound.gameId,
-      gameConfig: quizRoundGameConfig(firstRound),
-      quizGame,
-      status: SESSION_STATUS.PREPARING,
-      roundId,
-      expectedPlayerIds: activePlayers.map((player) => player.id),
-      startedAt: deleteField(),
-      startedAtMs: deleteField(),
-      startDelayMs: deleteField(),
-      updatedAt: serverTimestamp(),
-      updatedAtMs: now,
-    }, { merge: true });
-    for (const player of activePlayers) {
-      tx.set(roundParticipantRef(roomId, roundId, player.id), { ...participantIdentity(player), joinedAt: serverTimestamp(), joinedAtMs: now });
-    }
-  });
-}
-
-export async function setQuizGamePhase(roomId: string, roundId: string, phase: Exclude<QuizGamePhase, "answering" | "complete">): Promise<void> {
-  await runTransaction(db, async (tx) => {
-    const ref = sessionRef(roomId);
-    const snapshot = await tx.get(ref);
-    const session = parseSession(snapshot);
-    if (!session?.quizGame || session.status !== SESSION_STATUS.PLAYING || session.roundId !== roundId) return;
-    assertQuizGamePhaseTransition(session.quizGame.phase, phase);
-    tx.update(ref, {
-      quizGame: { ...session.quizGame, phase },
-      updatedAt: serverTimestamp(),
-      updatedAtMs: Date.now(),
-    });
-  });
-}
-
-export async function advanceQuizGame(roomId: string): Promise<void> {
-  const playerSnapshot = await getDocs(playersRef(roomId));
-  const players = deduplicatePlayers(playerSnapshot.docs.map(parsePlayer).filter((player): player is Player => player !== null));
-  const now = Date.now();
-  await runTransaction(db, async (tx) => {
-    const ref = sessionRef(roomId);
-    const snapshot = await tx.get(ref);
-    const session = parseSession(snapshot);
-    if (!session?.quizGame || session.status !== SESSION_STATUS.PLAYING || session.quizGame.phase !== "leaderboard") return;
-    const nextIndex = session.quizGame.currentRoundIndex + 1;
-    const nextRound = session.quizGame.plan.rounds[nextIndex];
-    if (!nextRound) {
-      assertQuizGamePhaseTransition(session.quizGame.phase, "complete");
-      tx.update(ref, { quizGame: { ...session.quizGame, phase: "complete" }, updatedAt: serverTimestamp(), updatedAtMs: now });
-      return;
-    }
-    const roundId = crypto.randomUUID();
-    assertQuizGamePhaseTransition(session.quizGame.phase, "answering");
-    const quizGame: QuizGameSessionState = { ...session.quizGame, currentRoundIndex: nextIndex, phase: "answering", roundIds: [...session.quizGame.roundIds, roundId] };
-    tx.set(ref, {
-      gameId: nextRound.gameId,
-      gameConfig: quizRoundGameConfig(nextRound),
-      quizGame,
-      status: SESSION_STATUS.PREPARING,
-      roundId,
-      expectedPlayerIds: players.map((player) => player.id),
-      startedAt: deleteField(),
-      startedAtMs: deleteField(),
-      startDelayMs: deleteField(),
-      updatedAt: serverTimestamp(),
-      updatedAtMs: now,
-    }, { merge: true });
-    for (const player of players) {
-      tx.set(roundParticipantRef(roomId, roundId, player.id), { ...participantIdentity(player), joinedAt: serverTimestamp(), joinedAtMs: now });
     }
   });
 }
@@ -380,19 +293,20 @@ export async function finalizeSessionStart(roomId: string, roundId: string): Pro
   });
 }
 
-export async function resetSession(roomId: string): Promise<void> {
+export async function resetSession(roomId: string, fieldsToDelete: readonly string[]): Promise<void> {
   await ensureSession(roomId);
-  await setDoc(sessionRef(roomId), {
+  const nextSession: Record<string, unknown> = {
     status: SESSION_STATUS.WAITING,
     roundId: null,
     startedAt: deleteField(),
     startedAtMs: deleteField(),
     startDelayMs: deleteField(),
     expectedPlayerIds: [],
-    quizGame: deleteField(),
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),
-  }, { merge: true });
+  };
+  for (const field of fieldsToDelete) nextSession[field] = deleteField();
+  await setDoc(sessionRef(roomId), nextSession, { merge: true });
 }
 
 export async function updateWaitingTypingConfig(

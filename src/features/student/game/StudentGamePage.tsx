@@ -1,6 +1,7 @@
 import GameHost from "../../../games/GameHost.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
 import type { GameSession, Player } from "../../../multiplayer/types.ts";
+import { quizGameSessionState } from "../../../quiz-game/multiplayerService.ts";
 import StudentQuizGameRuntime from "../quiz-game-runtime/StudentQuizGameRuntime.tsx";
 
 interface Props {
@@ -12,7 +13,7 @@ interface Props {
 export default function StudentGamePage({ roomId, session, player }: Props) {
   return (
     <PageShell title="게임 진행 중" roomId={roomId}>
-      {session.quizGame
+      {quizGameSessionState(session)
         ? <StudentQuizGameRuntime roomId={roomId} session={session} player={player} />
         : <GameHost role="student" roomId={roomId} session={session} player={player} />}
     </PageShell>

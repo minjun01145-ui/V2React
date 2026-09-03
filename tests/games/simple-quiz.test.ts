@@ -27,6 +27,7 @@ function session(gameConfig: Readonly<Record<string, unknown>> | null): ActiveGa
     status: "playing",
     roundId: "round-1",
     expectedPlayerIds: [],
+    sessionData: {},
     gameConfig,
     createdAtMs: 1,
     updatedAtMs: 1,

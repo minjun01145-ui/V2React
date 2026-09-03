@@ -5,8 +5,8 @@ import { getGame } from "../../../games/registry.ts";
 import { useRoundAttempts, useRoundProgress } from "../../../multiplayer/game-progress/hooks.ts";
 import { loadRoundProgress } from "../../../multiplayer/game-progress/repository.ts";
 import { useRoundParticipants } from "../../../multiplayer/hooks.ts";
-import { advanceQuizGame, setQuizGamePhase } from "../../../multiplayer/repository.ts";
 import type { GameSession } from "../../../multiplayer/types.ts";
+import { advanceQuizGame, quizGameSessionState, setQuizGamePhase } from "../../../quiz-game/multiplayerService.ts";
 import type { QuizGameRound } from "../../../quiz-game/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -44,7 +44,7 @@ interface RankingEntry { readonly playerId: string; readonly displayName: string
 function CumulativeLeaderboard({ roomId, session }: { readonly roomId: string; readonly session: GameSession }) {
   const [entries, setEntries] = useState<readonly RankingEntry[]>([]);
   const [error, setError] = useState("");
-  const roundIds = session.quizGame?.roundIds ?? [];
+  const roundIds = quizGameSessionState(session)?.roundIds ?? [];
   const scope = roundIds.join(":");
   useEffect(() => {
     let active = true;
@@ -64,7 +64,7 @@ function CumulativeLeaderboard({ roomId, session }: { readonly roomId: string; r
 }
 
 export default function TeacherQuizGameRuntime({ roomId, session }: { readonly roomId: string; readonly session: GameSession }) {
-  const quiz = session.quizGame;
+  const quiz = quizGameSessionState(session);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState("");
   const round = quiz?.plan.rounds[quiz.currentRoundIndex];
