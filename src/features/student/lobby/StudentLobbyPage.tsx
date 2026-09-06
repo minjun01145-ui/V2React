@@ -48,6 +48,7 @@ export default function StudentLobbyPage(props: Props) {
         selfStudentNumber={player.studentNumber}
         displayName={player.displayName}
         nickname={player.nickname}
+        avatar={player.avatar ?? null}
         uid={identity.uid}
       />
     </PageShell>

@@ -1,7 +1,14 @@
 .stack { display: grid; gap: 1rem; }
 .card { display: grid; gap: 0.8rem; }
 .sectionTitle { margin: 0; font-size: 1.05rem; }
+.sectionHeading { display: flex; gap: .75rem; align-items: center; justify-content: space-between; }
+.sectionHeading span { display: inline-grid; min-width: 2rem; min-height: 2rem; place-items: center; border-radius: 999px; background: var(--color-surface-muted); color: var(--color-muted); font-size: .78rem; font-weight: 800; }
 .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
 .activityHint { margin: 0; color: var(--text-muted, #8a90a0); font-size: .82rem; font-weight: 700; }
-.shopCard { padding-block: .75rem; }
-.hint, .selfHint { margin: 0; color: var(--text-muted, #8a90a0); font-size: 0.85rem; }
+.profileCard { padding: 1rem; border-color: #dbe3ff; background: linear-gradient(135deg, var(--color-surface), #fafbff); }
+.hint { margin: 0; color: var(--text-muted, #8a90a0); font-size: 0.85rem; }
+
+@media (max-width: 560px) {
+  .actions { align-items: stretch; flex-direction: column; }
+  .actions > button { width: 100%; }
+}

@@ -1,6 +1,7 @@
 import type { Player } from "../types.ts";
 import { displayLabel } from "../types.ts";
 import { findCharacter } from "../../characters/catalog.ts";
+import { useCharacterStandFrame } from "../../shared/useCharacterStandFrame.ts";
 import Card from "../../shared/ui/Card.tsx";
 import styles from "./PlayerCard.module.css";
 
@@ -12,12 +13,11 @@ interface Props {
 
 export default function PlayerCard({ player, isSelf = false, showStudentNumber = false }: Props) {
   const character = player.avatar?.kind === "character" ? findCharacter(player.avatar.characterId) : null;
+  const characterFrame = useCharacterStandFrame(character?.standFrames ?? null);
   return (
     <Card className={styles.card}>
       <div className={styles.avatar} data-empty={character || player.avatar?.kind === "pokemon" ? undefined : "true"}>
-        {character ? character.standFrames.map((source, index) => (
-          <img className={styles.characterFrame} src={source} alt={index === 0 ? `${character.name} 캐릭터` : ""} aria-hidden={index === 0 ? undefined : true} key={source} />
-        )) : null}
+        {character && characterFrame ? <img className={styles.characterFrame} src={characterFrame} alt={`${character.name} 캐릭터`} decoding="async" draggable={false} /> : null}
         {player.avatar?.kind === "pokemon" ? (
           <img
             className={styles.pokemon}

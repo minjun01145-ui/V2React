@@ -1,10 +1,44 @@
-.launcher { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; justify-content: space-between; }
-.currentCharacter { display: flex; min-width: 0; align-items: center; gap: .65rem; }
-.currentCharacter span { display: grid; gap: .1rem; }
-.currentCharacter small { color: var(--color-muted); font-size: .72rem; }
-.currentCharacter strong { overflow: hidden; font-size: .9rem; text-overflow: ellipsis; white-space: nowrap; }
-.currentPokemon { width: 3.25rem; height: 3.25rem; object-fit: contain; image-rendering: pixelated; }
-.noCharacter { margin: 0; color: var(--color-muted); font-size: .85rem; }
+.profile {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+}
+.profileStage {
+  position: relative;
+  display: grid;
+  width: 6rem;
+  height: 6rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid #c7d2fe;
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, #eef2ff, #f8fafc 64%, #fff7ed);
+}
+.profileStage::after {
+  position: absolute;
+  right: 20%;
+  bottom: .6rem;
+  left: 20%;
+  height: .42rem;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, .12);
+  content: "";
+  filter: blur(2px);
+}
+.profileStage[data-empty="true"]::after { display: none; }
+.profileStage > * { z-index: 1; }
+.profileDetails { min-width: 0; }
+.profileEyebrow { margin: 0 0 .25rem; color: var(--color-primary); font-size: .72rem; font-weight: 900; letter-spacing: .08em; }
+.profileTitle { overflow: hidden; margin: 0; font-size: clamp(1.2rem, 3vw, 1.55rem); line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.realName { overflow: hidden; margin: .22rem 0 0; color: var(--color-muted); font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.equippedInfo { margin: .72rem 0 0; }
+.equippedInfo div { display: flex; min-width: 0; gap: .4rem; align-items: baseline; }
+.equippedInfo dt { flex: none; color: var(--color-muted); font-size: .72rem; font-weight: 700; }
+.equippedInfo dd { overflow: hidden; margin: 0; font-size: .82rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.profileAction { justify-self: end; }
+.currentPokemon { width: 5rem; height: 5rem; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 3px rgba(15, 23, 42, .15)); }
+.emptyAvatar { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border: 2px dashed var(--color-border-strong); border-radius: 999px; color: var(--color-muted); font-size: 1rem; font-weight: 800; }
 
 .dialog {
   width: min(900px, calc(100% - 1.5rem));
@@ -48,8 +82,10 @@
 .emptyPokemon p { margin: .4rem 0 0; color: var(--color-muted); font-size: .85rem; }
 
 @media (max-width: 560px) {
-  .launcher { align-items: stretch; flex-direction: column; }
-  .launcher > button { width: 100%; }
+  .profile { grid-template-columns: 5.25rem minmax(0, 1fr); gap: .85rem; }
+  .profileStage { width: 5.25rem; height: 5.25rem; }
+  .profileAction { grid-column: 1 / -1; justify-self: stretch; }
+  .profileAction > button { width: 100%; }
   .grid { grid-template-columns: 1fr 1fr; gap: .65rem; }
   .stage { min-height: 8.3rem; }
   .itemBody { gap: .65rem; padding: .75rem; }
@@ -57,4 +93,9 @@
   .itemBody button { padding-inline: .45rem; font-size: .82rem; }
 }
 
-@media (max-width: 390px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 390px) {
+  .profile { grid-template-columns: 4.75rem minmax(0, 1fr); }
+  .profileStage { width: 4.75rem; height: 4.75rem; }
+  .profileTitle { font-size: 1.1rem; }
+  .grid { grid-template-columns: 1fr; }
+}

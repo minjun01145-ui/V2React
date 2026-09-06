@@ -1,4 +1,5 @@
 import type { CharacterCatalogItem } from "../../../characters/catalog.ts";
+import { useCharacterStandFrame } from "../../../shared/useCharacterStandFrame.ts";
 import styles from "./CharacterPreview.module.css";
 
 interface Props {
@@ -7,20 +8,16 @@ interface Props {
 }
 
 export default function CharacterPreview({ character, size = "large" }: Props) {
+  const source = useCharacterStandFrame(character.standFrames);
   return (
     <div className={`${styles.preview} ${styles[size]}`} aria-label={`${character.name} 대기 동작`}>
-      {character.standFrames.map((source, index) => (
-        <img
-          aria-hidden={index === 0 ? undefined : true}
-          className={styles.frame}
-          key={source}
-          src={source}
-          alt={index === 0 ? `${character.name} 캐릭터` : ""}
-          decoding="async"
-          loading="lazy"
-          draggable={false}
-        />
-      ))}
+      <img
+        className={styles.frame}
+        src={source ?? character.standFrames[0]}
+        alt={`${character.name} 캐릭터`}
+        decoding="async"
+        draggable={false}
+      />
     </div>
   );
 }
