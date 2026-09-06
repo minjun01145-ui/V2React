@@ -4,7 +4,7 @@ import { aiTutorAnswerResult } from "../../../ai-tutor-engine/result.ts";
 import type { AiTutorDirection, AiTutorReply } from "../../../ai-tutor-engine/types.ts";
 import { applyResultToProgress, createEmptyProgress, normalizeProgress, type GameProgress } from "../../../game-engine/progress/index.ts";
 import { adaptLearningSetToAiTutor } from "../../../learning-sets/aiTutorAdapter.ts";
-import type { LearningSet } from "../../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../../learning-sets/types.ts";
 import { usePlayerGameProgress } from "../../../multiplayer/game-progress/hooks.ts";
 import { persistGameAttempt } from "../../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../../multiplayer/types.ts";
@@ -28,7 +28,7 @@ export function PokemonAiQuiz({ roomId, session, player, set, disabled = false, 
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
-  readonly set: LearningSet;
+  readonly set: RuntimeLearningSet;
   readonly disabled?: boolean;
   readonly advanceRequestId: number;
   readonly onQuestionComplete: (completionId: string) => void;

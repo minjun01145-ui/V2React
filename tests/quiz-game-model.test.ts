@@ -50,7 +50,20 @@ const directConfig = quizRoundGameConfig({
   source: { kind: "custom", setType: "reading-chunks", items: [{ id: "item-1", sourceText: "I go / home.", meaning: "나는 집에 간다." }] },
 });
 assert.equal(usesFiniteQuestionSequence(directConfig), true);
-assert.equal((directConfig.set as { readonly itemCount: number }).itemCount, 1);
+assert.deepEqual(directConfig.set, {
+  id: "quiz-round-1",
+  name: "1번 문제",
+  type: "reading-chunks",
+  itemCount: 1,
+  items: [{ id: "item-1", sourceText: "I go / home.", meaning: "나는 집에 간다." }],
+});
+assert.equal(Object.hasOwn(directConfig.set as object, "createdAtMs"), false);
+assert.equal(Object.hasOwn(directConfig.set as object, "updatedAtMs"), false);
+assert.deepEqual(quizRoundGameConfig(plan.rounds[0]!), {
+  setId: "set-1",
+  "choice-count": "4",
+  quizRoundDurationMs: 30_000,
+});
 assert.equal(usesFiniteQuestionSequence(quizRoundGameConfig(plan.rounds[0]!)), false);
 
 console.log("quiz game model tests passed");

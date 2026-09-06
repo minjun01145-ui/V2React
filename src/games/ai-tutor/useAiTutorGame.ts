@@ -4,7 +4,7 @@ import { adaptLearningSetToAiTutor } from "../../learning-sets/aiTutorAdapter.ts
 import { submitAiTutorTurn } from "../../ai-tutor-engine/repository.ts";
 import type { AiTutorEvaluationDetails, AiTutorQuestion, AiTutorReply } from "../../ai-tutor-engine/types.ts";
 import { applyResultToProgress, createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
 import { persistGameAttempt, persistGameProgress } from "../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
@@ -14,7 +14,7 @@ export function useAiTutorGame(input: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
-  readonly set: LearningSet;
+  readonly set: RuntimeLearningSet;
 }) {
   const { roomId, session, player, set } = input;
   const questions = useMemo(() => adaptLearningSetToAiTutor(set, aiTutorDirection(session)), [session, set]);

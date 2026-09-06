@@ -9,13 +9,13 @@ import {
   type LearningSetMultipleChoiceOptions,
   type LearningSetQuestionSource,
 } from "./multipleChoiceTypes.ts";
-import { LEARNING_SET_TYPE, type LearningSet } from "./types.ts";
+import { LEARNING_SET_TYPE, type RuntimeLearningSet } from "./types.ts";
 
 function withoutChunkMarkers(value: string): string {
   return value.split("/").map((chunk) => chunk.trim()).filter(Boolean).join(" ");
 }
 
-function entryPairs(set: LearningSet): readonly MultipleChoicePair<LearningSetQuestionSource>[] {
+function entryPairs(set: RuntimeLearningSet): readonly MultipleChoicePair<LearningSetQuestionSource>[] {
   return set.items.map((item, itemIndex) => ({
     id: item.id,
     left: set.type === LEARNING_SET_TYPE.READING_CHUNKS ? withoutChunkMarkers(item.sourceText) : item.sourceText,
@@ -24,7 +24,7 @@ function entryPairs(set: LearningSet): readonly MultipleChoicePair<LearningSetQu
   }));
 }
 
-function chunkPairs(set: LearningSet): readonly MultipleChoicePair<LearningSetQuestionSource>[] {
+function chunkPairs(set: RuntimeLearningSet): readonly MultipleChoicePair<LearningSetQuestionSource>[] {
   if (set.type !== LEARNING_SET_TYPE.READING_CHUNKS) throw new Error("덩어리 객관식은 끊어읽기 세트에서만 만들 수 있습니다.");
   return set.items.flatMap((item, itemIndex) => {
     const sourceChunks = item.sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean);
@@ -42,7 +42,7 @@ function chunkPairs(set: LearningSet): readonly MultipleChoicePair<LearningSetQu
 }
 
 export function adaptLearningSetToMultipleChoice(
-  set: LearningSet,
+  set: RuntimeLearningSet,
   options: LearningSetMultipleChoiceOptions,
 ): MultipleChoiceQuestionSet<LearningSetQuestionSource> {
   const scope = options.scope ?? LEARNING_SET_QUESTION_SCOPE.ENTRY;

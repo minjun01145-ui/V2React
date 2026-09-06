@@ -1,5 +1,5 @@
 import { validateCanonicalQuestionSet } from "../../game-engine/question-engine/canonicalQuestionSet.ts";
-import { LEARNING_SET_TYPE, type LearningSet } from "../../learning-sets/types.ts";
+import { LEARNING_SET_TYPE, type RuntimeLearningSet } from "../../learning-sets/types.ts";
 import { cleanTypingPrompt } from "./typingEngine.ts";
 import type { TypingQuestion, TypingQuestionSet } from "./types.ts";
 
@@ -7,7 +7,7 @@ function splitChunks(value: string): string[] {
   return value.split("/").map((part) => cleanTypingPrompt(part)).filter(Boolean);
 }
 
-export function adaptLearningSetToTypingPractice(set: LearningSet): TypingQuestionSet {
+export function adaptLearningSetToTypingPractice(set: RuntimeLearningSet): TypingQuestionSet {
   const questions: TypingQuestion[] = [];
   set.items.forEach((item, itemIndex) => {
     const targets = set.type === LEARNING_SET_TYPE.READING_CHUNKS

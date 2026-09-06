@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createScoreCelebration } from "../../game-engine/effects/model.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
@@ -14,7 +14,7 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
-  readonly set: LearningSet;
+  readonly set: RuntimeLearningSet;
 }) {
   const clock = useTimedGameClock(session);
   const game = useMatchingGame({ roomId, session, player, set, disabled: clock.expired });

@@ -3,7 +3,7 @@ import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createScoreCelebration } from "../../game-engine/effects/model.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { LearningCardButton } from "../../shared/ui/LearningCard.tsx";
@@ -14,7 +14,7 @@ export default function MatchingAllStudentGame({ roomId, session, player, set, d
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
-  readonly set: LearningSet;
+  readonly set: RuntimeLearningSet;
   readonly disabled?: boolean;
   readonly embedded?: boolean;
   readonly onRoundComplete?: (completionId: string) => void;

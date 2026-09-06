@@ -15,6 +15,14 @@ export interface LearningSetItem {
   readonly meaning: string;
 }
 
+export interface RuntimeLearningSet {
+  readonly id: string;
+  readonly name: string;
+  readonly type: LearningSetType;
+  readonly itemCount: number;
+  readonly items: readonly LearningSetItem[];
+}
+
 export interface LearningSetSummary {
   readonly id: string;
   readonly name: string;
@@ -24,8 +32,9 @@ export interface LearningSetSummary {
   readonly updatedAtMs: number;
 }
 
-export interface LearningSet extends LearningSetSummary {
-  readonly items: readonly LearningSetItem[];
+export interface LearningSet extends RuntimeLearningSet {
+  readonly createdAtMs: number;
+  readonly updatedAtMs: number;
 }
 
 export interface SaveLearningSetInput {

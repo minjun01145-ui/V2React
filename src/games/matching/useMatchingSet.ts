@@ -1,5 +1,5 @@
 import { useLearningSet } from "../../learning-sets/useLearningSet.ts";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { LearningSet, RuntimeLearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import { matchingDemoSet } from "./demoSet.ts";
 
@@ -9,7 +9,7 @@ function configuredSetId(session: ActiveGameSession): string | null {
 }
 
 export function useMatchingSet(session: ActiveGameSession): {
-  readonly set: LearningSet | null;
+  readonly set: RuntimeLearningSet | null;
   readonly loading: boolean;
   readonly error: Error | null;
 } {

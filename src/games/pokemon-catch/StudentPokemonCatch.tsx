@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { POKEMON_ITEM, type PokemonItemId } from "../../student-data/pokemon-catch/types.ts";
@@ -28,7 +28,7 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
-  readonly set: LearningSet;
+  readonly set: RuntimeLearningSet;
 }) {
   const studentData = usePokemonCatchData({ uid: player.id, studentNumber: player.studentNumber });
   const [encounterIndex, setEncounterIndex] = useState(0);

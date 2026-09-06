@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { evaluateMultipleChoice, type MultipleChoiceAnswer } from "../../game-engine/question-engine/multiple-choice/index.ts";
 import { useMultiplayerQuestionEngine } from "../../game-engine/question-engine/multiplayer/useMultiplayerQuestionEngine.ts";
 import { usesFiniteQuestionSequence } from "../../game-engine/question-engine/sessionConfig.ts";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { adaptSimpleQuizSet } from "./adapter.ts";
 import { simpleQuizChoiceCount } from "./config.ts";
@@ -13,7 +13,7 @@ export function useSimpleQuizGame(input: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
-  readonly set: LearningSet;
+  readonly set: RuntimeLearningSet;
   readonly disabled?: boolean;
 }) {
   const { roomId, session, player, set, disabled = false } = input;

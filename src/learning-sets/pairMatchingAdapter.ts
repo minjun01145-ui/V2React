@@ -1,7 +1,7 @@
 import type { PairMatchingPair } from "../game-engine/pair-matching/index.ts";
-import { LEARNING_SET_TYPE, type LearningSet } from "./types.ts";
+import { LEARNING_SET_TYPE, type RuntimeLearningSet } from "./types.ts";
 
-export function adaptLearningSetToPairMatching(set: LearningSet): readonly PairMatchingPair[] {
+export function adaptLearningSetToPairMatching(set: RuntimeLearningSet): readonly PairMatchingPair[] {
   if (set.type !== LEARNING_SET_TYPE.VOCABULARY) throw new Error("짝맞추기는 단어 세트만 사용할 수 있습니다.");
   const pairs = set.items.map((item) => ({
     id: item.id,

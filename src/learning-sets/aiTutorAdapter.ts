@@ -1,7 +1,7 @@
 import type { AiTutorDirection, AiTutorQuestion } from "../ai-tutor-engine/types.ts";
-import { LEARNING_SET_TYPE, type LearningSet } from "./types.ts";
+import { LEARNING_SET_TYPE, type RuntimeLearningSet } from "./types.ts";
 
-export function adaptLearningSetToAiTutor(set: LearningSet, direction: AiTutorDirection): readonly AiTutorQuestion[] {
+export function adaptLearningSetToAiTutor(set: RuntimeLearningSet, direction: AiTutorDirection): readonly AiTutorQuestion[] {
   const sentence = set.type === LEARNING_SET_TYPE.READING_CHUNKS;
   return set.items.map((item) => direction === "source-to-meaning" ? {
     id: item.id,

@@ -1,12 +1,10 @@
-import { LEARNING_SET_TYPE, type LearningSet } from "../../learning-sets/types.ts";
+import { LEARNING_SET_TYPE, type RuntimeLearningSet } from "../../learning-sets/types.ts";
 
-export const typingDemoSet: LearningSet = {
+export const typingDemoSet: RuntimeLearningSet = {
   id: "typing-demo",
   name: "타자게임 체험 문장",
   type: LEARNING_SET_TYPE.VOCABULARY,
   itemCount: 6,
-  createdAtMs: 0,
-  updatedAtMs: 0,
   items: [
     ["Hello, world!", "안녕, 세상아!"],
     ["I like reading books.", "나는 책 읽는 것을 좋아해요."],

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { getLearningSet } from "../../learning-sets/readRepository.ts";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Button from "../../shared/ui/Button.tsx";
 import { adaptLearningSetToTypingPractice } from "./typingPracticeAdapter.ts";
@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function TypingPracticeGame({ config, onExit }: Props) {
-  const [set, setSet] = useState<LearningSet | null>(null);
+  const [set, setSet] = useState<RuntimeLearningSet | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -42,7 +42,7 @@ export default function TypingPracticeGame({ config, onExit }: Props) {
   return <TypingPracticeBoard set={set} config={config} onExit={onExit} />;
 }
 
-function TypingPracticeBoard({ set, config, onExit }: Props & { readonly set: LearningSet }) {
+function TypingPracticeBoard({ set, config, onExit }: Props & { readonly set: RuntimeLearningSet }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const questionSet = adaptLearningSetToTypingPractice(set);
   const game = useTypingPracticeGame(questionSet, config);

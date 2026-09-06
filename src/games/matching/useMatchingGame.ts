@@ -9,7 +9,7 @@ import {
 } from "../../game-engine/core/logicalOperation.ts";
 import { isMatchingPair, type PairMatchingCard } from "../../game-engine/pair-matching/index.ts";
 import { applyResultToProgress, createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
-import type { LearningSet } from "../../learning-sets/types.ts";
+import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import { adaptLearningSetToPairMatching } from "../../learning-sets/pairMatchingAdapter.ts";
 import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
 import { persistGameAttempt, type GameAttemptSubmission } from "../../multiplayer/game-progress/repository.ts";
@@ -35,7 +35,7 @@ export function useMatchingGame(input: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
-  readonly set: LearningSet;
+  readonly set: RuntimeLearningSet;
   readonly disabled?: boolean;
 }) {
   const { roomId, session, player, set, disabled = false } = input;
