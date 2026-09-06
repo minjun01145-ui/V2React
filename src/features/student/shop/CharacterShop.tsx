@@ -82,17 +82,19 @@ export default function CharacterShop({ identity, roomId, nickname, initialAvata
         </div>
       </section>
 
-      <CharacterShopDialog
-        open={open}
-        equippedAvatar={equippedAvatar}
-        charactersLoading={loading}
-        captures={pokemonData.captures}
-        pokemonLoading={pokemonData.loading}
-        error={error ?? pokemonData.error}
-        onClose={() => setOpen(false)}
-        onEquipCharacter={equipCharacter}
-        onEquipPokemon={equipPokemon}
-      />
+      {open ? (
+        <CharacterShopDialog
+          open
+          equippedAvatar={equippedAvatar}
+          charactersLoading={loading}
+          captures={pokemonData.captures}
+          pokemonLoading={pokemonData.loading}
+          error={error ?? pokemonData.error}
+          onClose={() => setOpen(false)}
+          onEquipCharacter={equipCharacter}
+          onEquipPokemon={equipPokemon}
+        />
+      ) : null}
     </>
   );
 }
