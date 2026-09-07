@@ -63,6 +63,13 @@ if (/allow\s+(read|write|read,\s*write)\s*:\s*if\s+true/.test(rules)) {
 if (!rules.includes("studentProfiles") || !rules.includes("admins") || !rules.includes("request.auth.uid")) {
   violations.push("security/firestore.rules.secure: expected authenticated ownership/admin checks are missing");
 }
+if (!rules.includes("documents/studentProfiles/$(request.auth.uid)).data.studentNumber == request.auth.token.studentNumber")
+  || !rules.includes("documents/studentProfiles/$(request.auth.uid)).data.displayName == request.auth.token.displayName")) {
+  violations.push("security/firestore.rules.secure: student claims must be bound to the server-owned UID profile");
+}
+if (rules.includes("documents/studentRoster/$(request.auth.token.studentNumber)).data.displayName == request.auth.token.displayName")) {
+  violations.push("security/firestore.rules.secure: normalized student claims must not be compared with unnormalized roster names");
+}
 if (!rules.includes("studentPinCredentials") || !rules.includes("allow read, write: if false")) {
   violations.push("security/firestore.rules.secure: student PIN credentials must be inaccessible to browser clients");
 }

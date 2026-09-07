@@ -16,9 +16,11 @@ service cloud.firestore {
         && request.auth.token.role == "student"
         && request.auth.token.studentNumber is string
         && request.auth.token.displayName is string
+        && exists(/databases/$(database)/documents/studentProfiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/studentProfiles/$(request.auth.uid)).data.studentNumber == request.auth.token.studentNumber
+        && get(/databases/$(database)/documents/studentProfiles/$(request.auth.uid)).data.displayName == request.auth.token.displayName
         && exists(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber))
-        && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.active != false
-        && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.displayName == request.auth.token.displayName;
+        && get(/databases/$(database)/documents/studentRoster/$(request.auth.token.studentNumber)).data.active != false;
     }
 
     function isTestStudentForRoom(roomId) {
