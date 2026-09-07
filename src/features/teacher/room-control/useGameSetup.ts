@@ -30,7 +30,7 @@ export interface GameSetupState {
   readonly buildGameConfig: () => Readonly<Record<string, unknown>>;
 }
 
-export function useGameSetup(): GameSetupState {
+export function useGameSetup(refreshKey: string | null = null): GameSetupState {
   const [sets, setSets] = useState<readonly LearningSetSummary[]>([]);
   const availableGames = useMemo(() => listGames().filter((game) => game.supportedSetTypes.length > 0), []);
   const [gameId, setGameId] = useState(INITIAL_GAME_ID);
@@ -51,7 +51,7 @@ export function useGameSetup(): GameSetupState {
       })
       .catch((value: unknown) => { if (active) setSetError(toErrorMessage(value, "학습 세트 목록을 불러오지 못했습니다.")); });
     return () => { active = false; };
-  }, []);
+  }, [refreshKey]);
 
   const selectedGame = useMemo(() => getGame(gameId), [gameId]);
   const compatibleSets = useMemo(() => sets.filter((set) => selectedGame.supportedSetTypes.includes(set.type)), [selectedGame, sets]);

@@ -68,7 +68,7 @@ export async function startRegularGameSession(roomId: string, options: RegularGa
     const currentSession = await tx.get(ref);
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
     if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
-    tx.set(ref, nextSession, { merge: true });
+    tx.update(ref, nextSession);
     for (const player of activePlayers) {
       tx.set(roundParticipantRef(roomId, roundId, player.id), { ...participantIdentity(player), joinedAt: serverTimestamp(), joinedAtMs: now });
     }
@@ -83,6 +83,7 @@ export async function resetQuizAwareSession(roomId: string): Promise<void> {
     startedAt: deleteField(),
     startedAtMs: deleteField(),
     startDelayMs: deleteField(),
+    gameConfig: deleteField(),
     expectedPlayerIds: [],
     [QUIZ_GAME_SESSION_FIELD]: deleteField(),
     updatedAt: serverTimestamp(),
@@ -104,7 +105,7 @@ export async function startQuizGame(roomId: string, plan: QuizGamePlan): Promise
     const currentSession = await tx.get(ref);
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
     if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
-    tx.set(ref, {
+    tx.update(ref, {
       gameId: firstRound.gameId,
       gameConfig: quizRoundGameConfig(firstRound),
       [QUIZ_GAME_SESSION_FIELD]: quizGame,
@@ -116,7 +117,7 @@ export async function startQuizGame(roomId: string, plan: QuizGamePlan): Promise
       startDelayMs: deleteField(),
       updatedAt: serverTimestamp(),
       updatedAtMs: now,
-    }, { merge: true });
+    });
     for (const player of activePlayers) {
       tx.set(roundParticipantRef(roomId, roundId, player.id), { ...participantIdentity(player), joinedAt: serverTimestamp(), joinedAtMs: now });
     }
@@ -160,7 +161,7 @@ export async function advanceQuizGame(roomId: string): Promise<void> {
     const advanced = advanceQuizGameRound(currentQuizGame, roundId);
     const resolvedNextRound = advanced.round;
     const quizGame = advanced.state;
-    tx.set(ref, {
+    tx.update(ref, {
       gameId: resolvedNextRound.gameId,
       gameConfig: quizRoundGameConfig(resolvedNextRound),
       [QUIZ_GAME_SESSION_FIELD]: quizGame,
@@ -172,7 +173,7 @@ export async function advanceQuizGame(roomId: string): Promise<void> {
       startDelayMs: deleteField(),
       updatedAt: serverTimestamp(),
       updatedAtMs: now,
-    }, { merge: true });
+    });
     for (const player of players) {
       tx.set(roundParticipantRef(roomId, roundId, player.id), { ...participantIdentity(player), joinedAt: serverTimestamp(), joinedAtMs: now });
     }

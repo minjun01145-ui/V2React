@@ -16,6 +16,16 @@ assert.ok(listGames().filter((game) => game.supportedSetTypes.length > 0).every(
 assert.deepEqual(timedGameConfig(TIMED_GAME_MODE.UNLIMITED), { mode: "unlimited", durationMs: null });
 assert.equal(readTimedGameConfig(null).durationMs, 180_000);
 assert.equal(readTimedGameConfig(withTimedGameConfig({ setId: "set-1" }, TIMED_GAME_MODE.FIVE_MINUTES)).durationMs, 300_000);
+assert.equal(
+  readTimedGameConfig({ timedGameMode: TIMED_GAME_MODE.FIVE_MINUTES, quizRoundDurationMs: 30_000 }).durationMs,
+  300_000,
+  "일반 게임의 명시적 시간 설정이 이전 퀴즈 라운드의 잔여 시간값보다 우선해야 합니다.",
+);
+assert.equal(
+  readTimedGameConfig({ timedGameMode: TIMED_GAME_MODE.UNLIMITED, quizRoundDurationMs: 30_000 }).durationMs,
+  null,
+  "무제한 모드가 이전 퀴즈 라운드의 잔여 시간값 때문에 30초로 바뀌면 안 됩니다.",
+);
 
 const running = timedGameClockSnapshot(timedGameConfig(TIMED_GAME_MODE.THREE_MINUTES), 1_000, 61_000);
 assert.equal(running.remainingMs, 120_000);

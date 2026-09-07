@@ -271,7 +271,7 @@ export async function startSession(roomId: string, options: StartSessionOptions 
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
     if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || parseStudentQuestionActivity(currentData.classroomActivity)) return;
 
-    tx.set(sessionRef(roomId), nextSession, { merge: true });
+    tx.update(sessionRef(roomId), nextSession);
     for (const player of activePlayers) {
       tx.set(roundParticipantRef(roomId, roundId, player.id), {
         ...participantIdentity(player),
@@ -322,6 +322,7 @@ export async function resetSession(roomId: string): Promise<void> {
     startedAt: deleteField(),
     startedAtMs: deleteField(),
     startDelayMs: deleteField(),
+    gameConfig: deleteField(),
     expectedPlayerIds: [],
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),
