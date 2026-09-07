@@ -18,12 +18,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-      VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-      VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-      VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
-      VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
-      VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+      # Firebase Web identifiers are public configuration. Keep them pinned to the
+      # same project that receives this workflow's Hosting and backend deployments.
+      VITE_FIREBASE_API_KEY: AIzaSyAhXLWCpfmWJc-nd4R6k47QKGFFGxG4NJg
+      VITE_FIREBASE_AUTH_DOMAIN: v2react-jurye-classroom.firebaseapp.com
+      VITE_FIREBASE_PROJECT_ID: v2react-jurye-classroom
+      VITE_FIREBASE_STORAGE_BUCKET: v2react-jurye-classroom.firebasestorage.app
+      VITE_FIREBASE_MESSAGING_SENDER_ID: "842692628205"
+      VITE_FIREBASE_APP_ID: "1:842692628205:web:d45c0c28be6d4fe73486e4"
       VITE_ADMIN_AUTH_EMAIL: ${{ secrets.VITE_ADMIN_AUTH_EMAIL }}
       VITE_FIREBASE_FUNCTIONS_REGION: ${{ secrets.VITE_FIREBASE_FUNCTIONS_REGION }}
       VITE_DEFAULT_ROOM_ID: ${{ secrets.VITE_DEFAULT_ROOM_ID }}
@@ -59,7 +61,7 @@ jobs:
             fi
           done
           if (( ${#missing[@]} > 0 )); then
-            echo "Missing GitHub Actions secrets: ${missing[*]}"
+            echo "Missing Firebase build configuration: ${missing[*]}"
             exit 1
           fi
 
