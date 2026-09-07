@@ -19,7 +19,26 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  test_and_deploy:
+  deploy_firestore_rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM }}
+
+      - name: Deploy Firestore rules
+        run: >-
+          npx --yes firebase-tools@15.28.1 deploy
+          --only "firestore:rules"
+          --project v2react-jurye-classroom
+          --non-interactive
+
+  test_and_deploy_functions:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -44,9 +63,9 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM }}
 
-      - name: Deploy Functions and Firestore rules
+      - name: Deploy Functions
         run: >-
           npx --yes firebase-tools@15.28.1 deploy
-          --only "functions:jurye-v2,firestore:rules"
+          --only "functions:jurye-v2"
           --project v2react-jurye-classroom
           --non-interactive
