@@ -67,7 +67,7 @@ export async function startRegularGameSession(roomId: string, options: RegularGa
     const ref = sessionRef(roomId);
     const currentSession = await tx.get(ref);
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
-    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status))) return;
+    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
     tx.set(ref, nextSession, { merge: true });
     for (const player of activePlayers) {
       tx.set(roundParticipantRef(roomId, roundId, player.id), { ...participantIdentity(player), joinedAt: serverTimestamp(), joinedAtMs: now });
@@ -103,7 +103,7 @@ export async function startQuizGame(roomId: string, plan: QuizGamePlan): Promise
     const ref = sessionRef(roomId);
     const currentSession = await tx.get(ref);
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
-    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status))) return;
+    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
     tx.set(ref, {
       gameId: firstRound.gameId,
       gameConfig: quizRoundGameConfig(firstRound),

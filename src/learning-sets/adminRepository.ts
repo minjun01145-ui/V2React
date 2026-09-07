@@ -16,7 +16,7 @@ export async function saveLearningSet(input: SaveLearningSetInput): Promise<Lear
   const name = validateLearningSetName(input.name);
   const now = Date.now();
   const createdAtMs = input.createdAtMs && input.createdAtMs > 0 ? input.createdAtMs : now;
-  const items = input.items.map((item) => ({ id: item.id, sourceText: item.sourceText, meaning: item.meaning }));
+  const items = input.items.map((item) => ({ id: item.id, sourceText: item.sourceText, meaning: item.meaning, ...(item.author ? { author: item.author } : {}) }));
   const batch = writeBatch(db);
   batch.set(doc(db, "learningSets", id), {
     name,

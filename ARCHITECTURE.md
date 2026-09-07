@@ -165,6 +165,10 @@ games/<game>/adapter
 
 학생 앱은 세트 편집 UI를 포함하지 않습니다. 게임 lazy chunk가 시작될 때 선택된 `setId`의 content만 읽고 게임별 adapter가 canonical question으로 변환합니다.
 
+## Student question activity
+
+학생 질문 만들기는 game registry가 아니라 `student-question-activity`가 소유하는 대기실 활동입니다. 세션의 `classroomActivity`에는 현재 run 포인터와 고정 참가자만 두고, 제출 내용은 `studentQuestionRuns/{runId}/submissions/{uid}`에 분리합니다. 학생은 자기 제출만 쓰며, Functions가 방 player 문서의 신원을 작성자 provenance로 확정하고 결정적인 result set ID로 finalize합니다. 완성된 `student-questions` 세트는 기존 `ai-tutor` adapter와 진행·답안 저장 경로를 그대로 사용합니다.
+
 ## Student app structure
 
 ```text

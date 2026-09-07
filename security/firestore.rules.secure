@@ -128,6 +128,30 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId;
     }
 
+    function activeStudentQuestionRun(roomId, runId) {
+      return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "waiting"
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.classroomActivity.kind == "student-question-authoring"
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.classroomActivity.runId == runId
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.classroomActivity.phase == "active";
+    }
+
+    function validStudentQuestionItem(items, index, englishOnly) {
+      return index >= items.size() || (
+        items[index] is map
+        && items[index].keys().hasOnly(["question", "referenceAnswer"])
+        && items[index].question is string
+        && items[index].question.size() >= 1
+        && items[index].question.size() <= 500
+        && items[index].question.matches(".*\\S.*")
+        && (!englishOnly || !items[index].question.matches(".*[가-힣ㄱ-ㅎㅏ-ㅣ].*"))
+        && items[index].referenceAnswer is string
+        && items[index].referenceAnswer.size() >= 1
+        && items[index].referenceAnswer.size() <= 1000
+        && items[index].referenceAnswer.matches(".*\\S.*")
+      );
+    }
+
     match /admins/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
       allow write: if false;
@@ -291,6 +315,34 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs", "nickname", "avatar"])
           && (!("avatar" in request.resource.data) || validPlayerAvatar(request.resource.data.avatar));
         allow delete: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+      }
+
+      match /studentQuestionRuns/{runId} {
+        allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid in resource.data.expectedPlayerIds);
+        allow create, update, delete: if isAdmin();
+
+        match /submissions/{uid} {
+          allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow create: if isRoomStudent(roomId)
+            && request.auth.uid == uid
+            && activeStudentQuestionRun(roomId, runId)
+            && request.auth.uid in get(/databases/$(database)/documents/multiplayerSessions/$(roomId)/studentQuestionRuns/$(runId)).data.expectedPlayerIds
+            && request.resource.data.keys().hasOnly(["playerId", "questions", "submitted", "submittedAt", "submittedAtMs"])
+            && request.resource.data.playerId == uid
+            && request.resource.data.submitted == true
+            && request.resource.data.submittedAt == request.time
+            && request.resource.data.submittedAtMs is int
+            && request.resource.data.questions is list
+            && request.resource.data.questions.size() == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)/studentQuestionRuns/$(runId)).data.config.questionCount
+            && request.resource.data.questions.size() >= 1
+            && request.resource.data.questions.size() <= 5
+            && validStudentQuestionItem(request.resource.data.questions, 0, get(/databases/$(database)/documents/multiplayerSessions/$(roomId)/studentQuestionRuns/$(runId)).data.config.englishQuestionsOnly)
+            && validStudentQuestionItem(request.resource.data.questions, 1, get(/databases/$(database)/documents/multiplayerSessions/$(roomId)/studentQuestionRuns/$(runId)).data.config.englishQuestionsOnly)
+            && validStudentQuestionItem(request.resource.data.questions, 2, get(/databases/$(database)/documents/multiplayerSessions/$(roomId)/studentQuestionRuns/$(runId)).data.config.englishQuestionsOnly)
+            && validStudentQuestionItem(request.resource.data.questions, 3, get(/databases/$(database)/documents/multiplayerSessions/$(roomId)/studentQuestionRuns/$(runId)).data.config.englishQuestionsOnly)
+            && validStudentQuestionItem(request.resource.data.questions, 4, get(/databases/$(database)/documents/multiplayerSessions/$(roomId)/studentQuestionRuns/$(runId)).data.config.englishQuestionsOnly);
+          allow update, delete: if false;
+        }
       }
 
       match /rounds/{roundId} {

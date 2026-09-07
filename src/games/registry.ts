@@ -4,7 +4,7 @@ const definitions = [
   defineGame({
     id: "ai-tutor",
     title: "AI 문답",
-    supportedSetTypes: ["vocabulary", "reading-chunks"],
+    supportedSetTypes: ["vocabulary", "reading-chunks", "student-questions"],
     requiresStoredSet: true,
     preloadPlayerProgress: true,
     supportsFiniteQuizQuestions: true,

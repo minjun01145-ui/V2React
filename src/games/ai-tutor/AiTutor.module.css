@@ -18,4 +18,4 @@
 .feedback p { margin: 8px 0; line-height: 1.55; }
 .error { color: #a32626; font-weight: 700; }
 @media (max-width: 620px) { .topbar { align-items: start; flex-direction: column; } .metrics { width: 100%; justify-content: space-between; } }
-
+.author { margin:.25rem 0; color:var(--color-muted); font-weight:800; }

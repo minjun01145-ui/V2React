@@ -18,6 +18,7 @@ import styles from "./TeacherRoomController.module.css";
 import { useGameSetup } from "./useGameSetup.ts";
 import WaitingTypingSetupPanel from "./WaitingTypingSetupPanel.tsx";
 import QuizGameLaunchPanel from "./QuizGameLaunchPanel.tsx";
+import TeacherStudentQuestionPanel from "../../../student-question-activity/TeacherStudentQuestionPanel.tsx";
 
 type RoomAction = (roomId: string) => Promise<void>;
 
@@ -54,6 +55,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
 
   const isPlaying = session?.status === SESSION_STATUS.PLAYING;
   const isPreparing = session?.status === SESSION_STATUS.PREPARING;
+  const isQuestionActivity = Boolean(session?.classroomActivity);
   const staleCount = Math.max(players.length - activePlayers.length, 0);
   const expectedPlayerIds = session?.expectedPlayerIds ?? [];
   const readyCount = countExpectedReady(expectedPlayerIds, readiness);
@@ -99,9 +101,9 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   };
 
   const actions = <>
-    <Button disabled={working || loading || isPlaying || isPreparing || activePlayers.length === 0 || gameSetup.invalidSet} onClick={() => void run(startGame)}>게임 시작</Button>
+    <Button disabled={working || loading || isPlaying || isPreparing || isQuestionActivity || activePlayers.length === 0 || gameSetup.invalidSet} onClick={() => void run(startGame)}>게임 시작</Button>
     {isPreparing ? <Button disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
-    <Button variant="ghost" disabled={working || loading} onClick={() => void run(resetQuizAwareSession)}>대기실로</Button>
+    <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetQuizAwareSession)}>대기실로</Button>
   </>;
 
   const content = <>
@@ -111,9 +113,11 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
       <StatusPanel title={isPreparing ? "게임 접속 확인 중" : "학생 대기 중"} tone="waiting">
         {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
       </StatusPanel>
-      {!isPreparing ? <><GameSetupPanel setup={gameSetup} disabled={working} />
+      {!isPreparing ? <><TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session?.classroomActivity ?? null} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} />
+      {!isQuestionActivity && session?.latestStudentQuestionResult ? <Card><h2>완성된 학생 질문</h2><p>가장 최근에 완성된 학생 질문 세트로 기존 AI 문답을 시작합니다.</p><Button disabled={working || activePlayers.length === 0} onClick={() => void run((id) => startRegularGameSession(id, { gameId: "ai-tutor", gameConfig: { setId: session.latestStudentQuestionResult?.resultSetId } }))}>학생 질문으로 AI 문답하기</Button></Card> : null}
+      {!isQuestionActivity ? <><GameSetupPanel setup={gameSetup} disabled={working} />
       <QuizGameLaunchPanel disabled={working || activePlayers.length === 0} onStart={(plan) => run((id) => startQuizGame(id, plan))} />
-      <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working} /></> : null}
+      <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working} /></> : null}</> : null}
       <Card>
         <div className={styles.heading}>
           <div className={styles.headingTitle}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div>

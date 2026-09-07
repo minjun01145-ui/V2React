@@ -2,6 +2,14 @@ import type { AiTutorDirection, AiTutorQuestion } from "../ai-tutor-engine/types
 import { LEARNING_SET_TYPE, type RuntimeLearningSet } from "./types.ts";
 
 export function adaptLearningSetToAiTutor(set: RuntimeLearningSet, direction: AiTutorDirection): readonly AiTutorQuestion[] {
+  if (set.type === LEARNING_SET_TYPE.STUDENT_QUESTIONS) return set.items.map((item) => ({
+    id: item.id,
+    prompt: item.sourceText,
+    referenceAnswer: item.meaning,
+    promptLabel: "학생이 만든 질문에 답해 보세요",
+    answerLabel: "답 또는 질문과 관련된 도움 요청",
+    ...(item.author ? { author: item.author } : {}),
+  }));
   const sentence = set.type === LEARNING_SET_TYPE.READING_CHUNKS;
   return set.items.map((item) => direction === "source-to-meaning" ? {
     id: item.id,

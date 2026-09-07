@@ -2,7 +2,7 @@ export const AI_TUTOR_GAME_ID = "ai-tutor" as const;
 export const POKEMON_CATCH_GAME_ID = "pokemon-catch" as const;
 
 export type AiTutorDirection = "source-to-meaning" | "meaning-to-source";
-export type AiTutorSetType = "vocabulary" | "reading-chunks";
+export type AiTutorSetType = "vocabulary" | "reading-chunks" | "student-questions";
 export type AiTutorReplyKind = "correct" | "retry" | "help" | "off-topic";
 
 export interface AiTutorTurnInput {
@@ -19,6 +19,7 @@ export interface AiTutorLearningItem {
   readonly id: string;
   readonly sourceText: string;
   readonly meaning: string;
+  readonly author?: { readonly studentNumber: string; readonly displayName: string; readonly nickname: string | null };
 }
 
 export interface AiTutorRoundContext {

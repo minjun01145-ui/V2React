@@ -22,6 +22,7 @@ import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
 import { roundParticipantRef } from "./round-participants/repository.ts";
 import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type PlayerAvatar, type StartSessionOptions } from "./types.ts";
+import { parseLatestStudentQuestionResult, parseStudentQuestionActivity } from "../student-question-activity/codec.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -92,6 +93,8 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     updatedAtMs: numberOrNull(data.updatedAtMs),
     startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs),
     expectedPlayerIds: stringArray(data.expectedPlayerIds),
+    classroomActivity: parseStudentQuestionActivity(data.classroomActivity),
+    latestStudentQuestionResult: parseLatestStudentQuestionResult(data.latestStudentQuestionResult),
   };
 }
 
@@ -266,7 +269,7 @@ export async function startSession(roomId: string, options: StartSessionOptions 
   await runTransaction(db, async (tx) => {
     const currentSession = await tx.get(sessionRef(roomId));
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
-    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status))) return;
+    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || parseStudentQuestionActivity(currentData.classroomActivity)) return;
 
     tx.set(sessionRef(roomId), nextSession, { merge: true });
     for (const player of activePlayers) {

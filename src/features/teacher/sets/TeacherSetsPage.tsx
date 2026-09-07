@@ -136,6 +136,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
   };
 
   const readingType = type === LEARNING_SET_TYPE.READING_CHUNKS;
+  const studentQuestionType = type === LEARNING_SET_TYPE.STUDENT_QUESTIONS;
 
   return (
     <PageShell title="학습 세트 편집" roomId={roomId} actions={<Button variant="ghost" onClick={newSet} disabled={Boolean(busy)}>새 세트</Button>}>
@@ -143,6 +144,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
         <Card as="div"><span>전체 세트</span><strong>{sets.length}</strong></Card>
         <Card as="div"><span>단어</span><strong>{counts.vocabulary}</strong></Card>
         <Card as="div"><span>끊어읽기</span><strong>{counts.reading}</strong></Card>
+        <Card as="div"><span>학생 질문</span><strong>{sets.filter((set) => set.type === LEARNING_SET_TYPE.STUDENT_QUESTIONS).length}</strong></Card>
       </div>
 
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
@@ -164,10 +166,11 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
         <Card as="form" className={styles.editor} onSubmit={(event) => void submit(event)}>
           <div><h2>{selected ? "세트 수정" : "새 세트"}</h2></div>
           <div className={styles.fields}>
-            <label>세트 이름<input maxLength={80} value={name} onChange={(event) => setName(event.target.value)} disabled={Boolean(busy)} placeholder="예: 1학기 필수 단어" required /></label>
-            <label>타입<select value={type} onChange={(event) => setType(event.target.value as LearningSetType)} disabled={Boolean(busy)}><option value={LEARNING_SET_TYPE.VOCABULARY}>단어</option><option value={LEARNING_SET_TYPE.READING_CHUNKS}>끊어읽기</option></select></label>
+            <label>세트 이름<input maxLength={80} value={name} onChange={(event) => setName(event.target.value)} disabled={Boolean(busy) || studentQuestionType} placeholder="예: 1학기 필수 단어" required /></label>
+            <label>타입<select value={type} onChange={(event) => setType(event.target.value as LearningSetType)} disabled={Boolean(busy) || studentQuestionType}><option value={LEARNING_SET_TYPE.VOCABULARY}>단어</option><option value={LEARNING_SET_TYPE.READING_CHUNKS}>끊어읽기</option>{studentQuestionType ? <option value={LEARNING_SET_TYPE.STUDENT_QUESTIONS}>학생 질문</option> : null}</select></label>
           </div>
-          <label>내용<textarea rows={13} value={pasteText} onChange={(event) => setPasteText(event.target.value)} disabled={Boolean(busy)} placeholder={readingType ? "I go / to school.\t나는 / 학교에 간다." : "apple\t사과\nclassroom\t교실"} required /></label>
+          <label>내용<textarea rows={13} value={pasteText} onChange={(event) => setPasteText(event.target.value)} disabled={Boolean(busy) || studentQuestionType} placeholder={readingType ? "I go / to school.\t나는 / 학교에 간다." : "apple\t사과\nclassroom\t교실"} required /></label>
+          {studentQuestionType ? <Muted>학생 질문 세트는 작성자 정보를 보존하기 위해 읽기 전용으로 표시됩니다.</Muted> : null}
 
           <div className={styles.preview}>
             <div className={styles.heading}><h3>인식 결과</h3><strong>{preview.items.length}개</strong></div>
@@ -177,7 +180,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
           </div>
 
           <div className={styles.actions}>
-            <Button type="submit" disabled={Boolean(busy) || Boolean(preview.error) || preview.items.length === 0}>{busy === "save" ? "저장 중…" : selected ? "저장" : "세트 저장"}</Button>
+            {!studentQuestionType ? <Button type="submit" disabled={Boolean(busy) || Boolean(preview.error) || preview.items.length === 0}>{busy === "save" ? "저장 중…" : selected ? "저장" : "세트 저장"}</Button> : null}
             {selected ? <Button variant="ghost" onClick={() => void remove()} disabled={Boolean(busy)}>{busy === "delete" ? "삭제 중…" : "삭제"}</Button> : null}
           </div>
         </Card>

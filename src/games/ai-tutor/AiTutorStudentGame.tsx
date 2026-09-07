@@ -30,6 +30,7 @@ function AiTutorPlayArea({ roomId, session, player, set }: StudentGameModuleProp
     </header>
     <Card className={styles.questionCard}>
       <p className={styles.eyebrow}>{game.currentQuestion.promptLabel}</p>
+      {game.currentQuestion.author ? <p className={styles.author}>{game.currentQuestion.author.nickname || game.currentQuestion.author.displayName} 학생이 낸 질문입니다</p> : null}
       <h2>{game.currentQuestion.prompt}</h2>
       <p className={styles.guide}>답을 입력하거나, 이 문제에 나온 모르는 단어·문법을 질문해도 됩니다.</p>
     </Card>

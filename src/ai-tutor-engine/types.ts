@@ -7,6 +7,7 @@ export interface AiTutorQuestion {
   readonly referenceAnswer: string;
   readonly promptLabel: string;
   readonly answerLabel: string;
+  readonly author?: { readonly studentNumber: string; readonly displayName: string; readonly nickname: string | null };
 }
 
 export interface AiTutorTurnInput {

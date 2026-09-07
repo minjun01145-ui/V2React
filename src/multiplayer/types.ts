@@ -1,4 +1,5 @@
 import type { SessionStatus } from "./constants.ts";
+import type { LatestStudentQuestionResult, StudentQuestionActivity } from "../student-question-activity/types.ts";
 
 export interface Player {
   readonly id: string;
@@ -24,6 +25,8 @@ export interface GameSession {
   readonly updatedAtMs: number | null;
   readonly startedAtMs: number | null;
   readonly expectedPlayerIds: readonly string[];
+  readonly classroomActivity?: StudentQuestionActivity | null;
+  readonly latestStudentQuestionResult?: LatestStudentQuestionResult | null;
 }
 
 export type PlayerAvatar =

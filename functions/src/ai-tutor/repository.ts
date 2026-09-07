@@ -8,7 +8,7 @@ function direction(value: unknown): AiTutorDirection {
 }
 
 function setType(value: unknown): AiTutorSetType | null {
-  return value === "vocabulary" || value === "reading-chunks" ? value : null;
+  return value === "vocabulary" || value === "reading-chunks" || value === "student-questions" ? value : null;
 }
 
 function parseItem(value: unknown): AiTutorLearningItem | null {
@@ -16,7 +16,10 @@ function parseItem(value: unknown): AiTutorLearningItem | null {
   const id = typeof value.id === "string" ? value.id.trim() : "";
   const sourceText = typeof value.sourceText === "string" ? value.sourceText.trim() : "";
   const meaning = typeof value.meaning === "string" ? value.meaning.trim() : "";
-  return id && sourceText && meaning ? { id, sourceText, meaning } : null;
+  const author = isRecord(value.author) && typeof value.author.studentNumber === "string" && typeof value.author.displayName === "string"
+    ? { studentNumber: value.author.studentNumber, displayName: value.author.displayName, nickname: typeof value.author.nickname === "string" ? value.author.nickname : null }
+    : null;
+  return id && sourceText && meaning ? { id, sourceText, meaning, ...(author ? { author } : {}) } : null;
 }
 
 export async function loadAiTutorRoundContext(input: {
@@ -53,7 +56,7 @@ export async function loadAiTutorRoundContext(input: {
   const items = isRecord(content) && Array.isArray(content.items) ? content.items : [];
   const item = items.map(parseItem).find((candidate) => candidate?.id === input.itemId) ?? null;
   if (!type || !item) throw new AiTutorValidationError("선택한 학습 세트의 문항을 찾을 수 없습니다.");
-  const resolvedDirection = session.gameId === POKEMON_CATCH_GAME_ID
+  const resolvedDirection = type === "student-questions" ? "source-to-meaning" : session.gameId === POKEMON_CATCH_GAME_ID
     ? input.requestedDirection ?? "source-to-meaning"
     : direction(config?.direction);
   return { setType: type, direction: resolvedDirection, item };
