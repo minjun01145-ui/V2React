@@ -2,11 +2,10 @@
 .embeddedHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .embeddedHeader h2 { margin: .25rem 0 0; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.waitingStack { display: grid; gap: 1rem; }
+.waitingStack > * { margin-bottom: 0; }
 .launchPanel { display: grid; gap: 1rem; border-color: #a5b4fc; background: linear-gradient(145deg, var(--color-surface), #f4f5ff); }
-.launchHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.launchHeading span { color: #4f46e5; font-size: .72rem; font-weight: 900; letter-spacing: .08em; }
-.launchHeading h2 { margin: .2rem 0; }
-.launchHeading > strong { flex: 0 0 auto; padding: .45rem .7rem; border-radius: 999px; color: #4338ca; background: var(--color-primary-soft); font-size: .76rem; }
+.launchTitle { margin: 0; }
 .activityChoices { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: .5rem; }
 .activityChoices button { min-height: 2.75rem; padding: .65rem .75rem; border: 1px solid var(--color-border-strong); border-radius: .75rem; color: var(--color-muted); background: var(--color-surface); font: inherit; font-size: .84rem; font-weight: 850; cursor: pointer; }
 .activityChoices button[aria-pressed="true"] { border-color: #6366f1; color: #3730a3; background: #eef2ff; box-shadow: inset 0 0 0 1px #818cf8; }
@@ -38,10 +37,10 @@
 .gameSetup select:focus, .quizSetup select:focus, .questionControls select:focus, .latestQuestionSetup select:focus { border-color: var(--color-primary); outline: 3px solid var(--color-primary-soft); }
 .pickerControls { display: grid; gap: .7rem; }
 .setError { grid-column: 1 / -1; margin: 0; color: var(--color-danger-text); font-weight: 700; }
-.waitingTypingPicker { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,.65fr); gap:1rem; align-items:end; border-color:#b8ddef; background:linear-gradient(135deg,var(--color-surface),#effaff); }
+.waitingTypingPicker { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,.65fr); gap:1rem; align-items:end; margin-top:.5rem; border-color:#b8ddef; background:linear-gradient(135deg,var(--color-surface),#effaff); box-shadow:none; }
 .waitingTypingPicker h2 { margin:.2rem 0; }
 .waitingTypingPicker label { display:grid; gap:.4rem; font-size:.82rem; font-weight:800; }
 .waitingTypingPicker select { width:100%; border:1px solid var(--color-border-strong); border-radius:.75rem; padding:.78rem .85rem; color:var(--color-text); background:var(--color-surface); font:inherit; }
 .waitingTypingPicker select:focus { border-color:#2993c7; outline:3px solid rgba(41,147,199,.14); }
-@media (max-width: 680px) { .gameSetup, .quizSetup, .questionSetup, .latestQuestionSetup, .waitingTypingPicker { grid-template-columns: 1fr; } .activityChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .questionControls { grid-template-columns: 1fr; } .launchHeading { display: grid; } .launchHeading > strong { justify-self: start; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } .heading { align-items: flex-start; } }
+@media (max-width: 680px) { .gameSetup, .quizSetup, .questionSetup, .latestQuestionSetup, .waitingTypingPicker { grid-template-columns: 1fr; } .activityChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .questionControls { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } .heading { align-items: flex-start; } }
 @media (prefers-reduced-motion: reduce) { .studentNumberToggle, .toggleTrack, .toggleThumb { transition: none; } }

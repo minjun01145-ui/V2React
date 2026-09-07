@@ -117,7 +117,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const content = <>
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
-    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : <>
+    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : <div className={styles.waitingStack}>
       <StatusPanel title={isPreparing ? "게임 접속 확인 중" : "학생 대기 중"} tone="waiting">
         {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
       </StatusPanel>
@@ -148,7 +148,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
         <PlayerGrid players={activePlayers} showStudentNumber={showStudentNumbers} emptyMessage="접속한 학생이 없습니다." />
       </Card>
       {!isPreparing && !isQuestionActivity ? <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working} /> : null}
-    </>}
+    </div>}
   </>;
 
   if (!embedded) return <PageShell title="교사용 컨트롤" roomId={roomId} actions={actions}>{content}</PageShell>;

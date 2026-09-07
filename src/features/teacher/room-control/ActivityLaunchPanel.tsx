@@ -14,7 +14,7 @@ type ActivityKind = "game" | "quiz" | "questions" | "latest-questions";
 
 const activityOptions: readonly { readonly id: ActivityKind; readonly label: string }[] = [
   { id: "game", label: "기존 게임" },
-  { id: "quiz", label: "저장 퀴즈" },
+  { id: "quiz", label: "퀴즈쇼 모드" },
   { id: "questions", label: "질문 만들기" },
 ];
 
@@ -71,10 +71,7 @@ export default function ActivityLaunchPanel({
   };
 
   return <Card className={styles.launchPanel}>
-    <div className={styles.launchHeading}>
-      <div><span>CLASS ACTIVITY</span><h2>수업 활동 시작</h2><Muted>활동을 고르고 설정한 뒤 아래 버튼 하나로 시작합니다.</Muted></div>
-      <strong>1 선택 · 2 설정 · 3 시작</strong>
-    </div>
+    <h2 className={styles.launchTitle}>활동 선택</h2>
     <div className={styles.activityChoices} role="group" aria-label="시작할 수업 활동">
       {options.map((option) => <button type="button" aria-pressed={activityKind === option.id} onClick={() => setActivityKind(option.id)} disabled={disabled} key={option.id}>{option.label}</button>)}
     </div>
@@ -82,7 +79,7 @@ export default function ActivityLaunchPanel({
       {activityKind === "game" ? <GameSetupPanel setup={setup} disabled={disabled} /> : null}
       {activityKind === "quiz" ? <QuizGameLaunchPanel disabled={disabled} onPlanChange={handleQuizPlanChange} /> : null}
       {activityKind === "questions" ? <div className={styles.questionSetup}>
-        <div><h2>학생 질문 만들기</h2><Muted>현재 접속 학생을 고정 명단으로 시작합니다.</Muted></div>
+        <h2>학생 질문 만들기</h2>
         <div className={styles.questionControls}>
           <label>학생당 질문 수<select value={questionCount} onChange={(event) => setQuestionCount(Number(event.target.value))} disabled={disabled}>{[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count}개</option>)}</select></label>
           <label className={styles.checkbox}><input type="checkbox" checked={englishOnly} onChange={(event) => setEnglishOnly(event.target.checked)} disabled={disabled} />영어 질문만 받기</label>

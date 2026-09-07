@@ -39,7 +39,7 @@ export default function QuizGameLaunchPanel({ disabled, onPlanChange }: {
   }, [onPlanChange, selectedId]);
 
   return <div className={styles.quizSetup}>
-    <div><h2>퀴즈게임 모드</h2><Muted>저장한 순서대로 기존 문제 엔진을 실행합니다.</Muted></div>
+    <h2>퀴즈쇼 모드</h2>
     <label>퀴즈<select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={disabled || loadingPlan}><option value="">저장된 퀴즈 선택</option>{plans.map((plan) => <option value={plan.id} key={plan.id}>{plan.name} ({plan.roundCount}문제)</option>)}</select></label>
     {loadingPlan ? <Muted>퀴즈 내용을 불러오는 중…</Muted> : null}
     {error ? <p className={styles.setError}>{error}</p> : null}
