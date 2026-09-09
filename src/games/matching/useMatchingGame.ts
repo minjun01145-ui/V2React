@@ -101,6 +101,7 @@ export function useMatchingGame(input: {
       const nextProgress: GameProgress<MatchingDetails> = {
         ...applied,
         currentIndex: applied.correctCount,
+        combo: nextCombo,
         completedItemIds: cycleComplete ? [] : applied.completedItemIds,
         completedAtMs: null,
       };

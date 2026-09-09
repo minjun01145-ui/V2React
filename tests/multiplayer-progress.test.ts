@@ -34,6 +34,7 @@ function withScore(progress: GameProgress, scoreDelta: number): GameProgress {
     score: progress.score + scoreDelta,
     correctCount: progress.correctCount + 1,
     attemptCount: progress.attemptCount + 1,
+    combo: progress.combo + 1,
   };
 }
 
@@ -43,6 +44,7 @@ const empty = createEmptyProgress();
 const firstAttempt = withScore(empty, 100);
 
 assert.equal(commit(store, scope, "attempt-a", empty, firstAttempt).score, 100);
+assert.equal(store.progressByScope.get(`${scope.roomId}/${scope.roundId}/${scope.playerId}`)?.combo, 1, "콤보 전환도 진행 상태에 저장되어야 합니다.");
 assert.equal(commit(store, scope, "attempt-a", empty, firstAttempt).score, 100, "동일 attemptId는 한 번만 반영되어야 합니다.");
 
 const ackLossStore: MutationStore = { progressByScope: new Map(), operations: new Set() };

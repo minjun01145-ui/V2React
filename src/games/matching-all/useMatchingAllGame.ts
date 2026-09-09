@@ -95,6 +95,7 @@ export function useMatchingAllGame(input: {
       score: progress.score + roundResult.scoreDelta,
       correctCount: progress.correctCount + (boardComplete ? 1 : 0),
       attemptCount: progress.attemptCount + 1,
+      combo: roundResult.combo,
       completedItemIds: usedPairIds,
       lastResult: { itemId: boardId, ...result },
       completedAtMs: null,

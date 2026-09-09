@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Button from "../../shared/ui/Button.tsx";
@@ -10,17 +10,28 @@ import styles from "./AiTutor.module.css";
 function AiTutorPlayArea({ roomId, session, player, set }: StudentGameModuleProps & { readonly set: NonNullable<ReturnType<typeof useAiTutorSet>["set"]> }) {
   const game = useAiTutorGame({ roomId, session, player, set });
   const [message, setMessage] = useState("");
+  const answerRef = useRef<HTMLTextAreaElement>(null);
+  const answered = Boolean(game.progress.lastResult?.isCorrect);
+
+  useEffect(() => {
+    if (!game.busy && !answered && game.currentQuestion) answerRef.current?.focus();
+  }, [answered, game.busy, game.currentQuestion?.id]);
+
   if (game.loading) return <StatusPanel title="AI 문답 준비 중">진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (game.error && !game.currentQuestion) return <StatusPanel title="AI 문답 연결 오류" tone="error">{game.error.message}</StatusPanel>;
   if (!game.currentQuestion) return <StatusPanel title="학습 완료">모든 문제를 마쳤습니다. 총 {game.progress.score}점을 얻었어요!</StatusPanel>;
 
-  const answered = Boolean(game.progress.lastResult?.isCorrect);
   const onSubmit = (event: FormEvent): void => {
     event.preventDefault();
     const submitted = message;
     if (!submitted.trim()) return;
     setMessage("");
     void game.submit(submitted);
+  };
+  const onAnswerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
   };
 
   return <main className={styles.game}>
@@ -36,7 +47,7 @@ function AiTutorPlayArea({ roomId, session, player, set }: StudentGameModuleProp
     </Card>
     <form className={styles.answerForm} onSubmit={onSubmit}>
       <label htmlFor="ai-tutor-answer">{game.currentQuestion.answerLabel}</label>
-      <textarea id="ai-tutor-answer" rows={4} value={message} onChange={(event) => setMessage(event.target.value)} disabled={game.busy || answered} maxLength={1000} placeholder="답 또는 문제와 관련된 질문을 입력하세요" autoFocus />
+      <textarea ref={answerRef} id="ai-tutor-answer" rows={4} value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={onAnswerKeyDown} disabled={game.busy || answered} maxLength={1000} placeholder="답 또는 문제와 관련된 질문을 입력하세요" autoFocus />
       <Button type="submit" disabled={game.busy || answered || !message.trim()}>{game.busy ? "AI가 살펴보는 중…" : "답변 보내기"}</Button>
     </form>
     {game.reply ? <section className={styles.feedback} data-kind={game.reply.kind} role="status">
