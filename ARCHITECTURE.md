@@ -59,6 +59,22 @@ features/student               features/teacher
 32. 라운드 순위의 참가자 source는 `round participants`이며 presence roster가 아닙니다. participant는 게임별 진행 상태를 갖지 않고, 점수와 완료 항목은 계속 `multiplayer/game-progress`가 소유합니다.
 33. 캐릭터 정적 카탈로그는 `characters`, 학생별 캐릭터·포켓몬 장착 상태는 `student-data/cosmetics`, 대기실 표시와 선택 UI는 `features/student/shop`이 각각 소유합니다. 구매·재화 책임은 해당 기능을 실제로 만들기 전까지 이 모듈들에 추가하지 않습니다.
 34. `quiz-game`은 기존 게임을 순서대로 실행하는 계획과 상태만 소유합니다. 문제 생성·채점·학생 진행도는 선택된 `games/<game-id>`와 기존 engine/progress 계층을 그대로 사용합니다.
+35. 협동 게임의 조 편성·턴·하트·재매칭은 `multiplayer/cooperative` 계약과 서버 트랜잭션이 소유합니다. 게임 UI에는 Firebase SDK를 넣지 않으며, 완료 전 학생용 assignment에는 조원 식별 정보를 저장하지 않습니다.
+
+## Cooperative sentence builder
+
+```text
+games/cooperative-sentence-builder UI
+          ↓ typed subscription/callable
+multiplayer/cooperative
+          ↓
+functions/cooperative-sentence transaction
+       ↙                         ↘
+teacher-only team state     per-student assignment
+                                  └─ partner identity only after completion
+```
+
+문장 데이터와 순서 판정은 `game-engine/sequence` 및 `learning-sets/sentenceSequenceAdapter`를 기존 문장 만들기와 함께 사용합니다. 서버는 현재 턴과 정답 순서를 다시 검증하고 제출 ID를 멱등 처리합니다. 하트가 모두 소진되면 기존 조를 종료하고 학생을 검색 상태로 옮기며, 검색자가 둘뿐이면 10초 뒤 재편성합니다.
 
 ## Quiz game orchestration
 

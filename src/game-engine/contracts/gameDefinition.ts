@@ -53,13 +53,14 @@ export interface GameDefinition {
   readonly settings: readonly GameSelectSetting[];
   readonly preloadPlayerProgress: boolean;
   readonly supportsFiniteQuizQuestions: boolean;
+  readonly handlesOwnTimedBoundary: boolean;
   readonly presentQuizQuestion?: (item: GameQuizQuestionInput, config: Readonly<Record<string, string>>) => GameQuizQuestionPresentation;
   readonly prepareStudent?: (context: StudentGamePreparationContext) => Promise<(() => void) | void>;
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions" | "handlesOwnTimedBoundary"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
   readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;
@@ -67,6 +68,7 @@ export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetIte
   readonly settings?: readonly GameSelectSetting[];
   readonly preloadPlayerProgress?: boolean;
   readonly supportsFiniteQuizQuestions?: boolean;
+  readonly handlesOwnTimedBoundary?: boolean;
 };
 
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -112,6 +114,7 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     requiresStoredSet: definition.requiresStoredSet ?? false,
     preloadPlayerProgress: definition.preloadPlayerProgress ?? false,
     supportsFiniteQuizQuestions: definition.supportsFiniteQuizQuestions ?? false,
+    handlesOwnTimedBoundary: definition.handlesOwnTimedBoundary ?? false,
     settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
 }

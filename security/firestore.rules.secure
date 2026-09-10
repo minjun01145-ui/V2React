@@ -397,6 +397,27 @@ service cloud.firestore {
           allow delete: if isAdmin();
         }
 
+        // 협동 게임의 조원 목록은 교사와 서버만 읽는다. 학생에게는 본인용
+        // assignment 문서만 공개하며, 완료 전에는 이 문서에 조원 식별자를 넣지 않는다.
+        match /cooperativeState/{documentId} {
+          allow read: if isAdmin();
+          allow write: if false;
+        }
+
+        match /cooperativeTeams/{teamId} {
+          allow read: if isAdmin();
+          allow write: if false;
+        }
+
+        match /cooperativeAssignments/{uid} {
+          allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow write: if false;
+        }
+
+        match /cooperativeOperations/{uid}/items/{operationId} {
+          allow read, write: if false;
+        }
+
         match /answers/{answerId} {
           allow read: if isAdmin();
           allow create: if isRoomStudent(roomId)

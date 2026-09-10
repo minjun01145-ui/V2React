@@ -50,6 +50,15 @@ const definitions = [
     loadTeacher: () => import("./sentence-builder/SentenceBuilderTeacherGame.tsx"),
   }),
   defineGame({
+    id: "cooperative-sentence-builder",
+    title: "협동 문장만들기",
+    supportedSetTypes: ["reading-chunks"],
+    requiresStoredSet: true,
+    handlesOwnTimedBoundary: true,
+    loadStudent: () => import("./cooperative-sentence-builder/CooperativeSentenceStudentGame.tsx"),
+    loadTeacher: () => import("./cooperative-sentence-builder/CooperativeSentenceTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "simple-quiz",
     title: "심플퀴즈",
     supportedSetTypes: ["vocabulary"],

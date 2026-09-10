@@ -54,7 +54,7 @@ export default function GameHost(props: Props) {
     return <RoundStartGate startedAtMs={activeSession.startedAtMs}>
       <GameErrorBoundary resetKey={resetKey}>
         <Suspense fallback={<StatusPanel title="게임 불러오는 중">학생용 게임 모듈을 불러오고 있습니다.</StatusPanel>}>
-          {game.timing === "timed" ? <TimedStudentGameBoundary roomId={props.roomId} session={activeSession} player={props.player}>{content}</TimedStudentGameBoundary> : content}
+          {game.timing === "timed" && !game.handlesOwnTimedBoundary ? <TimedStudentGameBoundary roomId={props.roomId} session={activeSession} player={props.player}>{content}</TimedStudentGameBoundary> : content}
         </Suspense>
       </GameErrorBoundary>
     </RoundStartGate>;

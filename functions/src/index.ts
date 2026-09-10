@@ -4,3 +4,4 @@ export { getAiProviderSettings, saveAiProviderSettings, sendAiTestMessage, testA
 export { submitAiTutorTurn } from "./ai-tutor/callables.js";
 export { finalizeStudentQuestionRun, getStudentQuestionAuthoringHelp, onStudentQuestionSubmissionCreated } from "./student-questions/callables.js";
 export { createMultiplayerTestSession, joinMultiplayerTestSession, stopMultiplayerTestSession } from "./multiplayer-test/callables.js";
+export { ensureCooperativeRound, refreshCooperativeMatch, submitCooperativeSentence } from "./cooperative-sentence/callables.js";
