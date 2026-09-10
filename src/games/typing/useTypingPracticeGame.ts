@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TypingQuestion, TypingQuestionSet, TypingSpeedStats } from "./types.ts";
 import type { WaitingTypingConfig } from "./waitingTypingConfig.ts";
 import { createTypingSpeedTracker, getNewValidProgress, isTypingAnswerComplete } from "./typingEngine.ts";
-import { ACID_RAIN_MAX_STAGE, getAcidRainStageRule, shuffledQuestionIndex } from "./acidRainEngine.ts";
+import { ACID_RAIN_MAX_STAGE, availableAcidRainLane, getAcidRainStageRule, shuffledQuestionIndex } from "./acidRainEngine.ts";
 
 export type TypingPracticeStatus = "playing" | "stage-clear" | "game-over" | "complete";
 
 export interface FallingTypingWord {
   readonly id: string;
   readonly question: TypingQuestion;
-  readonly leftPercent: number;
+  readonly lane: number;
   readonly durationMs: number;
 }
 
@@ -37,7 +37,7 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
       return [...current, {
         id: `${stage}:${sequence.current}`,
         question,
-        leftPercent: 5 + (Math.random() * 76),
+        lane: availableAcidRainLane(current.map((word) => word.lane)),
         durationMs: rule.fallDurationMs,
       }];
     });

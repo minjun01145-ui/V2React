@@ -14,7 +14,7 @@ import {
 import { TYPING_TARGET } from "../../src/games/typing/types.ts";
 import { createTypingLeaderboard } from "../../src/games/typing/typingLeaderboard.ts";
 import { adaptLearningSetToTypingPractice } from "../../src/games/typing/typingPracticeAdapter.ts";
-import { ACID_RAIN_MAX_STAGE, getAcidRainStageRule } from "../../src/games/typing/acidRainEngine.ts";
+import { ACID_RAIN_MAX_STAGE, availableAcidRainLane, getAcidRainStageRule } from "../../src/games/typing/acidRainEngine.ts";
 import { createWaitingTypingConfig, parseWaitingTypingConfig } from "../../src/games/typing/waitingTypingConfig.ts";
 import { typingDemoSet } from "../../src/games/typing/demoSet.ts";
 import type { RoundLiveMetricRecord } from "../../src/multiplayer/live-metrics/types.ts";
@@ -91,20 +91,26 @@ assert.deepEqual(practiceQuestions.questions.map((question) => question.targetTe
 assert.equal(ACID_RAIN_MAX_STAGE, 10);
 assert.deepEqual(getAcidRainStageRule(1), {
   stage: 1,
-  targetHits: 4,
-  spawnIntervalMs: 4_000,
-  fallDurationMs: 22_000,
+  targetHits: 8,
+  spawnIntervalMs: 5_000,
+  fallDurationMs: 28_000,
   maxVisibleWords: 2,
-}, "1단계는 충분히 천천히 시작하고 네 단어만 맞히면 통과해야 합니다.");
+}, "1단계는 여유 있게 시작하되 충분히 연습한 뒤 통과해야 합니다.");
 assert.deepEqual(getAcidRainStageRule(5), {
   stage: 5,
-  targetHits: 8,
-  spawnIntervalMs: 1_850,
-  fallDurationMs: 11_000,
+  targetHits: 12,
+  spawnIntervalMs: 3_400,
+  fallDurationMs: 20_000,
   maxVisibleWords: 3,
-}, "새 5단계는 조정 전 1단계와 같은 난이도여야 합니다.");
+}, "중간 단계도 급격히 빨라지지 않아야 합니다.");
 assert.ok(getAcidRainStageRule(10).fallDurationMs < getAcidRainStageRule(1).fallDurationMs, "후반 스테이지일수록 더 빠르게 떨어져야 합니다.");
 assert.ok(getAcidRainStageRule(10).spawnIntervalMs < getAcidRainStageRule(1).spawnIntervalMs, "후반 스테이지일수록 더 자주 출제되어야 합니다.");
+assert.ok(getAcidRainStageRule(10).targetHits > getAcidRainStageRule(1).targetHits, "후반 스테이지일수록 승급 목표가 높아져야 합니다.");
+assert.equal(availableAcidRainLane([0, 1, 3, 4], 0.7), 2, "사용 중이지 않은 레인을 우선 선택해야 합니다.");
+assert.equal(availableAcidRainLane([0], 0), 4, "가능하면 기존 카드에서 가장 먼 레인을 골라야 합니다.");
+const occupiedLanes: number[] = [];
+for (let index = 0; index < 4; index += 1) occupiedLanes.push(availableAcidRainLane(occupiedLanes, 0));
+assert.equal(new Set(occupiedLanes).size, 4, "빈 레인이 있으면 같은 위치에 카드를 겹쳐 놓지 않아야 합니다.");
 assert.deepEqual(parseWaitingTypingConfig(createWaitingTypingConfig("set-1")), {
   setId: "set-1",
   target: "source",

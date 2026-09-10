@@ -73,8 +73,9 @@ function TypingPracticeBoard({ set, config, onExit }: Props & { readonly set: Ru
       {game.words.map((word) => <div
         className={styles.drop}
         key={word.id}
+        data-lane={word.lane}
         onAnimationEnd={() => game.missWord(word.id)}
-        style={{ "--drop-left": `${word.leftPercent}%`, "--drop-duration": `${word.durationMs}ms` } as CSSProperties}
+        style={{ "--drop-duration": `${word.durationMs}ms` } as CSSProperties}
       ><span>{word.question.targetText}</span></div>)}
       <div className={styles.ground}><span>목표 {game.hits} / {game.rule.targetHits}</span><div><i style={{ width: `${Math.min(100, (game.hits / game.rule.targetHits) * 100)}%` }} /></div></div>
     </section>
