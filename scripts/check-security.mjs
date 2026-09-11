@@ -9,6 +9,23 @@ function read(file) {
   return fs.readFileSync(path.join(root, file), "utf8");
 }
 
+function withoutComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+}
+
+function matchBlock(source, collectionName) {
+  const header = new RegExp(`match\\s+\\/${collectionName}\\/\\{[A-Za-z][A-Za-z0-9_]*\\}\\s*\\{`).exec(source);
+  if (!header) return "";
+  const start = header.index + header[0].lastIndexOf("{");
+  let depth = 0;
+  for (let index = start; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    if (source[index] === "}") depth -= 1;
+    if (depth === 0) return source.slice(start + 1, index);
+  }
+  return "";
+}
+
 const envExample = read(".env.example");
 
 const gitignore = read(".gitignore");
@@ -37,30 +54,27 @@ for (const file of clientFiles) {
   }
 }
 
-const studentAuth = read("src/auth/studentAuth.ts");
-if (!studentAuth.includes("signInAnonymously") || !studentAuth.includes("prepareStudentLogin") || !studentAuth.includes("completeStudentLogin")) {
-  violations.push("src/auth/studentAuth.ts: student identity must use anonymous Firebase Auth plus the two-step server login functions");
-}
-
 const teacherAuth = read("src/auth/teacherAuth.ts");
 if (!teacherAuth.includes("signInWithEmailAndPassword") || !teacherAuth.includes('doc(db, "admins", uid)')) {
   violations.push("src/auth/teacherAuth.ts: teacher login must use Firebase Auth and verify the admins allow-list");
 }
 
-const functionSource = read("functions/src/student-auth/callables.ts");
-const pinSource = read("functions/src/student-auth/pin.ts");
-if (!functionSource.includes('collection("studentRoster")') || !functionSource.includes('collection("studentProfiles")')) {
-  violations.push("functions/src/student-auth/callables.ts: student credentials must be verified server-side against studentRoster");
-}
-if (!pinSource.includes("scryptSync") || !pinSource.includes("timingSafeEqual")) {
-  violations.push("functions/src/student-auth/pin.ts: student PINs must use salted hashing and constant-time comparison");
-}
+// Student auth flow and PIN hashing are behavior/structure contracts covered by
+// tests/student-auth-contract.test.mjs and functions/tests/pin.test.mjs.
 
-const rules = read("security/firestore.rules.secure");
-if (/allow\s+(read|write|read,\s*write)\s*:\s*if\s+true/.test(rules)) {
+// Emulator-backed rules tests are not currently installed. Keep fast repository-level
+// invariants here, but scope collection policies to their own match blocks so an
+// unrelated `allow ... if false` cannot make a protected collection appear secure.
+const rules = withoutComments(read("security/firestore.rules.secure"));
+if (/allow\s+[^:;{}]+:\s*if\s+true\s*;/.test(rules)) {
   violations.push("security/firestore.rules.secure: public allow rules are forbidden");
 }
-if (!rules.includes("studentProfiles") || !rules.includes("admins") || !rules.includes("request.auth.uid")) {
+const adminRules = matchBlock(rules, "admins");
+const studentProfileRules = matchBlock(rules, "studentProfiles");
+if (!/allow\s+read\s*:\s*if\s+signedIn\(\)\s*&&\s*\(request\.auth\.uid\s*==\s*uid\s*\|\|\s*isAdmin\(\)\)\s*;/.test(adminRules)
+  || !/allow\s+write\s*:\s*if\s+false\s*;/.test(adminRules)
+  || !/allow\s+read\s*:\s*if\s+signedIn\(\)\s*&&\s*\(request\.auth\.uid\s*==\s*uid\s*\|\|\s*isAdmin\(\)\)\s*;/.test(studentProfileRules)
+  || !/allow\s+write\s*:\s*if\s+false\s*;/.test(studentProfileRules)) {
   violations.push("security/firestore.rules.secure: expected authenticated ownership/admin checks are missing");
 }
 if (!rules.includes("documents/studentProfiles/$(request.auth.uid)).data.studentNumber == request.auth.token.studentNumber")
@@ -70,10 +84,11 @@ if (!rules.includes("documents/studentProfiles/$(request.auth.uid)).data.student
 if (rules.includes("documents/studentRoster/$(request.auth.token.studentNumber)).data.displayName == request.auth.token.displayName")) {
   violations.push("security/firestore.rules.secure: normalized student claims must not be compared with unnormalized roster names");
 }
-if (!rules.includes("studentPinCredentials") || !rules.includes("allow read, write: if false")) {
+const denyAll = /allow\s+read\s*,\s*write\s*:\s*if\s+false\s*;/;
+if (!denyAll.test(matchBlock(rules, "studentPinCredentials"))) {
   violations.push("security/firestore.rules.secure: student PIN credentials must be inaccessible to browser clients");
 }
-if (!rules.includes("aiProviderConfigs") || !rules.includes("allow read, write: if false")) {
+if (!denyAll.test(matchBlock(rules, "aiProviderConfigs"))) {
   violations.push("security/firestore.rules.secure: AI provider settings must be inaccessible to browser clients");
 }
 if (!rules.includes("match /learningSets/{setId}") || !rules.includes("publicLearningSetRead()") || !rules.includes("allow create, update, delete: if isAdmin()")) {

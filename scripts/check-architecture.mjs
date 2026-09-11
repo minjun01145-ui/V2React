@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { collectApplicationSourceFiles } from "./architecture-source-files.mjs";
 
 const root = process.cwd();
 const srcRoot = path.join(root, "src");
@@ -10,8 +11,12 @@ const globalCssEntries = new Set([
   "src/apps/teacher/main.tsx",
   "src/apps/test-student/main.tsx",
 ]);
-const sourceFiles = walk(srcRoot).filter((file) => /\.(ts|tsx)$/.test(file));
+const { javaScriptFiles, typeScriptFiles: sourceFiles } = collectApplicationSourceFiles(srcRoot);
 const dependencyGraph = new Map(sourceFiles.map((file) => [file, []]));
+
+for (const file of javaScriptFiles) {
+  violations.push(`${relative(file)}: application source must use .ts/.tsx, not JavaScript`);
+}
 
 const multiplayerTypesSource = fs.readFileSync(path.join(srcRoot, "multiplayer/types.ts"), "utf8");
 if (/\bsessionData\s*:/.test(multiplayerTypesSource)) {
@@ -65,12 +70,6 @@ function concreteGameOwner(rel) {
 
 for (const file of sourceFiles) {
   const rel = relative(file);
-
-  if (/\.(js|jsx)$/.test(file)) {
-    violations.push(`${rel}: application source must use .ts/.tsx, not JavaScript`);
-    continue;
-  }
-  if (!/\.(ts|tsx)$/.test(file)) continue;
 
   const source = fs.readFileSync(file, "utf8");
   const imports = importsOf(source);
