@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import { shuffled } from "../../game-engine/core/random.ts";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
@@ -6,7 +6,7 @@ import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameCloc
 import type { SequenceToken } from "../../game-engine/sequence/types.ts";
 import { adaptReadingChunksToSequence } from "../../learning-sets/sentenceSequenceAdapter.ts";
 import { useCooperativeAssignment } from "../../multiplayer/cooperative/hooks.ts";
-import { submitCooperativeSentence } from "../../multiplayer/cooperative/repository.ts";
+import { refreshCooperativeMatch, submitCooperativeSentence } from "../../multiplayer/cooperative/repository.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../shared/popup/index.ts";
@@ -22,14 +22,19 @@ function Hearts({ count }: { readonly count: number }) { return <span className=
 export default function CooperativeSentenceStudentGame({ roomId, session, player }: StudentGameModuleProps) {
   const learningSet = useCooperativeSentenceSet(session);
   const clock = useTimedGameClock(session);
-  const assignment = useCooperativeAssignment(roomId, session.roundId, player.id, !clock.expired);
+  const assignment = useCooperativeAssignment(roomId, session.roundId, player.id);
   const questions = useMemo(() => learningSet.set ? adaptReadingChunksToSequence(learningSet.set).questions : [], [learningSet.set]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ readonly correct: boolean; readonly text: string } | null>(null);
   const [now, setNow] = useState(Date.now());
+  const [acknowledgedEliminationKey, setAcknowledgedEliminationKey] = useState<string | null>(null);
+  const eliminationNoticeRef = useRef<string | null>(null);
   const { showMessage } = usePopup();
   const state = assignment.value;
+  const eliminationKey = state?.status === "searching" && state.generation > 0 && state.searchStartedAtMs !== null
+    ? `${state.generation}:${state.searchStartedAtMs}`
+    : null;
   const question = state?.status === "active" ? questions[state.currentQuestionIndex] : undefined;
   const tokens = useMemo<SequenceToken[]>(() => question ? shuffled(question.tokens, `${session.roundId}:${state?.generation ?? 0}:${question.id}:tokens`) : [], [question, session.roundId, state?.generation]);
 
@@ -39,12 +44,33 @@ export default function CooperativeSentenceStudentGame({ roomId, session, player
     const timer = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(timer);
   }, [state?.status]);
+  useEffect(() => {
+    if (!eliminationKey || acknowledgedEliminationKey === eliminationKey || eliminationNoticeRef.current === eliminationKey) return;
+    eliminationNoticeRef.current = eliminationKey;
+    void showMessage({
+      title: "하트가 다 닳아서 탈락했습니다.",
+      message: "새로운 조를 찾습니다.",
+      tone: "error",
+      blurBackground: true,
+    }).finally(() => setAcknowledgedEliminationKey(eliminationKey));
+  }, [acknowledgedEliminationKey, eliminationKey, showMessage]);
+  useEffect(() => {
+    if (clock.expired || state?.status !== "searching") return undefined;
+    if (eliminationKey && acknowledgedEliminationKey !== eliminationKey) return undefined;
+    const refresh = (): void => { void refreshCooperativeMatch(roomId, session.roundId).catch(console.error); };
+    refresh();
+    const timer = window.setInterval(refresh, 1_000);
+    return () => window.clearInterval(timer);
+  }, [acknowledgedEliminationKey, clock.expired, eliminationKey, roomId, session.roundId, state?.status]);
 
   if (learningSet.error || assignment.error) return <StatusPanel title="협동 게임 연결 오류" tone="error">{learningSet.error?.message ?? assignment.error?.message}</StatusPanel>;
   if (learningSet.loading || assignment.loading || !state) return <StatusPanel title="조를 편성하고 있어요" tone="waiting">함께 문장을 완성할 친구를 찾고 있습니다.</StatusPanel>;
 
   if (clock.expired) return <section className={styles.complete}><span>TIME OVER</span><h1>협동 게임 종료!</h1><p>{state.teamName ? `${state.teamName} 조는 ${state.currentQuestionIndex}/${state.questionCount} 문장까지 완성했습니다.` : "선생님이 다음 활동을 준비할 때까지 기다려 주세요."}</p></section>;
   if (state.status === "searching") {
+    if (eliminationKey && acknowledgedEliminationKey !== eliminationKey) {
+      return <div className={styles.shell}><TimedGameStatus session={session} /><StatusPanel title="하트가 다 닳아서 탈락했습니다." tone="error">새로운 조를 찾습니다.</StatusPanel></div>;
+    }
     const elapsed = state.searchStartedAtMs ? now - state.searchStartedAtMs : 0;
     const seconds = Math.max(0, Math.ceil((10_000 - elapsed) / 1_000));
     return <div className={styles.shell}><TimedGameStatus session={session} /><StatusPanel title="새로운 조를 찾고 있어요" tone="waiting">{seconds > 0 ? `다른 친구를 기다리는 중 · ${seconds}초` : "곧 새로운 음식 조가 만들어집니다."}</StatusPanel></div>;
@@ -59,7 +85,7 @@ export default function CooperativeSentenceStudentGame({ roomId, session, player
     setSubmitting(true);
     try {
       const result = await submitCooperativeSentence({ roomId, roundId: session.roundId, submissionId: crypto.randomUUID(), generation: state.generation, questionId: question.id, tokenIds });
-      setFeedback({ correct: result.isCorrect, text: result.isCorrect ? "정답! 이제 조원의 차례입니다." : result.eliminated ? "하트가 모두 깨졌어요. 새로운 조를 찾습니다." : "순서가 달라 하트가 하나 줄었습니다. 다시 도전하세요." });
+      if (!result.eliminated) setFeedback({ correct: result.isCorrect, text: result.isCorrect ? "정답! 이제 조원의 차례입니다." : "순서가 달라 하트가 하나 줄었습니다. 다시 도전하세요." });
       if (!result.isCorrect && !result.eliminated) setSelectedIds([]);
     } catch (reason: unknown) {
       await showMessage({ title: "답안을 제출하지 못했어요", message: toErrorMessage(reason, "조 상태를 다시 확인해 주세요."), tone: "error", blurBackground: false });

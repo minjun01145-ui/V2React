@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ensureCooperativeRound, refreshCooperativeMatch, subscribeCooperativeAssignment, subscribeCooperativeTeams } from "./repository.ts";
+import { ensureCooperativeRound, subscribeCooperativeAssignment, subscribeCooperativeTeams } from "./repository.ts";
 import type { CooperativeAssignment, CooperativeTeam } from "./types.ts";
 
-export function useCooperativeAssignment(roomId: string, roundId: string, playerId: string, matchingEnabled = true) {
+export function useCooperativeAssignment(roomId: string, roundId: string, playerId: string) {
   const [value, setValue] = useState<CooperativeAssignment | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -13,13 +13,6 @@ export function useCooperativeAssignment(roomId: string, roundId: string, player
     const unsubscribe = subscribeCooperativeAssignment(roomId, roundId, playerId, (next) => { if (active) { setValue(next); setLoading(false); } }, (reason) => { if (active) { setError(reason); setLoading(false); } });
     return () => { active = false; unsubscribe(); };
   }, [playerId, roomId, roundId]);
-  useEffect(() => {
-    if (value?.status !== "searching" || !matchingEnabled) return undefined;
-    const refresh = (): void => { void refreshCooperativeMatch(roomId, roundId).catch(console.error); };
-    refresh();
-    const timer = window.setInterval(refresh, 1_000);
-    return () => window.clearInterval(timer);
-  }, [matchingEnabled, roomId, roundId, value?.status]);
   return { value, loading: loading && !error, error };
 }
 
