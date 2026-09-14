@@ -1,0 +1,18 @@
+.stage { position: relative; display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 1rem; min-height: 18rem; overflow: hidden; border-radius: 1.4rem; padding: 2rem 1rem 1.4rem; background: radial-gradient(circle at 50% 90%, #fff5b8, #d8efff 55%, #b6d9ff); }
+.stage[data-outcome="draw"] { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); background: radial-gradient(circle at 50% 90%, #fff7c9, #e9ddff 60%, #c9b8ff); }
+.fighter { position: relative; display: grid; justify-items: center; align-content: end; min-width: 0; transform-origin: 50% 90%; }
+.fighter strong { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: .35rem .75rem; border-radius: 999px; background: #14283ddd; color: white; z-index: 2; }
+.avatar { display: grid; place-items: center; width: clamp(7rem, 24vw, 12rem); height: clamp(7rem, 24vw, 12rem); font-size: 6rem; filter: drop-shadow(0 .8rem .6rem #334a6740); }
+.avatar img { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; }
+.winner { animation: approachBonk 2.2s ease-in-out both; z-index: 2; }
+.loser { animation: topple .55s 1.45s ease-in both; }
+.bat { position: absolute; right: -1.4rem; top: 28%; width: 5.5rem; height: 1rem; border-radius: 999px; background: linear-gradient(90deg, #7a3e16, #d58b45); transform-origin: 10% 50%; animation: swing .45s 1.15s ease-in-out both; }
+.impact { position: absolute; left: 50%; top: 28%; font-weight: 1000; font-size: 2rem; color: #ff5c37; opacity: 0; animation: pop .35s 1.5s ease-out both; z-index: 3; }
+.stage[data-outcome="draw"] .fighter { animation: cheer .58s ease-in-out infinite alternate; }
+.stage[data-outcome="draw"] .fighter:nth-child(2) { animation-delay: .18s; }
+@keyframes approachBonk { 0%, 35% { transform: translateX(0) scale(.9); } 65%, 100% { transform: translateX(20%) scale(1.08); } }
+@keyframes swing { 0%, 20% { transform: rotate(-55deg); } 100% { transform: rotate(25deg); } }
+@keyframes topple { to { transform: rotate(82deg) translate(1.2rem, .8rem); opacity: .78; } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.2) rotate(-15deg); } 45% { opacity: 1; transform: scale(1.35) rotate(10deg); } 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes cheer { from { transform: translateY(0) rotate(-2deg); } to { transform: translateY(-1.7rem) rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) { .fighter, .winner, .loser, .bat, .impact { animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }

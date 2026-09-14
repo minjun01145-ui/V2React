@@ -8,8 +8,9 @@ export const GAME_EFFECT_LEVEL = {
 export type GameEffectLevel = (typeof GAME_EFFECT_LEVEL)[keyof typeof GAME_EFFECT_LEVEL];
 
 export interface GameEffectDefinition {
-  readonly kind: "score-celebration";
-  readonly tone: "success";
+  readonly kind: "score-celebration" | "announcement";
+  readonly tone: "success" | "warning" | "info";
+  readonly badge: string;
   readonly headline: string;
   readonly metric: string;
   readonly detail: string | null;
@@ -51,6 +52,7 @@ export function createScoreCelebration(input: {
   return {
     kind: "score-celebration",
     tone: "success",
+    badge: "✓",
     headline,
     metric: `+${scoreDelta}점`,
     detail: bonusScore > 0 ? `콤보 보너스 +${bonusScore}점` : null,
@@ -58,5 +60,26 @@ export function createScoreCelebration(input: {
     bonusScore,
     level,
     durationMs: level === GAME_EFFECT_LEVEL.STANDARD ? 780 : 1_050,
+  };
+}
+
+export function createGameAnnouncement(input: {
+  readonly headline: string;
+  readonly metric: string;
+  readonly detail?: string;
+  readonly tone?: "warning" | "info";
+  readonly durationMs?: number;
+}): GameEffectDefinition {
+  return {
+    kind: "announcement",
+    tone: input.tone ?? "info",
+    badge: input.tone === "warning" ? "!" : "•",
+    headline: input.headline,
+    metric: input.metric,
+    detail: input.detail ?? null,
+    combo: 0,
+    bonusScore: 0,
+    level: GAME_EFFECT_LEVEL.COMBO,
+    durationMs: input.durationMs ?? 1_500,
   };
 }

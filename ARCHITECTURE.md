@@ -76,6 +76,8 @@ teacher-only team state     per-student assignment
 
 문장 데이터와 순서 판정은 `game-engine/sequence` 및 `learning-sets/sentenceSequenceAdapter`를 기존 문장 만들기와 함께 사용합니다. 서버는 현재 턴과 정답 순서를 다시 검증하고 제출 ID를 멱등 처리합니다. 하트가 모두 소진되면 기존 조를 종료하고 학생을 검색 상태로 옮기며, 검색자가 둘뿐이면 10초 뒤 재편성합니다.
 
+교사가 게임 중 빡센모드를 활성화하면 서버가 각 커플의 현재 턴에 5초 deadline을 부여하고 이후 턴마다 갱신합니다. 학생은 공용 `game-engine/timed-turn` 진행 막대를 표시하지만, 시간 초과와 하트 차감의 최종 판정은 서버 트랜잭션이 담당합니다. 모드 활성화와 턴 알림은 공용 `game-engine/effects` 발표 효과를 사용합니다.
+
 ## Quiz game orchestration
 
 ```text
@@ -320,3 +322,10 @@ Evaluator와 점수 규칙은 계속 concrete game/game-engine이 소유합니�
 - Cloud Functions에 학생 인증 외 두 번째 독립 업무 도메인이 생길 때 `functions/src/<domain>/`으로 분리합니다.
 
 빈 폴더나 미래용 추상화는 미리 만들지 않습니다.
+## 1:1 배틀 모듈
+
+- `src/learning-sets/table/`은 단어·문장 세트를 양쪽 선택형 표로 표현하는 재사용 가능한 모델과 UI입니다.
+- `src/multiplayer/battle/`은 학생별 비공개 assignment와 교사용 K/D 현황의 클라이언트 계약입니다.
+- `src/multiplayer/battle-result/`은 캐릭터 기반 승패·공동승리 연출을 제공하는 공용 결과 컴포넌트입니다.
+- `functions/src/battle/`은 익명 매칭, 10초 출제, 20초 답변, AI 채점, 하트·K/D 및 20초 재매칭을 서버 트랜잭션으로 관리합니다.
+- 기준 답안과 상대 식별자는 `battleMatches`에만 저장되며 학생은 자신의 `battleAssignments`만 읽을 수 있습니다.

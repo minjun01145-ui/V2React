@@ -110,6 +110,17 @@ service cloud.firestore {
       );
     }
 
+    function validDiceResults(values, count) {
+      return values is list
+        && count is int
+        && count >= 1
+        && count <= 3
+        && values.size() == count
+        && values[0] is int && values[0] >= 1 && values[0] <= 6
+        && (count < 2 || (values[1] is int && values[1] >= 1 && values[1] <= 6))
+        && (count < 3 || (values[2] is int && values[2] >= 1 && values[2] <= 6));
+    }
+
     function publicLearningSetRead() {
       return true;
     }
@@ -317,6 +328,35 @@ service cloud.firestore {
         allow delete: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
       }
 
+      match /waitingDiceRequests/{uid} {
+        allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+        allow create, update, delete: if isAdmin();
+        allow update: if isRoomStudent(roomId)
+          && request.auth.uid == uid
+          && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "waiting"
+          && resource.data.rollerId == uid
+          && request.resource.data.requestId == resource.data.requestId
+          && request.resource.data.diceCount == resource.data.diceCount
+          && request.resource.data.rollerId == resource.data.rollerId
+          && request.resource.data.rollerLabel == resource.data.rollerLabel
+          && request.resource.data.requestedAt == resource.data.requestedAt
+          && request.resource.data.requestedAtMs == resource.data.requestedAtMs
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedAtMs is int
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["phase", "results", "updatedAt", "updatedAtMs"])
+          && (
+            (resource.data.phase == "requested"
+              && resource.data.results.size() == 0
+              && request.resource.data.phase == "rolling"
+              && request.resource.data.results.size() == 0)
+            ||
+            (resource.data.phase == "rolling"
+              && resource.data.results.size() == 0
+              && request.resource.data.phase == "result"
+              && validDiceResults(request.resource.data.results, resource.data.diceCount))
+          );
+      }
+
       match /studentQuestionRuns/{runId} {
         allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid in resource.data.expectedPlayerIds);
         allow create, update, delete: if isAdmin();
@@ -416,6 +456,28 @@ service cloud.firestore {
 
         match /cooperativeOperations/{uid}/items/{operationId} {
           allow read, write: if false;
+        }
+
+        // 배틀의 매칭 정보와 기준 답안은 서버·교사만 읽는다. 학생은 상대의
+        // 식별자가 제거된 본인 assignment만 구독한다.
+        match /battleState/{documentId} {
+          allow read: if isAdmin();
+          allow write: if false;
+        }
+
+        match /battleMatches/{matchId} {
+          allow read: if isAdmin();
+          allow write: if false;
+        }
+
+        match /battleAssignments/{uid} {
+          allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow write: if false;
+        }
+
+        match /battleStats/{uid} {
+          allow read: if isAdmin();
+          allow write: if false;
         }
 
         match /answers/{answerId} {

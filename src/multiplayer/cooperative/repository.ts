@@ -3,7 +3,7 @@ import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../../firebase/firebaseClient.ts";
 import { MULTIPLAYER_COLLECTION } from "../constants.ts";
 import type { PlayerAvatar } from "../types.ts";
-import type { CooperativeAssignment, CooperativeSubmitResult, CooperativeTeam, RevealedPartner } from "./types.ts";
+import type { CooperativeAssignment, CooperativeExpireResult, CooperativeRoundState, CooperativeSubmitResult, CooperativeTeam, RevealedPartner } from "./types.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function text(value: unknown): string { return typeof value === "string" ? value : ""; }
@@ -39,6 +39,9 @@ function assignment(value: unknown): CooperativeAssignment | null {
     generation: Math.max(0, integer(value.generation)),
     searchStartedAtMs: typeof value.searchStartedAtMs === "number" ? value.searchStartedAtMs : null,
     revealedPartners: Array.isArray(value.revealedPartners) ? value.revealedPartners.map(partner).filter((item): item is RevealedPartner => item !== null) : [],
+    hardMode: value.hardMode === true,
+    hardModeRevision: Math.max(0, integer(value.hardModeRevision)),
+    turnDeadlineAtMs: typeof value.turnDeadlineAtMs === "number" && Number.isFinite(value.turnDeadlineAtMs) ? value.turnDeadlineAtMs : null,
   };
 }
 function team(id: string, value: DocumentData): CooperativeTeam | null {
@@ -58,6 +61,12 @@ export function subscribeCooperativeAssignment(roomId: string, roundId: string, 
 export function subscribeCooperativeTeams(roomId: string, roundId: string, onValue: (value: CooperativeTeam[]) => void, onError: (error: Error) => void): Unsubscribe {
   return onSnapshot(collection(roundRef(roomId, roundId), "cooperativeTeams"), (snapshot) => onValue(snapshot.docs.map((item) => team(item.id, item.data())).filter((item): item is CooperativeTeam => item !== null).sort((a, b) => a.name.localeCompare(b.name))), onError);
 }
+export function subscribeCooperativeState(roomId: string, roundId: string, onValue: (value: CooperativeRoundState | null) => void, onError: (error: Error) => void): Unsubscribe {
+  return onSnapshot(doc(roundRef(roomId, roundId), "cooperativeState", "main"), (snapshot) => {
+    const value: unknown = snapshot.exists() ? snapshot.data() : null;
+    onValue(isRecord(value) ? { hardMode: value.hardMode === true, hardModeRevision: Math.max(0, integer(value.hardModeRevision)) } : null);
+  }, onError);
+}
 export async function ensureCooperativeRound(roomId: string, roundId: string): Promise<void> {
   await httpsCallable(functions, "ensureCooperativeRound")({ roomId, roundId });
 }
@@ -67,6 +76,15 @@ export async function refreshCooperativeMatch(roomId: string, roundId: string): 
 export async function submitCooperativeSentence(input: { readonly roomId: string; readonly roundId: string; readonly submissionId: string; readonly generation: number; readonly questionId: string; readonly tokenIds: readonly string[] }): Promise<CooperativeSubmitResult> {
   const response = await httpsCallable<typeof input, unknown>(functions, "submitCooperativeSentence")(input);
   const value: unknown = response.data;
-  if (!isRecord(value) || typeof value.isCorrect !== "boolean") throw new Error("협동 답안 처리 결과가 올바르지 않습니다.");
-  return { isCorrect: value.isCorrect, eliminated: value.eliminated === true, completed: value.completed === true };
+  if (!isRecord(value) || typeof value.isCorrect !== "boolean") throw new Error("커플 답안 처리 결과가 올바르지 않습니다.");
+  return { isCorrect: value.isCorrect, eliminated: value.eliminated === true, completed: value.completed === true, timedOut: value.timedOut === true };
+}
+export async function enableCooperativeHardMode(roomId: string, roundId: string): Promise<void> {
+  await httpsCallable(functions, "enableCooperativeHardMode")({ roomId, roundId });
+}
+export async function expireCooperativeTurn(input: { readonly roomId: string; readonly roundId: string; readonly generation: number; readonly deadlineAtMs: number }): Promise<CooperativeExpireResult> {
+  const response = await httpsCallable<typeof input, unknown>(functions, "expireCooperativeTurn")(input);
+  const value: unknown = response.data;
+  if (!isRecord(value) || typeof value.applied !== "boolean") throw new Error("제한시간 처리 결과가 올바르지 않습니다.");
+  return { applied: value.applied, eliminated: value.eliminated === true };
 }

@@ -1,5 +1,6 @@
 export interface CooperativeInput { readonly roomId: string; readonly roundId: string; }
 export interface CooperativeSubmitInput extends CooperativeInput { readonly submissionId: string; readonly generation: number; readonly questionId: string; readonly tokenIds: readonly string[]; }
+export interface CooperativeExpireInput extends CooperativeInput { readonly generation: number; readonly deadlineAtMs: number; }
 
 export interface MemberProfile {
   readonly playerId: string;
@@ -18,4 +19,6 @@ export interface StoredTeam {
   readonly questionCount: number;
   readonly turnMemberIndex: number;
   readonly generation: number;
+  readonly hardMode: boolean;
+  readonly turnDeadlineAtMs: number | null;
 }

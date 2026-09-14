@@ -51,12 +51,21 @@ const definitions = [
   }),
   defineGame({
     id: "cooperative-sentence-builder",
-    title: "협동 문장만들기",
+    title: "커플 문장만들기",
     supportedSetTypes: ["reading-chunks"],
     requiresStoredSet: true,
     handlesOwnTimedBoundary: true,
     loadStudent: () => import("./cooperative-sentence-builder/CooperativeSentenceStudentGame.tsx"),
     loadTeacher: () => import("./cooperative-sentence-builder/CooperativeSentenceTeacherGame.tsx"),
+  }),
+  defineGame({
+    id: "one-on-one-battle",
+    title: "1:1 배틀",
+    supportedSetTypes: ["vocabulary", "reading-chunks"],
+    requiresStoredSet: true,
+    handlesOwnTimedBoundary: true,
+    loadStudent: () => import("./one-on-one-battle/OneOnOneBattleStudentGame.tsx"),
+    loadTeacher: () => import("./one-on-one-battle/OneOnOneBattleTeacherGame.tsx"),
   }),
   defineGame({
     id: "simple-quiz",

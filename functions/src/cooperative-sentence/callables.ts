@@ -1,12 +1,12 @@
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
-import { ensureRound, refreshMatch, submitSentence } from "./service.js";
-import type { CooperativeInput, CooperativeSubmitInput } from "./types.js";
+import { enableHardMode, ensureRound, expireTurn, refreshMatch, submitSentence } from "./service.js";
+import type { CooperativeExpireInput, CooperativeInput, CooperativeSubmitInput } from "./types.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false } as const;
 function parseBase(value: unknown): CooperativeInput {
-  if (!isRecord(value)) throw new HttpsError("invalid-argument", "협동 게임 정보가 없습니다.");
+  if (!isRecord(value)) throw new HttpsError("invalid-argument", "커플 게임 정보가 없습니다.");
   const roomId = typeof value.roomId === "string" ? value.roomId.trim() : "";
   const roundId = typeof value.roundId === "string" ? value.roundId.trim() : "";
   if (!/^[\p{L}\p{N}._-]{1,64}$/u.test(roomId) || !/^[A-Za-z0-9_-]{1,128}$/.test(roundId)) throw new HttpsError("invalid-argument", "방 또는 라운드 정보가 올바르지 않습니다.");
@@ -22,6 +22,13 @@ async function authorize(request: CallableRequest<unknown>, input: CooperativeIn
   if (!player.exists) throw new HttpsError("permission-denied", "이 방의 학생이 아닙니다.");
   return uid;
 }
+async function authorizeAdmin(request: CallableRequest<unknown>): Promise<string> {
+  if (!request.auth) throw new HttpsError("unauthenticated", "관리자 로그인이 필요합니다.");
+  const admin = await db.collection("admins").doc(request.auth.uid).get();
+  const data: unknown = admin.exists ? admin.data() : null;
+  if (!isRecord(data) || data.active === false) throw new HttpsError("permission-denied", "관리자 권한이 없습니다.");
+  return request.auth.uid;
+}
 function parseSubmit(value: unknown): CooperativeSubmitInput {
   const base = parseBase(value);
   if (!isRecord(value)) throw new HttpsError("invalid-argument", "답안이 없습니다.");
@@ -32,7 +39,17 @@ function parseSubmit(value: unknown): CooperativeSubmitInput {
   if (!/^[0-9a-f-]{36}$/i.test(submissionId) || generation < 0 || !questionId || tokenIds.length === 0 || tokenIds.length > 100) throw new HttpsError("invalid-argument", "답안 형식이 올바르지 않습니다.");
   return { ...base, submissionId, generation, questionId, tokenIds };
 }
+function parseExpire(value: unknown): CooperativeExpireInput {
+  const base = parseBase(value);
+  if (!isRecord(value)) throw new HttpsError("invalid-argument", "제한시간 정보가 없습니다.");
+  const generation = typeof value.generation === "number" && Number.isInteger(value.generation) ? value.generation : -1;
+  const deadlineAtMs = typeof value.deadlineAtMs === "number" && Number.isInteger(value.deadlineAtMs) ? value.deadlineAtMs : 0;
+  if (generation < 0 || deadlineAtMs <= 0) throw new HttpsError("invalid-argument", "제한시간 정보가 올바르지 않습니다.");
+  return { ...base, generation, deadlineAtMs };
+}
 
 export const ensureCooperativeRound = onCall(options, async (request) => { const input = parseBase(request.data); await authorize(request, input); await ensureRound(input); return { ok: true }; });
 export const refreshCooperativeMatch = onCall(options, async (request) => { const input = parseBase(request.data); await authorize(request, input); await refreshMatch(input); return { ok: true }; });
 export const submitCooperativeSentence = onCall(options, async (request) => { const input = parseSubmit(request.data); const uid = await authorize(request, input); return submitSentence(uid, input); });
+export const enableCooperativeHardMode = onCall(options, async (request) => { const input = parseBase(request.data); await authorizeAdmin(request); await enableHardMode(input); return { ok: true }; });
+export const expireCooperativeTurn = onCall(options, async (request) => { const input = parseExpire(request.data); const uid = await authorize(request, input); return expireTurn(uid, input); });

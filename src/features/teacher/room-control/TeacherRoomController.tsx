@@ -22,6 +22,7 @@ import TeacherStudentQuestionPanel from "../../../student-question-activity/Teac
 import { startStudentQuestionActivity } from "../../../student-question-activity/repository.ts";
 import type { StudentQuestionConfig } from "../../../student-question-activity/types.ts";
 import type { QuizGamePlan } from "../../../quiz-game/types.ts";
+import TeacherWaitingDice from "../../../waiting-dice/TeacherWaitingDice.tsx";
 
 type RoomAction = (roomId: string) => Promise<void>;
 
@@ -121,6 +122,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
       <StatusPanel title={isPreparing ? "게임 접속 확인 중" : "학생 대기 중"} tone="waiting">
         {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
       </StatusPanel>
+      {!isPreparing && !isQuestionActivity ? <TeacherWaitingDice roomId={roomId} players={activePlayers} disabled={working || loading} /> : null}
       {!isPreparing && isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
       {!isPreparing && !isQuestionActivity ? <ActivityLaunchPanel
         setup={gameSetup}

@@ -9,6 +9,7 @@ export function GameEffectLayer({ effect }: { readonly effect: ActiveGameEffect 
   return <div
     className={styles.layer}
     data-level={effect.level}
+    data-tone={effect.tone}
     key={effect.id}
     aria-live="assertive"
     aria-atomic="true"
@@ -18,7 +19,7 @@ export function GameEffectLayer({ effect }: { readonly effect: ActiveGameEffect 
       {PARTICLES.map((particle) => <i key={particle} />)}
     </div>
     <div className={styles.burst} role="status">
-      <span className={styles.badge} aria-hidden="true">✓</span>
+      <span className={styles.badge} aria-hidden="true">{effect.badge}</span>
       <strong className={styles.headline}>{effect.headline}</strong>
       <b className={styles.metric}>{effect.metric}</b>
       {effect.detail && <span className={styles.detail}>{effect.detail}</span>}

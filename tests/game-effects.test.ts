@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createScoreCelebration, GAME_EFFECT_LEVEL, gameEffectLevel } from "../src/game-engine/effects/model.ts";
+import { createGameAnnouncement, createScoreCelebration, GAME_EFFECT_LEVEL, gameEffectLevel } from "../src/game-engine/effects/model.ts";
 
 assert.equal(gameEffectLevel(1), GAME_EFFECT_LEVEL.STANDARD);
 assert.equal(gameEffectLevel(2), GAME_EFFECT_LEVEL.COMBO);
@@ -9,6 +9,7 @@ assert.equal(gameEffectLevel(6), GAME_EFFECT_LEVEL.MAX);
 assert.deepEqual(createScoreCelebration({ scoreDelta: 100, combo: 1 }), {
   kind: "score-celebration",
   tone: "success",
+  badge: "✓",
   headline: "정답!",
   metric: "+100점",
   detail: null,
@@ -16,6 +17,11 @@ assert.deepEqual(createScoreCelebration({ scoreDelta: 100, combo: 1 }), {
   bonusScore: 0,
   level: GAME_EFFECT_LEVEL.STANDARD,
   durationMs: 780,
+});
+
+assert.deepEqual(createGameAnnouncement({ headline: "빡센모드!", metric: "5초 제한", tone: "warning" }), {
+  kind: "announcement", tone: "warning", badge: "!", headline: "빡센모드!", metric: "5초 제한", detail: null,
+  combo: 0, bonusScore: 0, level: GAME_EFFECT_LEVEL.COMBO, durationMs: 1_500,
 });
 
 const comboEffect = createScoreCelebration({ scoreDelta: 160, combo: 4 });

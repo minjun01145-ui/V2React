@@ -21,3 +21,17 @@ export function shuffled<T>(values: readonly T[]): T[] {
   }
   return result;
 }
+
+export function partnerDisplayName(nickname: unknown, displayName: unknown): string {
+  const nicknameText = typeof nickname === "string" ? nickname.trim() : "";
+  const displayNameText = typeof displayName === "string" ? displayName.trim() : "";
+  return nicknameText || displayNameText || "이름 없음";
+}
+
+export function hardModeDeadline(hardMode: boolean, nowMs: number, durationMs = 5_000): number | null {
+  return hardMode ? nowMs + durationMs : null;
+}
+
+export function isHardModeTurnExpired(hardMode: boolean, deadlineAtMs: number | null, nowMs: number): boolean {
+  return hardMode && deadlineAtMs !== null && nowMs >= deadlineAtMs;
+}

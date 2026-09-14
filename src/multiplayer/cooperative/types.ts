@@ -20,6 +20,14 @@ export interface CooperativeAssignment {
   readonly generation: number;
   readonly searchStartedAtMs: number | null;
   readonly revealedPartners: readonly RevealedPartner[];
+  readonly hardMode: boolean;
+  readonly hardModeRevision: number;
+  readonly turnDeadlineAtMs: number | null;
+}
+
+export interface CooperativeRoundState {
+  readonly hardMode: boolean;
+  readonly hardModeRevision: number;
 }
 
 export interface CooperativeTeam {
@@ -37,4 +45,10 @@ export interface CooperativeSubmitResult {
   readonly isCorrect: boolean;
   readonly eliminated: boolean;
   readonly completed: boolean;
+  readonly timedOut: boolean;
+}
+
+export interface CooperativeExpireResult {
+  readonly applied: boolean;
+  readonly eliminated: boolean;
 }

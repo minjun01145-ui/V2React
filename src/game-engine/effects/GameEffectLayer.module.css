@@ -13,6 +13,8 @@
 .layer[data-level="combo"] { --effect-main: #6564e8; --effect-light: #ecebff; }
 .layer[data-level="super"] { --effect-main: #f18b2d; --effect-light: #fff1c7; }
 .layer[data-level="max"] { --effect-main: #ef4770; --effect-light: #ffe1eb; }
+.layer[data-tone="warning"] { --effect-main: #ef4444; --effect-light: #fee2e2; }
+.layer[data-tone="info"] { --effect-main: #2563eb; --effect-light: #dbeafe; }
 
 .flash {
   position: absolute;

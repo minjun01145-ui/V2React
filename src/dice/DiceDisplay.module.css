@@ -1,0 +1,6 @@
+.dice { display: flex; flex-wrap: wrap; justify-content: center; gap: .55rem; }
+.die { display: grid; width: clamp(4.25rem, 9vw, 5.5rem); height: clamp(4.25rem, 9vw, 5.5rem); place-items: center; border: 2px solid #8b5cf6; border-radius: 1rem; color: #5b21b6; background: #fff; box-shadow: 0 8px 0 #ddd6fe, 0 12px 22px rgba(91, 33, 182, .16); font-family: "Segoe UI Symbol", sans-serif; font-size: clamp(3.5rem, 8vw, 4.75rem); line-height: 1; }
+.die[data-rolling="true"] { animation: dice-roll .36s linear infinite; }
+@keyframes dice-roll { 0% { transform: rotate(0) scale(1); } 50% { transform: rotate(12deg) scale(.9); } 100% { transform: rotate(0) scale(1); } }
+@media (max-width: 480px) { .die { width: 4rem; height: 4rem; font-size: 3.4rem; } }
+@media (prefers-reduced-motion: reduce) { .die[data-rolling="true"] { animation: none; } }

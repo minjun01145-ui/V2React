@@ -12,6 +12,7 @@ import styles from "./WaitingRoom.module.css";
 import StudentQuestionAuthoring from "../../../student-question-activity/StudentQuestionAuthoring.tsx";
 import { useStudentQuestionSubmission } from "../../../student-question-activity/useStudentQuestionSubmission.ts";
 import { shouldShowStudentQuestionAuthoring } from "../../../student-question-activity/model.ts";
+import StudentWaitingDice from "../../../waiting-dice/StudentWaitingDice.tsx";
 
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 
@@ -41,6 +42,7 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
   return (
     <div className={styles.stack}>
       <StatusPanel title="대기 중" tone="waiting">선생님이 시작하면 게임이 자동으로 시작됩니다.</StatusPanel>
+      <StudentWaitingDice roomId={roomId} uid={uid} players={activePlayers} />
       <Card className={styles.profileCard}>
         <CharacterShop
           identity={{ uid, studentNumber: selfStudentNumber, displayName }}

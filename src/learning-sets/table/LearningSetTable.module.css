@@ -1,0 +1,11 @@
+.wrap { overflow: auto; max-height: min(56vh, 38rem); border: 1px solid #dbe4ef; border-radius: 1rem; background: #fff; }
+.table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 34rem; }
+.table th { position: sticky; top: 0; z-index: 1; padding: .8rem 1rem; background: #eef4fb; color: #38516a; text-align: left; font-size: .8rem; letter-spacing: .04em; }
+.table td { padding: .25rem; border-top: 1px solid #edf1f6; }
+.table td:first-child { width: 3.2rem; padding: .75rem 1rem; color: #748397; text-align: center; }
+.cell { width: 100%; min-height: 3rem; border: 0; border-radius: .7rem; padding: .7rem .8rem; background: transparent; color: #17283a; text-align: left; font: inherit; line-height: 1.45; }
+.cell:not(:disabled) { cursor: pointer; }
+.cell:not(:disabled):hover, .cell:not(:disabled):focus-visible { outline: 2px solid #377cf6; background: #eaf2ff; }
+.cell:disabled { color: #607086; }
+.cell[data-used="true"] { text-decoration: line-through; opacity: .42; }
+@media (max-width: 640px) { .table { min-width: 29rem; } .cell { font-size: .88rem; } }

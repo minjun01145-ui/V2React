@@ -158,6 +158,12 @@ if (!rules.includes("match /studentGameData/{accountId}/games/pokemon-catch") ||
 if (!rules.includes("validPlayerAvatar") || !rules.includes('"lastSeenAtMs", "nickname", "avatar"')) {
   violations.push("security/firestore.rules.secure: lobby avatars must be shape-validated and self-updateable");
 }
+if (!rules.includes("match /waitingDiceRequests/{uid}")
+  || !rules.includes("request.auth.uid == uid")
+  || !rules.includes("resource.data.rollerId == uid")
+  || !rules.includes("validDiceResults(request.resource.data.results, resource.data.diceCount)")) {
+  violations.push("security/firestore.rules.secure: waiting-room dice requests must be private to the target and value-validated");
+}
 if (!testStudentViewport.includes('sandbox="allow-scripts allow-same-origin allow-forms"')) {
   violations.push("src/features/teacher/test-tool/TestStudentViewport.tsx: sandboxed test students must allow in-frame forms");
 }

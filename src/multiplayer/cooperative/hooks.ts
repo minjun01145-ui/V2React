@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ensureCooperativeRound, subscribeCooperativeAssignment, subscribeCooperativeTeams } from "./repository.ts";
-import type { CooperativeAssignment, CooperativeTeam } from "./types.ts";
+import { ensureCooperativeRound, subscribeCooperativeAssignment, subscribeCooperativeState, subscribeCooperativeTeams } from "./repository.ts";
+import type { CooperativeAssignment, CooperativeRoundState, CooperativeTeam } from "./types.ts";
 
 export function useCooperativeAssignment(roomId: string, roundId: string, playerId: string) {
   const [value, setValue] = useState<CooperativeAssignment | null>(null);
@@ -26,5 +26,13 @@ export function useCooperativeTeams(roomId: string, roundId: string) {
     const unsubscribe = subscribeCooperativeTeams(roomId, roundId, (next) => { if (active) { setValue(next); setLoading(false); } }, (reason) => { if (active) { setError(reason); setLoading(false); } });
     return () => { active = false; unsubscribe(); };
   }, [roomId, roundId]);
+  return { value, loading, error };
+}
+
+export function useCooperativeRoundState(roomId: string, roundId: string) {
+  const [value, setValue] = useState<CooperativeRoundState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  useEffect(() => subscribeCooperativeState(roomId, roundId, (next) => { setValue(next); setLoading(false); }, (reason) => { setError(reason); setLoading(false); }), [roomId, roundId]);
   return { value, loading, error };
 }
