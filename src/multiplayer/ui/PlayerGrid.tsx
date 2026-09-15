@@ -8,6 +8,9 @@ interface Props {
   readonly selfStudentNumber?: string;
   readonly showStudentNumber?: boolean;
   readonly emptyMessage?: string;
+  readonly onPlayerClick?: (player: Player) => void;
+  readonly disabled?: boolean;
+  readonly disabledPlayerId?: string | null;
 }
 
 /**
@@ -19,6 +22,9 @@ export default function PlayerGrid({
   selfStudentNumber,
   showStudentNumber = false,
   emptyMessage = "아직 대기 중인 학생이 없어요.",
+  onPlayerClick,
+  disabled = false,
+  disabledPlayerId = null,
 }: Props) {
   if (players.length === 0) {
     return <Muted>{emptyMessage}</Muted>;
@@ -31,6 +37,12 @@ export default function PlayerGrid({
             player={player}
             isSelf={Boolean(selfStudentNumber) && player.studentNumber === selfStudentNumber}
             showStudentNumber={showStudentNumber}
+            disabled={disabled || disabledPlayerId === player.id}
+            actionPending={disabledPlayerId === player.id}
+            {...(onPlayerClick ? {
+              onClick: () => onPlayerClick(player),
+              actionLabel: `${player.studentNumber} ${player.displayName} 학생 강퇴`,
+            } : {})}
           />
         </li>
       ))}

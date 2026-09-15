@@ -239,6 +239,11 @@ export async function leaveSession(roomId: string, playerId: string): Promise<vo
   await deleteDoc(playerRef(roomId, playerId));
 }
 
+/** 관리자가 학생의 현재 방 membership만 제거한다. 명단과 로그인 계정은 유지된다. */
+export async function removePlayerFromSession(roomId: string, playerId: string): Promise<void> {
+  await deleteDoc(playerRef(roomId, playerId));
+}
+
 export async function loadPlayers(roomId: string): Promise<Player[]> {
   const snapshot = await getDocs(playersRef(roomId));
   return deduplicatePlayers(snapshot.docs.map(parsePlayer).filter((player): player is Player => player !== null));

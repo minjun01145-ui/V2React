@@ -6,14 +6,12 @@ import { usePlayers, useRoundReadiness, useSessionSubscription } from "../../../
 import { countExpectedReady } from "../../../multiplayer/round-readiness/model.ts";
 import { finalizeSessionStart } from "../../../multiplayer/repository.ts";
 import { withTimedGameConfig, type TimedGameMode } from "../../../game-engine/timed-game/config.ts";
-import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import { resetQuizAwareSession, startQuizGame, startRegularGameSession, subscribeQuizGameSession } from "../../../quiz-game/multiplayerService.ts";
 import PageShell from "../../../shared/PageShell.tsx";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
-import Card from "../../../shared/ui/Card.tsx";
 import ActivityLaunchPanel from "./ActivityLaunchPanel.tsx";
 import styles from "./TeacherRoomController.module.css";
 import { useGameSetup } from "./useGameSetup.ts";
@@ -23,6 +21,7 @@ import { startStudentQuestionActivity } from "../../../student-question-activity
 import type { StudentQuestionConfig } from "../../../student-question-activity/types.ts";
 import type { QuizGamePlan } from "../../../quiz-game/types.ts";
 import TeacherWaitingDice from "../../../waiting-dice/TeacherWaitingDice.tsx";
+import TeacherPlayerRoster from "./TeacherPlayerRoster.tsx";
 
 type RoomAction = (roomId: string) => Promise<void>;
 
@@ -39,7 +38,6 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
   const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
   const [working, setWorking] = useState(false);
-  const [showStudentNumbers, setShowStudentNumbers] = useState(true);
   const finalizingRound = useRef<string | null>(null);
   const gameSetup = useGameSetup(session?.latestStudentQuestionResult?.resultSetId ?? null);
   const { requestConfirmation, showMessage } = usePopup();
@@ -134,21 +132,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
         onStartQuestions={startQuestions}
         onStartLatestQuestions={startLatestQuestions}
       /> : null}
-      <Card>
-        <div className={styles.heading}>
-          <div className={styles.headingTitle}><h2>접속 학생</h2><span className={styles.count}>{activePlayers.length}</span></div>
-          <button
-            className={styles.studentNumberToggle}
-            type="button"
-            aria-pressed={showStudentNumbers}
-            onClick={() => setShowStudentNumbers((visible) => !visible)}
-          >
-            <span className={styles.toggleTrack} aria-hidden="true"><span className={styles.toggleThumb} /></span>
-            학번 {showStudentNumbers ? "표시" : "숨김"}
-          </button>
-        </div>
-        <PlayerGrid players={activePlayers} showStudentNumber={showStudentNumbers} emptyMessage="접속한 학생이 없습니다." />
-      </Card>
+      <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
       {!isPreparing && !isQuestionActivity ? <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working} /> : null}
     </div>}
   </>;

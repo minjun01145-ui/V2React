@@ -9,14 +9,29 @@ interface Props {
   readonly player: Player;
   readonly isSelf?: boolean;
   readonly showStudentNumber?: boolean;
+  readonly onClick?: () => void;
+  readonly disabled?: boolean;
+  readonly actionPending?: boolean;
+  readonly actionLabel?: string;
 }
 
-export default function PlayerCard({ player, isSelf = false, showStudentNumber = false }: Props) {
+export default function PlayerCard({
+  player,
+  isSelf = false,
+  showStudentNumber = false,
+  onClick,
+  disabled = false,
+  actionPending = false,
+  actionLabel,
+}: Props) {
   const character = player.avatar?.kind === "character" ? findCharacter(player.avatar.characterId) : null;
   const characterFrame = useCharacterStandFrame(character?.standFrames ?? null);
+  const interactiveProps = onClick
+    ? { as: "button" as const, className: `${styles.card} ${styles.interactive}`, onClick, disabled, "aria-label": actionLabel }
+    : { className: styles.card };
   return (
-    <Card className={styles.card}>
-      <div className={styles.avatar} data-empty={character || player.avatar?.kind === "pokemon" ? undefined : "true"}>
+    <Card {...interactiveProps}>
+      <span className={styles.avatar} data-empty={character || player.avatar?.kind === "pokemon" ? undefined : "true"}>
         {character && characterFrame ? <img className={styles.characterFrame} src={characterFrame} alt={`${character.name} 캐릭터`} decoding="async" draggable={false} /> : null}
         {player.avatar?.kind === "pokemon" ? (
           <img
@@ -29,12 +44,13 @@ export default function PlayerCard({ player, isSelf = false, showStudentNumber =
             }}
           />
         ) : null}
-      </div>
-      <div className={styles.meta}>
+      </span>
+      <span className={styles.meta}>
         <span className={styles.nickname}>{displayLabel(player.displayName, player.nickname)}</span>
         {showStudentNumber ? <span className={styles.studentNumber}>{player.studentNumber}</span> : null}
         {isSelf ? <span className={styles.selfBadge}>나</span> : null}
-      </div>
+        {onClick ? <span className={styles.actionHint}>{actionPending ? "처리 중…" : "클릭하여 강퇴"}</span> : null}
+      </span>
     </Card>
   );
 }

@@ -4,7 +4,8 @@ import styles from "./Card.module.css";
 type SectionProps = { readonly as?: "section" } & ComponentPropsWithoutRef<"section">;
 type DivProps = { readonly as: "div" } & ComponentPropsWithoutRef<"div">;
 type FormProps = { readonly as: "form" } & ComponentPropsWithoutRef<"form">;
-type CardProps = SectionProps | DivProps | FormProps;
+type ButtonProps = { readonly as: "button" } & ComponentPropsWithoutRef<"button">;
+type CardProps = SectionProps | DivProps | FormProps | ButtonProps;
 
 export default function Card(props: CardProps) {
   const { className = "" } = props;
@@ -16,6 +17,10 @@ export default function Card(props: CardProps) {
   if (props.as === "div") {
     const { as: _as, ...divProps } = props;
     return <div className={classes} {...divProps} />;
+  }
+  if (props.as === "button") {
+    const { as: _as, type = "button", ...buttonProps } = props;
+    return <button className={classes} type={type} {...buttonProps} />;
   }
   const { as: _as, ...sectionProps } = props;
   return <section className={classes} {...sectionProps} />;
