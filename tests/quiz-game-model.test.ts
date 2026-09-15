@@ -66,4 +66,18 @@ assert.deepEqual(quizRoundGameConfig(plan.rounds[0]!), {
 });
 assert.equal(usesFiniteQuestionSequence(quizRoundGameConfig(plan.rounds[0]!)), false);
 
+const freeRound = {
+  ...plan.rounds[0]!, id: "free-round", gameId: "free-response", source: { kind: "free-response" as const, prompt: "오늘 배운 내용을 설명해 보세요." }, gameConfig: {},
+};
+const freePlan = { ...plan, rounds: [freeRound, plan.rounds[0]!] };
+assert.deepEqual(parseQuizGamePlan(plan.id, freePlan), freePlan);
+assert.deepEqual(quizRoundGameConfig(freeRound), { freeResponsePrompt: freeRound.source.prompt, quizRoundDurationMs: 30000 });
+assert.throws(() => validateQuizGameRounds([{ ...freeRound, source: { kind: "free-response", prompt: " " } }]), /질문/);
+assert.throws(() => validateQuizGameRounds([{ ...freeRound, source: { kind: "free-response", prompt: "가".repeat(1001) } }]), /1000/);
+assert.throws(() => validateQuizGameRounds([{ ...freeRound, source: { kind: "stored-set", setId: null } }]), /자유 답안/);
+assert.throws(() => validateQuizGameRounds([{ ...freeRound, gameId: "ai-tutor" }]), /자유 답안/);
+assert.equal(parseQuizGamePlan(plan.id, { ...freePlan, rounds: [{ ...freeRound, source: { kind: "free-response", prompt: "" } }] }), null);
+const freeLeaderboard = { ...createQuizGameSessionState(freePlan, "free-runtime"), phase: "leaderboard" as const };
+assert.equal(advanceQuizGameRound(freeLeaderboard, "next-runtime").round.gameId, "simple-quiz");
+
 console.log("quiz game model tests passed");

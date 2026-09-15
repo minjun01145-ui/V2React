@@ -41,8 +41,11 @@ export function validateQuizGameRound(round: QuizGameRound): QuizGameRound {
   if (!ID_PATTERN.test(round.id)) throw new Error("라운드 ID가 올바르지 않습니다.");
   if (!round.title.trim() || round.title.trim().length > 80) throw new Error("라운드 제목은 1~80자로 입력해 주세요.");
   if (!GAME_ID_PATTERN.test(round.gameId)) throw new Error("문제 엔진 ID가 올바르지 않습니다.");
+  if ((round.gameId === "free-response") !== (round.source.kind === "free-response")) throw new Error("자유 답안 엔진에는 자유 답안 질문이 필요합니다.");
   if (round.source.kind === "stored-set") {
     if (round.source.setId !== null && !ID_PATTERN.test(round.source.setId)) throw new Error("학습 세트 ID가 올바르지 않습니다.");
+  } else if (round.source.kind === "free-response") {
+    if (!requiredText(round.source.prompt, 1000)) throw new Error("자유 답안 질문은 1~1000자로 입력해 주세요.");
   } else {
     if (round.source.setType !== "vocabulary" && round.source.setType !== "reading-chunks") throw new Error("직접 출제 세트 타입이 올바르지 않습니다.");
     if (round.source.items.length < 1 || round.source.items.length > 100) throw new Error("직접 출제 문항은 1~100개가 필요합니다.");
@@ -55,7 +58,10 @@ export function validateQuizGameRound(round: QuizGameRound): QuizGameRound {
     throw new Error("라운드 시간은 10~600초로 설정해 주세요.");
   }
   if (!parseStringConfig(round.gameConfig)) throw new Error("문제 엔진 설정이 올바르지 않습니다.");
-  return { ...round, title: round.title.trim(), source: round.source.kind === "stored-set" ? { ...round.source } : { ...round.source, items: round.source.items.map((item) => ({ ...item, sourceText: item.sourceText.trim(), meaning: item.meaning.trim() })) }, gameConfig: { ...round.gameConfig } };
+  const source = round.source.kind === "custom"
+    ? { ...round.source, items: round.source.items.map((item) => ({ ...item, sourceText: item.sourceText.trim(), meaning: item.meaning.trim() })) }
+    : round.source.kind === "free-response" ? { ...round.source, prompt: round.source.prompt.trim() } : { ...round.source };
+  return { ...round, title: round.title.trim(), source, gameConfig: { ...round.gameConfig } };
 }
 
 function parseSource(value: unknown, legacySetId: unknown): QuizGameQuestionSource | null {
@@ -66,6 +72,10 @@ function parseSource(value: unknown, legacySetId: unknown): QuizGameQuestionSour
   if (value.kind === "stored-set") {
     const setId = value.setId === null ? null : requiredText(value.setId, 128);
     return setId !== null || value.setId === null ? { kind: "stored-set", setId } : null;
+  }
+  if (value.kind === "free-response") {
+    const prompt = requiredText(value.prompt, 1000);
+    return prompt ? { kind: "free-response", prompt } : null;
   }
   if (value.kind !== "custom" || (value.setType !== "vocabulary" && value.setType !== "reading-chunks") || !Array.isArray(value.items)) return null;
   const items = value.items.map((item) => {

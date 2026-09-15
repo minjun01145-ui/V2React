@@ -1,0 +1,17 @@
+.form, .dashboard { display: grid; gap: .8rem; }
+.form h2, .form p, .dashboard h2, .dashboard p { margin: 0; }
+.prompt, .answer { white-space: pre-wrap; overflow-wrap: anywhere; }
+.form label { display: grid; gap: .5rem; font-weight: 700; }
+.form textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: .8rem; border: 1px solid var(--color-border); border-radius: .6rem; background: var(--color-surface); color: var(--color-text); font: inherit; }
+.form small, .dashboard header span { color: var(--color-muted); }
+.dashboard header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .8rem; }
+.response { display: flex; flex-direction: column; align-items: stretch; gap: .8rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: .8rem; background: var(--color-surface); color: var(--color-text); text-align: left; font: inherit; cursor: pointer; }
+.response:hover:not(:disabled), .response:focus-visible { border-color: var(--color-primary); outline: 2px solid var(--color-primary); outline-offset: 2px; }
+.response:disabled { cursor: default; opacity: 1; }
+.response[data-awarded="true"] { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.response b { margin-top: auto; padding-top: .5rem; color: var(--color-primary); }
+.identity { display: grid; gap: .25rem; }
+.identity small { color: var(--color-muted); }
+.answer { line-height: 1.6; }
+.error { color: var(--color-danger); }

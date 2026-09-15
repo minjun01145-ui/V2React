@@ -1,26 +1,8 @@
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
-import { AI_TUTOR_GAME_ID, POKEMON_CATCH_GAME_ID, type AiTutorDirection, type AiTutorLearningItem, type AiTutorRoundContext, type AiTutorSetType } from "./types.js";
+import { resolveAiTutorRoundContext } from "./roundContext.js";
+import { AI_TUTOR_GAME_ID, POKEMON_CATCH_GAME_ID, type AiTutorDirection, type AiTutorRoundContext } from "./types.js";
 import { AiTutorValidationError } from "./validation.js";
-
-function direction(value: unknown): AiTutorDirection {
-  return value === "meaning-to-source" ? value : "source-to-meaning";
-}
-
-function setType(value: unknown): AiTutorSetType | null {
-  return value === "vocabulary" || value === "reading-chunks" || value === "student-questions" ? value : null;
-}
-
-function parseItem(value: unknown): AiTutorLearningItem | null {
-  if (!isRecord(value)) return null;
-  const id = typeof value.id === "string" ? value.id.trim() : "";
-  const sourceText = typeof value.sourceText === "string" ? value.sourceText.trim() : "";
-  const meaning = typeof value.meaning === "string" ? value.meaning.trim() : "";
-  const author = isRecord(value.author) && typeof value.author.studentNumber === "string" && typeof value.author.displayName === "string"
-    ? { studentNumber: value.author.studentNumber, displayName: value.author.displayName, nickname: typeof value.author.nickname === "string" ? value.author.nickname : null }
-    : null;
-  return id && sourceText && meaning ? { id, sourceText, meaning, ...(author ? { author } : {}) } : null;
-}
 
 export async function loadAiTutorRoundContext(input: {
   readonly uid: string;
@@ -43,8 +25,19 @@ export async function loadAiTutorRoundContext(input: {
     throw new AiTutorValidationError("현재 참여 중인 AI 문답 라운드를 확인해주세요.");
   }
   const config = isRecord(session.gameConfig) ? session.gameConfig : null;
+  const contextInput = {
+    itemId: input.itemId,
+    gameId: session.gameId,
+    configuredDirection: config?.direction,
+    requestedDirection: input.requestedDirection,
+  };
+  // 정답은 학생 요청이 아니라 교사가 설정한 현재 라운드에서만 읽는다.
+  if (config?.set != null) {
+    const set = isRecord(config.set) ? config.set : null;
+    return resolveAiTutorRoundContext({ ...contextInput, setType: set?.type, items: set?.items });
+  }
   const setId = config && typeof config.setId === "string" ? config.setId.trim() : "";
-  if (!setId) throw new AiTutorValidationError("AI 문답에는 저장된 학습 세트가 필요합니다.");
+  if (!setId) throw new AiTutorValidationError("AI 문답에는 학습 세트 또는 직접 출제 문항이 필요합니다.");
 
   const [metadataSnapshot, contentSnapshot] = await Promise.all([
     db.collection("learningSets").doc(setId).get(),
@@ -52,12 +45,9 @@ export async function loadAiTutorRoundContext(input: {
   ]);
   const metadata: unknown = metadataSnapshot.exists ? metadataSnapshot.data() : null;
   const content: unknown = contentSnapshot.exists ? contentSnapshot.data() : null;
-  const type = isRecord(metadata) ? setType(metadata.type) : null;
-  const items = isRecord(content) && Array.isArray(content.items) ? content.items : [];
-  const item = items.map(parseItem).find((candidate) => candidate?.id === input.itemId) ?? null;
-  if (!type || !item) throw new AiTutorValidationError("선택한 학습 세트의 문항을 찾을 수 없습니다.");
-  const resolvedDirection = type === "student-questions" ? "source-to-meaning" : session.gameId === POKEMON_CATCH_GAME_ID
-    ? input.requestedDirection ?? "source-to-meaning"
-    : direction(config?.direction);
-  return { setType: type, direction: resolvedDirection, item };
+  return resolveAiTutorRoundContext({
+    ...contextInput,
+    setType: isRecord(metadata) ? metadata.type : null,
+    items: isRecord(content) ? content.items : null,
+  });
 }

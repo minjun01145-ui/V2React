@@ -1,4 +1,7 @@
 .intro { margin: 0; color: var(--color-muted); }
+.promptField { display: grid; gap: .45rem; color: var(--color-muted); font-size: .82rem; font-weight: 700; }
+.promptField textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: .7rem; border: 1px solid var(--color-border); border-radius: .6rem; background: var(--color-surface); color: var(--color-text); font: inherit; }
+.promptField small { font-weight: 400; }
 .workspace { display: grid; grid-template-columns: minmax(13rem, .34fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
 .planList, .editor { display: grid; gap: .9rem; }
 .planList h2 { margin: 0; }

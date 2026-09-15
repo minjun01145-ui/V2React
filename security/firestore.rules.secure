@@ -388,6 +388,11 @@ service cloud.firestore {
       match /rounds/{roundId} {
         allow read, write: if isAdmin();
 
+        match /freeResponses/{uid} {
+          allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow write: if false;
+        }
+
         match /readiness/{uid} {
           allow read: if isAdmin();
           allow create, update: if isRoomStudent(roomId)
@@ -525,6 +530,7 @@ service cloud.firestore {
         match /progress/{uid} {
           allow read: if isAdmin() || (isRoomStudent(roomId) && request.auth.uid == uid);
           allow create: if isRoomStudent(roomId)
+            && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId != "free-response"
             && request.auth.uid == uid
             && activeRound(roomId, roundId)
             && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))
@@ -542,6 +548,8 @@ service cloud.firestore {
             && request.resource.data.combo is int
             && request.resource.data.combo >= 0;
           allow update: if isRoomStudent(roomId)
+            && resource.data.gameId != "free-response"
+            && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId != "free-response"
             && request.auth.uid == uid
             && activeRound(roomId, roundId)
             && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))

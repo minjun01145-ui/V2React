@@ -4,6 +4,7 @@ export type QuizGamePhase = "answering" | "submissions" | "leaderboard" | "compl
 
 export type QuizGameQuestionSource =
   | { readonly kind: "stored-set"; readonly setId: string | null }
+  | { readonly kind: "free-response"; readonly prompt: string }
   | {
       readonly kind: "custom";
       readonly setType: "vocabulary" | "reading-chunks";

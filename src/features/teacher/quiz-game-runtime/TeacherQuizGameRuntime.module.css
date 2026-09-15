@@ -18,3 +18,4 @@
 .questionPreview { display: grid; gap: .5rem; }
 .questionPreview > div { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: .7rem; padding: .7rem; border-radius: .65rem; background: var(--color-surface-muted); }
 .questionPreview b { color: var(--color-primary); }
+.freeResponsePrompt { white-space: pre-wrap; overflow-wrap: anywhere; }

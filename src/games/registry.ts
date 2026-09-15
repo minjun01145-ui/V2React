@@ -2,6 +2,14 @@ import { defineGame, type GameDefinition } from "../game-engine/contracts/gameDe
 
 const definitions = [
   defineGame({
+    id: "free-response",
+    title: "자유 답안 제출",
+    supportedSetTypes: [],
+    handlesOwnTimedBoundary: true,
+    loadStudent: () => import("./free-response/FreeResponseStudentGame.tsx"),
+    loadTeacher: () => import("./free-response/FreeResponseTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "ai-tutor",
     title: "AI 문답",
     supportedSetTypes: ["vocabulary", "reading-chunks", "student-questions"],
