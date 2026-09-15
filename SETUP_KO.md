@@ -38,7 +38,7 @@ npm run build
 5. 아래 절차로 Functions와 [security/firestore.rules.secure](./security/firestore.rules.secure)를 배포합니다. `firebase.json`이 이 Rules 파일을 사용합니다.
 6. 관리자 UI의 `학생 관리`에서 명단을 등록하거나 엑셀의 학번·이름 두 열을 붙여넣습니다. PIN 초기화도 이 화면에서 처리합니다.
 
-필요 시 App Check 웹 앱과 reCAPTCHA Enterprise 키를 설정합니다. 허용 도메인과 정상 요청 metrics를 확인한 뒤 enforcement를 적용합니다. 현재 callable은 App Check enforcement를 사용하지 않으므로 site key 설정만으로 Functions enforcement가 활성화되지는 않습니다. 일반 설정은 [Firebase App Check 공식 문서](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider)를 참고하세요.
+App Check는 필수 실행 조건이 아닌 추가 보호 계층입니다. site key가 없으면 초기화를 생략하며, 있으면 Firebase SDK의 표준 초기화와 자동 갱신을 사용합니다. 현재 모든 Callable은 `enforceAppCheck: false`인 선택적 적용 단계입니다. enforcement가 실제 요청을 막는 경우 해당 Firebase 서비스의 Console 설정을 확인하고 코드로 우회하지 않습니다. 도입 절차는 [Firebase App Check 공식 문서](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider)를 참고하세요.
 
 ## Functions
 
@@ -100,4 +100,5 @@ firebase deploy --only firestore:rules
 - 관리자 로그인 실패: Auth 계정 이메일·비밀번호와 `admins/{uid}` allow-list 상태를 확인합니다.
 - 권한 또는 App Check 오류: 배포된 Rules, 인증 신원, 허용 도메인과 App Check metrics를 확인합니다. route guard 변경으로 해결하려 하지 않습니다.
 - AI 키 저장·조회 실패: Secret 존재 여부와 Functions 실행 계정의 해당 Secret 권한을 확인합니다.
+- Functions 배포 중 `projects/v2react-jurye-classroom/databases/(default)` 조회가 403이면, 배포용 GitHub Secret `FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM`의 서비스 계정에 데이터베이스 메타데이터 조회 권한을 확인합니다. 이 요청에 필요한 최소 권한은 `datastore.databases.getMetadata`이며, 프로젝트 custom role에 이 권한만 추가해 배포 계정에 부여합니다. 문서 데이터 읽기나 Owner/Editor 권한은 필요하지 않습니다. [Firestore IAM 공식 문서](https://docs.cloud.google.com/firestore/native/docs/security/iam)를 참고하고 권한 조정 후 실패한 Functions job을 재실행합니다.
 - PowerShell에서 CLI 스크립트 실행이 막히면 `firebase.cmd`로 실행합니다.
