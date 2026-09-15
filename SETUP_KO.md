@@ -1,166 +1,103 @@
-# Jurye v2 기본 로그인/보안 설정
+# 환경 설정과 배포
 
-이 버전의 목표는 다음과 같습니다.
+이 문서는 로컬 실행과 운영에 필요한 절차만 다룹니다. 실제 설정은 [.env.example](./.env.example), [firebase.json](./firebase.json), [.firebaserc](./.firebaserc), 각 workflow와 package script를 기준으로 합니다. 보안 신뢰 경계는 [SECURITY.md](./SECURITY.md)를 참고하세요.
 
-- 학생 화면 `/`: **학번 + 이름**만 입력
-- 학생 정보 검증: 브라우저가 아니라 **Cloud Functions 서버**에서 `studentRoster`와 비교
-- 학생 권한: Firebase Anonymous Auth + 서버가 발급한 custom claims
-- 관리자 화면 `/teacher/`: **비밀번호만 입력**
-- 관리자 비밀번호: 소스코드/.env/Firestore에 저장하지 않고 **Firebase Authentication**이 검증
-- 관리자 권한: Auth 성공 후 `admins/{uid}` 허용 목록을 추가 확인
-- Firestore: 학생은 자기 데이터만, 관리자는 관리 데이터에 접근
+## Local
 
-## 1. `.env.local` 만들기
-
-`.env.example`을 복사하여 `.env.local`을 만듭니다.
+Node.js 22 이상을 사용합니다. 현재 루트 패키지의 최소 버전은 22.12.0입니다.
 
 ```bash
+npm ci
 cp .env.example .env.local
-```
-
-Firebase Console의 웹 앱 설정값을 채웁니다. `VITE_ADMIN_AUTH_EMAIL`에는 관리자 전용 Firebase Auth 계정 이메일을 넣습니다.
-
-**관리자 비밀번호는 절대 `.env.local`이나 `VITE_...` 변수에 넣지 않습니다.**
-
-Firebase Web API key와 Firebase config는 브라우저에서 보이는 공개 식별 정보입니다. 실제 권한 보호는 Authentication + Security Rules + 서버 함수가 담당합니다.
-
-## 2. Firebase Authentication 켜기
-
-Firebase Console → Authentication → Sign-in method에서:
-
-- Anonymous: 사용
-- Email/Password: 사용
-
-관리자용 Email/Password 계정을 Firebase Console에서 직접 하나 생성합니다. 사이트에서 관리자 회원가입 기능은 제공하지 않습니다.
-
-## 3. 관리자 허용 목록 만들기
-
-Firebase Authentication에서 만든 관리자 계정의 UID를 확인합니다.
-
-Firestore에 다음 문서를 1개 만듭니다.
-
-```text
-admins/{관리자_UID}
-```
-
-예:
-
-```json
-{
-  "active": true,
-  "label": "Teacher Admin"
-}
-```
-
-`admins` 문서는 클라이언트가 생성/수정할 수 없도록 Security Rules에서 막습니다.
-
-## 4. 학생 명단 넣기
-
-학생 로그인은 단순히 이름을 브라우저에서 비교하지 않습니다. 서버에서 비공개 명단을 확인합니다.
-
-학생 한 명당 다음 문서를 만듭니다.
-
-```text
-studentRoster/{학번}
-```
-
-예: `studentRoster/20315`
-
-```json
-{
-  "displayName": "홍길동",
-  "active": true
-}
-```
-
-학생이 `20315 / 홍길동`을 입력하면 Cloud Function이 이 문서를 서버에서 확인합니다. 전체 명단은 학생 브라우저로 내려가지 않습니다.
-
-> 학번+이름은 강한 비밀정보는 아닙니다. 다른 학생의 학번과 이름을 이미 아는 사람이 그 학생인 척하는 것까지 완전히 막으려면 나중에 학생별 PIN 또는 학교 Google 계정 로그인을 추가해야 합니다.
-
-## 5. Cloud Functions 배포
-
-```bash
-cd functions
-npm install
-npm run build
-cd ..
-firebase deploy --only functions
-```
-
-새 학생 인증 함수는 서울 리전(`asia-northeast3`)을 사용합니다.
-
-## 6. Firestore Security Rules 적용 — 필수
-
-새 앱 규칙은 다음 파일에 있습니다.
-
-```text
-security/firestore.rules.secure
-```
-
-기존 Jurye 프로젝트를 계속 사용한다면 이 파일을 무작정 전체 교체하지 말고, 현재 배포된 rules와 **병합**해야 합니다.
-
-특히 기존 rules에 다음과 같은 광범위 허용이 있으면 제거해야 합니다.
-
-```text
-allow read, write: if true;
-```
-
-Firestore에서는 더 구체적인 새 규칙을 추가해도 다른 겹치는 규칙이 허용하면 접근이 허용될 수 있습니다.
-
-새 앱에서 사용하는 보안 대상 컬렉션:
-
-- `admins`
-- `studentRoster`
-- `studentProfiles`
-- `multiplayerSessions`
-
-## 7. App Check는 기본 로그인 확인 후 권장
-
-`.env.local`에 reCAPTCHA Enterprise의 공개 site key를 넣을 수 있습니다.
-
-```env
-VITE_FIREBASE_APP_CHECK_SITE_KEY=...
-```
-
-처음부터 enforcement를 켜지 말고 정상 요청이 App Check metrics에 잡히는지 확인한 뒤 Authentication / Firestore / Functions 쪽 enforcement를 켜는 것을 권장합니다. 이후 `functions/src/index.ts`의 callable functions도 `enforceAppCheck: true`로 변경할 수 있습니다.
-
-## 8. 실행 및 검사
-
-웹 앱:
-
-```bash
-npm install
-npm run check
 npm run dev
 ```
 
-학생:
+`.env.local`은 다음 실제 변수 이름을 기준으로 채웁니다.
 
-```text
-http://localhost:5173/
+- Firebase Web config: `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`.
+- `VITE_ADMIN_AUTH_EMAIL`: 관리자 Firebase Auth 계정 이메일.
+- `VITE_FIREBASE_FUNCTIONS_REGION`: 현재 서버와 같은 `asia-northeast3`.
+- `VITE_DEFAULT_ROOM_ID`: 기본 수업 방. 기본값은 `.env.example`에 있습니다.
+- `VITE_FIREBASE_APP_CHECK_SITE_KEY`: App Check를 사용하는 경우 reCAPTCHA Enterprise 공개 site key.
+
+Firebase Web config, 관리자 이메일과 App Check site key는 공개 식별자이며 비밀이 아닙니다. 관리자 비밀번호, 서비스 계정 키와 API secret은 넣지 않습니다. 환경 변수를 변경하면 dev 서버를 다시 실행하고 배포용 앱은 다시 빌드합니다.
+
+학생은 `http://localhost:5173/`, 교사는 `http://localhost:5173/teacher/`에서 확인합니다.
+
+```bash
+npm run check
+npm run build
 ```
 
-관리자:
+## Firebase one-time setup
 
-```text
-http://localhost:5173/teacher/
+1. 전용 프로젝트 `v2react-jurye-classroom`의 웹 앱 설정을 사용하고 Firestore를 준비합니다.
+2. Firebase Authentication에서 Anonymous와 Email/Password를 활성화합니다.
+3. 관리자 Email/Password 사용자를 만들고 이메일을 `VITE_ADMIN_AUTH_EMAIL`에 설정합니다.
+4. 해당 Auth UID로 Firestore의 `admins/{uid}` 문서를 만들고 `active: true`로 설정합니다. 이 allow-list는 공개 앱에서 작성하지 않습니다.
+5. 아래 절차로 Functions와 [security/firestore.rules.secure](./security/firestore.rules.secure)를 배포합니다. `firebase.json`이 이 Rules 파일을 사용합니다.
+6. 관리자 UI의 `학생 관리`에서 명단을 등록하거나 엑셀의 학번·이름 두 열을 붙여넣습니다. PIN 초기화도 이 화면에서 처리합니다.
+
+필요 시 App Check 웹 앱과 reCAPTCHA Enterprise 키를 설정합니다. 허용 도메인과 정상 요청 metrics를 확인한 뒤 enforcement를 적용합니다. 현재 callable은 App Check enforcement를 사용하지 않으므로 site key 설정만으로 Functions enforcement가 활성화되지는 않습니다. 일반 설정은 [Firebase App Check 공식 문서](https://firebase.google.com/docs/app-check/web/recaptcha-enterprise-provider)를 참고하세요.
+
+## Functions
+
+[functions/package.json](./functions/package.json)의 검증 명령을 사용합니다.
+
+```bash
+npm ci --prefix functions
+npm test --prefix functions
 ```
 
-`npm run check`는 TypeScript, 아키텍처 경계, 보안 불변조건, 인증 입력 검증, 게임 엔진 테스트를 함께 실행합니다.
+`test`는 빌드도 실행합니다. 빌드만 필요하면 `npm run build --prefix functions`를 실행합니다.
 
-## 브라우저 소스에서 보여도 되는 것 / 안 되는 것
+## GitHub Actions
 
-보여도 되는 것:
+- [Hosting live workflow](./.github/workflows/firebase-hosting-live.yml): `main` push 또는 수동 실행 시 웹 검사·빌드 후 `dist`를 Hosting live에 배포합니다. Firebase Web config는 YAML에 공개 설정으로 들어 있습니다.
+- [Backend live workflow](./.github/workflows/firebase-backend-live.yml): `main`의 Functions, Rules, Firebase 설정 또는 해당 workflow 변경 시 실행하며 수동 실행도 가능합니다. Firestore Rules 배포와 Functions 테스트·빌드 후 `jurye-v2` 배포는 별도 job으로 병렬 실행됩니다. Rules 배포가 Functions 테스트 성공을 기다리는 구조는 아닙니다.
 
-- Firebase Web API key/config
-- Firebase project ID
-- 관리자 계정 이메일(현재 password-only UI의 내부 식별자)
-- reCAPTCHA Enterprise site key
+현재 workflow가 참조하는 GitHub Actions Secrets:
 
-절대 넣지 않는 것:
+| 이름 | 준비할 값 |
+| --- | --- |
+| `FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM` | 이 프로젝트 배포 권한이 있는 서비스 계정 JSON. 실제 비밀값이며 저장소에 커밋하지 않습니다. |
+| `VITE_ADMIN_AUTH_EMAIL` | 교사 로그인에 필요한 공개 계정 이메일. |
+| `VITE_FIREBASE_FUNCTIONS_REGION` | 리전 설정. 생략하면 클라이언트 기본값을 사용합니다. |
+| `VITE_DEFAULT_ROOM_ID` | 기본 방 설정. 생략하면 클라이언트 기본값을 사용합니다. |
+| `VITE_FIREBASE_APP_CHECK_SITE_KEY` | App Check 사용 시 공개 site key. |
 
-- 관리자 비밀번호
-- 서비스 계정 private key
-- Firebase Admin SDK credential
-- reCAPTCHA secret
-- 학생 전체 명단
+`GITHUB_TOKEN`은 GitHub가 자동 제공하므로 직접 준비하지 않습니다. GitHub Secrets에 보관하더라도 `VITE_` 값은 빌드 후 공개됩니다.
+
+[Hosting preview workflow](./.github/workflows/firebase-hosting-preview.yml)는 같은 저장소의 PR에서 검사·빌드 후 7일 preview를 배포합니다. live와 달리 위 Local 항목의 Firebase Web config 6개도 같은 이름의 GitHub Secrets에서 읽으므로 preview를 쓰려면 준비해야 합니다. preview도 설정된 Firebase 백엔드에 연결됩니다.
+
+## AI secret
+
+관리자 UI의 `AI API`에서 키를 등록·교체합니다. 서버는 Secret Manager의 `jurye-ollama-cloud-api-key`에 버전을 저장합니다. 이 Secret과 Secret Manager API를 준비하고 실제 Functions 실행 계정에 해당 Secret의 읽기·버전 추가 권한을 부여합니다. 권한 설정은 [Secret Manager 공식 문서](https://docs.cloud.google.com/secret-manager/docs/access-control)를 참고하세요.
+
+AI API key는 GitHub Secret이나 `VITE_` 변수에 중복 저장하지 않습니다. 저장된 키는 브라우저에 다시 표시하지 않습니다.
+
+## Manual deployment
+
+저장소 루트에서 Firebase CLI로 로그인하고 프로젝트를 선택합니다. CLI 설치·인증은 [Firebase 공식 문서](https://firebase.google.com/docs/cli)를 참고하세요.
+
+```bash
+firebase login
+firebase use v2react-jurye-classroom
+npm run build
+firebase deploy --only hosting
+npm ci --prefix functions
+npm run build --prefix functions
+firebase deploy --only "functions:jurye-v2"
+firebase deploy --only firestore:rules
+```
+
+필요한 대상만 배포합니다. `firebase.json`에 Functions predeploy 빌드가 없으므로 수동 Functions 배포 전 빌드를 실행합니다. 기존 배포 Rules와 다른 경우 덮어쓸 정책을 먼저 확인하고, 보호 대상에 겹치는 광범위 공개 허용이 없는지 검토합니다.
+
+## Troubleshooting
+
+- Firebase 설정 누락: `.env.local`의 Web config 6개와 실행 중인 앱의 프로젝트를 확인하고 dev 서버를 재시작합니다.
+- 학생 로그인 실패: 서버·클라이언트 리전, Functions 배포 상태, 관리자 UI의 명단·로그인 허용 상태를 확인합니다. PIN 문제는 관리자 UI에서 초기화합니다.
+- 관리자 로그인 실패: Auth 계정 이메일·비밀번호와 `admins/{uid}` allow-list 상태를 확인합니다.
+- 권한 또는 App Check 오류: 배포된 Rules, 인증 신원, 허용 도메인과 App Check metrics를 확인합니다. route guard 변경으로 해결하려 하지 않습니다.
+- AI 키 저장·조회 실패: Secret 존재 여부와 Functions 실행 계정의 해당 Secret 권한을 확인합니다.
+- PowerShell에서 CLI 스크립트 실행이 막히면 `firebase.cmd`로 실행합니다.
