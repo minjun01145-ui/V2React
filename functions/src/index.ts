@@ -7,3 +7,4 @@ export { finalizeStudentQuestionRun, getStudentQuestionAuthoringHelp, onStudentQ
 export { createMultiplayerTestSession, joinMultiplayerTestSession, stopMultiplayerTestSession } from "./multiplayer-test/callables.js";
 export { enableCooperativeHardMode, ensureCooperativeRound, expireCooperativeTurn, refreshCooperativeMatch, submitCooperativeSentence } from "./cooperative-sentence/callables.js";
 export { ensureBattleRound, expireBattlePhase, issueBattleQuestion, refreshBattleMatch, submitBattleAnswer } from "./battle/callables.js";
+export { consumeStudentItem, getStudentItemInventory, grantAcidRainItem } from "./items/callables.js";

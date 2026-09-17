@@ -13,6 +13,9 @@ import {
   shuffledQuestionIndex,
   type AcidRainItemKind,
 } from "./acidRainEngine.ts";
+import { sharedItemQuantity } from "../../items/inventory.ts";
+import { useStudentItemInventory } from "../../student-data/items/useStudentItemInventory.ts";
+import { acidRainPersistentItemId, type AcidRainPersistentItemId } from "./acidRainSharedItems.ts";
 
 export type TypingPracticeStatus = "playing" | "stage-clear" | "game-over" | "complete";
 
@@ -44,7 +47,10 @@ export type TypingPracticeEvent =
 
 type TypingPracticeEventInput<T = TypingPracticeEvent> = T extends unknown ? Omit<T, "id"> : never;
 
-export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: WaitingTypingConfig) {
+export function useTypingPracticeGame(
+  questionSet: TypingQuestionSet,
+  config: WaitingTypingConfig,
+) {
   const [stage, setStage] = useState(1);
   const [status, setStatus] = useState<TypingPracticeStatus>("playing");
   const [words, setWords] = useState<readonly FallingTypingWord[]>([]);
@@ -52,7 +58,7 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
   const [hits, setHits] = useState(0);
   const [lives, setLives] = useState(3);
   const [speed, setSpeed] = useState<TypingSpeedStats>({ currentCpm: 0, averageCpm: 0, bestCpm: 0, totalValidStrokes: 0 });
-  const [inventory, setInventory] = useState({ bomb: 0, ice: 0 });
+  const [localInventory, setLocalInventory] = useState({ bomb: 0, ice: 0 });
   const [clearedWords, setClearedWords] = useState<readonly ClearedTypingWord[]>([]);
   const [lastEvent, setLastEvent] = useState<TypingPracticeEvent | null>(null);
   const [iceActive, setIceActive] = useState(false);
@@ -66,6 +72,11 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
   const iceTimer = useRef<number | null>(null);
   const tracker = useRef(createTypingSpeedTracker());
   const rule = useMemo(() => getAcidRainStageRule(stage), [stage]);
+  const sharedItems = useStudentItemInventory();
+  const inventory = sharedItems.available ? {
+    bomb: sharedItemQuantity(sharedItems.inventory, "bomb"),
+    ice: sharedItemQuantity(sharedItems.inventory, "ice"),
+  } : localInventory;
 
   useEffect(() => { wordsRef.current = words; }, [words]);
 
@@ -101,9 +112,26 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
     });
   }, [rule.targetHits, stage]);
 
+  const grantPersistentItem = useCallback((itemId: AcidRainPersistentItemId): void => {
+    if (sharedItems.available) {
+      sharedItems.grantAcidRainItem(itemId);
+      return;
+    }
+    setLocalInventory((current) => ({ ...current, [itemId]: current[itemId] + 1 }));
+  }, [sharedItems.available, sharedItems.grantAcidRainItem]);
+
+  const consumePersistentItem = useCallback((itemId: AcidRainPersistentItemId): boolean => {
+    if (sharedItems.available) return sharedItems.consumeItem(itemId);
+    if (localInventory[itemId] <= 0) return false;
+    setLocalInventory((current) => ({ ...current, [itemId]: Math.max(0, current[itemId] - 1) }));
+    return true;
+  }, [localInventory, sharedItems.available, sharedItems.consumeItem]);
+
   const collectItem = useCallback((itemKind: AcidRainItemKind | null): void => {
+    const persistentItemId = acidRainPersistentItemId(itemKind);
+    if (persistentItemId) grantPersistentItem(persistentItemId);
+
     if (itemKind === ACID_RAIN_ITEM_KIND.BOMB) {
-      setInventory((current) => ({ ...current, bomb: current.bomb + 1 }));
       publishEvent({ kind: "bomb-collected" });
     } else if (itemKind === ACID_RAIN_ITEM_KIND.HEART) {
       const nextLives = livesRef.current + 1;
@@ -111,12 +139,11 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
       setLives(nextLives);
       publishEvent({ kind: "heart-collected" });
     } else if (itemKind === ACID_RAIN_ITEM_KIND.ICE) {
-      setInventory((current) => ({ ...current, ice: current.ice + 1 }));
       publishEvent({ kind: "ice-collected" });
     } else if (itemKind === ACID_RAIN_ITEM_KIND.CANDY) {
       publishEvent({ kind: "candy-collected" });
     }
-  }, [publishEvent]);
+  }, [grantPersistentItem, publishEvent]);
 
   const spawnWord = useCallback(() => {
     const current = wordsRef.current;
@@ -203,22 +230,20 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
     trackedWordId.current = null;
     if (status !== "playing") return;
     if (slot === 1) {
-      if (inventory.bomb <= 0 || words.length === 0) {
+      if (inventory.bomb <= 0 || words.length === 0 || !consumePersistentItem("bomb")) {
         publishEvent({ kind: "empty-slot", slot });
         return;
       }
-      setInventory((current) => ({ ...current, bomb: Math.max(0, current.bomb - 1) }));
       addClearEffects(words);
       setWords([]);
       registerHits(words.length);
       publishEvent({ kind: "bomb-used", clearedCount: words.length });
       return;
     }
-    if (inventory.ice <= 0) {
+    if (inventory.ice <= 0 || !consumePersistentItem("ice")) {
       publishEvent({ kind: "empty-slot", slot });
       return;
     }
-    setInventory((current) => ({ ...current, ice: Math.max(0, current.ice - 1) }));
     if (iceTimer.current !== null) window.clearTimeout(iceTimer.current);
     setIceActive(true);
     iceTimer.current = window.setTimeout(() => {
@@ -226,7 +251,7 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
       iceTimer.current = null;
     }, 10_000);
     publishEvent({ kind: "ice-used", slot });
-  }, [addClearEffects, inventory.bomb, inventory.ice, publishEvent, registerHits, status, words]);
+  }, [addClearEffects, consumePersistentItem, inventory.bomb, inventory.ice, publishEvent, registerHits, status, words]);
 
   const nextStage = useCallback(() => {
     if (status !== "stage-clear") return;
@@ -248,7 +273,7 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
     setClearedWords([]);
     setInput("");
     maxPrefix.current = 0;
-    setInventory({ bomb: 0, ice: 0 });
+    if (!sharedItems.available) setLocalInventory({ bomb: 0, ice: 0 });
     setLastEvent(null);
     lastItemSpawnedAt.current = Date.now();
     if (iceTimer.current !== null) window.clearTimeout(iceTimer.current);
@@ -257,7 +282,7 @@ export function useTypingPracticeGame(questionSet: TypingQuestionSet, config: Wa
     tracker.current.reset();
     setSpeed(tracker.current.getStats());
     setStatus("playing");
-  }, []);
+  }, [sharedItems.available]);
 
   return {
     stage, status, words, clearedWords, input, activeWordId: trackedWordId.current, hits, lives, speed, rule,

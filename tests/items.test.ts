@@ -10,6 +10,11 @@ import {
   usableSharedItemStacks,
   type SharedGameItemEffects,
 } from "../src/items/index.ts";
+import {
+  ACID_RAIN_SHARED_ITEM_EFFECTS,
+  acidRainPersistentItemId,
+} from "../src/games/typing/acidRainSharedItems.ts";
+import { ACID_RAIN_ITEM_KIND } from "../src/games/typing/acidRainEngine.ts";
 
 const parsed = parseSharedItemInventory({
   ink: 2,
@@ -73,5 +78,16 @@ assert.deepEqual(usableSharedItemStacks({ ink: 2, bomb: 3 }, battleEffects), [
 
 assert.equal(getSharedItemDefinition("ink").name, "먹물");
 assert.equal(getSharedItemDefinition("bomb").emoji, "💣");
+
+assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.BOMB), "bomb");
+assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.ICE), "ice");
+assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.HEART), null);
+assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.CANDY), null);
+assert.deepEqual(ACID_RAIN_SHARED_ITEM_EFFECTS.bomb, { kind: "clear-all" });
+assert.deepEqual(ACID_RAIN_SHARED_ITEM_EFFECTS.ice, {
+  kind: "slow-fall",
+  durationMs: 10_000,
+  playbackRate: 0.5,
+});
 
 console.log("shared item core tests passed");
