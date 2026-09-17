@@ -1,5 +1,15 @@
 export const ACID_RAIN_MAX_STAGE = 10;
 export const ACID_RAIN_LANE_COUNT = 5;
+export const ACID_RAIN_ITEM_INTERVAL_MS = 30_000;
+
+export const ACID_RAIN_ITEM_KIND = Object.freeze({
+  BOMB: "bomb",
+  HEART: "heart",
+  ICE: "ice",
+  CANDY: "candy",
+} as const);
+
+export type AcidRainItemKind = (typeof ACID_RAIN_ITEM_KIND)[keyof typeof ACID_RAIN_ITEM_KIND];
 
 export interface AcidRainStageRule {
   readonly stage: number;
@@ -27,6 +37,23 @@ export function getAcidRainStageRule(stage: number): AcidRainStageRule {
   const rule = ACID_RAIN_STAGE_RULES[safeStage - 1];
   if (!rule) throw new Error("산성비 스테이지 규칙을 찾을 수 없습니다.");
   return { stage: safeStage, ...rule };
+}
+
+export function getAcidRainFallDuration(targetText: string, baseDurationMs: number): number {
+  const wordCount = targetText.split(/\s+/u).filter((part) => /[\p{L}\p{N}]/u.test(part)).length;
+  return wordCount > 3 ? baseDurationMs * 2 : baseDurationMs;
+}
+
+export function shouldSpawnAcidRainItem(lastSpawnedAt: number, now: number): boolean {
+  return now - lastSpawnedAt >= ACID_RAIN_ITEM_INTERVAL_MS;
+}
+
+export function randomAcidRainItem(randomValue = Math.random()): AcidRainItemKind {
+  const safeRandom = Math.min(1 - Number.EPSILON, Math.max(0, randomValue));
+  if (safeRandom < 0.05) return ACID_RAIN_ITEM_KIND.CANDY;
+  const commonItems = [ACID_RAIN_ITEM_KIND.BOMB, ACID_RAIN_ITEM_KIND.HEART, ACID_RAIN_ITEM_KIND.ICE] as const;
+  const commonIndex = Math.floor(((safeRandom - 0.05) / 0.95) * commonItems.length);
+  return commonItems[commonIndex] ?? ACID_RAIN_ITEM_KIND.ICE;
 }
 
 export function shuffledQuestionIndex(length: number, randomValue = Math.random()): number {

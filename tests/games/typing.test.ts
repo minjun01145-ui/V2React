@@ -14,7 +14,15 @@ import {
 import { TYPING_TARGET } from "../../src/games/typing/types.ts";
 import { createTypingLeaderboard } from "../../src/games/typing/typingLeaderboard.ts";
 import { adaptLearningSetToTypingPractice } from "../../src/games/typing/typingPracticeAdapter.ts";
-import { ACID_RAIN_MAX_STAGE, availableAcidRainLane, getAcidRainStageRule } from "../../src/games/typing/acidRainEngine.ts";
+import {
+  ACID_RAIN_ITEM_KIND,
+  ACID_RAIN_MAX_STAGE,
+  availableAcidRainLane,
+  getAcidRainFallDuration,
+  getAcidRainStageRule,
+  randomAcidRainItem,
+  shouldSpawnAcidRainItem,
+} from "../../src/games/typing/acidRainEngine.ts";
 import { createWaitingTypingConfig, parseWaitingTypingConfig } from "../../src/games/typing/waitingTypingConfig.ts";
 import { typingDemoSet } from "../../src/games/typing/demoSet.ts";
 import type { RoundLiveMetricRecord } from "../../src/multiplayer/live-metrics/types.ts";
@@ -33,6 +41,10 @@ assert.equal(isTypingAnswerComplete("Hello", "hello", { ignoreCase: true }), tru
 assert.equal(isTypingAnswerComplete("Hello", "hello"), false);
 assert.equal(isTypingAnswerComplete("Hello, world!", "Hello world", { ignorePunctuation: true }), true);
 assert.equal(isTypingAnswerComplete("Hello, world!", "Helloworld", { ignorePunctuation: true }), false, "공백은 생략할 수 없어야 합니다.");
+assert.equal(isTypingAnswerComplete("★(dog)♥", "dog", { ignorePunctuation: true }), true, "별, 하트, 괄호 같은 특수문자는 입력하지 않아도 되어야 합니다.");
+const symbolPrefix = getTypingComparisonState("★(dog)♥", "do", { ignorePunctuation: true });
+assert.equal(symbolPrefix.matchedUnitCount, 2);
+assert.equal(symbolPrefix.hasError, false, "특수문자가 앞에 있어도 입력 중인 단어를 인식해야 합니다.");
 
 const normalPrefix = getNewValidProgress("typing", "typ", 0);
 assert.equal(normalPrefix.currentPrefixLength, 3);
@@ -103,6 +115,16 @@ assert.deepEqual(getAcidRainStageRule(5), {
   fallDurationMs: 20_000,
   maxVisibleWords: 3,
 }, "중간 단계도 급격히 빨라지지 않아야 합니다.");
+assert.equal(getAcidRainFallDuration("one two three", 20_000), 20_000, "세 단어 이하는 기존 낙하 속도를 유지해야 합니다.");
+assert.equal(getAcidRainFallDuration("This is a sentence.", 20_000), 40_000, "네 단어 이상인 문장은 두 배 긴 시간 동안 떨어져야 합니다.");
+assert.equal(getAcidRainFallDuration("★ one (two) three ♥", 20_000), 20_000, "특수문자만 있는 항목은 단어 수에 포함하지 않아야 합니다.");
+assert.equal(shouldSpawnAcidRainItem(1_000, 30_999), false);
+assert.equal(shouldSpawnAcidRainItem(1_000, 31_000), true, "아이템은 약 30초 간격으로 출현해야 합니다.");
+assert.equal(randomAcidRainItem(0), ACID_RAIN_ITEM_KIND.CANDY);
+assert.equal(randomAcidRainItem(0.049), ACID_RAIN_ITEM_KIND.CANDY, "캔디 확률은 5%여야 합니다.");
+assert.equal(randomAcidRainItem(0.05), ACID_RAIN_ITEM_KIND.BOMB);
+assert.equal(randomAcidRainItem(0.5), ACID_RAIN_ITEM_KIND.HEART);
+assert.equal(randomAcidRainItem(0.99), ACID_RAIN_ITEM_KIND.ICE);
 assert.ok(getAcidRainStageRule(10).fallDurationMs < getAcidRainStageRule(1).fallDurationMs, "후반 스테이지일수록 더 빠르게 떨어져야 합니다.");
 assert.ok(getAcidRainStageRule(10).spawnIntervalMs < getAcidRainStageRule(1).spawnIntervalMs, "후반 스테이지일수록 더 자주 출제되어야 합니다.");
 assert.ok(getAcidRainStageRule(10).targetHits > getAcidRainStageRule(1).targetHits, "후반 스테이지일수록 승급 목표가 높아져야 합니다.");
