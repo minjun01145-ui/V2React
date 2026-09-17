@@ -17,6 +17,17 @@ function AiTutorPlayArea({ roomId, session, player, set }: StudentGameModuleProp
     if (!game.busy && !answered && game.currentQuestion) answerRef.current?.focus();
   }, [answered, game.busy, game.currentQuestion?.id]);
 
+  useEffect(() => {
+    if (!answered || game.busy) return;
+    const onNextKeyDown = (event: globalThis.KeyboardEvent): void => {
+      if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
+      event.preventDefault();
+      void game.goNext();
+    };
+    document.addEventListener("keydown", onNextKeyDown);
+    return () => document.removeEventListener("keydown", onNextKeyDown);
+  }, [answered, game.busy, game.goNext]);
+
   if (game.loading) return <StatusPanel title="AI 문답 준비 중">진행 상황을 연결하고 있습니다.</StatusPanel>;
   if (game.error && !game.currentQuestion) return <StatusPanel title="AI 문답 연결 오류" tone="error">{game.error.message}</StatusPanel>;
   if (!game.currentQuestion) return <StatusPanel title="학습 완료">모든 문제를 마쳤습니다. 총 {game.progress.score}점을 얻었어요!</StatusPanel>;
@@ -55,8 +66,8 @@ function AiTutorPlayArea({ roomId, session, player, set }: StudentGameModuleProp
       <p>{game.reply.feedback}</p>
       {game.reply.focus ? <p><b>확인할 부분:</b> {game.reply.focus}</p> : null}
       {game.reply.hint ? <p><b>힌트:</b> {game.reply.hint}</p> : null}
-      {game.reply.isCorrect ? <Button onClick={() => void game.goNext()} disabled={game.busy}>다음 문제</Button> : null}
-    </section> : answered ? <section className={styles.feedback} data-kind="correct" role="status"><strong>정답으로 인정된 문제예요.</strong><p>다음 문제로 계속 진행하세요.</p><Button onClick={() => void game.goNext()} disabled={game.busy}>다음 문제</Button></section> : null}
+      {game.reply.isCorrect ? <Button onClick={() => void game.goNext()} disabled={game.busy}>다음 문제 (Enter)</Button> : null}
+    </section> : answered ? <section className={styles.feedback} data-kind="correct" role="status"><strong>정답으로 인정된 문제예요.</strong><p>다음 문제로 계속 진행하세요.</p><Button onClick={() => void game.goNext()} disabled={game.busy}>다음 문제 (Enter)</Button></section> : null}
     {game.error ? <p className={styles.error} role="alert">{game.error.message}</p> : null}
   </main>;
 }
