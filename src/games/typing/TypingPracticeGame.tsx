@@ -4,6 +4,9 @@ import { createGameAnnouncement } from "../../game-engine/effects/model.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
 import { getLearningSet } from "../../learning-sets/readRepository.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
+import { publishTypingLiveMetric } from "../../multiplayer/live-metrics/repository.ts";
+import type { TypingLiveMetricValues } from "../../multiplayer/live-metrics/types.ts";
+import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Button from "../../shared/ui/Button.tsx";
 import { adaptLearningSetToTypingPractice } from "./typingPracticeAdapter.ts";
@@ -17,6 +20,19 @@ import styles from "./TypingPractice.module.css";
 interface Props {
   readonly config: WaitingTypingConfig;
   readonly onExit: () => void;
+}
+
+export interface TypingPracticeLiveContext {
+  readonly roomId: string;
+  readonly session: ActiveGameSession;
+  readonly player: Player;
+}
+
+interface TypingPracticeBoardProps {
+  readonly set: RuntimeLearningSet;
+  readonly config: WaitingTypingConfig;
+  readonly onExit?: () => void;
+  readonly liveContext?: TypingPracticeLiveContext;
 }
 
 export default function TypingPracticeGame({ config, onExit }: Props) {
@@ -47,13 +63,56 @@ export default function TypingPracticeGame({ config, onExit }: Props) {
   return <TypingPracticeBoard set={set} config={config} onExit={onExit} />;
 }
 
-function TypingPracticeBoard({ set, config, onExit }: Props & { readonly set: RuntimeLearningSet }) {
+export function TypingPracticeBoard({ set, config, onExit, liveContext }: TypingPracticeBoardProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRefs = useRef(new Map<string, HTMLDivElement>());
   const questionSet = adaptLearningSetToTypingPractice(set);
   const game = useTypingPracticeGame(questionSet, config);
   const effects = useGameEffectEngine();
   const overlayOpen = game.status !== "playing";
+  const liveMetricValues = useRef<TypingLiveMetricValues>({ ...game.speed, currentStage: game.stage });
+
+  useEffect(() => {
+    liveMetricValues.current = { ...game.speed, currentStage: game.stage };
+  }, [game.speed, game.stage]);
+
+  useEffect(() => {
+    if (!liveContext) return undefined;
+    let active = true;
+    let publishing = false;
+    let pending: TypingLiveMetricValues | null = null;
+    const publish = (): void => {
+      pending = liveMetricValues.current;
+      if (publishing) return;
+      publishing = true;
+      const drain = async (): Promise<void> => {
+        while (active && pending) {
+          const values = pending;
+          pending = null;
+          try {
+            await publishTypingLiveMetric({
+              roomId: liveContext.roomId,
+              roundId: liveContext.session.roundId,
+              gameId: liveContext.session.gameId,
+              player: liveContext.player,
+              values,
+            });
+          } catch (error) {
+            console.error("산성비 진행 상황 동기화 실패", error);
+          }
+        }
+        publishing = false;
+      };
+      void drain();
+    };
+    publish();
+    const intervalId = window.setInterval(publish, 1_000);
+    return () => {
+      active = false;
+      pending = null;
+      window.clearInterval(intervalId);
+    };
+  }, [liveContext]);
 
   useEffect(() => { if (!overlayOpen) inputRef.current?.focus(); }, [game.stage, overlayOpen]);
   useEffect(() => {
@@ -91,8 +150,8 @@ function TypingPracticeBoard({ set, config, onExit }: Props & { readonly set: Ru
   return <main className={styles.game} onClick={() => inputRef.current?.focus()}>
     <GameEffectLayer effect={effects.activeEffect} />
     <header className={styles.header}>
-      <div><span className={styles.eyebrow}>WAITING TYPING</span><h1>{set.name}</h1></div>
-      <Button variant="ghost" onClick={(event) => { event.stopPropagation(); onExit(); }}>대기실로</Button>
+      <div><span className={styles.eyebrow}>{liveContext ? "LIVE ACID RAIN" : "WAITING TYPING"}</span><h1>{set.name}</h1></div>
+      {onExit ? <Button variant="ghost" onClick={(event) => { event.stopPropagation(); onExit(); }}>대기실로</Button> : null}
     </header>
 
     <section className={styles.dashboard} aria-label="게임 현황">
@@ -165,7 +224,7 @@ function TypingPracticeBoard({ set, config, onExit }: Props & { readonly set: Ru
         <span>{game.status === "stage-clear" ? "STAGE CLEAR" : game.status === "complete" ? "ALL CLEAR" : "TRY AGAIN"}</span>
         <h2>{game.status === "stage-clear" ? `스테이지 ${game.stage} 성공!` : game.status === "complete" ? "10단계를 모두 깼어요!" : "산성비가 바닥에 닿았어요"}</h2>
         <p>평균 {game.speed.averageCpm}타 · 최고 {game.speed.bestCpm}타</p>
-        <div>{game.status === "stage-clear" ? <Button onClick={(event) => { event.stopPropagation(); game.nextStage(); }}>바로 스테이지 {game.stage + 1}</Button> : <Button onClick={(event) => { event.stopPropagation(); game.restart(); }}>처음부터 다시</Button>}<Button variant="ghost" onClick={(event) => { event.stopPropagation(); onExit(); }}>대기실로</Button></div>
+        <div>{game.status === "stage-clear" ? <Button onClick={(event) => { event.stopPropagation(); game.nextStage(); }}>바로 스테이지 {game.stage + 1}</Button> : <Button onClick={(event) => { event.stopPropagation(); game.restart(); }}>1단계부터 다시</Button>}{onExit ? <Button variant="ghost" onClick={(event) => { event.stopPropagation(); onExit(); }}>대기실로</Button> : null}</div>
       </div>
     </div> : null}
   </main>;

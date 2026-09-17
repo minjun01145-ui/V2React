@@ -138,6 +138,14 @@ const definitions = [
     loadTeacher: () => import("./typing/TypingTeacherGame.tsx"),
   }),
   defineGame({
+    id: "acid-rain",
+    title: "산성비 타자게임",
+    supportedSetTypes: ["vocabulary", "reading-chunks"],
+    requiresStoredSet: true,
+    loadStudent: () => import("./typing/AcidRainStudentGame.tsx"),
+    loadTeacher: () => import("./typing/AcidRainTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "matching",
     title: "짝맞추기(일부카드)",
     supportedSetTypes: ["vocabulary"],

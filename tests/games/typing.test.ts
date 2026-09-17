@@ -13,6 +13,7 @@ import {
 } from "../../src/games/typing/typingEngine.ts";
 import { TYPING_TARGET } from "../../src/games/typing/types.ts";
 import { createTypingLeaderboard } from "../../src/games/typing/typingLeaderboard.ts";
+import { createAcidRainLeaderboard } from "../../src/games/typing/acidRainLeaderboard.ts";
 import { adaptLearningSetToTypingPractice } from "../../src/games/typing/typingPracticeAdapter.ts";
 import {
   ACID_RAIN_ITEM_KIND,
@@ -180,6 +181,7 @@ const typingMetric = (playerId: string, averageCpm: number, currentCpm: number, 
   averageCpm,
   bestCpm: Math.max(currentCpm, averageCpm),
   totalValidStrokes,
+  currentStage: 0,
   sampledAtMs: 1,
   committedAtMs: 1,
 });
@@ -196,5 +198,18 @@ const equalCpm = createTypingLeaderboard(typingParticipants.slice(0, 2), [
   typingMetric("b", 300, 290, 120),
 ]);
 assert.deepEqual(equalCpm.map((entry) => entry.playerId), ["b", "a"], "평균 타수가 같으면 누적 유효 타수로 순서를 안정화해야 합니다.");
+
+const acidRainLeaderboard = createAcidRainLeaderboard(typingParticipants, [
+  { ...typingMetric("a", 500, 480, 100), currentStage: 3 },
+  { ...typingMetric("b", 250, 240, 50), currentStage: 5 },
+]);
+assert.deepEqual(acidRainLeaderboard.map((entry) => entry.playerId), ["b", "a", "c"], "산성비 순위는 평균 타수보다 현재 스테이지가 우선해야 합니다.");
+assert.deepEqual(acidRainLeaderboard.map((entry) => entry.currentStage), [5, 3, 0]);
+
+const sameStage = createAcidRainLeaderboard(typingParticipants.slice(0, 2), [
+  { ...typingMetric("a", 300, 280, 100), currentStage: 4 },
+  { ...typingMetric("b", 500, 450, 150), currentStage: 4 },
+]);
+assert.deepEqual(sameStage.map((entry) => entry.rank), [1, 1], "같은 스테이지의 학생은 평균 타수와 관계없이 공동 순위여야 합니다.");
 
 console.log("typing game tests passed");

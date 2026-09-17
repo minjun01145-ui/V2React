@@ -597,11 +597,16 @@ service cloud.firestore {
             && request.resource.data.totalValidStrokes is int
             && request.resource.data.totalValidStrokes >= 0
             && request.resource.data.totalValidStrokes <= 1000000
+            && (!("currentStage" in request.resource.data) || (
+              request.resource.data.currentStage is int
+              && request.resource.data.currentStage >= 1
+              && request.resource.data.currentStage <= 10
+            ))
             && request.resource.data.sampledAtMs is int
             && request.resource.data.committedAt == request.time
             && request.resource.data.keys().hasOnly([
               "kind", "gameId", "playerId", "displayName", "currentCpm", "averageCpm",
-              "bestCpm", "totalValidStrokes", "sampledAtMs", "committedAt"
+              "bestCpm", "totalValidStrokes", "currentStage", "sampledAtMs", "committedAt"
             ]);
           allow delete: if isAdmin();
         }

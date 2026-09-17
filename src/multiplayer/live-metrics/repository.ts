@@ -57,6 +57,7 @@ function parseLiveMetric(id: string, data: DocumentData): RoundLiveMetricRecord 
     averageCpm: finiteNonNegativeInteger(record.averageCpm),
     bestCpm: finiteNonNegativeInteger(record.bestCpm),
     totalValidStrokes: finiteNonNegativeInteger(record.totalValidStrokes),
+    currentStage: finiteNonNegativeInteger(record.currentStage),
     sampledAtMs: finiteNonNegativeInteger(record.sampledAtMs),
     committedAtMs: timestampMilliseconds(record.committedAt),
   };
@@ -79,6 +80,7 @@ export async function publishTypingLiveMetric(input: {
     averageCpm: finiteNonNegativeInteger(values.averageCpm),
     bestCpm: finiteNonNegativeInteger(values.bestCpm),
     totalValidStrokes: finiteNonNegativeInteger(values.totalValidStrokes),
+    ...(values.currentStage === undefined ? {} : { currentStage: finiteNonNegativeInteger(values.currentStage) }),
     sampledAtMs: Date.now(),
     committedAt: serverTimestamp(),
   });

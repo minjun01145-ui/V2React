@@ -7,6 +7,7 @@ export interface TypingLiveMetricValues {
   readonly averageCpm: number;
   readonly bestCpm: number;
   readonly totalValidStrokes: number;
+  readonly currentStage?: number;
 }
 
 export interface RoundLiveMetricRecord extends TypingLiveMetricValues {
@@ -15,6 +16,7 @@ export interface RoundLiveMetricRecord extends TypingLiveMetricValues {
   readonly playerId: string;
   readonly displayName: string;
   readonly kind: (typeof LIVE_METRIC_KIND)[keyof typeof LIVE_METRIC_KIND];
+  readonly currentStage: number;
   readonly sampledAtMs: number;
   readonly committedAtMs: number;
 }
