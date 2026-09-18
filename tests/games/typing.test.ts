@@ -100,7 +100,11 @@ const meaningQuestions = adaptLearningSetToTyping(readingSet, TYPING_TARGET.MEAN
 assert.equal(meaningQuestions.questions[0]?.targetText, "나는 매일 학교에 간다.");
 assert.equal(meaningQuestions.questions[0]?.helperText, "I go to school every day.");
 const practiceQuestions = adaptLearningSetToTypingPractice(readingSet);
-assert.deepEqual(practiceQuestions.questions.map((question) => question.targetText), ["I go", "to school", "every day."], "대기실 끊어읽기 연습은 문장이 아니라 청크 단위로 떨어져야 합니다.");
+assert.deepEqual(
+  practiceQuestions.questions.map((question) => question.targetText),
+  ["I go to school every day."],
+  "대기실 타자와 산성비는 끊어읽기 세트도 전체 문장으로 출제해야 합니다.",
+);
 assert.equal(ACID_RAIN_MAX_STAGE, 10);
 assert.deepEqual(getAcidRainStageRule(1), {
   stage: 1,

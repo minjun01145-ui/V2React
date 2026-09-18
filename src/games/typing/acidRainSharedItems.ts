@@ -29,7 +29,10 @@ export function acidRainPersistentItemId(itemKind: AcidRainItemKind | null): Aci
 }
 
 export function acidRainItemEffect(itemId: AcidRainPersistentItemId): AcidRainSharedItemEffect {
-  const effect = sharedItemEffectForGame(ACID_RAIN_SHARED_ITEM_EFFECTS, itemId);
+  const effect = sharedItemEffectForGame<AcidRainSharedItemEffect>(
+    ACID_RAIN_SHARED_ITEM_EFFECTS,
+    itemId,
+  );
   if (!effect) throw new Error(`산성비 아이템 효과가 없습니다: ${itemId}`);
   return effect;
 }
