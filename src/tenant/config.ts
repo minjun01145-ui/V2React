@@ -1,4 +1,6 @@
 import { appConfig } from "../config/appConfig.ts";
+import hanaLogo from "../shared/ui/hana-logo.svg";
+import primaryLogo from "../shared/ui/logo.png";
 import { isTenantId, PRIMARY_TENANT_ID, SECONDARY_TENANT_ID, type TenantId } from "./scope.ts";
 
 export interface TenantConfig {
@@ -6,7 +8,7 @@ export interface TenantConfig {
   readonly brandName: string;
   readonly brandAlt: string;
   readonly adminAuthEmail: string | null;
-  readonly usePrimaryLogo: boolean;
+  readonly logoSrc: string;
 }
 
 const TENANTS: Readonly<Record<TenantId, TenantConfig>> = Object.freeze({
@@ -15,14 +17,14 @@ const TENANTS: Readonly<Record<TenantId, TenantConfig>> = Object.freeze({
     brandName: "민준쌤 게임기",
     brandAlt: "민준쌤 게임기 V2R",
     adminAuthEmail: appConfig.adminAuthEmail || null,
-    usePrimaryLogo: true,
+    logoSrc: primaryLogo,
   }),
   [SECONDARY_TENANT_ID]: Object.freeze({
     id: SECONDARY_TENANT_ID,
-    brandName: "Hana쌤 게임기",
-    brandAlt: "Hana쌤 게임기 V2R",
+    brandName: "하나쌤 게임기",
+    brandAlt: "하나쌤 게임기 V2R",
     adminAuthEmail: null,
-    usePrimaryLogo: false,
+    logoSrc: hanaLogo,
   }),
 });
 

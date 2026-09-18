@@ -1,0 +1,53 @@
+<svg width="920" height="460" viewBox="0 0 920 460" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">하나쌤 게임기 V2R</title>
+  <desc id="desc">분홍색, 노란색, 하늘색의 둥근 글씨와 게임패드 장식으로 만든 하나쌤 게임기 로고</desc>
+  <defs>
+    <linearGradient id="pink" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FF9DCE"/>
+      <stop offset="0.56" stop-color="#FF5FA7"/>
+      <stop offset="1" stop-color="#F43C8B"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FFF56A"/>
+      <stop offset="0.52" stop-color="#FFD42A"/>
+      <stop offset="1" stop-color="#FF9D16"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#77F7F3"/>
+      <stop offset="0.48" stop-color="#2DD9F8"/>
+      <stop offset="1" stop-color="#19A9F4"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="16" stdDeviation="8" flood-color="#071A4B" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <path d="M119 314C91 309 69 289 65 263C61 235 78 211 105 200L135 188L146 220L123 229C111 234 104 245 106 257C108 269 118 278 130 279L156 282L152 317L119 314Z" fill="#31DDF7" stroke="#071A4B" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M97 247H136M116.5 227.5V266.5" stroke="#071A4B" stroke-width="13" stroke-linecap="round"/>
+    <path d="M793 188L823 200C850 211 867 235 863 263C859 289 837 309 809 314L776 317L772 282L798 279C810 278 820 269 822 257C824 245 817 234 805 229L782 220L793 188Z" fill="#FF78B9" stroke="#071A4B" stroke-width="14" stroke-linejoin="round"/>
+    <circle cx="815" cy="236" r="11" fill="#25D44A" stroke="#071A4B" stroke-width="6"/>
+    <circle cx="839" cy="253" r="11" fill="#2B7CF8" stroke="#071A4B" stroke-width="6"/>
+    <circle cx="815" cy="270" r="11" fill="#FF3C95" stroke="#071A4B" stroke-width="6"/>
+    <circle cx="791" cy="253" r="11" fill="#FFD32D" stroke="#071A4B" stroke-width="6"/>
+
+    <g stroke="#071A4B" stroke-width="18" stroke-linejoin="round" paint-order="stroke fill">
+      <text x="118" y="211" font-family="Arial Rounded MT Bold, Pretendard, Apple SD Gothic Neo, Noto Sans KR, sans-serif" font-size="166" font-weight="900" letter-spacing="-10" fill="url(#pink)">하나</text>
+      <text x="492" y="211" font-family="Arial Rounded MT Bold, Pretendard, Apple SD Gothic Neo, Noto Sans KR, sans-serif" font-size="138" font-weight="900" letter-spacing="-10" fill="url(#gold)">쌤</text>
+      <text x="170" y="365" font-family="Arial Rounded MT Bold, Pretendard, Apple SD Gothic Neo, Noto Sans KR, sans-serif" font-size="168" font-weight="900" letter-spacing="-12" fill="url(#blue)">게임기</text>
+    </g>
+
+    <g fill="#FFF" opacity="0.72">
+      <ellipse cx="197" cy="105" rx="15" ry="27" transform="rotate(25 197 105)"/>
+      <ellipse cx="331" cy="105" rx="12" ry="23" transform="rotate(22 331 105)"/>
+      <ellipse cx="237" cy="276" rx="12" ry="25" transform="rotate(24 237 276)"/>
+      <ellipse cx="384" cy="273" rx="11" ry="23" transform="rotate(22 384 273)"/>
+    </g>
+
+    <path d="M712 89L722 111L746 114L728 131L733 155L712 143L690 155L695 131L677 114L702 111L712 89Z" fill="#FFD329" stroke="#071A4B" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M163 72L170 87L187 89L174 101L178 118L163 109L148 118L152 101L139 89L156 87L163 72Z" fill="#FFD329" stroke="#071A4B" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M741 332L748 347L765 349L752 361L756 378L741 369L726 378L730 361L717 349L734 347L741 332Z" fill="#FFD329" stroke="#071A4B" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M618 342C618 325 632 311 649 311H707C724 311 738 325 738 342V368C738 385 724 399 707 399H649C632 399 618 385 618 368V342Z" fill="#FFF" stroke="#071A4B" stroke-width="9"/>
+    <text x="636" y="374" font-family="Arial Black, Arial, sans-serif" font-size="43" font-weight="900" fill="#071A4B">V2R</text>
+  </g>
+</svg>
