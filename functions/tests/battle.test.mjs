@@ -30,6 +30,12 @@ assert.deepEqual(parseBattleGameConfig({
   "battle-answer-seconds": "10",
 }), { direction: "translation-only", answerDurationMs: 10_000 });
 assert.deepEqual(parseBattleGameConfig({
+  "battle-answer-seconds": "20",
+}), { direction: "free", answerDurationMs: 20_000 });
+assert.deepEqual(parseBattleGameConfig({
+  "battle-answer-seconds": "30",
+}), { direction: "free", answerDurationMs: 30_000 });
+assert.deepEqual(parseBattleGameConfig({
   "battle-direction": "composition-only",
   "battle-answer-seconds": "40",
 }), { direction: "composition-only", answerDurationMs: 40_000 });

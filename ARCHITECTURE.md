@@ -15,6 +15,12 @@ shared domain modules / games
   ↓
 multiplayer / repositories / Firebase boundaries
 
+live-world core
+  ↓
+live-world transport contract
+  ↓
+Realtime Database or another realtime transport adapter
+
 functions
   ↓
 server-only auth, secrets and privileged operations
@@ -32,5 +38,6 @@ server-only auth, secrets and privileged operations
 8. 인증, PIN, 비밀값, 관리자 권한과 privileged operation은 서버/보안 규칙 경계를 유지합니다. 구체적인 신뢰 경계는 [SECURITY.md](./SECURITY.md)를 따릅니다.
 9. 순환 의존성과 명백한 역할 역참조는 허용하지 않습니다.
 10. 구현 세부사항은 코드와 테스트가 source of truth입니다.
+11. `live-world` 코어는 캐릭터 에셋, 맵, 렌더러, React, Firebase를 알지 않습니다. 구체 게임은 이동 상태를 계산하고, transport adapter가 실시간 전송만 담당합니다.
 
 기존 의존 경계 검사는 `npm run check:architecture`로 실행합니다. 파일별 책임, 저장 스키마와 게임 규칙은 해당 코드와 테스트에서 확인합니다.

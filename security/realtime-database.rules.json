@@ -1,0 +1,30 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "liveWorld": {
+      "v1": {
+        "$roomId": {
+          "$roundId": {
+            "$channelId": {
+              "players": {
+                ".read": "auth != null",
+                "$playerId": {
+                  ".write": "auth != null && auth.uid === $playerId",
+                  ".validate": "newData.hasChildren(['x', 'y', 'vx', 'vy', 'q', 't'])",
+                  "x": { ".validate": "newData.isNumber() && newData.val() >= -10000000 && newData.val() <= 10000000" },
+                  "y": { ".validate": "newData.isNumber() && newData.val() >= -10000000 && newData.val() <= 10000000" },
+                  "vx": { ".validate": "newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 1000000" },
+                  "vy": { ".validate": "newData.isNumber() && newData.val() >= -1000000 && newData.val() <= 1000000" },
+                  "q": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9007199254740991" },
+                  "t": { ".validate": "newData.isNumber() && newData.val() > 0" },
+                  "$other": { ".validate": false }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

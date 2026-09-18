@@ -191,14 +191,6 @@ export default function OneOnOneBattleStudentGame({
 
         if (state.phase === "choosing" && state.role === "attacker") {
           turnKey.current = key;
-          const timer = window.setTimeout(() => {
-            effects.play(createGameAnnouncement({
-              headline: "나의 공격 차례입니다!",
-              metric: "10초 안에 문제 선택",
-              tone: "warning",
-            }));
-          }, 1_550);
-          return () => window.clearTimeout(timer);
         }
 
         return;
