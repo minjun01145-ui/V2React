@@ -1,9 +1,6 @@
 export const SHARED_ITEM_IDS = ["ink", "bomb", "ice"] as const;
 export type SharedItemId = (typeof SHARED_ITEM_IDS)[number];
 
-export const ACID_RAIN_REWARD_ITEM_IDS = ["bomb", "ice"] as const;
-export type AcidRainRewardItemId = (typeof ACID_RAIN_REWARD_ITEM_IDS)[number];
-
 export type StoredSharedItemInventory = Readonly<Record<SharedItemId, number>>;
 
 export const EMPTY_STORED_SHARED_ITEM_INVENTORY: StoredSharedItemInventory = Object.freeze({
@@ -22,10 +19,6 @@ function quantity(value: unknown): number {
 
 export function isSharedItemId(value: unknown): value is SharedItemId {
   return typeof value === "string" && (SHARED_ITEM_IDS as readonly string[]).includes(value);
-}
-
-export function isAcidRainRewardItemId(value: unknown): value is AcidRainRewardItemId {
-  return typeof value === "string" && (ACID_RAIN_REWARD_ITEM_IDS as readonly string[]).includes(value);
 }
 
 export function parseStoredSharedItemInventory(value: unknown): StoredSharedItemInventory {

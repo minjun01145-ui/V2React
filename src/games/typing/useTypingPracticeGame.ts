@@ -13,9 +13,12 @@ import {
   shuffledQuestionIndex,
   type AcidRainItemKind,
 } from "./acidRainEngine.ts";
-import { sharedItemQuantity } from "../../items/inventory.ts";
-import { useStudentItemInventory } from "../../student-data/items/useStudentItemInventory.ts";
-import { acidRainPersistentItemId, type AcidRainPersistentItemId } from "./acidRainSharedItems.ts";
+import {
+  acidRainItemEffect,
+  acidRainPersistentItemId,
+  type AcidRainItemStore,
+  type AcidRainPersistentItemId,
+} from "./acidRainSharedItems.ts";
 
 export type TypingPracticeStatus = "playing" | "stage-clear" | "game-over" | "complete";
 
@@ -50,6 +53,7 @@ type TypingPracticeEventInput<T = TypingPracticeEvent> = T extends unknown ? Omi
 export function useTypingPracticeGame(
   questionSet: TypingQuestionSet,
   config: WaitingTypingConfig,
+  itemStore?: AcidRainItemStore,
 ) {
   const [stage, setStage] = useState(1);
   const [status, setStatus] = useState<TypingPracticeStatus>("playing");
@@ -62,6 +66,7 @@ export function useTypingPracticeGame(
   const [clearedWords, setClearedWords] = useState<readonly ClearedTypingWord[]>([]);
   const [lastEvent, setLastEvent] = useState<TypingPracticeEvent | null>(null);
   const [iceActive, setIceActive] = useState(false);
+  const [itemUsePending, setItemUsePending] = useState(false);
   const wordsRef = useRef<readonly FallingTypingWord[]>([]);
   const sequence = useRef(0);
   const eventSequence = useRef(0);
@@ -72,11 +77,7 @@ export function useTypingPracticeGame(
   const iceTimer = useRef<number | null>(null);
   const tracker = useRef(createTypingSpeedTracker());
   const rule = useMemo(() => getAcidRainStageRule(stage), [stage]);
-  const sharedItems = useStudentItemInventory();
-  const inventory = sharedItems.available ? {
-    bomb: sharedItemQuantity(sharedItems.inventory, "bomb"),
-    ice: sharedItemQuantity(sharedItems.inventory, "ice"),
-  } : localInventory;
+  const inventory = itemStore?.inventory ?? localInventory;
 
   useEffect(() => { wordsRef.current = words; }, [words]);
 
@@ -113,19 +114,19 @@ export function useTypingPracticeGame(
   }, [rule.targetHits, stage]);
 
   const grantPersistentItem = useCallback((itemId: AcidRainPersistentItemId): void => {
-    if (sharedItems.available) {
-      sharedItems.grantAcidRainItem(itemId);
+    if (itemStore) {
+      void itemStore.grant(itemId);
       return;
     }
     setLocalInventory((current) => ({ ...current, [itemId]: current[itemId] + 1 }));
-  }, [sharedItems.available, sharedItems.grantAcidRainItem]);
+  }, [itemStore]);
 
-  const consumePersistentItem = useCallback((itemId: AcidRainPersistentItemId): boolean => {
-    if (sharedItems.available) return sharedItems.consumeItem(itemId);
+  const consumePersistentItem = useCallback(async (itemId: AcidRainPersistentItemId): Promise<boolean> => {
+    if (itemStore) return itemStore.consume(itemId);
     if (localInventory[itemId] <= 0) return false;
     setLocalInventory((current) => ({ ...current, [itemId]: Math.max(0, current[itemId] - 1) }));
     return true;
-  }, [localInventory, sharedItems.available, sharedItems.consumeItem]);
+  }, [itemStore, localInventory]);
 
   const collectItem = useCallback((itemKind: AcidRainItemKind | null): void => {
     const persistentItemId = acidRainPersistentItemId(itemKind);
@@ -224,34 +225,54 @@ export function useTypingPracticeGame(
     registerHits(1);
   }, [addClearEffects, collectItem, config.ignoreCase, config.ignorePunctuation, registerHits, status, words]);
 
-  const useItem = useCallback((slot: 1 | 2): void => {
+  const useItem = useCallback(async (slot: 1 | 2): Promise<void> => {
     setInput("");
     maxPrefix.current = 0;
     trackedWordId.current = null;
-    if (status !== "playing") return;
-    if (slot === 1) {
-      if (inventory.bomb <= 0 || words.length === 0 || !consumePersistentItem("bomb")) {
-        publishEvent({ kind: "empty-slot", slot });
-        return;
-      }
-      addClearEffects(words);
-      setWords([]);
-      registerHits(words.length);
-      publishEvent({ kind: "bomb-used", clearedCount: words.length });
-      return;
-    }
-    if (inventory.ice <= 0 || !consumePersistentItem("ice")) {
+    if (status !== "playing" || itemUsePending) return;
+
+    const itemId: AcidRainPersistentItemId = slot === 1 ? "bomb" : "ice";
+    if (inventory[itemId] <= 0 || (itemId === "bomb" && words.length === 0)) {
       publishEvent({ kind: "empty-slot", slot });
       return;
     }
-    if (iceTimer.current !== null) window.clearTimeout(iceTimer.current);
-    setIceActive(true);
-    iceTimer.current = window.setTimeout(() => {
-      setIceActive(false);
-      iceTimer.current = null;
-    }, 10_000);
-    publishEvent({ kind: "ice-used", slot });
-  }, [addClearEffects, consumePersistentItem, inventory.bomb, inventory.ice, publishEvent, registerHits, status, words]);
+
+    setItemUsePending(true);
+    try {
+      if (!await consumePersistentItem(itemId)) {
+        publishEvent({ kind: "empty-slot", slot });
+        return;
+      }
+
+      const effect = acidRainItemEffect(itemId);
+      if (effect.kind === "clear-all") {
+        addClearEffects(words);
+        setWords([]);
+        registerHits(words.length);
+        publishEvent({ kind: "bomb-used", clearedCount: words.length });
+        return;
+      }
+
+      if (iceTimer.current !== null) window.clearTimeout(iceTimer.current);
+      setIceActive(true);
+      iceTimer.current = window.setTimeout(() => {
+        setIceActive(false);
+        iceTimer.current = null;
+      }, effect.durationMs);
+      publishEvent({ kind: "ice-used", slot: 2 });
+    } finally {
+      setItemUsePending(false);
+    }
+  }, [
+    addClearEffects,
+    consumePersistentItem,
+    inventory,
+    itemUsePending,
+    publishEvent,
+    registerHits,
+    status,
+    words,
+  ]);
 
   const nextStage = useCallback(() => {
     if (status !== "stage-clear") return;
@@ -273,19 +294,20 @@ export function useTypingPracticeGame(
     setClearedWords([]);
     setInput("");
     maxPrefix.current = 0;
-    if (!sharedItems.available) setLocalInventory({ bomb: 0, ice: 0 });
+    if (!itemStore) setLocalInventory({ bomb: 0, ice: 0 });
     setLastEvent(null);
     lastItemSpawnedAt.current = Date.now();
     if (iceTimer.current !== null) window.clearTimeout(iceTimer.current);
     iceTimer.current = null;
     setIceActive(false);
+    setItemUsePending(false);
     tracker.current.reset();
     setSpeed(tracker.current.getStats());
     setStatus("playing");
-  }, [sharedItems.available]);
+  }, [itemStore]);
 
   return {
     stage, status, words, clearedWords, input, activeWordId: trackedWordId.current, hits, lives, speed, rule,
-    inventory, iceActive, lastEvent, updateInput, useItem, missWord, removeClearEffect, nextStage, restart,
+    inventory, iceActive, itemUsePending, lastEvent, updateInput, useItem, missWord, removeClearEffect, nextStage, restart,
   };
 }

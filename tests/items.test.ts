@@ -12,6 +12,7 @@ import {
 } from "../src/items/index.ts";
 import {
   ACID_RAIN_SHARED_ITEM_EFFECTS,
+  acidRainItemEffect,
   acidRainPersistentItemId,
 } from "../src/games/typing/acidRainSharedItems.ts";
 import { ACID_RAIN_ITEM_KIND } from "../src/games/typing/acidRainEngine.ts";
@@ -83,11 +84,12 @@ assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.BOMB), "bomb");
 assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.ICE), "ice");
 assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.HEART), null);
 assert.equal(acidRainPersistentItemId(ACID_RAIN_ITEM_KIND.CANDY), null);
-assert.deepEqual(ACID_RAIN_SHARED_ITEM_EFFECTS.bomb, { kind: "clear-all" });
-assert.deepEqual(ACID_RAIN_SHARED_ITEM_EFFECTS.ice, {
+assert.deepEqual(acidRainItemEffect("bomb"), { kind: "clear-all" });
+assert.deepEqual(acidRainItemEffect("ice"), {
   kind: "slow-fall",
   durationMs: 10_000,
   playbackRate: 0.5,
 });
+assert.deepEqual(ACID_RAIN_SHARED_ITEM_EFFECTS.ice, acidRainItemEffect("ice"));
 
 console.log("shared item core tests passed");

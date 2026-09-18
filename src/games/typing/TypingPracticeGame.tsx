@@ -1,16 +1,23 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createGameAnnouncement } from "../../game-engine/effects/model.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
+import { sharedItemQuantity } from "../../items/inventory.ts";
 import { getLearningSet } from "../../learning-sets/readRepository.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import { publishTypingLiveMetric } from "../../multiplayer/live-metrics/repository.ts";
 import type { TypingLiveMetricValues } from "../../multiplayer/live-metrics/types.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
+import { grantAcidRainReward } from "../../student-data/items/acidRainRewards.ts";
+import { useStudentItemInventory } from "../../student-data/items/useStudentItemInventory.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Button from "../../shared/ui/Button.tsx";
 import { adaptLearningSetToTypingPractice } from "./typingPracticeAdapter.ts";
 import { ACID_RAIN_ITEM_KIND, type AcidRainItemKind } from "./acidRainEngine.ts";
+import {
+  ACID_RAIN_SHARED_ITEM_EFFECTS,
+  type AcidRainItemStore,
+} from "./acidRainSharedItems.ts";
 import { typingDemoSet } from "./demoSet.ts";
 import { getTypingComparisonState } from "./typingEngine.ts";
 import { useTypingPracticeGame } from "./useTypingPracticeGame.ts";
@@ -67,14 +74,53 @@ export function TypingPracticeBoard({ set, config, onExit, liveContext }: Typing
   const inputRef = useRef<HTMLInputElement>(null);
   const dropRefs = useRef(new Map<string, HTMLDivElement>());
   const questionSet = adaptLearningSetToTypingPractice(set);
-  const game = useTypingPracticeGame(questionSet, config);
+  const persistentItems = useStudentItemInventory();
+
+  const itemStore = useMemo<AcidRainItemStore | undefined>(() => {
+    if (!persistentItems.available) return undefined;
+    return {
+      inventory: {
+        bomb: sharedItemQuantity(persistentItems.inventory, "bomb"),
+        ice: sharedItemQuantity(persistentItems.inventory, "ice"),
+      },
+      grant: async (itemId) => {
+        try {
+          await persistentItems.runMutation(() => grantAcidRainReward(itemId));
+          return true;
+        } catch (error) {
+          console.error("산성비 아이템 획득 저장 실패", error);
+          return false;
+        }
+      },
+      consume: async (itemId) => {
+        try {
+          return await persistentItems.consumeItem(itemId);
+        } catch (error) {
+          console.error("산성비 아이템 사용 저장 실패", error);
+          return false;
+        }
+      },
+    };
+  }, [
+    persistentItems.available,
+    persistentItems.consumeItem,
+    persistentItems.inventory,
+    persistentItems.runMutation,
+  ]);
+
+  const game = useTypingPracticeGame(questionSet, config, itemStore);
   const effects = useGameEffectEngine();
   const overlayOpen = game.status !== "playing";
   const liveMetricValues = useRef<TypingLiveMetricValues>({ ...game.speed, currentStage: game.stage });
+  const iceEffect = ACID_RAIN_SHARED_ITEM_EFFECTS.ice;
 
   useEffect(() => {
     liveMetricValues.current = { ...game.speed, currentStage: game.stage };
   }, [game.speed, game.stage]);
+
+  useEffect(() => {
+    if (persistentItems.error) console.error("학생 공용 아이템 인벤토리 동기화 실패", persistentItems.error);
+  }, [persistentItems.error]);
 
   useEffect(() => {
     if (!liveContext) return undefined;
@@ -122,29 +168,32 @@ export function TypingPracticeBoard({ set, config, onExit, liveContext }: Typing
   }, [game.nextStage, game.status]);
 
   useEffect(() => {
+    const playbackRate = game.itemUsePending ? 0 : game.iceActive ? iceEffect.playbackRate : 1;
     for (const element of dropRefs.current.values()) {
-      for (const animation of element.getAnimations()) animation.updatePlaybackRate(game.iceActive ? 0.5 : 1);
+      for (const animation of element.getAnimations()) {
+        animation.updatePlaybackRate(playbackRate);
+      }
     }
-  }, [game.iceActive, game.words]);
+  }, [game.iceActive, game.itemUsePending, game.words, iceEffect.playbackRate]);
 
   useEffect(() => {
     const event = game.lastEvent;
     if (!event) return;
     if (event.kind === "bomb-collected") effects.play(createGameAnnouncement({ headline: "폭탄 아이템 획득!", metric: "1번 슬롯", detail: "화면의 모든 카드를 없앨 수 있어요." }));
     else if (event.kind === "heart-collected") effects.play(createGameAnnouncement({ headline: "목숨 +1!", metric: "❤️", detail: "남은 기회가 하나 늘었습니다." }));
-    else if (event.kind === "ice-collected") effects.play(createGameAnnouncement({ headline: "얼음 아이템 획득!", metric: "2번 슬롯", detail: "10초 동안 낙하속도를 절반으로 줄여요." }));
+    else if (event.kind === "ice-collected") effects.play(createGameAnnouncement({ headline: "얼음 아이템 획득!", metric: "2번 슬롯", detail: `${iceEffect.durationMs / 1000}초 동안 낙하속도를 절반으로 줄여요.` }));
     else if (event.kind === "candy-collected") effects.play(createGameAnnouncement({ headline: "캔디 발견!", metric: "🍬", detail: "선생님께 얘기해서 사탕 하나 받으세요!" }));
     else if (event.kind === "bomb-used") effects.play(createGameAnnouncement({ headline: "폭탄 발동!", metric: `${event.clearedCount}개 카드 정리`, tone: "warning" }));
-    else if (event.kind === "ice-used") effects.play(createGameAnnouncement({ headline: "얼음 발동!", metric: "10초 감속", detail: "낙하속도가 절반으로 줄었습니다." }));
+    else if (event.kind === "ice-used") effects.play(createGameAnnouncement({ headline: "얼음 발동!", metric: `${iceEffect.durationMs / 1000}초 감속`, detail: "낙하속도가 절반으로 줄었습니다." }));
     else effects.play(createGameAnnouncement({ headline: `${event.slot}번 슬롯이 비어 있어요`, metric: "아이템을 먼저 획득하세요" }));
-  }, [effects.play, game.lastEvent]);
+  }, [effects.play, game.lastEvent, iceEffect.durationMs]);
 
   const onInputKeyDown = (event: KeyboardEvent<HTMLInputElement>): void => {
     if (event.key !== "Enter") return;
     const slot = game.input.trim() === "1" ? 1 : game.input.trim() === "2" ? 2 : null;
     if (!slot) return;
     event.preventDefault();
-    game.useItem(slot);
+    void game.useItem(slot);
   };
 
   return <main className={styles.game} onClick={() => inputRef.current?.focus()}>
@@ -206,15 +255,15 @@ export function TypingPracticeBoard({ set, config, onExit, liveContext }: Typing
         value={game.input}
         onChange={(event) => game.updateInput(event.target.value)}
         onKeyDown={onInputKeyDown}
-        disabled={overlayOpen}
+        disabled={overlayOpen || game.itemUsePending}
         placeholder="여기에 타자 입력"
       />
       <small>대소문자와 특수문자는 생략 가능 · 1 또는 2를 입력하고 Enter를 누르면 아이템 사용</small>
     </label>
 
     <section className={styles.itemSlots} aria-label="아이템 슬롯">
-      <button type="button" disabled={game.inventory.bomb === 0 || overlayOpen} onClick={(event) => { event.stopPropagation(); game.useItem(1); }}><kbd>1</kbd><span>💣 폭탄</span><b>{game.inventory.bomb}</b></button>
-      <button type="button" disabled={game.inventory.ice === 0 || overlayOpen} onClick={(event) => { event.stopPropagation(); game.useItem(2); }}><kbd>2</kbd><span>❄️ 얼음</span><b>{game.inventory.ice}</b></button>
+      <button type="button" disabled={game.inventory.bomb === 0 || overlayOpen || game.itemUsePending} onClick={(event) => { event.stopPropagation(); void game.useItem(1); }}><kbd>1</kbd><span>💣 폭탄</span><b>{game.inventory.bomb}</b></button>
+      <button type="button" disabled={game.inventory.ice === 0 || overlayOpen || game.itemUsePending} onClick={(event) => { event.stopPropagation(); void game.useItem(2); }}><kbd>2</kbd><span>❄️ 얼음</span><b>{game.inventory.ice}</b></button>
       <button type="button" disabled><kbd>3</kbd><span>준비 중</span></button>
       <button type="button" disabled><kbd>4</kbd><span>준비 중</span></button>
     </section>

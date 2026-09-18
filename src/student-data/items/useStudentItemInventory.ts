@@ -1,75 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { auth } from "../../firebase/firebaseClient.ts";
 import {
-  consumeSharedItem,
   EMPTY_SHARED_ITEM_INVENTORY,
-  grantSharedItem,
   type SharedItemInventory,
 } from "../../items/inventory.ts";
 import type { SharedItemId } from "../../items/catalog.ts";
 import {
+  consumeStudentItem,
   getStudentItemInventory,
-  persistAcidRainItemGrant,
-  persistStudentItemConsumption,
-  type AcidRainPersistentItemId,
+  type ItemInventoryMutationResult,
 } from "./repository.ts";
-
-function newOperationId(prefix: string): string {
-  const randomId = globalThis.crypto?.randomUUID?.()
-    ?? `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
-  return `${prefix}:${randomId}`;
-}
 
 export function useStudentItemInventory() {
   const [inventory, setInventory] = useState<SharedItemInventory>(EMPTY_SHARED_ITEM_INVENTORY);
   const [available, setAvailable] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const inventoryRef = useRef<SharedItemInventory>(EMPTY_SHARED_ITEM_INVENTORY);
-  const mutationVersion = useRef(0);
   const queue = useRef<Promise<void>>(Promise.resolve());
 
   const applyInventory = useCallback((next: SharedItemInventory): void => {
-    inventoryRef.current = next;
     setInventory(next);
   }, []);
 
-  const enqueue = useCallback((
-    version: number,
-    operation: () => Promise<SharedItemInventory>,
-  ): void => {
-    queue.current = queue.current
-      .then(operation)
-      .then((next) => {
-        if (mutationVersion.current === version) applyInventory(next);
-        setError(null);
-      })
-      .catch((reason: unknown) => {
-        setError(reason instanceof Error ? reason : new Error(String(reason)));
-      });
-  }, [applyInventory]);
-
   useEffect(() => {
-    mutationVersion.current += 1;
-    const loadVersion = mutationVersion.current;
-    inventoryRef.current = EMPTY_SHARED_ITEM_INVENTORY;
-    setInventory(EMPTY_SHARED_ITEM_INVENTORY);
+    let active = true;
+    setAvailable(false);
     setError(null);
 
-    if (!auth.currentUser) {
-      setAvailable(false);
-      return undefined;
-    }
-
-    let active = true;
-    setAvailable(true);
     void getStudentItemInventory()
       .then((next) => {
-        if (!active || mutationVersion.current !== loadVersion) return;
+        if (!active) return;
         applyInventory(next);
+        setAvailable(true);
       })
       .catch((reason: unknown) => {
         if (!active) return;
         setError(reason instanceof Error ? reason : new Error(String(reason)));
+        setAvailable(false);
       });
 
     return () => {
@@ -77,32 +42,41 @@ export function useStudentItemInventory() {
     };
   }, [applyInventory]);
 
-  const grantAcidRainItem = useCallback((itemId: AcidRainPersistentItemId): void => {
-    if (!available) return;
-    const next = grantSharedItem(inventoryRef.current, itemId);
-    const version = mutationVersion.current + 1;
-    mutationVersion.current = version;
-    applyInventory(next);
-    enqueue(version, () => persistAcidRainItemGrant(itemId, newOperationId("acid-rain-grant")));
-  }, [applyInventory, available, enqueue]);
+  const runMutation = useCallback(async <T extends ItemInventoryMutationResult>(
+    operation: () => Promise<T>,
+  ): Promise<T> => {
+    let result: T | null = null;
+    let failure: unknown = null;
 
-  const consumeItem = useCallback((itemId: SharedItemId): boolean => {
-    if (!available) return false;
-    const result = consumeSharedItem(inventoryRef.current, itemId);
-    if (!result.consumed) return false;
+    queue.current = queue.current
+      .then(async () => {
+        try {
+          result = await operation();
+          applyInventory(result.inventory);
+          setError(null);
+        } catch (reason: unknown) {
+          failure = reason;
+          setError(reason instanceof Error ? reason : new Error(String(reason)));
+        }
+      });
 
-    const version = mutationVersion.current + 1;
-    mutationVersion.current = version;
-    applyInventory(result.inventory);
-    enqueue(version, () => persistStudentItemConsumption(itemId, newOperationId("consume")));
-    return true;
-  }, [applyInventory, available, enqueue]);
+    await queue.current;
+
+    if (failure) throw failure;
+    if (!result) throw new Error("아이템 인벤토리 작업 결과를 받지 못했습니다.");
+    return result;
+  }, [applyInventory]);
+
+  const consumeItem = useCallback(async (itemId: SharedItemId): Promise<boolean> => {
+    const result = await runMutation(() => consumeStudentItem(itemId));
+    return result.consumed;
+  }, [runMutation]);
 
   return {
     inventory,
     available,
     error,
-    grantAcidRainItem,
     consumeItem,
+    runMutation,
   } as const;
 }
