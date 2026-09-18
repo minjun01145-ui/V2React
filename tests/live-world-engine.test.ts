@@ -1,8 +1,15 @@
 import assert from "node:assert/strict";
 import { LiveMovementEngine } from "../src/live-world/LiveMovementEngine.ts";
+import { LiveMovementObserver } from "../src/live-world/LiveMovementObserver.ts";
 import { appendMovementSnapshot, sampleMovementTrack } from "../src/live-world/core/interpolation.ts";
 import type { LiveMovementSnapshot, LiveMovementUpdate, LiveWorldScope } from "../src/live-world/core/types.ts";
-import type { LiveMovementConnection, LiveMovementTransport, LiveMovementTransportHandlers } from "../src/live-world/transport.ts";
+import type {
+  LiveMovementConnection,
+  LiveMovementObserverConnection,
+  LiveMovementObserverTransport,
+  LiveMovementTransport,
+  LiveMovementTransportHandlers,
+} from "../src/live-world/transport.ts";
 
 const first: LiveMovementSnapshot = {
   playerId: "other",
@@ -74,4 +81,52 @@ assert.deepEqual(engine.sampleRemotePlayers(1_100), []);
 
 await engine.close();
 assert.equal(transport.closed, true);
+
+const reconnectTransport = new TestTransport();
+const reconnectEngine = new LiveMovementEngine("self", reconnectTransport, { sendHz: 20 });
+await reconnectEngine.connect(
+  { roomId: "room", roundId: "round", channelId: "movement" },
+  { x: 3, y: 4, vx: 0, vy: 0 },
+);
+assert.ok(
+  (reconnectTransport.sent[0]?.sequence ?? 0) > (transport.sent.at(-1)?.sequence ?? 0),
+  "a remounted engine must start above its previous sequence range",
+);
+await reconnectEngine.close();
+
+class TestObserverTransport implements LiveMovementObserverTransport {
+  handlers: LiveMovementTransportHandlers | null = null;
+  closed = false;
+
+  async subscribe(
+    _scope: LiveWorldScope,
+    handlers: LiveMovementTransportHandlers,
+  ): Promise<LiveMovementObserverConnection> {
+    this.handlers = handlers;
+    return {
+      close: async () => { this.closed = true; },
+    };
+  }
+}
+
+const observerTransport = new TestObserverTransport();
+const observer = new LiveMovementObserver(observerTransport, {
+  interpolationDelayMs: 0,
+  maxExtrapolationMs: 0,
+});
+await observer.connect({ roomId: "room", roundId: "round", channelId: "movement" });
+observerTransport.handlers?.onSnapshot({
+  playerId: "student",
+  sequence: 1,
+  sentAtMs: 2_000,
+  state: { x: 4, y: 7, vx: 0, vy: 0 },
+});
+assert.deepEqual(observer.samplePlayers(2_000), [
+  { playerId: "student", sequence: 1, x: 4, y: 7, vx: 0, vy: 0 },
+], "observer should sample remote movement without publishing a local player");
+observerTransport.handlers?.onLeave("student");
+assert.deepEqual(observer.samplePlayers(2_000), []);
+await observer.close();
+assert.equal(observerTransport.closed, true);
+
 console.log("live world engine tests passed");

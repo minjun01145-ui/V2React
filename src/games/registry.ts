@@ -188,6 +188,15 @@ const definitions = [
     loadTeacher: () => import("./matching-all/MatchingAllTeacherModule.tsx"),
   }),
   defineGame({
+    id: "meaning-dash",
+    title: "Meaning Dash (테스트)",
+    supportedSetTypes: ["vocabulary"],
+    requiresStoredSet: true,
+    minimumSetItemCount: 3,
+    loadStudent: () => import("./meaning-dash/MeaningDashStudentGame.tsx"),
+    loadTeacher: () => import("./meaning-dash/MeaningDashTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "placeholder",
     title: "개발용 빈 게임",
     supportedSetTypes: [],

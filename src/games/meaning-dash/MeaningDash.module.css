@@ -1,0 +1,250 @@
+.shell {
+  position: relative;
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+}
+
+.teacherShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 14px;
+  min-height: 0;
+}
+
+.teacherMain {
+  min-width: 0;
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+  padding: 10px 14px;
+  border: 2px solid #1f2937;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.hud > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.hud strong {
+  font-size: 17px;
+}
+
+.hud span {
+  color: #4b5563;
+  font-size: 13px;
+}
+
+.score {
+  display: flex !important;
+  align-items: baseline;
+  gap: 4px !important;
+}
+
+.score strong {
+  font-size: 24px;
+}
+
+.track {
+  position: relative;
+  height: min(64vh, 600px);
+  min-height: 430px;
+  overflow: hidden;
+  border: 3px solid #1f2937;
+  border-radius: 14px;
+  background: #b8d990;
+}
+
+.road {
+  position: absolute;
+  inset: 0 8%;
+  overflow: hidden;
+  background: #d6d2c8;
+  border-inline: 4px solid #fff;
+}
+
+.laneLine {
+  position: absolute;
+  inset-block: 0;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, rgba(255,255,255,.9) 0 20px, transparent 20px 38px);
+}
+
+.gate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  transform: translateY(50%);
+}
+
+.gatePrompt {
+  width: fit-content;
+  max-width: 80%;
+  margin: 0 auto 5px;
+  padding: 4px 10px;
+  border: 2px solid #1f2937;
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 800;
+  text-align: center;
+}
+
+.gateChoices {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.gateChoice {
+  min-height: 54px;
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border: 3px solid #1f2937;
+  border-radius: 8px 8px 0 0;
+  background: #f7f3da;
+  font-size: clamp(12px, 1.5vw, 18px);
+  font-weight: 800;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.runner {
+  position: absolute;
+  z-index: 5;
+  width: 48px;
+  transform: translate(-50%, 50%);
+  transition: left 55ms linear, bottom 55ms linear;
+  pointer-events: none;
+}
+
+.runner img {
+  display: block;
+  width: 48px;
+  height: 58px;
+  filter: drop-shadow(0 2px 1px rgba(0,0,0,.2));
+}
+
+.selfRunner img {
+  width: 56px;
+  height: 67px;
+  transform: translateX(-4px);
+}
+
+.runnerName {
+  display: block;
+  width: max-content;
+  max-width: 100px;
+  margin: 0 auto 2px;
+  padding: 2px 5px;
+  transform: translateX(calc(-50% + 24px));
+  border-radius: 4px;
+  background: rgba(255,255,255,.92);
+  color: #111827;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 72px 1fr 72px;
+  align-items: center;
+  gap: 10px;
+}
+
+.controls button {
+  height: 48px;
+  border: 2px solid #1f2937;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 25px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.controls span {
+  color: #4b5563;
+  font-size: 13px;
+  text-align: center;
+}
+
+.feedback,
+.connectionError {
+  position: absolute;
+  z-index: 20;
+  left: 50%;
+  top: 70px;
+  max-width: 80%;
+  transform: translateX(-50%);
+  padding: 7px 12px;
+  border: 2px solid #1f2937;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 800;
+  text-align: center;
+}
+
+.connectionError {
+  top: 112px;
+  border-color: #b91c1c;
+  color: #991b1b;
+}
+
+.ranking {
+  align-self: start;
+  padding: 12px;
+  border: 2px solid #1f2937;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.ranking h3 {
+  margin: 0 0 10px;
+}
+
+.ranking p {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.rankRow {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 0;
+  border-top: 1px solid #e5e7eb;
+}
+
+.rankRow span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 800px) {
+  .teacherShell {
+    grid-template-columns: 1fr;
+  }
+
+  .ranking {
+    display: none;
+  }
+
+  .road {
+    inset-inline: 2%;
+  }
+}

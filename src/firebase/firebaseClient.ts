@@ -10,6 +10,7 @@ function required(value: unknown, label: string): string {
   return normalized;
 }
 
+const databaseURL = String(import.meta.env.VITE_FIREBASE_DATABASE_URL ?? "").trim();
 const firebaseConfig: FirebaseOptions = {
   apiKey: required(import.meta.env.VITE_FIREBASE_API_KEY, "VITE_FIREBASE_API_KEY"),
   authDomain: required(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN, "VITE_FIREBASE_AUTH_DOMAIN"),
@@ -17,6 +18,7 @@ const firebaseConfig: FirebaseOptions = {
   storageBucket: required(import.meta.env.VITE_FIREBASE_STORAGE_BUCKET, "VITE_FIREBASE_STORAGE_BUCKET"),
   messagingSenderId: required(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID, "VITE_FIREBASE_MESSAGING_SENDER_ID"),
   appId: required(import.meta.env.VITE_FIREBASE_APP_ID, "VITE_FIREBASE_APP_ID"),
+  ...(databaseURL ? { databaseURL } : {}),
 };
 
 type AppRole = "student" | "teacher" | "test-student";

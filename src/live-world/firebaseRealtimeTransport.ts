@@ -15,6 +15,8 @@ import {
 import type { LiveMovementSnapshot, LiveMovementUpdate, LiveWorldScope } from "./core/types.ts";
 import type {
   LiveMovementConnection,
+  LiveMovementObserverConnection,
+  LiveMovementObserverTransport,
   LiveMovementTransport,
   LiveMovementTransportHandlers,
 } from "./transport.ts";
@@ -69,6 +71,19 @@ function livePlayersPath(scope: LiveWorldScope): string {
   return `liveWorld/v1/${roomId}/${roundId}/${channelId}/players`;
 }
 
+function subscribePlayers(
+  playersRef: ReturnType<typeof ref>,
+  handlers: LiveMovementTransportHandlers,
+): Unsubscribe[] {
+  return [
+    onChildAdded(playersRef, (snapshot) => reportInvalidSnapshot(snapshot, handlers)),
+    onChildChanged(playersRef, (snapshot) => reportInvalidSnapshot(snapshot, handlers)),
+    onChildRemoved(playersRef, (snapshot) => {
+      if (snapshot.key) handlers.onLeave(snapshot.key);
+    }),
+  ];
+}
+
 export function createFirebaseRealtimeMovementTransport(database: Database): LiveMovementTransport {
   return {
     async connect(
@@ -95,11 +110,7 @@ export function createFirebaseRealtimeMovementTransport(database: Database): Liv
       };
 
       const subscriptions: Unsubscribe[] = [
-        onChildAdded(playersRef, (snapshot) => reportInvalidSnapshot(snapshot, handlers)),
-        onChildChanged(playersRef, (snapshot) => reportInvalidSnapshot(snapshot, handlers)),
-        onChildRemoved(playersRef, (snapshot) => {
-          if (snapshot.key) handlers.onLeave(snapshot.key);
-        }),
+        ...subscribePlayers(playersRef, handlers),
         onValue(connectedRef, (snapshot) => {
           if (closed || snapshot.val() !== true) return;
           void onDisconnect(ownRef).remove()
@@ -122,6 +133,26 @@ export function createFirebaseRealtimeMovementTransport(database: Database): Liv
           subscriptions.forEach((unsubscribe) => unsubscribe());
           await onDisconnect(ownRef).cancel().catch(() => undefined);
           await remove(ownRef).catch(() => undefined);
+        },
+      };
+    },
+  };
+}
+
+export function createFirebaseRealtimeMovementObserverTransport(database: Database): LiveMovementObserverTransport {
+  return {
+    async subscribe(
+      scope: LiveWorldScope,
+      handlers: LiveMovementTransportHandlers,
+    ): Promise<LiveMovementObserverConnection> {
+      const playersRef = ref(database, livePlayersPath(scope));
+      const subscriptions = subscribePlayers(playersRef, handlers);
+      let closed = false;
+      return {
+        async close(): Promise<void> {
+          if (closed) return;
+          closed = true;
+          subscriptions.forEach((unsubscribe) => unsubscribe());
         },
       };
     },

@@ -2,6 +2,15 @@ import { appendMovementSnapshot, sampleMovementTrack, type LiveMovementTrack } f
 import type { LiveMovementState, LiveRemoteFrame, LiveWorldScope } from "./core/types.ts";
 import type { LiveMovementConnection, LiveMovementTransport } from "./transport.ts";
 
+const SEQUENCE_RESTART_GAP = 1_000_000;
+let lastSequenceBase = 0;
+
+function nextSequenceBase(): number {
+  const wallClockBase = Math.floor(Date.now() * 1_000);
+  lastSequenceBase = Math.max(wallClockBase, lastSequenceBase + SEQUENCE_RESTART_GAP);
+  return lastSequenceBase;
+}
+
 export interface LiveMovementEngineOptions {
   /** Network publish rate. Rendering remains independent and can run at 60 fps. */
   readonly sendHz?: number;
@@ -37,7 +46,7 @@ export class LiveMovementEngine {
   private readonly tracks = new Map<string, LiveMovementTrack>();
 
   private connection: LiveMovementConnection | null = null;
-  private sequence = 0;
+  private sequence = nextSequenceBase();
   private pendingState: LiveMovementState | null = null;
   private lastQueuedState: LiveMovementState | null = null;
   private nextPublishAtMs = 0;

@@ -18,3 +18,14 @@ export interface LiveMovementTransport {
     handlers: LiveMovementTransportHandlers,
   ): Promise<LiveMovementConnection>;
 }
+
+export interface LiveMovementObserverConnection {
+  close(): Promise<void>;
+}
+
+export interface LiveMovementObserverTransport {
+  subscribe(
+    scope: LiveWorldScope,
+    handlers: LiveMovementTransportHandlers,
+  ): Promise<LiveMovementObserverConnection>;
+}
