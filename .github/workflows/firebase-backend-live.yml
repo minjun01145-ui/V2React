@@ -32,10 +32,17 @@ jobs:
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM }}
 
-      - name: Deploy Firebase database rules
+      - name: Deploy Firestore rules
         run: >-
           npx --yes firebase-tools@15.28.1 deploy
-          --only "firestore:rules,database"
+          --only "firestore:rules"
+          --project v2react-jurye-classroom
+          --non-interactive
+
+      - name: Deploy Realtime Database rules
+        run: >-
+          npx --yes firebase-tools@15.28.1 deploy
+          --only "database"
           --project v2react-jurye-classroom
           --non-interactive
 
