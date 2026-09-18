@@ -1,5 +1,5 @@
 export const PRIMARY_TENANT_ID = "minjun" as const;
-export const SECONDARY_TENANT_ID = "gildong" as const;
+export const SECONDARY_TENANT_ID = "hana" as const;
 
 export type TenantId = typeof PRIMARY_TENANT_ID | typeof SECONDARY_TENANT_ID;
 

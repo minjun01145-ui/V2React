@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     function validTenantId(tenantId) {
-      return tenantId in ["minjun", "gildong"];
+      return tenantId in ["minjun", "hana"];
     }
 
     function authTenantId() {
@@ -79,8 +79,8 @@ service cloud.firestore {
     }
 
     function roomIdMatchesTenant(roomId, tenantId) {
-      return (tenantId == "minjun" && !roomId.matches("^gildong--.*$"))
-        || (tenantId == "gildong" && roomId.matches("^gildong--.+$"));
+      return (tenantId == "minjun" && !roomId.matches("^hana--.*$"))
+        || (tenantId == "hana" && roomId.matches("^hana--.+$"));
     }
 
     function isTenantReader(tenantId) {
@@ -92,7 +92,7 @@ service cloud.firestore {
     function isAdminForStudentAccount(accountId) {
       return isAdmin() && (
         (adminTenantId() == "minjun" && accountId.matches("^[0-9]{1,12}$"))
-        || (adminTenantId() == "gildong" && accountId.matches("^gildong--[0-9]{1,12}$"))
+        || (adminTenantId() == "hana" && accountId.matches("^hana--[0-9]{1,12}$"))
       );
     }
 

@@ -19,8 +19,8 @@ const TENANTS: Readonly<Record<TenantId, TenantConfig>> = Object.freeze({
   }),
   [SECONDARY_TENANT_ID]: Object.freeze({
     id: SECONDARY_TENANT_ID,
-    brandName: "길동쌤 게임기",
-    brandAlt: "길동쌤 게임기 V2R",
+    brandName: "Hana쌤 게임기",
+    brandAlt: "Hana쌤 게임기 V2R",
     adminAuthEmail: null,
     usePrimaryLogo: false,
   }),

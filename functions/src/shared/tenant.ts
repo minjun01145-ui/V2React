@@ -1,7 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 
 export const PRIMARY_TENANT_ID = "minjun" as const;
-export const SECONDARY_TENANT_ID = "gildong" as const;
+export const SECONDARY_TENANT_ID = "hana" as const;
 export type TenantId = typeof PRIMARY_TENANT_ID | typeof SECONDARY_TENANT_ID;
 
 export function isTenantId(value: unknown): value is TenantId {
