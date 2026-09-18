@@ -11,6 +11,7 @@ function adminRef(uid: string) {
 }
 
 const syncAdminTenantClaim = httpsCallable<undefined, { readonly tenantId: string }>(functions, "syncAdminTenantClaim");
+const bootstrapAdminTenant = httpsCallable<{ readonly tenantId: TenantId }, { readonly tenantId: string }>(functions, "bootstrapAdminTenant");
 
 async function ensureAdminTenantClaim(user: User, tenantId: TenantId): Promise<void> {
   const token = await user.getIdTokenResult();
@@ -21,7 +22,17 @@ async function ensureAdminTenantClaim(user: User, tenantId: TenantId): Promise<v
 
 async function resolveAdmin(user: User | null, expectedTenantId: TenantId): Promise<AdminSession | null> {
   if (!user || user.isAnonymous) return null;
-  const snapshot = await getDoc(adminRef(user.uid));
+  let snapshot = await getDoc(adminRef(user.uid));
+  if (!snapshot.exists()) {
+    try {
+      const result = await bootstrapAdminTenant({ tenantId: expectedTenantId });
+      if (result.data.tenantId !== expectedTenantId) return null;
+      await user.getIdToken(true);
+      snapshot = await getDoc(adminRef(user.uid));
+    } catch {
+      return null;
+    }
+  }
   if (!snapshot.exists()) return null;
   const raw: unknown = snapshot.data();
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
