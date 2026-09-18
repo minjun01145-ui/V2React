@@ -11,6 +11,10 @@ import {
   type SharedGameItemEffects,
 } from "../src/items/index.ts";
 import {
+  BATTLE_SHARED_ITEM_EFFECTS,
+  canUseBattleInk,
+} from "../src/games/one-on-one-battle/battleSharedItems.ts";
+import {
   ACID_RAIN_SHARED_ITEM_EFFECTS,
   acidRainItemEffect,
   acidRainPersistentItemId,
@@ -76,6 +80,13 @@ assert.deepEqual(sharedItemEffectForGame(cardGameEffects, "ink"), {
 assert.deepEqual(usableSharedItemStacks({ ink: 2, bomb: 3 }, battleEffects), [
   { itemId: "ink", quantity: 2 },
 ]);
+
+assert.deepEqual(BATTLE_SHARED_ITEM_EFFECTS.ink, { kind: "obscure-opponent" });
+assert.equal(canUseBattleInk("choosing", "defender"), true);
+assert.equal(canUseBattleInk("answering", "attacker"), true);
+assert.equal(canUseBattleInk("choosing", "attacker"), false);
+assert.equal(canUseBattleInk("answering", "defender"), false);
+assert.equal(canUseBattleInk("grading", "attacker"), false);
 
 assert.equal(getSharedItemDefinition("ink").name, "먹물");
 assert.equal(getSharedItemDefinition("bomb").emoji, "💣");

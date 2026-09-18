@@ -6,6 +6,6 @@ export { submitFreeResponse, awardFreeResponsePoints } from "./free-response/cal
 export { finalizeStudentQuestionRun, getStudentQuestionAuthoringHelp, onStudentQuestionSubmissionCreated } from "./student-questions/callables.js";
 export { createMultiplayerTestSession, joinMultiplayerTestSession, stopMultiplayerTestSession } from "./multiplayer-test/callables.js";
 export { enableCooperativeHardMode, ensureCooperativeRound, expireCooperativeTurn, refreshCooperativeMatch, submitCooperativeSentence } from "./cooperative-sentence/callables.js";
-export { ensureBattleRound, expireBattlePhase, issueBattleQuestion, refreshBattleMatch, submitBattleAnswer } from "./battle/callables.js";
+export { ensureBattleRound, expireBattlePhase, issueBattleQuestion, refreshBattleMatch, submitBattleAnswer, useBattleItem } from "./battle/callables.js";
 export { consumeStudentItem, getStudentItemInventory } from "./items/callables.js";
 export { grantAcidRainItem } from "./acid-rain-items/callables.js";

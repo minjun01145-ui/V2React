@@ -20,6 +20,21 @@ export function useStudentItemInventory() {
     setInventory(next);
   }, []);
 
+  const refresh = useCallback(async (): Promise<SharedItemInventory> => {
+    try {
+      const next = await getStudentItemInventory();
+      applyInventory(next);
+      setAvailable(true);
+      setError(null);
+      return next;
+    } catch (reason: unknown) {
+      const nextError = reason instanceof Error ? reason : new Error(String(reason));
+      setError(nextError);
+      setAvailable(false);
+      throw nextError;
+    }
+  }, [applyInventory]);
+
   useEffect(() => {
     let active = true;
     setAvailable(false);
@@ -78,5 +93,6 @@ export function useStudentItemInventory() {
     error,
     consumeItem,
     runMutation,
+    refresh,
   } as const;
 }

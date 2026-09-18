@@ -9,7 +9,7 @@ export interface BattleProfile {
 }
 
 export interface BattleResult {
-  readonly outcome: "knockout" | "draw";
+  readonly outcome: "knockout" | "draw" | "joint-win";
   readonly players: readonly BattleProfile[];
   readonly headline: string;
 }
@@ -25,6 +25,7 @@ export interface BattleAssignment {
   readonly deaths: number;
   readonly itemCount: number;
   readonly questionNumber: number;
+  readonly turnLimit: number;
   readonly usedItemIds: readonly string[];
   readonly generation: number;
   readonly deadlineAtMs: number | null;
@@ -32,8 +33,11 @@ export interface BattleAssignment {
   readonly selectedItemId: string | null;
   readonly selectedSide: "source" | "meaning" | null;
   readonly eventRevision: number;
-  readonly eventType: "question-issued" | "correct" | "wrong" | "timeout" | null;
+  readonly eventType: "question-issued" | "correct" | "wrong" | "timeout" | "ink-used" | null;
   readonly eventWasMine: boolean;
+  readonly eventRewardItemId: "ink" | null;
+  readonly rewardAvailable: boolean;
+  readonly inkBlockedUntilAtMs: number | null;
   readonly searchStartedAtMs: number | null;
   readonly resultUntilAtMs: number | null;
   readonly result: BattleResult | null;

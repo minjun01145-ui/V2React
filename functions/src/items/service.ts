@@ -4,6 +4,7 @@ import { requireAnonymous } from "../shared/auth.js";
 import { db } from "../shared/firebase.js";
 import {
   consumeStoredSharedItem,
+  grantStoredSharedItem,
   parseStoredSharedItemInventory,
   type SharedItemId,
   type StoredSharedItemInventory,
@@ -39,6 +40,93 @@ export async function readStudentItemInventory(accountId: string): Promise<Store
   return parseStoredSharedItemInventory(snapshot.exists ? snapshot.data()?.inventory : null);
 }
 
+export async function grantStudentItemInTransaction(
+  tx: Transaction,
+  accountId: string,
+  itemId: SharedItemId,
+  operationId: string,
+): Promise<{
+  readonly inventory: StoredSharedItemInventory;
+  readonly granted: boolean;
+  readonly duplicate: boolean;
+}> {
+  const itemRef = studentItemDocument(accountId);
+  const operationRef = studentItemOperationDocument(accountId, operationId);
+  const [itemSnapshot, operationSnapshot] = await Promise.all([
+    tx.get(itemRef),
+    tx.get(operationRef),
+  ]);
+  const inventory = parseStoredSharedItemInventory(itemSnapshot.exists ? itemSnapshot.data()?.inventory : null);
+
+  if (operationSnapshot.exists) {
+    return { inventory, granted: false, duplicate: true };
+  }
+
+  const next = grantStoredSharedItem(inventory, itemId);
+  const now = Date.now();
+  tx.set(itemRef, {
+    inventory: next,
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedAtMs: now,
+  }, { merge: true });
+  tx.create(operationRef, {
+    kind: "grant",
+    itemId,
+    createdAt: FieldValue.serverTimestamp(),
+    createdAtMs: now,
+  });
+  return { inventory: next, granted: true, duplicate: false };
+}
+
+export async function consumeStudentItemInTransaction(
+  tx: Transaction,
+  accountId: string,
+  itemId: SharedItemId,
+  operationId: string,
+): Promise<{
+  readonly inventory: StoredSharedItemInventory;
+  readonly consumed: boolean;
+  readonly duplicate: boolean;
+}> {
+  const itemRef = studentItemDocument(accountId);
+  const operationRef = studentItemOperationDocument(accountId, operationId);
+  const [itemSnapshot, operationSnapshot] = await Promise.all([
+    tx.get(itemRef),
+    tx.get(operationRef),
+  ]);
+  const inventory = parseStoredSharedItemInventory(itemSnapshot.exists ? itemSnapshot.data()?.inventory : null);
+
+  if (operationSnapshot.exists) {
+    return {
+      inventory,
+      consumed: operationSnapshot.data()?.consumed === true,
+      duplicate: true,
+    };
+  }
+
+  const result = consumeStoredSharedItem(inventory, itemId);
+  const now = Date.now();
+  if (result.consumed) {
+    tx.set(itemRef, {
+      inventory: result.inventory,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedAtMs: now,
+    }, { merge: true });
+  }
+  tx.create(operationRef, {
+    kind: "consume",
+    itemId,
+    consumed: result.consumed,
+    createdAt: FieldValue.serverTimestamp(),
+    createdAtMs: now,
+  });
+  return {
+    inventory: result.inventory,
+    consumed: result.consumed,
+    duplicate: false,
+  };
+}
+
 export async function consumeStudentItemForAccount(
   accountId: string,
   itemId: SharedItemId,
@@ -48,43 +136,7 @@ export async function consumeStudentItemForAccount(
   readonly consumed: boolean;
   readonly duplicate: boolean;
 }> {
-  return db.runTransaction(async (tx: Transaction) => {
-    const itemRef = studentItemDocument(accountId);
-    const operationRef = studentItemOperationDocument(accountId, operationId);
-    const [itemSnapshot, operationSnapshot] = await Promise.all([
-      tx.get(itemRef),
-      tx.get(operationRef),
-    ]);
-    const inventory = parseStoredSharedItemInventory(itemSnapshot.exists ? itemSnapshot.data()?.inventory : null);
-
-    if (operationSnapshot.exists) {
-      return {
-        inventory,
-        consumed: operationSnapshot.data()?.consumed === true,
-        duplicate: true,
-      };
-    }
-
-    const result = consumeStoredSharedItem(inventory, itemId);
-    const now = Date.now();
-    if (result.consumed) {
-      tx.set(itemRef, {
-        inventory: result.inventory,
-        updatedAt: FieldValue.serverTimestamp(),
-        updatedAtMs: now,
-      }, { merge: true });
-    }
-    tx.create(operationRef, {
-      kind: "consume",
-      itemId,
-      consumed: result.consumed,
-      createdAt: FieldValue.serverTimestamp(),
-      createdAtMs: now,
-    });
-    return {
-      inventory: result.inventory,
-      consumed: result.consumed,
-      duplicate: false,
-    };
-  });
+  return db.runTransaction((tx) =>
+    consumeStudentItemInTransaction(tx, accountId, itemId, operationId),
+  );
 }
