@@ -92,7 +92,7 @@ export default function TeacherQuizGameRuntime({ roomId, session, quizGame }: { 
   if (!quiz || !round) return <StatusPanel title="퀴즈 상태 오류" tone="error">실행 중인 퀴즈 라운드를 찾을 수 없습니다.</StatusPanel>;
   const run = async (action: () => Promise<void>): Promise<void> => { if (working) return; setWorking(true); setError(""); try { await action(); } catch (value: unknown) { setError(toErrorMessage(value, "퀴즈 단계를 변경하지 못했습니다.")); } finally { setWorking(false); } };
   return <section className={styles.runtime}>
-    <header className={styles.header}><div><span>QUIZ GAME · {quiz.currentRoundIndex + 1}/{quiz.plan.rounds.length}</span><h1>{round.title}</h1><p>{getGame(round.gameId).title} · {round.durationSeconds}초</p></div></header>
+    <header className={styles.header}><div><span>{quiz.currentRoundIndex + 1}/{quiz.plan.rounds.length}</span><h1>{round.title}</h1><p>{getGame(round.gameId).title} · {round.durationSeconds}초</p></div></header>
     {error ? <StatusPanel title="퀴즈 진행 오류" tone="error">{error}</StatusPanel> : null}
     {quiz.phase === "answering" ? <QuizAnswering key={session.roundId} roomId={roomId} session={session} round={round} onClosed={closeAnswers} /> : null}
     {quiz.phase === "submissions" ? <>{round.source.kind === "free-response" ? <FreeResponseReview key={session.roundId} roomId={roomId} roundId={session.roundId ?? ""} disabled={working} onWorkingChange={setAwarding} /> : <SubmissionStatus roomId={roomId} session={session} round={round} />}<Button disabled={working || awarding} onClick={() => void run(() => setQuizGamePhase(roomId, session.roundId ?? "", "leaderboard"))}>リ더보드 보기</Button></> : null}

@@ -1,7 +1,6 @@
 .game { position:relative; min-height:min(780px,calc(100dvh - 2rem)); overflow:hidden; padding:clamp(.8rem,2.5vw,1.5rem); border-radius:1.6rem; color:#183153; background:linear-gradient(180deg,#eaf8ff 0%,#cfeeff 54%,#f8fdff 100%); box-shadow:inset 0 0 0 1px rgba(78,151,189,.2); }
 .header { position:relative; z-index:3; display:flex; align-items:center; justify-content:space-between; gap:1rem; max-width:1160px; margin:0 auto .7rem; }
 .header h1 { margin:.12rem 0 0; font-size:clamp(1.2rem,3.5vw,1.9rem); letter-spacing:-.04em; }
-.eyebrow { color:#2c7aa3; font-size:.68rem; font-weight:950; letter-spacing:.16em; }
 .dashboard { position:relative; z-index:3; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; max-width:1000px; margin:0 auto .7rem; }
 .dashboard div { padding:.55rem .6rem; border:1px solid rgba(64,137,177,.16); border-radius:.9rem; background:rgba(255,255,255,.78); text-align:center; backdrop-filter:blur(8px); }
 .dashboard small { display:block; color:#65839a; font-size:.66rem; font-weight:850; }
@@ -51,7 +50,6 @@
 .itemSlots b { display:grid; min-width:1.35rem; height:1.35rem; place-items:center; border-radius:999px; color:#fff; background:#ef6d62; }
 .overlay { position:absolute; inset:0; z-index:10; display:grid; place-items:center; padding:1rem; background:rgba(16,49,73,.42); backdrop-filter:blur(7px); }
 .resultCard { width:min(420px,100%); padding:1.6rem; border:1px solid rgba(255,255,255,.6); border-radius:1.4rem; background:#fff; text-align:center; box-shadow:0 24px 70px rgba(17,62,89,.28); }
-.resultCard > span { color:#2e8ebc; font-size:.72rem; font-weight:950; letter-spacing:.15em; }
 .resultCard h2 { margin:.35rem 0; color:#173f5c; font-size:clamp(1.4rem,5vw,2rem); }
 .resultCard p { color:#668296; font-weight:750; }
 .resultCard div { display:flex; flex-wrap:wrap; justify-content:center; gap:.55rem; }

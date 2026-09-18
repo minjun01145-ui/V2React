@@ -18,7 +18,6 @@ interface Props {
 export function QuizDialog({ title, description, children, reward, feedback, submitting, onClose, onMore, onStop }: Props) {
   return <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label={title}><section className={`${styles.quizCard} ${styles.quizWorkspace}`}>
     <button type="button" className={styles.closeButton} onClick={onClose} disabled={submitting} aria-label="닫기">×</button>
-    <span className={styles.quizStep}>ITEM QUIZ</span>
     <p>{description}</p><h2>{title}</h2>
     <div className={styles.quizModule}>{children}</div>
     {reward ? <div className={styles.rewardCard}><strong>{itemDefinition(reward).name}</strong><span>가방에 저장되었습니다.</span></div> : null}

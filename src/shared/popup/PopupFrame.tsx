@@ -65,7 +65,6 @@ export default function PopupFrame({ options, children, onDismiss }: Props) {
       <div className={`${styles.panel} ${styles[options.tone ?? "info"]}`} ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={options.message ? descriptionId : undefined} tabIndex={-1}>
         <div className={styles.accent} aria-hidden="true" />
         <header className={styles.header}>
-          {options.eyebrow ? <p>{options.eyebrow}</p> : null}
           <h2 id={titleId}>{options.title}</h2>
           {options.message ? <div className={styles.message} id={descriptionId}>{options.message}</div> : null}
         </header>

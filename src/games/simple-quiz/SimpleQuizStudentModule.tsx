@@ -105,7 +105,7 @@ function SimpleQuizGame({ roomId, session, player, set }: {
   return <main className={styles.game}>
     <GameEffectLayer effect={effects.activeEffect} />
     <header className={styles.topbar}>
-      <div><span>SIMPLE QUIZ · {game.choiceCount} CHOICES</span><h1>심플퀴즈</h1></div>
+      <div><h1>심플퀴즈</h1></div>
       <div className={styles.stats}>
         <div><small>문제</small><strong>{game.currentIndex + 1}<i>/{game.questionCount}</i></strong></div>
         <div><small>콤보</small><strong>{game.progress.combo}</strong></div>

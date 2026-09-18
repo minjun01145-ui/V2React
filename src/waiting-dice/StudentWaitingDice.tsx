@@ -37,7 +37,7 @@ export default function StudentWaitingDice({ roomId, uid, players }: {
   return (
     <Card className={styles.card}>
       <div className={styles.studentHeader}>
-        <div><span className={styles.eyebrow}>DICE</span><h2>{requestedForMe ? "선생님이 주사위를 부탁했어요!" : "대기실 주사위"}</h2></div>
+        <div><h2>{requestedForMe ? "선생님이 주사위를 부탁했어요!" : "대기실 주사위"}</h2></div>
         {requestedForMe ? <Button disabled={working || loading} onClick={() => void roll()}>{working ? "굴리는 중…" : `${value.diceCount}개 굴리기`}</Button> : null}
       </div>
       <WaitingDiceStage state={value} player={roller} />

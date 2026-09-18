@@ -22,7 +22,7 @@ interface Props {
 export default function TeacherNav({ currentView, onLogout }: Props) {
   return (
     <nav className={styles.nav} aria-label="교사용 메뉴">
-      <a className={styles.brand} href="/" aria-label="Jurye 홈">
+      <a className={styles.brand} href="/" aria-label="민준쌤 게임기 V2R 홈">
         <BrandMark className={styles.brandMark} />
         <strong>관리자 페이지</strong>
       </a>

@@ -27,7 +27,6 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
   const requestPin = async (challenge: StudentLoginChallenge): Promise<void> => {
     const setup = challenge.mode === "pin_setup";
     await requestInput({
-      eyebrow: setup ? "FIRST LOGIN" : "STUDENT LOGIN",
       title: setup ? "숫자 4자리 비밀번호를 만들어요" : "비밀번호를 입력해 주세요",
       message: setup
         ? `${challenge.studentNumber} · ${challenge.displayName} 학생의 첫 로그인입니다. 다음 접속부터 사용할 숫자 4자리를 두 번 입력해 주세요.`
@@ -105,15 +104,13 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <a className={styles.brand} href="/" aria-label="Jurye 홈">
+        <a className={styles.brand} href="/" aria-label="민준쌤 게임기 V2R 홈">
           <BrandMark className={styles.brandMark} />
         </a>
 
         <div className={styles.loginPanel}>
           <form className={styles.form} onSubmit={(event) => void submitIdentity(event)}>
             <h2 id="login-title">수업에 참여해요</h2>
-            <p className={styles.sub}>학번과 이름을 입력하면 비밀번호 창이 열려요.</p>
-
             <div className={styles.field}>
               <label htmlFor="student-number">학번</label>
               <input
@@ -152,7 +149,7 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
             <Button type="submit" full disabled={submitting}>{submitting ? "확인 중…" : "로그인"}</Button>
           </form>
 
-          <a className={styles.adminLink} href={teacherUrl(roomId)}>교사용 관리자 페이지 →</a>
+          <a className={styles.adminLink} href={teacherUrl(roomId)}>관리자 페이지</a>
         </div>
       </div>
     </main>

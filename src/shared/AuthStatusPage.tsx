@@ -2,13 +2,12 @@ import BrandMark from "./ui/BrandMark.tsx";
 import styles from "./AuthStatusPage.module.css";
 
 interface Props {
-  readonly eyebrow: string;
   readonly title: string;
   readonly message: string;
   readonly error?: string;
 }
 
-export default function AuthStatusPage({ eyebrow: _eyebrow, title, message, error }: Props) {
+export default function AuthStatusPage({ title, message, error }: Props) {
   return (
     <main className={styles.page}>
       <section className={styles.card} role={error ? "alert" : "status"}>

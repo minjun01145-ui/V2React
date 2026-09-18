@@ -1,8 +1,6 @@
 .board { overflow: hidden; border: 1px solid var(--color-border); border-radius: 1.25rem; background: #fff; box-shadow: var(--shadow-card); }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem; background: linear-gradient(135deg, #f8faff, #f0fdfa); }
-.header span { color: #5b52d6; font-size: .7rem; font-weight: 950; letter-spacing: .14em; }
 .header h2 { margin: .2rem 0; font-size: 1.55rem; }
-.header p { margin: 0; color: var(--color-muted); font-size: .82rem; }
 .columnLabels { display: grid; grid-template-columns: minmax(0,1fr) 110px 120px; gap: .8rem; padding: .55rem 1.25rem; color: #8791a5; border-top: 1px solid #edf0f5; border-bottom: 1px solid #edf0f5; background: #fafbfc; font-size: .7rem; font-weight: 850; }
 .columnLabels span:nth-child(n+2) { text-align: right; }
 .rows { display: grid; padding: .55rem; }

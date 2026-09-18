@@ -6,5 +6,5 @@
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="16" fill="url(#background)" />
-  <path d="M39 15v28c0 9-5 14-14 14-6 0-11-3-14-8l8-6c2 3 4 4 6 4 3 0 4-2 4-5V15h10Z" fill="white" />
+  <text x="32" y="38" fill="white" font-family="Arial, sans-serif" font-size="18" font-weight="800" text-anchor="middle">V2R</text>
 </svg>

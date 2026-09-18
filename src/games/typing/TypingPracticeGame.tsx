@@ -278,12 +278,7 @@ export function TypingPracticeBoard({
     <GameEffectLayer effect={effects.activeEffect} />
 
     <header className={styles.header}>
-      <div>
-        <span className={styles.eyebrow}>
-          {liveContext ? "LIVE ACID RAIN" : "WAITING TYPING"}
-        </span>
-        <h1>{set.name}</h1>
-      </div>
+      <div><h1>{set.name}</h1></div>
       {onExit
         ? <Button
             variant="ghost"
@@ -419,13 +414,6 @@ export function TypingPracticeBoard({
     {overlayOpen
       ? <div className={styles.overlay} role="dialog" aria-modal="true">
           <div className={styles.resultCard}>
-            <span>
-              {game.status === "stage-clear"
-                ? "STAGE CLEAR"
-                : game.status === "complete"
-                  ? "ALL CLEAR"
-                  : "TRY AGAIN"}
-            </span>
             <h2>
               {game.status === "stage-clear"
                 ? `스테이지 ${game.stage} 성공!`

@@ -1,4 +1,2 @@
 .placeholder { text-align: center; }
 .placeholder h2 { margin: 0; }
-.badge { display: inline-block; margin-bottom: 1rem; padding: .3rem .6rem; border-radius: 999px; background: var(--color-primary-soft); color: var(--color-primary); font-size: .72rem; font-weight: 700; letter-spacing: .08em; }
-.placeholder p { color: var(--color-muted); }

@@ -20,7 +20,7 @@ export function EncounterStage({ encounter, encounterStatus, phase, asleep, seco
   return <main className={styles.field} data-phase={phase} data-shakes={shakeCount}>
     <div className={styles.skyGlow} />
     <div className={styles.encounterCard}>
-      <span>{encounter ? `No.${String(encounter.id).padStart(3, "0")}` : "SEARCHING"}</span>
+      {encounter ? <span>{`No.${String(encounter.id).padStart(3, "0")}`}</span> : null}
       <strong>{encounter?.name ?? "야생 포켓몬 탐색 중"}</strong>
       {asleep ? <small>잠듦 · 포획률 2배</small> : null}
     </div>
@@ -40,7 +40,7 @@ export function EncounterStage({ encounter, encounterStatus, phase, asleep, seco
       {phase === "shaking" ? <div className={styles.captureTension}>잡힐까…?</div> : null}
       {phase === "error" ? <div className={styles.apiError}><strong>연결 실패</strong><span>{loadError}</span><button type="button" onClick={onReload}>다시 불러오기</button></div> : null}
       <div className={styles.shadow} /><div className={styles.ball} aria-hidden="true"><i /></div>
-      {phase === "caught" ? <div className={styles.resultBurst}>GET!</div> : null}
+      {phase === "caught" ? <div className={styles.resultBurst}>포획!</div> : null}
       {phase === "failed" ? <div className={styles.failedText}>아깝다!</div> : null}
       {phase === "escaped" ? <div className={styles.escapeText}>시간 종료!</div> : null}
     </div>

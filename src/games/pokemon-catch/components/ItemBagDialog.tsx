@@ -17,7 +17,7 @@ interface Props {
 export function ItemBagDialog({ inventory, usingItem, phase, asleep, ballChances, onClose, onUseItem }: Props) {
   return <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label="아이템 가방"><section className={styles.itemCard}>
     <button type="button" className={styles.closeButton} onClick={onClose} aria-label="닫기">×</button>
-    <span className={styles.quizStep}>ITEM BAG</span><h2>아이템 사용하기</h2>
+    <h2>아이템 사용하기</h2>
     <div className={styles.itemGrid}>{POKEMON_ITEMS.map((item) => {
       const unavailable = inventory[item.id] < 1 || usingItem || phase !== "ready" || (item.id === POKEMON_ITEM.SLEEP_SPRAY && asleep);
       return <div key={item.id} data-item={item.id}>

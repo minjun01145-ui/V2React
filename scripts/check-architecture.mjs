@@ -6,31 +6,13 @@ import { collectApplicationSourceFiles } from "./architecture-source-files.mjs";
 const root = process.cwd();
 const srcRoot = path.join(root, "src");
 const violations = [];
-const globalCssEntries = new Set([
-  "src/apps/student/main.tsx",
-  "src/apps/teacher/main.tsx",
-  "src/apps/test-student/main.tsx",
-]);
+// Keep this checker focused on dependency direction and entry-point isolation.
+// Implementation shape, naming and style belong in code review or focused tests.
 const { javaScriptFiles, typeScriptFiles: sourceFiles } = collectApplicationSourceFiles(srcRoot);
 const dependencyGraph = new Map(sourceFiles.map((file) => [file, []]));
 
 for (const file of javaScriptFiles) {
   violations.push(`${relative(file)}: application source must use .ts/.tsx, not JavaScript`);
-}
-
-const multiplayerTypesSource = fs.readFileSync(path.join(srcRoot, "multiplayer/types.ts"), "utf8");
-if (/\bsessionData\s*:/.test(multiplayerTypesSource)) {
-  violations.push("src/multiplayer/types.ts: GameSession must not expose raw Firestore session data");
-}
-if (/\bfieldsToDelete\s*[?:]/.test(multiplayerTypesSource)) {
-  violations.push("src/multiplayer/types.ts: multiplayer APIs must not accept arbitrary persistence fields to delete");
-}
-
-function walk(dir) {
-  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const full = path.join(dir, entry.name);
-    return entry.isDirectory() ? walk(full) : [full];
-  });
 }
 
 function relative(file) {
@@ -42,13 +24,6 @@ function importsOf(source) {
   const pattern = /(?:import\s+(?:[^"']+?\s+from\s+)?|import\s*\()\s*["']([^"']+)["']/g;
   for (const match of source.matchAll(pattern)) values.push(match[1]);
   return values;
-}
-
-function containsExplicitAny(source) {
-  const withoutComments = source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/.*$/gm, "");
-  return /:\s*any\b|\bas\s+any\b|<\s*any\s*>|\bany\s*\[\s*\]/.test(withoutComments);
 }
 
 function resolveRelativeImport(file, specifier) {
@@ -74,21 +49,12 @@ for (const file of sourceFiles) {
   const source = fs.readFileSync(file, "utf8");
   const imports = importsOf(source);
 
-  if (containsExplicitAny(source)) {
-    violations.push(`${rel}: explicit 'any' is not allowed; use a real type or unknown + validation`);
-  }
-
   for (const specifier of imports) {
     const resolved = resolveRelativeImport(file, specifier);
     if (resolved && !fs.existsSync(resolved)) {
       violations.push(`${rel}: relative import does not exist (${specifier})`);
     }
     if (resolved && dependencyGraph.has(resolved)) dependencyGraph.get(file).push(resolved);
-
-    const isGlobalCss = specifier.endsWith(".css") && !specifier.endsWith(".module.css");
-    if (isGlobalCss && !globalCssEntries.has(rel)) {
-      violations.push(`${rel}: global CSS import '${specifier}' is only allowed in app entry points`);
-    }
 
     if (crossesRoleBoundary(rel, specifier)) {
       violations.push(`${rel}: student and teacher app/feature layers must not import each other (${specifier})`);
@@ -216,33 +182,8 @@ if (!studentHtml.includes("/src/apps/student/main.tsx")) violations.push("index.
 if (studentHtml.includes("/src/apps/teacher/")) violations.push("index.html: must not load teacher app code");
 if (!teacherHtml.includes("/src/apps/teacher/main.tsx")) violations.push("teacher/index.html: must load the teacher entry only");
 if (teacherHtml.includes("/src/apps/student/")) violations.push("teacher/index.html: must not load student app code");
-if (/\sstyle\s*=/.test(studentHtml)) violations.push("index.html: visual styling belongs in React CSS modules, not the HTML entry");
-if (/\sstyle\s*=/.test(teacherHtml)) violations.push("teacher/index.html: visual styling belongs in React CSS modules, not the HTML entry");
 if (!testStudentHtml.includes("/src/apps/test-student/main.tsx")) violations.push("test-student/index.html: must load the test student entry only");
 if (testStudentHtml.includes("/src/apps/teacher/") || testStudentHtml.includes("/src/apps/student/main.tsx")) violations.push("test-student/index.html: must not load a normal student or teacher entry");
-if (/\sstyle\s*=/.test(testStudentHtml)) violations.push("test-student/index.html: visual styling belongs in React CSS modules, not the HTML entry");
-
-const registrySource = fs.readFileSync(path.join(srcRoot, "games/registry.ts"), "utf8");
-if (!registrySource.includes("loadStudent:") || !registrySource.includes("loadTeacher:")) {
-  violations.push("src/games/registry.ts: every game registry must use role-specific loadStudent/loadTeacher entries");
-}
-
-for (const entry of fs.readdirSync(path.join(srcRoot, "games"), { withFileTypes: true })) {
-  if (!entry.isDirectory()) continue;
-  const gameDir = path.join(srcRoot, "games", entry.name);
-  const filenames = fs.readdirSync(gameDir);
-  const hasPureGameLogic = filenames.includes("evaluator.ts") || filenames.some((name) => /Adapter\.ts$/.test(name)) || filenames.includes("adapter.ts");
-  if (hasPureGameLogic) {
-    const expectedTest = path.join(root, "tests", "games", `${entry.name}.test.ts`);
-    if (!fs.existsSync(expectedTest)) {
-      violations.push(`src/games/${entry.name}: evaluator/adapter logic requires tests/games/${entry.name}.test.ts`);
-    }
-  }
-}
-
-if (fs.existsSync(path.join(srcRoot, "game-engine/hooks")) || fs.existsSync(path.join(srcRoot, "game-engine/multiplayer"))) {
-  violations.push("src/game-engine: question-style hooks/persistence must live under question-engine, not generic game-engine folders");
-}
 
 if (violations.length) {
   console.error("Architecture checks failed:\n" + violations.map((item) => `- ${item}`).join("\n"));

@@ -6,9 +6,7 @@ import styles from "./PlaceholderGame.module.css";
 export default function PlaceholderStudentGame({ player }: StudentGameModuleProps) {
   return (
     <Card className={styles.placeholder}>
-      <div className={styles.badge}>STUDENT GAME MODULE</div>
       <h2>{displayLabel(player.displayName, player.nickname)}, 준비!</h2>
-      <p>학생용 게임 진입점이 정상적으로 로드되었습니다.</p>
     </Card>
   );
 }

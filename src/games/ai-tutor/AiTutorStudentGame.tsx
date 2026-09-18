@@ -64,10 +64,7 @@ function AiTutorPlayArea({
 
   return <main className={styles.game}>
     <header className={styles.topbar}>
-      <div>
-        <span>AI TUTOR</span>
-        <h1>{game.title}</h1>
-      </div>
+      <div><h1>{game.title}</h1></div>
       <div className={styles.metrics}>
         <span>{game.progress.currentIndex + 1} / {game.totalCount}</span>
         <strong>{game.progress.score}점</strong>

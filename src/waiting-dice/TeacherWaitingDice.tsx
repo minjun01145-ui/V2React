@@ -83,7 +83,7 @@ export default function TeacherWaitingDice({ roomId, players, disabled = false }
   return (
     <Card className={styles.card}>
       <div className={styles.header}>
-        <div><span className={styles.eyebrow}>DICE</span><h2>주사위 굴리기</h2><p>직접 굴리거나 대기 중인 학생에게 부탁해 보세요.</p></div>
+        <div><h2>주사위 굴리기</h2></div>
         <div className={styles.countPicker} role="group" aria-label="주사위 개수">
           {DICE_COUNTS.map((count) => <button key={count} type="button" aria-pressed={diceCount === count} disabled={disabled || working || localRolling} onClick={() => setDiceCount(count)}>{count}개</button>)}
         </div>

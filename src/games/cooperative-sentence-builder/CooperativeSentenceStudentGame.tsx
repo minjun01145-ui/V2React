@@ -105,7 +105,7 @@ export default function CooperativeSentenceStudentGame({ roomId, session, player
   if (learningSet.error || assignment.error) return <StatusPanel title="커플 게임 연결 오류" tone="error">{learningSet.error?.message ?? assignment.error?.message}</StatusPanel>;
   if (learningSet.loading || assignment.loading || !state) return <StatusPanel title="조를 편성하고 있어요" tone="waiting">함께 문장을 완성할 친구를 찾고 있습니다.</StatusPanel>;
 
-  if (clock.expired) return <><GameEffectLayer effect={effects.activeEffect} /><section className={styles.complete}><span>TIME OVER</span><h1>커플 게임 종료!</h1><p>{state.teamName ? `${state.teamName} 조는 ${state.currentQuestionIndex}/${state.questionCount} 문장까지 완성했습니다.` : "선생님이 다음 활동을 준비할 때까지 기다려 주세요."}</p></section></>;
+  if (clock.expired) return <><GameEffectLayer effect={effects.activeEffect} /><section className={styles.complete}><h1>커플 게임 종료!</h1><p>{state.teamName ? `${state.teamName} 조는 ${state.currentQuestionIndex}/${state.questionCount} 문장까지 완성했습니다.` : "선생님이 다음 활동을 준비할 때까지 기다려 주세요."}</p></section></>;
   if (state.status === "searching") {
     if (eliminationKey && acknowledgedEliminationKey !== eliminationKey) {
       return <div className={styles.shell}><GameEffectLayer effect={effects.activeEffect} /><TimedGameStatus session={session} /><StatusPanel title="하트가 다 닳아서 탈락했습니다." tone="error">새로운 조를 찾습니다.</StatusPanel></div>;
@@ -114,7 +114,7 @@ export default function CooperativeSentenceStudentGame({ roomId, session, player
     const seconds = Math.max(0, Math.ceil((10_000 - elapsed) / 1_000));
     return <div className={styles.shell}><GameEffectLayer effect={effects.activeEffect} /><TimedGameStatus session={session} /><StatusPanel title="새로운 조를 찾고 있어요" tone="waiting">{seconds > 0 ? `다른 친구를 기다리는 중 · ${seconds}초` : "곧 새로운 음식 조가 만들어집니다."}</StatusPanel></div>;
   }
-  if (state.status === "completed") return <div className={styles.shell}><GameEffectLayer effect={effects.activeEffect} /><TimedGameStatus session={session} /><section className={styles.complete}><span>TEAM COMPLETE</span><h1>축하합니다!</h1><p><strong>{state.teamName}</strong> 조가 모든 문장을 완성했습니다.</p><h2>당신의 조원은</h2><div className={styles.partners}>{state.revealedPartners.map((partner) => <PartnerReveal partner={partner} key={partner.playerId} />)}</div></section></div>;
+  if (state.status === "completed") return <div className={styles.shell}><GameEffectLayer effect={effects.activeEffect} /><TimedGameStatus session={session} /><section className={styles.complete}><h1>축하합니다!</h1><p><strong>{state.teamName}</strong> 조가 모든 문장을 완성했습니다.</p><h2>당신의 조원은</h2><div className={styles.partners}>{state.revealedPartners.map((partner) => <PartnerReveal partner={partner} key={partner.playerId} />)}</div></section></div>;
   if (!question) return <StatusPanel title="문항 정보 오류" tone="error">현재 문항을 찾을 수 없습니다.</StatusPanel>;
 
   const selectedTokens = selectedIds.map((id) => question.tokens.find((token) => token.id === id)).filter((token): token is SequenceToken => token !== undefined);
@@ -139,7 +139,7 @@ export default function CooperativeSentenceStudentGame({ roomId, session, player
 
   return <div className={styles.shell} data-my-turn={state.isMyTurn} data-hard-mode={state.hardMode}>
     <GameEffectLayer effect={effects.activeEffect} />
-    <div className={styles.teamBar}><div><span>당신은</span><strong>{state.teamName} 조입니다!</strong></div><Hearts count={state.hearts} /><div><span>PROGRESS</span><strong>{state.currentQuestionIndex + 1} / {state.questionCount}</strong></div></div>
+    <div className={styles.teamBar}><div><span>당신은</span><strong>{state.teamName} 조입니다!</strong></div><Hearts count={state.hearts} /><div><span>진행</span><strong>{state.currentQuestionIndex + 1} / {state.questionCount}</strong></div></div>
     <TimedGameStatus session={session} compact />
     {state.hardMode && state.isMyTurn && state.turnDeadlineAtMs !== null ? <DeadlineCountdownBar deadlineAtMs={state.turnDeadlineAtMs} durationMs={5_000} label="문장 제한시간" /> : null}
     <div className={styles.turnBanner} data-turn={state.isMyTurn}>{state.isMyTurn ? "당신의 차례입니다!" : "팀원이 문제를 풀고 있습니다…"}</div>

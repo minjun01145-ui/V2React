@@ -66,9 +66,8 @@ export default function CharacterShop({ identity, roomId, nickname, initialAvata
         </div>
 
         <div className={styles.profileDetails}>
-          <p className={styles.profileEyebrow}>내 프로필</p>
           <h2 className={styles.profileTitle} id="student-profile-title" title={currentNickname}>{currentNickname}</h2>
-          {nickname ? <p className={styles.realName}>본명 {identity.displayName}</p> : <p className={styles.realName}>현재 닉네임으로 본명을 사용 중이에요.</p>}
+          {nickname ? <p className={styles.realName}>본명 {identity.displayName}</p> : null}
           <dl className={styles.equippedInfo}>
             <div>
               <dt>장착 캐릭터</dt>

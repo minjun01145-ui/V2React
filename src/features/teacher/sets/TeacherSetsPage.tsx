@@ -112,7 +112,6 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
   const remove = async (): Promise<void> => {
     if (!selected || busy) return;
     const confirmed = await requestConfirmation({
-      eyebrow: "DELETE SET",
       title: `“${selected.name}” 세트를 삭제할까요?`,
       message: "진행 중인 게임에서 사용 중이면 학생이 더 이상 이 세트를 불러올 수 없습니다.",
       tone: "error",

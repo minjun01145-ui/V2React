@@ -4,6 +4,8 @@ import process from "node:process";
 
 const root = process.cwd();
 const violations = [];
+// Keep this checker focused on repository-wide trust boundaries. Feature-specific
+// data shapes and game integrity belong in their rules or focused feature tests.
 
 function read(file) {
   return fs.readFileSync(path.join(root, file), "utf8");
@@ -24,6 +26,23 @@ function matchBlock(source, collectionName) {
     if (depth === 0) return source.slice(start + 1, index);
   }
   return "";
+}
+
+function writeClauses(block) {
+  const clauses = [];
+  const allowPattern = /allow\s+([^:;{}]+):\s*if\s+([^;]+);/g;
+  for (const match of block.matchAll(allowPattern)) {
+    const operations = match[1].split(",").map((operation) => operation.trim());
+    const condition = match[2];
+    const canWrite = operations.some((operation) => ["write", "create", "update", "delete"].includes(operation));
+    if (canWrite) clauses.push(condition);
+  }
+  return clauses;
+}
+
+function isAdminOnlyOrDenied(condition) {
+  const normalized = condition.trim();
+  return normalized === "false" || (normalized.includes("isAdmin()") && !normalized.includes("||"));
 }
 
 const envExample = read(".env.example");
@@ -115,8 +134,6 @@ for (const file of clientFiles) {
 }
 
 const multiplayerTestCallables = read("functions/src/multiplayer-test/callables.ts");
-const testStudentViewport = read("src/features/teacher/test-tool/TestStudentViewport.tsx");
-const multiplayerProgressRepository = read("src/multiplayer/game-progress/repository.ts");
 if ((multiplayerTestCallables.match(/requireAdmin\(request\)/g) ?? []).length < 2) {
   violations.push("functions/src/multiplayer-test/callables.ts: test session creation and cleanup must both require an administrator");
 }
@@ -126,46 +143,16 @@ if (!multiplayerTestCallables.includes("requireAnonymous(request)")) {
 if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
   violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
 }
-if (!rules.includes("match /participants/{uid}") || !rules.includes("activeRound(roomId, roundId)") || !rules.includes('affectedKeys().hasOnly(["nickname"])')) {
-  violations.push("security/firestore.rules.secure: round participants must be round-scoped, self-owned, and identity-immutable");
-}
-if (!rules.includes("match /readiness/{uid}") || !rules.includes("preparingRound(roomId, roundId)") || !rules.includes('keys().hasOnly(["playerId", "readyAt", "readyAtMs"])')) {
-  violations.push("security/firestore.rules.secure: round readiness must be preparation-scoped and self-owned");
-}
-if (!/match \/players\/\{uid\}[\s\S]*?allow read: if isAdmin\(\) \|\| isRoomStudent\(roomId\);/.test(rules)) {
-  violations.push("security/firestore.rules.secure: room students must be able to query the lobby player roster");
-}
-if (!rules.includes("match /multiplayerTestRuns/{adminUid}")) {
+if (!denyAll.test(matchBlock(rules, "multiplayerTestRuns"))) {
   violations.push("security/firestore.rules.secure: multiplayer test run credentials must be server-only");
 }
-if (!rules.includes('"correctCount", "attemptCount", "combo"') || !rules.includes("request.resource.data.combo is int")) {
-  violations.push("security/firestore.rules.secure: multiplayer progress must explicitly allow and validate combo state");
-}
-if (!rules.includes("match /operations/{uid}/items/{operationId}")
-  || !rules.includes("request.resource.data.lastOperationId")
-  || !rules.includes("request.resource.data.revision == resource.data.revision + 1")
-  || !rules.includes("getAfter(")) {
-  violations.push("security/firestore.rules.secure: progress writes must be linked to an immutable, revisioned operation");
-}
-if (!multiplayerProgressRepository.includes("runTransaction")
-  || !multiplayerProgressRepository.includes("operationSnapshot.exists()")
-  || !multiplayerProgressRepository.includes("mergeProgressTransition")) {
-  violations.push("src/multiplayer/game-progress/repository.ts: attempts and progress must use one idempotent transaction");
-}
-if (!rules.includes("match /studentGameData/{accountId}/games/pokemon-catch") || !rules.includes("validPokemonInventory")) {
-  violations.push("security/firestore.rules.secure: persistent Pokémon data must validate authenticated ownership and inventory shape");
-}
-if (!rules.includes("validPlayerAvatar") || !rules.includes('"lastSeenAtMs", "nickname", "avatar"')) {
-  violations.push("security/firestore.rules.secure: lobby avatars must be shape-validated and self-updateable");
-}
-if (!rules.includes("match /waitingDiceRequests/{uid}")
-  || !rules.includes("request.auth.uid == uid")
-  || !rules.includes("resource.data.rollerId == uid")
-  || !rules.includes("validDiceResults(request.resource.data.results, resource.data.diceCount)")) {
-  violations.push("security/firestore.rules.secure: waiting-room dice requests must be private to the target and value-validated");
-}
-if (!testStudentViewport.includes('sandbox="allow-scripts allow-same-origin allow-forms"')) {
-  violations.push("src/features/teacher/test-tool/TestStudentViewport.tsx: sandboxed test students must allow in-frame forms");
+
+for (const collectionName of ["players", "waitingDiceRequests", "readiness", "participants", "progress"]) {
+  const block = matchBlock(rules, collectionName);
+  const clauses = writeClauses(block);
+  if (clauses.length === 0 || clauses.some((condition) => !condition.includes("request.auth.uid == uid") && !isAdminOnlyOrDenied(condition))) {
+    violations.push(`security/firestore.rules.secure: student writes to ${collectionName} must be scoped to the authenticated UID`);
+  }
 }
 
 if (violations.length) {

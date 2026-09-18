@@ -9,8 +9,8 @@ assert.throws(() => validateStudentCredentials("10A01", "홍길동"));
 assert.throws(() => validateStudentCredentials("10101", ""));
 assert.equal(validateStudentPin("１２３４"), "1234");
 assert.throws(() => validateStudentPin("12345"));
-assert.deepEqual(parseRosterPaste("10101\t홍길동\n10102, 김주례"), [
+assert.deepEqual(parseRosterPaste("10101\t홍길동\n10102, 김민준"), [
   { studentNumber: "10101", name: "홍길동", active: true },
-  { studentNumber: "10102", name: "김주례", active: true },
+  { studentNumber: "10102", name: "김민준", active: true },
 ]);
 console.log("auth validation smoke tests passed");

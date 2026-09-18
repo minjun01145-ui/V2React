@@ -76,7 +76,7 @@ export default function CharacterShopDialog({
   return <dialog aria-labelledby="character-shop-title" className={styles.dialog} ref={dialogRef} onCancel={onClose} onClose={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <div className={styles.shop}>
       <header className={styles.header}>
-        <div><p>CHARACTER SHOP</p><h2 id="character-shop-title">캐릭터 상점</h2><span>원하는 캐릭터를 바로 장착할 수 있어요.</span></div>
+        <h2 id="character-shop-title">캐릭터 상점</h2>
         <button className={styles.close} type="button" aria-label="상점 닫기" onClick={onClose}>×</button>
       </header>
 
@@ -100,7 +100,7 @@ export default function CharacterShopDialog({
           </article>;
         })}
       </div> : <div role="tabpanel" aria-busy={pokemonLoading}>
-        {!pokemonLoading && captures.length === 0 ? <div className={styles.emptyPokemon}><strong>아직 잡은 포켓몬이 없어요.</strong><p>포켓몬 잡기 게임에서 포획하면 여기에 나타납니다.</p></div> : null}
+        {!pokemonLoading && captures.length === 0 ? <div className={styles.emptyPokemon}><strong>아직 잡은 포켓몬이 없어요.</strong></div> : null}
         <div className={styles.grid}>{captures.map((pokemon) => {
           const equipped = equippedAvatar?.kind === "pokemon" && equippedAvatar.captureId === pokemon.captureId;
           const busy = busyKey === `pokemon:${pokemon.captureId}`;

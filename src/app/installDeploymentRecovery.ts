@@ -1,4 +1,4 @@
-const RELOAD_MARKER = "jurye:deployment-reload";
+const RELOAD_MARKER = "v2r:deployment-reload";
 const RELOAD_COOLDOWN_MS = 30_000;
 
 function recentlyReloaded(now: number): boolean {

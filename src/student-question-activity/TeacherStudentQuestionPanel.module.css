@@ -1,7 +1,6 @@
 .panel { display:grid; gap:1rem; border-color:#c4b5fd; background:linear-gradient(135deg,var(--color-surface),#f5f3ff); }
 .panel h2 { margin:.2rem 0; }
 .panel p { margin:.25rem 0 0; color:var(--color-muted); }
-.heading span { color:#6d28d9; font-size:.72rem; font-weight:900; letter-spacing:.08em; }
 .heading { display:flex; justify-content:space-between; gap:1rem; align-items:center; }
 .heading strong { font-size:1.15rem; }
 .students { display:grid; gap:.45rem; }

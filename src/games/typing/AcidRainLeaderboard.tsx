@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
-import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import styles from "../../game-engine/timed-game/Leaderboard.module.css";
 import { useRoundLiveMetrics } from "../../multiplayer/live-metrics/hooks.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
@@ -15,7 +14,6 @@ export default function AcidRainLeaderboard({ roomId, session, title }: {
 }) {
   const participants = useRoundParticipants(roomId, session.roundId);
   const metrics = useRoundLiveMetrics(roomId, session.roundId);
-  const clock = useTimedGameClock(session);
   const entries = useMemo(
     () => createAcidRainLeaderboard(participants.value, metrics.value),
     [metrics.value, participants.value],
@@ -25,7 +23,7 @@ export default function AcidRainLeaderboard({ roomId, session, title }: {
 
   return <section className={styles.board} aria-label={`${title} 실시간 스테이지 순위`}>
     <header className={styles.header}>
-      <div><span>{clock.expired ? "FINAL RANKING" : "LIVE RANKING"}</span><h2>{title}</h2><p>{clock.expired ? "게임이 종료되었습니다. 최종 스테이지 순위입니다." : "현재 스테이지를 기준으로 순위가 실시간 갱신됩니다."}</p></div>
+      <div><h2>{title}</h2></div>
       <TimedGameStatus session={session} />
     </header>
     <div className={styles.columnLabels}><span>순위 · 학생</span><span>평균 타수</span><span>현재 스테이지</span></div>

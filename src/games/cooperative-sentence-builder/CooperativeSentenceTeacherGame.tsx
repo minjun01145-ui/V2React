@@ -29,7 +29,7 @@ export default function CooperativeSentenceTeacherGame({ roomId, session }: Teac
   if (teams.error) return <StatusPanel title="조 현황 연결 오류" tone="error">{teams.error.message}</StatusPanel>;
   const visible = teams.value.filter((team) => team.status !== "eliminated");
   return <div className={styles.teacher}>
-    <div className={styles.teacherHeading}><div><span>COUPLE SENTENCE</span><h2>커플 문장만들기 현황</h2></div><div className={styles.teacherActions}><Button onClick={() => void turnOnHardMode()} disabled={roundState.loading || !roundState.value || enablingHardMode || roundState.value.hardMode}>{roundState.value?.hardMode ? "빡센모드 활성화됨" : enablingHardMode ? "활성화 중…" : "빡센모드 활성화"}</Button><TimedGameStatus session={session} compact /></div></div>
+    <div className={styles.teacherHeading}><div><h2>커플 문장만들기 현황</h2></div><div className={styles.teacherActions}><Button onClick={() => void turnOnHardMode()} disabled={roundState.loading || !roundState.value || enablingHardMode || roundState.value.hardMode}>{roundState.value?.hardMode ? "빡센모드 활성화됨" : enablingHardMode ? "활성화 중…" : "빡센모드 활성화"}</Button><TimedGameStatus session={session} compact /></div></div>
     {roundState.value?.hardMode ? <StatusPanel title="빡센모드 진행 중" tone="error">각 학생에게 문장당 5초가 주어지며, 시간 초과는 오답으로 처리됩니다.</StatusPanel> : null}
     {teams.loading ? <StatusPanel title="조를 편성하고 있습니다" tone="waiting">학생들을 무작위 음식 조로 나누고 있습니다.</StatusPanel> : null}
     {!teams.loading && visible.length === 0 ? <StatusPanel title="새 조를 기다리는 중" tone="waiting">탈락한 학생들이 새로운 조를 찾고 있습니다.</StatusPanel> : null}

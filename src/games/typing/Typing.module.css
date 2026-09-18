@@ -1,6 +1,5 @@
 .game { min-height:min(760px,calc(100dvh - 2rem)); padding:clamp(1rem,3vw,2rem); border-radius:1.75rem; color:#18233d; background:radial-gradient(circle at 12% 10%,rgba(143,221,255,.38),transparent 24%),radial-gradient(circle at 90% 18%,rgba(194,163,255,.3),transparent 28%),linear-gradient(145deg,#f8fbff,#eef0ff); }
 .topbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; max-width:920px; margin:0 auto 1rem; }
-.topbar span { color:#5865d8; font-size:.72rem; font-weight:950; letter-spacing:.15em; }
 .topbar h1 { margin:.16rem 0 0; font-size:clamp(1.45rem,4vw,2.25rem); letter-spacing:-.04em; }
 .score { min-width:74px; padding:.55rem .75rem; border:1px solid rgba(88,101,216,.15); border-radius:1rem; background:rgba(255,255,255,.82); text-align:center; box-shadow:0 8px 24px rgba(59,69,133,.08); }
 .score small { display:block; color:#79829b; font-size:.68rem; font-weight:800; }

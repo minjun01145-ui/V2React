@@ -72,7 +72,6 @@
 .modalBackdrop { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(13,38,42,.66); backdrop-filter: blur(7px); }
 .quizCard, .collectionCard, .itemCard, .captureResultCard { position: relative; width: min(100%, 510px); max-height: min(90vh, 720px); overflow: auto; padding: 30px; border: 5px solid white; border-radius: 24px 8px 24px 8px; background: #fffdf4; box-shadow: 0 22px 0 rgba(8,31,34,.2); animation: modalIn .26s cubic-bezier(.2,1.25,.4,1); }
 .captureResultCard { text-align: center; background: radial-gradient(circle at 50% 12%,#fff7b7 0 13%,transparent 34%),#fffdf4; }
-.captureResultEyebrow { color: #e7474e; font-size: .7rem; font-weight: 1000; letter-spacing: .18em; }
 .captureResultCard h2 { margin: 5px 0 12px; font-size: clamp(1.8rem,7vw,2.5rem); }
 .captureResultHero { display: flex; justify-content: center; align-items: center; gap: 18px; min-height: 190px; }
 .captureResultSprite { width: 180px; height: 180px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 10px 3px rgba(13,55,50,.18)); animation: caughtBounce 1.8s ease-in-out infinite; }
@@ -109,7 +108,6 @@
 .aiReply p { margin: 0; }
 .aiReply small { font-weight: 750; }
 .closeButton { position: absolute; right: 15px; top: 14px; width: 36px; height: 36px; border: 0; border-radius: 50%; color: white; background: #213f45; font: inherit; font-size: 1.35rem; cursor: pointer; }
-.quizStep { color: #ec464d; font-size: .7rem; font-weight: 1000; letter-spacing: .16em; }
 .quizCard > p { margin: 20px 0 4px; color: #738185; font-weight: 750; }
 .quizCard h2, .collectionCard h2, .itemCard h2 { margin: 3px 0 22px; font-size: clamp(1.8rem,7vw,2.6rem); }
 .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

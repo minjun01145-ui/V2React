@@ -43,7 +43,7 @@ export default function TestStudentViewport({ session, activeSlot, onPrevious, o
       <button type="button" onClick={() => setFrameVersions((current) => ({ ...current, [activeSlot]: (current[activeSlot] ?? 0) + 1 }))}>다시 마운트</button>
     </div>
     <div className={`${styles.device} ${styles[viewport]}`}>
-      <div className={styles.deviceBar}><span /><span /><span /><small>{activeStudent?.studentNumber ?? "TEST"}</small></div>
+      <div className={styles.deviceBar}><span /><span /><span /><small>{activeStudent?.studentNumber ?? "테스트"}</small></div>
       <div className={styles.frameStack}>
         {session.students.map((student) => <iframe
           className={`${styles.studentFrame} ${student.slot === activeSlot ? styles.visibleFrame : styles.hiddenFrame}`}

@@ -10,7 +10,6 @@ import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import PageShell from "../../../shared/PageShell.tsx";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherAiPage.module.css";
 
 interface EditableSettings {
@@ -152,7 +151,7 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
 
       <div className={styles.columns}>
         <Card as="form" className={styles.form} onSubmit={(event) => void submitSettings(event)}>
-          <div><h2>Ollama Cloud</h2><Muted>API 키는 Google Secret Manager에 저장됩니다.</Muted></div>
+          <div><h2>Ollama Cloud</h2></div>
           <label>API 엔드포인트<input value={OLLAMA_CLOUD_ENDPOINT} readOnly /></label>
           <label>API 키<input type="password" autoComplete="new-password" placeholder={saved?.apiKeyConfigured ? "변경할 때만 입력" : "Ollama API 키"} value={apiKey} onChange={(event) => setApiKey(event.target.value)} disabled={Boolean(busy)} /></label>
           <label>모델<input list="ollama-models" maxLength={120} value={settings.model} onChange={(event) => update("model", event.target.value)} disabled={Boolean(busy)} required /></label>

@@ -20,7 +20,6 @@ export function CaptureResultDialog({ pokemon, saving, error, onContinue }: {
 
   return <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-label={`${pokemon.name} 포획 결과`}>
     <section className={styles.captureResultCard}>
-      <span className={styles.captureResultEyebrow}>POKÉMON CAUGHT!</span>
       <h2>{pokemon.name}을(를) 잡았다!</h2>
       <div className={styles.captureResultHero}>
         <PokemonSprite className={styles.captureResultSprite} pokemon={pokemon} alt={pokemon.name} />

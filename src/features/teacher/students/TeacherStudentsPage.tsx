@@ -97,7 +97,6 @@ export default function TeacherStudentsPage({ roomId }: Props) {
 
   const resetPin = async (student: StudentRosterEntry): Promise<void> => {
     const confirmed = await requestConfirmation({
-      eyebrow: "RESET PIN",
       title: `${student.displayName} 학생의 PIN을 초기화할까요?`,
       message: "기존 비밀번호로는 로그인할 수 없으며, 다음 로그인 때 새 숫자 4자리를 설정합니다.",
       tone: "warning",
@@ -113,7 +112,6 @@ export default function TeacherStudentsPage({ roomId }: Props) {
 
   const removeStudent = async (student: StudentRosterEntry): Promise<void> => {
     const confirmed = await requestConfirmation({
-      eyebrow: "DELETE STUDENT",
       title: `${student.studentNumber} ${student.displayName} 학생을 삭제할까요?`,
       message: "명단과 로그인 정보가 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.",
       tone: "error",
@@ -150,7 +148,7 @@ export default function TeacherStudentsPage({ roomId }: Props) {
         <Card as="form" className={styles.form} onSubmit={(event) => void submitBulk(event)}>
           <h2>명단 붙여넣기</h2>
           <Muted>엑셀에서 학번·이름 두 열을 복사하거나 한 줄에 `학번,이름`.</Muted>
-          <label>학생 명단<textarea rows={7} placeholder={'20301\t홍길동\n20302\t김주례'} value={bulkText} onChange={(event) => setBulkText(event.target.value)} disabled={Boolean(busyKey)} required /></label>
+          <label>학생 명단<textarea rows={7} placeholder={'20301\t홍길동\n20302\t김민준'} value={bulkText} onChange={(event) => setBulkText(event.target.value)} disabled={Boolean(busyKey)} required /></label>
           <Button type="submit" disabled={Boolean(busyKey)}>{busyKey === "import" ? "등록 중…" : "반영"}</Button>
         </Card>
       </div>

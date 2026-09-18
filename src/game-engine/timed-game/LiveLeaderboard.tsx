@@ -5,7 +5,6 @@ import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import { createLeaderboard } from "./leaderboard.ts";
 import { TimedGameStatus } from "./TimedGameStatus.tsx";
-import { useTimedGameClock } from "./useTimedGameClock.ts";
 import styles from "./Leaderboard.module.css";
 
 export default function LiveLeaderboard({ roomId, session, title }: {
@@ -15,7 +14,6 @@ export default function LiveLeaderboard({ roomId, session, title }: {
 }) {
   const participants = useRoundParticipants(roomId, session.roundId);
   const progress = useRoundProgress(roomId, session.roundId);
-  const clock = useTimedGameClock(session);
   const entries = useMemo(
     () => createLeaderboard(participants.value, progress.value),
     [participants.value, progress.value],
@@ -25,7 +23,7 @@ export default function LiveLeaderboard({ roomId, session, title }: {
 
   return <section className={styles.board} aria-label={`${title} 실시간 순위`}>
     <header className={styles.header}>
-      <div><span>{clock.expired ? "FINAL RANKING" : "LIVE RANKING"}</span><h2>{title}</h2><p>{clock.expired ? "게임이 종료되었습니다. 최종 순위입니다." : "점수가 저장되는 즉시 순위가 바뀝니다."}</p></div>
+      <div><h2>{title}</h2></div>
       <TimedGameStatus session={session} />
     </header>
     <div className={styles.columnLabels}><span>순위 · 학생</span><span>정답 / 시도</span><span>점수</span></div>

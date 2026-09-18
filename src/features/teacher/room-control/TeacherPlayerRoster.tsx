@@ -22,7 +22,6 @@ export default function TeacherPlayerRoster({ roomId, players, disabled = false 
     if (disabled || removingPlayerId) return;
     const label = displayLabel(player.displayName, player.nickname);
     const confirmed = await requestConfirmation({
-      eyebrow: "REMOVE FROM ROOM",
       title: `${label} 학생을 대기실에서 내보낼까요?`,
       message: "현재 방의 접속만 종료합니다. 학생 명단과 로그인 정보는 삭제되지 않으며, 학생이 원하면 다시 입장할 수 있습니다.",
       tone: "error",

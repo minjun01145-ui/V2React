@@ -82,7 +82,6 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const forceStart = async (): Promise<void> => {
     if (!preparingRoundId || working) return;
     const confirmed = await requestConfirmation({
-      eyebrow: "FORCE START",
       title: `현재 ${readyCount}/${expectedCount}명 접속 상태로 시작할까요?`,
       message: "아직 응답하지 않은 학생은 나중에 연결되면 진행 중인 게임에 합류할 수 있습니다.",
       tone: "warning",

@@ -430,12 +430,11 @@ export default function OneOnOneBattleStudentGame({
 
     <div className={styles.topbar}>
       <div>
-        <span>MY RECORD</span>
-        <strong>Kills {state.kills} · Deaths {state.deaths}</strong>
+        <strong>승리 {state.kills} · 패배 {state.deaths}</strong>
       </div>
       <Hearts count={state.hearts} />
       <div>
-        <span>BATTLE TURNS</span>
+        <span>진행</span>
         <strong>{state.questionNumber} / {state.turnLimit}</strong>
       </div>
     </div>

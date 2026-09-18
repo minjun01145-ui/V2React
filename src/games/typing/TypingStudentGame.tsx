@@ -25,7 +25,7 @@ function TypingPlayArea({ roomId, session, player, set }: StudentGameModuleProps
 
   return <main className={styles.game}>
     <header className={styles.topbar}>
-      <div><span>TYPING</span><h1>{game.setTitle}</h1></div>
+      <div><h1>{game.setTitle}</h1></div>
       <div className={styles.score}><small>완료</small><strong>{game.progress.correctCount}</strong></div>
     </header>
 

@@ -6,7 +6,6 @@ export type PopupInputValues = Readonly<Record<string, string>>;
 export interface PopupBaseOptions {
   readonly title: string;
   readonly message?: ReactNode;
-  readonly eyebrow?: string;
   readonly tone?: PopupTone;
   readonly blurBackground?: boolean;
   readonly closeOnBackdrop?: boolean;

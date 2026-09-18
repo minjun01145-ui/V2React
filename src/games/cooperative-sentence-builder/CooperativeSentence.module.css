@@ -31,7 +31,6 @@
 .correct { color: #047857; background: #d1fae5; }
 .incorrect { color: #be123c; background: #ffe4e6; }
 .complete { display: grid; justify-items: center; gap: .8rem; padding: clamp(2rem, 8vw, 5rem) 1rem; text-align: center; border-radius: 1.25rem; background: linear-gradient(145deg, #ecfdf5, #eff6ff); }
-.complete > span { font-weight: 950; letter-spacing: .16em; color: #0f766e; }
 .complete h1, .complete h2, .complete p { margin: 0; }
 .complete h1 { font-size: clamp(2rem, 7vw, 4rem); }
 .partners { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
