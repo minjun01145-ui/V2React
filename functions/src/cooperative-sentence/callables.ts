@@ -1,5 +1,5 @@
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
-import { db } from "../shared/firebase.js";
+import { requireAdminForRoom, requireRoomCaller } from "../shared/auth.js";
 import { isRecord } from "../shared/validation.js";
 import { enableHardMode, ensureRound, expireTurn, refreshMatch, submitSentence } from "./service.js";
 import type { CooperativeExpireInput, CooperativeInput, CooperativeSubmitInput } from "./types.js";
@@ -13,21 +13,7 @@ function parseBase(value: unknown): CooperativeInput {
   return { roomId, roundId };
 }
 async function authorize(request: CallableRequest<unknown>, input: CooperativeInput): Promise<string> {
-  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
-  const uid = request.auth.uid;
-  const admin = await db.collection("admins").doc(uid).get();
-  const adminData: unknown = admin.exists ? admin.data() : null;
-  if (isRecord(adminData) && adminData.active !== false) return uid;
-  const player = await db.collection("multiplayerSessions").doc(input.roomId).collection("players").doc(uid).get();
-  if (!player.exists) throw new HttpsError("permission-denied", "이 방의 학생이 아닙니다.");
-  return uid;
-}
-async function authorizeAdmin(request: CallableRequest<unknown>): Promise<string> {
-  if (!request.auth) throw new HttpsError("unauthenticated", "관리자 로그인이 필요합니다.");
-  const admin = await db.collection("admins").doc(request.auth.uid).get();
-  const data: unknown = admin.exists ? admin.data() : null;
-  if (!isRecord(data) || data.active === false) throw new HttpsError("permission-denied", "관리자 권한이 없습니다.");
-  return request.auth.uid;
+  return requireRoomCaller(request, input.roomId);
 }
 function parseSubmit(value: unknown): CooperativeSubmitInput {
   const base = parseBase(value);
@@ -51,5 +37,5 @@ function parseExpire(value: unknown): CooperativeExpireInput {
 export const ensureCooperativeRound = onCall(options, async (request) => { const input = parseBase(request.data); await authorize(request, input); await ensureRound(input); return { ok: true }; });
 export const refreshCooperativeMatch = onCall(options, async (request) => { const input = parseBase(request.data); await authorize(request, input); await refreshMatch(input); return { ok: true }; });
 export const submitCooperativeSentence = onCall(options, async (request) => { const input = parseSubmit(request.data); const uid = await authorize(request, input); return submitSentence(uid, input); });
-export const enableCooperativeHardMode = onCall(options, async (request) => { const input = parseBase(request.data); await authorizeAdmin(request); await enableHardMode(input); return { ok: true }; });
+export const enableCooperativeHardMode = onCall(options, async (request) => { const input = parseBase(request.data); await requireAdminForRoom(request, input.roomId); await enableHardMode(input); return { ok: true }; });
 export const expireCooperativeTurn = onCall(options, async (request) => { const input = parseExpire(request.data); const uid = await authorize(request, input); return expireTurn(uid, input); });

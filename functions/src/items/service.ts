@@ -2,6 +2,7 @@ import { FieldValue, type Transaction } from "firebase-admin/firestore";
 import { HttpsError, type CallableRequest } from "firebase-functions/v2/https";
 import { requireAnonymous } from "../shared/auth.js";
 import { db } from "../shared/firebase.js";
+import { effectiveTenantId, tenantAccountId } from "../shared/tenant.js";
 import {
   consumeStoredSharedItem,
   grantStoredSharedItem,
@@ -29,10 +30,11 @@ export async function requireStudentItemAccount(request: CallableRequest<unknown
   }
 
   const profile = await db.collection("studentProfiles").doc(uid).get();
-  if (!profile.exists || profile.data()?.studentNumber !== token.studentNumber) {
+  const tenantId = effectiveTenantId(token.tenantId);
+  if (!profile.exists || profile.data()?.studentNumber !== token.studentNumber || effectiveTenantId(profile.data()?.tenantId) !== tenantId) {
     throw new HttpsError("permission-denied", "학생 계정 정보가 일치하지 않습니다.");
   }
-  return token.studentNumber;
+  return tenantAccountId(tenantId, token.studentNumber);
 }
 
 export async function readStudentItemInventory(accountId: string): Promise<StoredSharedItemInventory> {

@@ -36,8 +36,10 @@ const roundPath = `${sessionPath}/rounds/${scope.roundId}`;
 const responsePath = `${roundPath}/freeResponses/student-1`;
 const progressPath = `${roundPath}/progress/student-1`;
 const participantPath = `${roundPath}/participants/student-1`;
+const playerPath = `${sessionPath}/players/student-1`;
 const documents = new Map([
-  [sessionPath, session], [participantPath, { playerId: "student-1", studentNumber: "1", displayName: "학생 1" }],
+  [sessionPath, session], [playerPath, { playerId: "student-1", studentNumber: "1", displayName: "학생 1" }],
+  [participantPath, { playerId: "student-1", studentNumber: "1", displayName: "학생 1" }],
   ["admins/teacher-1", { active: true }], ["admins/inactive-teacher", { active: false }],
 ]);
 function snapshot(path) { return { exists: documents.has(path), data: () => documents.get(path) }; }

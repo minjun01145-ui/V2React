@@ -6,6 +6,8 @@ import {
 } from "../items/service.js";
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
+import { belongsToTenant, effectiveTenantId, type TenantId } from "../shared/tenant.js";
+import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { evaluateBattleAnswer } from "./aiEvaluator.js";
 import { parseBattleGameConfig, resolveBattleQuestionSide } from "./config.js";
 import {
@@ -152,6 +154,7 @@ async function validateRound(input: BattleInput) {
   return {
     sessionRef,
     setId,
+    tenantId: effectiveTenantId(data.tenantId),
     sessionData: data,
     battleConfig: parseBattleGameConfig(rawGameConfig),
   };
@@ -349,12 +352,13 @@ function opponentId(match: StoredBattleMatch, playerId: string): string | null {
 }
 
 export async function ensureRound(input: BattleInput): Promise<void> {
-  const { sessionRef, setId } = await validateRound(input);
-  const metadata = await db.collection("learningSets").doc(setId).get();
-  const content = await db.collection("learningSets").doc(setId).collection("content").doc("main").get();
+  const { sessionRef, setId, tenantId } = await validateRound(input);
+  const setRef = tenantLearningSetsCollection(tenantId).doc(setId);
+  const metadata = await setRef.get();
+  const content = await setRef.collection("content").doc("main").get();
   const meta: unknown = metadata.data();
 
-  if (!isRecord(meta) || (meta.type !== "vocabulary" && meta.type !== "reading-chunks")) {
+  if (!isRecord(meta) || !belongsToTenant(meta.tenantId, tenantId) || (meta.type !== "vocabulary" && meta.type !== "reading-chunks")) {
     throw new HttpsError("failed-precondition", "1:1 배틀은 단어 또는 끊어읽기 세트가 필요합니다.");
   }
 
@@ -532,15 +536,21 @@ export async function refreshMatch(input: BattleInput): Promise<void> {
   });
 }
 
-async function loadItems(setId: string) {
-  const content = await db.collection("learningSets").doc(setId).collection("content").doc("main").get();
+async function loadItems(setId: string, tenantId: TenantId) {
+  const setRef = tenantLearningSetsCollection(tenantId).doc(setId);
+  const [metadata, content] = await Promise.all([
+    setRef.get(),
+    setRef.collection("content").doc("main").get(),
+  ]);
+  const meta: unknown = metadata.exists ? metadata.data() : null;
+  if (!isRecord(meta) || !belongsToTenant(meta.tenantId, tenantId)) throw new HttpsError("permission-denied", "이 사용자의 학습 세트가 아닙니다.");
   return items(content.data());
 }
 
 export async function issueQuestion(uid: string, input: BattleIssueInput) {
-  const { sessionRef, setId, sessionData, battleConfig } = await validateRound(input);
+  const { sessionRef, setId, tenantId, sessionData, battleConfig } = await validateRound(input);
   assertTime(sessionData);
-  const allItems = await loadItems(setId);
+  const allItems = await loadItems(setId, tenantId);
   const roundRef = sessionRef.collection("rounds").doc(input.roundId);
   const rewardItemId = rollBattleReward();
 
@@ -899,9 +909,9 @@ export async function submitAnswer(
 }
 
 export async function expirePhase(uid: string, input: BattleExpireInput) {
-  const { sessionRef, setId, sessionData, battleConfig } = await validateRound(input);
+  const { sessionRef, setId, tenantId, sessionData, battleConfig } = await validateRound(input);
   assertTime(sessionData);
-  const allItems = await loadItems(setId);
+  const allItems = await loadItems(setId, tenantId);
   const roundRef = sessionRef.collection("rounds").doc(input.roundId);
   const rewardItemId = rollBattleReward();
 

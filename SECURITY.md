@@ -24,6 +24,8 @@ AI provider key는 Google Secret Manager에서 관리하고 서버만 사용합�
 
 Firestore Rules를 실제 권한 경계로 취급합니다. 외부 입력은 서버 또는 repository 경계에서 검증하며, 권한이 필요한 서버 작업도 독립적으로 호출자 권한을 확인합니다. 공개 읽기가 허용된 classroom content에는 개인정보나 비밀을 저장하지 않습니다.
 
+URL의 tenant 값은 화면과 데이터 경로를 선택할 뿐 권한을 부여하지 않습니다. 관리자 tenant는 `admins/{uid}`, 학생 tenant는 서버가 발급한 custom claim과 학생 profile, 수업 tenant는 session 문서에서 확인하며 Rules와 privileged callable이 이 값을 서로 대조합니다. 사용자별 학생 데이터와 교사 작성 학습 데이터는 tenant 경계를 넘어서 읽거나 수정할 수 없어야 합니다.
+
 테스트용 임시 신원과 참가 비밀은 실제 학생 신원·권한과 격리하고 허용된 테스트 방과 소유자 범위로 제한합니다. 참가 비밀을 URL이나 영속 저장소에 노출하지 않습니다.
 
 ## Integrity limitation

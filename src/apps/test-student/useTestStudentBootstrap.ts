@@ -7,6 +7,7 @@ import {
 } from "../../classroom-test/protocol.ts";
 import { joinMultiplayerTestSession } from "../../classroom-test-client/repository.ts";
 import { auth } from "../../firebase/firebaseClient.ts";
+import { effectiveTenantId } from "../../tenant/scope.ts";
 
 interface BootstrapState {
   readonly roomId: string;
@@ -54,12 +55,13 @@ export function useTestStudentBootstrap(): BootstrapResult {
       void (async () => {
           const credential = auth.currentUser?.isAnonymous ? { user: auth.currentUser } : await signInAnonymously(auth);
           const joined = await joinMultiplayerTestSession(message.runId, message.roomId, message.student);
-          await credential.user.getIdToken(true);
+          const token = await credential.user.getIdTokenResult(true);
           if (credential.user.uid !== joined.uid || joined.slot !== slot) throw new Error("테스트 학생 인증 정보가 일치하지 않습니다.");
           setValue({
             roomId: message.roomId,
             identity: {
               uid: joined.uid,
+              tenantId: effectiveTenantId(token.claims.tenantId),
               studentNumber: joined.studentNumber,
               displayName: joined.displayName,
             },

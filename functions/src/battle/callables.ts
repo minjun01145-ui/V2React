@@ -1,6 +1,6 @@
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
 import { requireStudentItemAccount } from "../items/service.js";
-import { db } from "../shared/firebase.js";
+import { requireRoomCaller } from "../shared/auth.js";
 import { isRecord } from "../shared/validation.js";
 import {
   ensureRound,
@@ -106,20 +106,7 @@ function useItem(value: unknown): BattleUseItemInput {
 }
 
 async function authorize(request: CallableRequest<unknown>, input: BattleInput) {
-  if (!request.auth) throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
-  const uid = request.auth.uid;
-  const admin = await db.collection("admins").doc(uid).get();
-  if (admin.exists && admin.data()?.active !== false) return uid;
-  if (
-    !(await db.collection("multiplayerSessions")
-      .doc(input.roomId)
-      .collection("players")
-      .doc(uid)
-      .get()).exists
-  ) {
-    throw new HttpsError("permission-denied", "이 방의 학생이 아닙니다.");
-  }
-  return uid;
+  return requireRoomCaller(request, input.roomId);
 }
 
 export const ensureBattleRound = onCall(options, async (request) => {

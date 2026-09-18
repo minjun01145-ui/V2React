@@ -2,7 +2,7 @@ import PageShell from "../../../shared/PageShell.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import styles from "./TeacherDashboardPage.module.css";
 
-export default function TeacherDashboardPage({ roomId }: { readonly roomId: string }) {
+export default function TeacherDashboardPage({ roomId, showAiAdmin }: { readonly roomId: string; readonly showAiAdmin: boolean }) {
   return (
     <PageShell title="관리자 홈" roomId={roomId}>
       <div className={styles.grid}>
@@ -18,10 +18,10 @@ export default function TeacherDashboardPage({ roomId }: { readonly roomId: stri
           <h2>학습 세트 편집</h2>
           <a className={styles.link} href="#/sets">열기 →</a>
         </Card>
-        <Card>
+        {showAiAdmin ? <Card>
           <h2>AI API 관리</h2>
           <a className={styles.link} href="#/ai">열기 →</a>
-        </Card>
+        </Card> : null}
         <Card>
           <h2>수업 설정</h2>
           <a className={styles.link} href="#/settings">열기 →</a>

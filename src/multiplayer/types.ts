@@ -1,5 +1,6 @@
 import type { SessionStatus } from "./constants.ts";
 import type { LatestStudentQuestionResult, StudentQuestionActivity } from "../student-question-activity/types.ts";
+import type { TenantId } from "../tenant/scope.ts";
 
 export interface Player {
   readonly id: string;
@@ -15,6 +16,7 @@ export interface Player {
 
 export interface GameSession {
   readonly id: string;
+  readonly tenantId: TenantId;
   readonly roomId: string;
   readonly gameId: string;
   readonly status: SessionStatus;

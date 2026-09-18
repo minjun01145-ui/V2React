@@ -2,6 +2,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { generateAiReply } from "../ai/service.js";
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
+import { effectiveTenantId } from "../shared/tenant.js";
+import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import type { AuthoringHelpInput, AuthoringHelpReply } from "./types.js";
 import { parseConfig, parseHelpReply, parseQuestions, StudentQuestionValidationError } from "./validation.js";
 import { shouldFinalizeStudentQuestionRun, studentQuestionResultSetId } from "./model.js";
@@ -57,8 +59,9 @@ export async function finalizeStudentQuestionRun(roomId: string, runId: string, 
       return { finalized: true, resultSetId: null };
     }
     const resultSetId = studentQuestionResultSetId(roomId, runId);
-    const setRef = db.collection("learningSets").doc(resultSetId);
-    tx.set(setRef, { name: `학생 질문 ${new Date(now).toLocaleDateString("ko-KR")}`, type: "student-questions", itemCount: items.length, schemaVersion: 1, sourceRunId: runId, createdAt: FieldValue.serverTimestamp(), createdAtMs: now, updatedAt: FieldValue.serverTimestamp(), updatedAtMs: now });
+    const tenantId = effectiveTenantId(isRecord(session) ? session.tenantId : null);
+    const setRef = tenantLearningSetsCollection(tenantId).doc(resultSetId);
+    tx.set(setRef, { tenantId, name: `학생 질문 ${new Date(now).toLocaleDateString("ko-KR")}`, type: "student-questions", itemCount: items.length, schemaVersion: 1, sourceRunId: runId, createdAt: FieldValue.serverTimestamp(), createdAtMs: now, updatedAt: FieldValue.serverTimestamp(), updatedAtMs: now });
     tx.set(setRef.collection("content").doc("main"), { items, schemaVersion: 1, updatedAt: FieldValue.serverTimestamp(), updatedAtMs: now });
     tx.set(runRef, { phase: "finalizing", resultSetId, finalizedAt: FieldValue.serverTimestamp(), finalizedAtMs: now }, { merge: true });
     tx.set(sessionRef, { classroomActivity: FieldValue.delete(), latestStudentQuestionResult: { runId, resultSetId, finalizedAtMs: now }, updatedAt: FieldValue.serverTimestamp(), updatedAtMs: now }, { merge: true });

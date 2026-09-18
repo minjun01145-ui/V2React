@@ -1,13 +1,12 @@
-import { collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
-import { db } from "../firebase/firebaseClient.ts";
+import { deleteDoc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
+import { currentTenantConfig } from "../tenant/config.ts";
+import { tenantQuizPlanRef, tenantQuizPlansCollection } from "../tenant/firestoreData.ts";
 import { QUIZ_GAME_SCHEMA_VERSION, type QuizGamePlan, type QuizGamePlanSummary, type SaveQuizGamePlanInput } from "./types.ts";
 import { parseQuizGamePlan, parseQuizGamePlanSummary, validateQuizGameName, validateQuizGameRounds } from "./validation.ts";
 
-const plansRef = collection(db, "quizGamePlans");
-const planRef = (id: string) => doc(db, "quizGamePlans", id);
-
 export async function listQuizGamePlans(): Promise<readonly QuizGamePlanSummary[]> {
-  const snapshot = await getDocs(plansRef);
+  const tenantId = currentTenantConfig().id;
+  const snapshot = await getDocs(tenantQuizPlansCollection(tenantId));
   return snapshot.docs
     .map((item) => parseQuizGamePlanSummary(item.id, item.data()))
     .filter((item): item is QuizGamePlanSummary => item !== null)
@@ -15,7 +14,8 @@ export async function listQuizGamePlans(): Promise<readonly QuizGamePlanSummary[
 }
 
 export async function getQuizGamePlan(id: string): Promise<QuizGamePlan> {
-  const snapshot = await getDoc(planRef(id));
+  const snapshot = await getDoc(tenantQuizPlanRef(currentTenantConfig().id, id));
+  if (!snapshot.exists()) throw new Error("퀴즈 계획을 찾을 수 없습니다.");
   const plan = parseQuizGamePlan(snapshot.id, snapshot.exists() ? snapshot.data() : null);
   if (!plan) throw new Error("퀴즈 계획을 찾을 수 없거나 형식이 올바르지 않습니다.");
   return plan;
@@ -34,10 +34,13 @@ export async function saveQuizGamePlan(input: SaveQuizGamePlanInput): Promise<Qu
     createdAtMs: input.createdAtMs && input.createdAtMs > 0 ? input.createdAtMs : now,
     updatedAtMs: now,
   };
-  await setDoc(planRef(id), { ...plan, updatedAt: serverTimestamp() });
+  await setDoc(tenantQuizPlanRef(currentTenantConfig().id, id), { ...plan, tenantId: currentTenantConfig().id, updatedAt: serverTimestamp() });
   return plan;
 }
 
 export async function deleteQuizGamePlan(id: string): Promise<void> {
-  await deleteDoc(planRef(id));
+  const ref = tenantQuizPlanRef(currentTenantConfig().id, id);
+  const snapshot = await getDoc(ref);
+  if (!snapshot.exists()) throw new Error("퀴즈 계획을 찾을 수 없습니다.");
+  await deleteDoc(ref);
 }

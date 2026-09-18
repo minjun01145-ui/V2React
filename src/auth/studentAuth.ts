@@ -2,6 +2,7 @@ import { deleteUser, onAuthStateChanged, signInAnonymously, signOut, type Unsubs
 import { doc, getDoc, onSnapshot, type DocumentData, type DocumentSnapshot } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { auth, db, functions } from "../firebase/firebaseClient.ts";
+import { effectiveTenantId, type TenantId } from "../tenant/scope.ts";
 import type { StudentCredentials, StudentIdentity, StudentLoginChallenge, StudentPinCredentials } from "./types.ts";
 import { validateStudentCredentials, validateStudentPin } from "./validation.ts";
 
@@ -16,10 +17,11 @@ function parseStudentIdentity(snapshot: DocumentSnapshot<DocumentData>): Student
   const raw: unknown = snapshot.data();
   if (!isRecord(raw)) return null;
   const uid = typeof raw.uid === "string" ? raw.uid : snapshot.id;
+  const tenantId = effectiveTenantId(raw.tenantId);
   const studentNumber = typeof raw.studentNumber === "string" ? raw.studentNumber : "";
   const displayName = typeof raw.displayName === "string" ? raw.displayName : "";
   if (!uid || !studentNumber || !displayName) return null;
-  return { uid, studentNumber, displayName };
+  return { uid, tenantId, studentNumber, displayName };
 }
 
 async function anonymousUser(): Promise<User> {
@@ -30,15 +32,15 @@ async function anonymousUser(): Promise<User> {
   return credential.user;
 }
 
-export async function prepareStudentLogin(credentials: StudentCredentials): Promise<StudentLoginChallenge> {
+export async function prepareStudentLogin(credentials: StudentCredentials, tenantId: TenantId): Promise<StudentLoginChallenge> {
   const validated = validateStudentCredentials(credentials.studentNumber, credentials.name);
   await anonymousUser();
-  const callable = httpsCallable<typeof validated, {
+  const callable = httpsCallable<typeof validated & { readonly tenantId: TenantId }, {
     readonly mode: "pin_setup" | "pin_required";
     readonly studentNumber: string;
     readonly displayName: string;
   }>(functions, "prepareStudentLogin");
-  const response = await callable(validated);
+  const response = await callable({ ...validated, tenantId });
   return {
     studentNumber: response.data.studentNumber,
     name: validated.name,
@@ -47,19 +49,20 @@ export async function prepareStudentLogin(credentials: StudentCredentials): Prom
   };
 }
 
-export async function completeStudentLogin(credentials: StudentPinCredentials): Promise<StudentIdentity> {
+export async function completeStudentLogin(credentials: StudentPinCredentials, tenantId: TenantId): Promise<StudentIdentity> {
   const validated = validateStudentCredentials(credentials.studentNumber, credentials.name);
   const pin = validateStudentPin(credentials.pin);
   const user = await anonymousUser();
-  const callable = httpsCallable<typeof validated & { readonly pin: string }, {
+  const callable = httpsCallable<typeof validated & { readonly pin: string; readonly tenantId: TenantId }, {
     readonly studentNumber: string;
     readonly displayName: string;
     readonly pinWasCreated: boolean;
   }>(functions, "completeStudentLogin");
-  const response = await callable({ ...validated, pin });
+  const response = await callable({ ...validated, pin, tenantId });
   await user.getIdToken(true);
   return {
     uid: user.uid,
+    tenantId,
     studentNumber: response.data.studentNumber,
     displayName: response.data.displayName,
   };
@@ -75,6 +78,12 @@ export function subscribeStudentIdentity(uid: string, onValue: (identity: Studen
 
 export function subscribeStudentAuth(onValue: (user: User | null) => void): Unsubscribe {
   return onAuthStateChanged(auth, onValue);
+}
+
+export async function ensureStudentTenantClaim(user: User): Promise<void> {
+  const callable = httpsCallable<undefined, { readonly tenantId: TenantId }>(functions, "syncStudentTenantClaim");
+  await callable();
+  await user.getIdToken(true);
 }
 
 export async function clearStudentLogin(): Promise<void> {

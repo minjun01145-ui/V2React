@@ -6,18 +6,20 @@ import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { usePopup, type PopupInputValues } from "../../../shared/popup/index.ts";
 import BrandMark from "../../../shared/ui/BrandMark.tsx";
 import Button from "../../../shared/ui/Button.tsx";
+import { tenantHref, type TenantConfig } from "../../../tenant/config.ts";
 import styles from "./StudentLoginPage.module.css";
 
 interface Props {
   readonly roomId: string;
+  readonly tenant: TenantConfig;
   readonly onAuthenticated: (identity: StudentIdentity) => void;
 }
 
-function teacherUrl(roomId: string): string {
-  return `/teacher/?room=${encodeURIComponent(roomId)}`;
+function teacherUrl(roomId: string, tenant: TenantConfig): string {
+  return tenantHref("/teacher/", tenant.id, { room: roomId });
 }
 
-export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
+export default function StudentLoginPage({ roomId, tenant, onAuthenticated }: Props) {
   const [studentNumber, setStudentNumber] = useState("");
   const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -76,7 +78,7 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
             studentNumber: challenge.studentNumber,
             name: challenge.name,
             pin: values.pin ?? "",
-          });
+          }, tenant.id);
           onAuthenticated(identity);
           return null;
         } catch (value: unknown) {
@@ -92,7 +94,7 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
     setSubmitting(true);
     setError("");
     try {
-      const prepared = await prepareStudentLogin({ studentNumber, name });
+      const prepared = await prepareStudentLogin({ studentNumber, name }, tenant.id);
       await requestPin(prepared);
     } catch (value: unknown) {
       setError(toErrorMessage(value, "학번과 이름을 다시 확인해 주세요."));
@@ -104,8 +106,8 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <a className={styles.brand} href="/" aria-label="민준쌤 게임기 V2R 홈">
-          <BrandMark className={styles.brandMark} />
+        <a className={styles.brand} href={tenantHref("/", tenant.id)} aria-label={`${tenant.brandAlt} 홈`}>
+          <BrandMark className={styles.brandMark} tenant={tenant} />
         </a>
 
         <div className={styles.loginPanel}>
@@ -149,7 +151,7 @@ export default function StudentLoginPage({ roomId, onAuthenticated }: Props) {
             <Button type="submit" full disabled={submitting}>{submitting ? "확인 중…" : "로그인"}</Button>
           </form>
 
-          <a className={styles.adminLink} href={teacherUrl(roomId)}>관리자 페이지</a>
+          <a className={styles.adminLink} href={teacherUrl(roomId, tenant)}>관리자 페이지</a>
         </div>
       </div>
     </main>

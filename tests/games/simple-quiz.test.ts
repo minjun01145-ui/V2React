@@ -22,6 +22,7 @@ const vocabularySet: LearningSet = {
 function session(gameConfig: Readonly<Record<string, unknown>> | null): ActiveGameSession {
   return {
     id: "session-1",
+    tenantId: "minjun",
     roomId: "room-1",
     gameId: "simple-quiz",
     status: "playing",

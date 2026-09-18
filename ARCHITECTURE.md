@@ -39,5 +39,6 @@ server-only auth, secrets and privileged operations
 9. 순환 의존성과 명백한 역할 역참조는 허용하지 않습니다.
 10. 구현 세부사항은 코드와 테스트가 source of truth입니다.
 11. `live-world` 코어는 캐릭터 에셋, 맵, 렌더러, React, Firebase를 알지 않습니다. 구체 게임은 이동 상태를 계산하고, transport adapter가 실시간 전송만 담당합니다.
+12. 사용자별 브랜딩과 데이터 범위는 `tenant` 및 repository/auth 경계에서 결정합니다. 게임·게임 엔진·공용 AI 실행 코드는 tenant별로 복제하거나 분기하지 않습니다.
 
 기존 의존 경계 검사는 `npm run check:architecture`로 실행합니다. 파일별 책임, 저장 스키마와 게임 규칙은 해당 코드와 테스트에서 확인합니다.

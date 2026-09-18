@@ -1,9 +1,11 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { signInAdmin } from "../../../auth/teacherAuth.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
+import { tenantHref, type TenantConfig } from "../../../tenant/config.ts";
 import styles from "./AdminLoginPage.module.css";
 
-export default function AdminLoginPage() {
+export default function AdminLoginPage({ tenant }: { readonly tenant: TenantConfig }) {
+  const [email, setEmail] = useState(tenant.adminAuthEmail ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [working, setWorking] = useState(false);
@@ -15,7 +17,7 @@ export default function AdminLoginPage() {
     setWorking(true);
     setError("");
     try {
-      await signInAdmin(password);
+      await signInAdmin(tenant.adminAuthEmail ?? email, password, tenant.id);
       setPassword("");
     } catch (value: unknown) {
       setPassword("");
@@ -27,12 +29,13 @@ export default function AdminLoginPage() {
 
   return (
     <main className={styles.page}>
-      <a className={styles.backLink} href="/">← 학생 화면으로</a>
+      <a className={styles.backLink} href={tenantHref("/", tenant.id)}>← 학생 화면으로</a>
 
       <section className={styles.panel} aria-labelledby="admin-login-title">
         <h1 id="admin-login-title">관리자 로그인</h1>
 
         <form className={styles.form} onSubmit={(event) => void submit(event)}>
+          {!tenant.adminAuthEmail ? <label htmlFor="admin-email">이메일<input id="admin-email" name="email" type="email" autoComplete="username" value={email} onChange={(event: ChangeEvent<HTMLInputElement>) => setEmail(event.target.value)} disabled={working} required autoFocus /></label> : null}
           <label htmlFor="admin-password">비밀번호</label>
           <div className={styles.passwordField}>
             <input
@@ -45,7 +48,7 @@ export default function AdminLoginPage() {
               onChange={(event: ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)}
               disabled={working}
               required
-              autoFocus
+              autoFocus={Boolean(tenant.adminAuthEmail)}
             />
             <button
               type="button"

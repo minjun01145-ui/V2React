@@ -8,8 +8,9 @@ import TeacherRoomController from "../room-control/TeacherRoomController.tsx";
 import styles from "./TeacherTestToolPage.module.css";
 import TestStudentViewport from "./TestStudentViewport.tsx";
 import { useMultiplayerTestTool } from "./useMultiplayerTestTool.ts";
+import type { TenantConfig } from "../../../tenant/config.ts";
 
-export default function TeacherTestToolPage({ roomId }: { readonly roomId: string }) {
+export default function TeacherTestToolPage({ roomId, tenant }: { readonly roomId: string; readonly tenant: TenantConfig }) {
   const tool = useMultiplayerTestTool();
   const [activeSlot, setActiveSlot] = useState(1);
   const transitioning = tool.phase === "starting" || tool.phase === "stopping";
@@ -33,6 +34,7 @@ export default function TeacherTestToolPage({ roomId }: { readonly roomId: strin
       <TeacherRoomController roomId={tool.session.roomId} embedded />
       <TestStudentViewport
         session={tool.session}
+        tenant={tenant}
         activeSlot={activeSlot}
         onPrevious={() => setActiveSlot((current) => moveTestStudentSlot(current, "previous", tool.session?.students ?? []))}
         onNext={() => setActiveSlot((current) => moveTestStudentSlot(current, "next", tool.session?.students ?? []))}

@@ -1,3 +1,5 @@
+import type { TenantId } from "../tenant/scope.ts";
+
 export interface StudentCredentials {
   readonly studentNumber: string;
   readonly name: string;
@@ -15,6 +17,7 @@ export interface StudentPinCredentials extends StudentCredentials {
 /** Authentication identity only. Do not add badges, stats, inventory, or game progress here. */
 export interface StudentIdentity {
   readonly uid: string;
+  readonly tenantId: TenantId;
   readonly studentNumber: string;
   readonly displayName: string;
 }
@@ -22,6 +25,7 @@ export interface StudentIdentity {
 export interface AdminSession {
   readonly uid: string;
   readonly email: string;
+  readonly tenantId: TenantId;
 }
 
 export interface AuthState<T> {

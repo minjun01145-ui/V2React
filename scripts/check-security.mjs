@@ -42,7 +42,13 @@ function writeClauses(block) {
 
 function isAdminOnlyOrDenied(condition) {
   const normalized = condition.trim();
-  return normalized === "false" || (normalized.includes("isAdmin()") && !normalized.includes("||"));
+  return normalized === "false"
+    || (!normalized.includes("||") && (
+      normalized.includes("isAdmin()")
+      || normalized.includes("isRoomAdmin(roomId)")
+      || normalized.includes("isAdminForTenant(")
+      || normalized.includes("isAdminForStudentAccount(accountId)")
+    ));
 }
 
 const envExample = read(".env.example");
@@ -90,9 +96,9 @@ if (/allow\s+[^:;{}]+:\s*if\s+true\s*;/.test(rules)) {
 }
 const adminRules = matchBlock(rules, "admins");
 const studentProfileRules = matchBlock(rules, "studentProfiles");
-if (!/allow\s+read\s*:\s*if\s+signedIn\(\)\s*&&\s*\(request\.auth\.uid\s*==\s*uid\s*\|\|\s*isAdmin\(\)\)\s*;/.test(adminRules)
+if (!/allow\s+read\s*:\s*if\s+signedIn\(\)\s*&&\s*request\.auth\.uid\s*==\s*uid\s*;/.test(adminRules)
   || !/allow\s+write\s*:\s*if\s+false\s*;/.test(adminRules)
-  || !/allow\s+read\s*:\s*if\s+signedIn\(\)\s*&&\s*\(request\.auth\.uid\s*==\s*uid\s*\|\|\s*isAdmin\(\)\)\s*;/.test(studentProfileRules)
+  || !studentProfileRules.includes("isAdminForTenant(tenantIdFrom(resource.data))")
   || !/allow\s+write\s*:\s*if\s+false\s*;/.test(studentProfileRules)) {
   violations.push("security/firestore.rules.secure: expected authenticated ownership/admin checks are missing");
 }
@@ -110,17 +116,22 @@ if (!denyAll.test(matchBlock(rules, "studentPinCredentials"))) {
 if (!denyAll.test(matchBlock(rules, "aiProviderConfigs"))) {
   violations.push("security/firestore.rules.secure: AI provider settings must be inaccessible to browser clients");
 }
-if (!rules.includes("match /learningSets/{setId}") || !rules.includes("publicLearningSetRead()") || !rules.includes("allow create, update, delete: if isAdmin()")) {
-  violations.push("security/firestore.rules.secure: learning sets must be public-read and admin-write");
+if (!rules.includes("match /learningSets/{setId}")
+  || !rules.includes('allow read: if isTenantReader("minjun")')
+  || !rules.includes("match /tenants/{tenantId}/learningSets/{setId}")
+  || !rules.includes("isAdminForTenant(tenantId)")) {
+  violations.push("security/firestore.rules.secure: learning sets must be isolated by tenant and writable only by that tenant's administrator");
 }
-if (!rules.includes("match /quizGamePlans/{planId}") || !rules.includes("allow read, create, update, delete: if isAdmin()")) {
-  violations.push("security/firestore.rules.secure: quiz game plans must be admin-only");
+if (!rules.includes("match /quizGamePlans/{planId}")
+  || !rules.includes('allow read, create, update, delete: if isAdminForTenant("minjun")')
+  || !rules.includes("match /tenants/{tenantId}/quizGamePlans/{planId}")) {
+  violations.push("security/firestore.rules.secure: quiz game plans must be tenant-admin-only");
 }
 
 const aiCallables = read("functions/src/ai/callables.ts");
 const aiSecretStore = read("functions/src/ai/secretStore.ts");
-if (!aiCallables.includes("requireAdmin(request)")) {
-  violations.push("functions/src/ai/callables.ts: every AI administration callable must require an administrator");
+if (!aiCallables.includes("requirePrimaryAdmin(request)")) {
+  violations.push("functions/src/ai/callables.ts: shared AI administration must be restricted to the primary administrator");
 }
 if (!aiSecretStore.includes("SecretManagerServiceClient") || !aiSecretStore.includes("addSecretVersion")) {
   violations.push("functions/src/ai/secretStore.ts: AI API keys must be stored in Google Secret Manager");
@@ -134,14 +145,25 @@ for (const file of clientFiles) {
 }
 
 const multiplayerTestCallables = read("functions/src/multiplayer-test/callables.ts");
-if ((multiplayerTestCallables.match(/requireAdmin\(request\)/g) ?? []).length < 2) {
+if ((multiplayerTestCallables.match(/requireAdminTenant\(request\)/g) ?? []).length < 2) {
   violations.push("functions/src/multiplayer-test/callables.ts: test session creation and cleanup must both require an administrator");
+}
+
+const realtimeRules = read("security/realtime-database.rules.json");
+if (!realtimeRules.includes('"v2"')
+  || !realtimeRules.includes("auth.token.tenantId === $tenantId")
+  || realtimeRules.includes('"v1"')) {
+  violations.push("security/realtime-database.rules.json: live-world traffic must be isolated by authenticated tenant under v2");
 }
 if (!multiplayerTestCallables.includes("requireAnonymous(request)")) {
   violations.push("functions/src/multiplayer-test/callables.ts: test student joining must start from an isolated anonymous Firebase user");
 }
 if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
   violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
+}
+if (!rules.includes("roomIdMatchesTenant(roomId, tenantIdFrom(request.resource.data))")
+  || !rules.includes("request.resource.data.roomId == roomId")) {
+  violations.push("security/firestore.rules.secure: room creation must bind the physical room ID to its tenant namespace");
 }
 if (!denyAll.test(matchBlock(rules, "multiplayerTestRuns"))) {
   violations.push("security/firestore.rules.secure: multiplayer test run credentials must be server-only");

@@ -1,5 +1,5 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { requireAdmin, requireAnonymous } from "../shared/auth.js";
+import { requireAdminTenant, requireAnonymous } from "../shared/auth.js";
 import { isRecord } from "../shared/validation.js";
 import { createMultiplayerTestRun, joinMultiplayerTestRun, stopMultiplayerTestRun } from "./service.js";
 
@@ -24,13 +24,13 @@ function parseJoinInput(value: unknown): { readonly runId: string; readonly room
 }
 
 export const createMultiplayerTestSession = onCall(callableOptions, async (request) => {
-  const adminUid = await requireAdmin(request);
-  return createMultiplayerTestRun(adminUid);
+  const admin = await requireAdminTenant(request);
+  return createMultiplayerTestRun(admin.uid, admin.tenantId);
 });
 
 export const stopMultiplayerTestSession = onCall(callableOptions, async (request) => {
-  const adminUid = await requireAdmin(request);
-  await stopMultiplayerTestRun(adminUid, parseRunId(request.data));
+  const admin = await requireAdminTenant(request);
+  await stopMultiplayerTestRun(admin.uid, parseRunId(request.data));
   return { ok: true } as const;
 });
 

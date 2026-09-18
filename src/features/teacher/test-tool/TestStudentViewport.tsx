@@ -2,18 +2,20 @@ import { useState } from "react";
 import type { MultiplayerTestSession } from "../../../classroom-test/types.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
+import { tenantHref, type TenantConfig } from "../../../tenant/config.ts";
 import styles from "./TeacherTestToolPage.module.css";
 import { useTestStudentFrames } from "./useTestStudentFrames.ts";
 
 interface Props {
   readonly session: MultiplayerTestSession;
+  readonly tenant: TenantConfig;
   readonly activeSlot: number;
   readonly onPrevious: () => void;
   readonly onNext: () => void;
   readonly onSelectSlot: (slot: number) => void;
 }
 
-export default function TestStudentViewport({ session, activeSlot, onPrevious, onNext, onSelectSlot }: Props) {
+export default function TestStudentViewport({ session, tenant, activeSlot, onPrevious, onNext, onSelectSlot }: Props) {
   const frames = useTestStudentFrames(session);
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("mobile");
   const [frameVersions, setFrameVersions] = useState<Readonly<Record<number, number>>>({});
@@ -48,7 +50,7 @@ export default function TestStudentViewport({ session, activeSlot, onPrevious, o
         {session.students.map((student) => <iframe
           className={`${styles.studentFrame} ${student.slot === activeSlot ? styles.visibleFrame : styles.hiddenFrame}`}
           ref={(frame) => frames.attachFrame(student.slot, frame)}
-          src={`/test-student/?slot=${student.slot}`}
+          src={tenantHref("/test-student/", tenant.id, { slot: String(student.slot) })}
           title={`${student.displayName} 실제 학생 화면`}
           sandbox="allow-scripts allow-same-origin allow-forms"
           key={`${session.runId}-${student.slot}-${frameVersions[student.slot] ?? 0}`}

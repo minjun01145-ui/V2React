@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { auth } from "../../firebase/firebaseClient.ts";
+import { effectiveTenantId, tenantAccountId } from "../../tenant/scope.ts";
 import { equipCharacter, equipPokemon, subscribeStudentCosmetics } from "./repository.ts";
 import { EMPTY_STUDENT_COSMETICS, type EquippedPokemonAvatar, type StudentCosmetics } from "./types.ts";
 
@@ -26,7 +27,9 @@ export function useStudentCosmetics({ uid, studentNumber }: StudentAccount) {
     }
     void user.getIdTokenResult().then((token) => {
       if (!active) return;
-      setAccountId(token.claims.role === "test-student" ? `test-${uid}` : studentNumber);
+      setAccountId(token.claims.role === "test-student"
+        ? `test-${uid}`
+        : tenantAccountId(effectiveTenantId(token.claims.tenantId), studentNumber));
     }).catch((reason: unknown) => {
       if (!active) return;
       setError(reason instanceof Error ? reason : new Error(String(reason)));

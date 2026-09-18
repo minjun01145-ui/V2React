@@ -23,6 +23,8 @@ import { participantIdentity, parseRoundParticipant } from "./round-participants
 import { roundParticipantRef } from "./round-participants/repository.ts";
 import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type PlayerAvatar, type StartSessionOptions } from "./types.ts";
 import { parseLatestStudentQuestionResult, parseStudentQuestionActivity } from "../student-question-activity/codec.ts";
+import { currentTenantConfig } from "../tenant/config.ts";
+import { effectiveTenantId } from "../tenant/scope.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -83,6 +85,7 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
   if (!isRecord(data)) return null;
   return {
     id: snapshot.id,
+    tenantId: effectiveTenantId(data.tenantId),
     roomId: stringValue(data.roomId, snapshot.id),
     gameId: stringValue(data.gameId, appConfig.defaultGameId),
     status: parseStatus(data.status),
@@ -120,12 +123,18 @@ function parsePlayer(snapshot: QueryDocumentSnapshot<DocumentData> | DocumentSna
 }
 
 export async function ensureSession(roomId: string): Promise<void> {
+  const tenantId = currentTenantConfig().id;
   const ref = sessionRef(roomId);
   const snapshot = await getDoc(ref);
-  if (snapshot.exists()) return;
+  if (snapshot.exists()) {
+    const data: unknown = snapshot.data();
+    if (!isRecord(data) || effectiveTenantId(data.tenantId) !== tenantId) throw new Error("이 사용자에게 속한 대기실이 아닙니다.");
+    return;
+  }
   const now = Date.now();
   await setDoc(ref, {
     roomId,
+    tenantId,
     gameId: appConfig.defaultGameId,
     status: SESSION_STATUS.WAITING,
     roundId: null,

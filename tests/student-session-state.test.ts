@@ -10,6 +10,7 @@ import type { GameSession, Player } from "../src/multiplayer/types.ts";
 
 const session: GameSession = {
   id: "room-1",
+  tenantId: "minjun",
   roomId: "room-1",
   gameId: "sentence-builder",
   status: SESSION_STATUS.WAITING,

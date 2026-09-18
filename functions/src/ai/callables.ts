@@ -1,6 +1,6 @@
 import { logger } from "firebase-functions";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { requireAdmin } from "../shared/auth.js";
+import { requirePrimaryAdmin } from "../shared/auth.js";
 import { getAdminAiSettings, generateAiReply, saveAdminAiSettings, testAiProviderConnection } from "./service.js";
 import { AiProviderError } from "./ollamaProvider.js";
 import { AiValidationError, parseAdminTestMessage, parseAiProviderSettings, parseOptionalApiKey } from "./validation.js";
@@ -21,7 +21,7 @@ function callableError(error: unknown): HttpsError {
 }
 
 export const getAiProviderSettings = onCall(readOptions, async (request) => {
-  await requireAdmin(request);
+  await requirePrimaryAdmin(request);
   try {
     return await getAdminAiSettings();
   } catch (error: unknown) {
@@ -30,7 +30,7 @@ export const getAiProviderSettings = onCall(readOptions, async (request) => {
 });
 
 export const saveAiProviderSettings = onCall(readOptions, async (request) => {
-  const adminUid = await requireAdmin(request);
+  const adminUid = await requirePrimaryAdmin(request);
   try {
     return await saveAdminAiSettings(
       parseAiProviderSettings(request.data),
@@ -43,7 +43,7 @@ export const saveAiProviderSettings = onCall(readOptions, async (request) => {
 });
 
 export const testAiConnection = onCall(inferenceOptions, async (request) => {
-  await requireAdmin(request);
+  await requirePrimaryAdmin(request);
   try {
     return await testAiProviderConnection();
   } catch (error: unknown) {
@@ -52,7 +52,7 @@ export const testAiConnection = onCall(inferenceOptions, async (request) => {
 });
 
 export const sendAiTestMessage = onCall(inferenceOptions, async (request) => {
-  await requireAdmin(request);
+  await requirePrimaryAdmin(request);
   try {
     return await generateAiReply(parseAdminTestMessage(request.data).messages);
   } catch (error: unknown) {

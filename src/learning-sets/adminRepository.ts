@@ -1,5 +1,7 @@
-import { doc, serverTimestamp, writeBatch } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../firebase/firebaseClient.ts";
+import { currentTenantConfig } from "../tenant/config.ts";
+import { tenantLearningSetRef } from "../tenant/firestoreData.ts";
 import type { LearningSet, SaveLearningSetInput } from "./types.ts";
 import { validateLearningSetName } from "./validation.ts";
 import { invalidateLearningSetCache } from "./readRepository.ts";
@@ -12,14 +14,17 @@ function validSetId(value: string): string {
 }
 
 export async function saveLearningSet(input: SaveLearningSetInput): Promise<LearningSet> {
+  const tenantId = currentTenantConfig().id;
   const id = validSetId(input.id ?? crypto.randomUUID());
   const name = validateLearningSetName(input.name);
   const now = Date.now();
   const createdAtMs = input.createdAtMs && input.createdAtMs > 0 ? input.createdAtMs : now;
   const items = input.items.map((item) => ({ id: item.id, sourceText: item.sourceText, meaning: item.meaning, ...(item.author ? { author: item.author } : {}) }));
   const batch = writeBatch(db);
-  batch.set(doc(db, "learningSets", id), {
+  const setRef = tenantLearningSetRef(tenantId, id);
+  batch.set(setRef, {
     name,
+    tenantId,
     type: input.type,
     itemCount: items.length,
     schemaVersion: 1,
@@ -28,7 +33,7 @@ export async function saveLearningSet(input: SaveLearningSetInput): Promise<Lear
     updatedAt: serverTimestamp(),
     updatedAtMs: now,
   }, { merge: true });
-  batch.set(doc(db, "learningSets", id, "content", "main"), {
+  batch.set(doc(setRef, "content", "main"), {
     items,
     schemaVersion: 1,
     updatedAt: serverTimestamp(),
@@ -41,9 +46,13 @@ export async function saveLearningSet(input: SaveLearningSetInput): Promise<Lear
 
 export async function deleteLearningSet(setId: string): Promise<void> {
   const id = validSetId(setId);
+  const tenantId = currentTenantConfig().id;
+  const setRef = tenantLearningSetRef(tenantId, id);
+  const metadata = await getDoc(setRef);
+  if (!metadata.exists()) throw new Error("학습 세트를 찾을 수 없습니다.");
   const batch = writeBatch(db);
-  batch.delete(doc(db, "learningSets", id, "content", "main"));
-  batch.delete(doc(db, "learningSets", id));
+  batch.delete(doc(setRef, "content", "main"));
+  batch.delete(setRef);
   await batch.commit();
   invalidateLearningSetCache(id);
 }

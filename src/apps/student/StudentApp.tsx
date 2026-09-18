@@ -7,10 +7,11 @@ import StudentPage from "../../features/student/StudentPage.tsx";
 import StudentLoginPage from "../../features/student/login/StudentLoginPage.tsx";
 import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
 import { PopupProvider } from "../../shared/popup/index.ts";
+import { tenantConfigFromLocation } from "../../tenant/config.ts";
 
-function StudentAppContent() {
+function StudentAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType<typeof tenantConfigFromLocation>> }) {
   const roomId = getRoomIdFromLocation();
-  const authState = useStudentAuth();
+  const authState = useStudentAuth(tenant.id);
   const [claimedIdentity, setClaimedIdentity] = useState<StudentIdentity | null>(null);
   const identity = authState.value ?? claimedIdentity;
 
@@ -20,7 +21,7 @@ function StudentAppContent() {
   if (authState.error && !identity) {
     return <AuthStatusPage title="로그인 정보를 확인할 수 없어요" message="페이지를 새로고침한 뒤 다시 시도해 주세요." error={authState.error.message} />;
   }
-  if (!identity) return <StudentLoginPage roomId={roomId} onAuthenticated={setClaimedIdentity} />;
+  if (!identity) return <StudentLoginPage roomId={roomId} tenant={tenant} onAuthenticated={setClaimedIdentity} />;
 
   return <StudentPage
     roomId={roomId}
@@ -33,5 +34,8 @@ function StudentAppContent() {
 }
 
 export default function StudentApp() {
-  return <PopupProvider><StudentAppContent /></PopupProvider>;
+  const tenant = tenantConfigFromLocation();
+  if (!tenant) return <AuthStatusPage title="사용자 주소를 확인해 주세요" message="등록되지 않은 사용자 주소입니다." />;
+  document.title = tenant.brandAlt;
+  return <PopupProvider><StudentAppContent tenant={tenant} /></PopupProvider>;
 }

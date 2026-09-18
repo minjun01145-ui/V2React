@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypt
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { adminAuth, db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
+import { effectiveTenantId, type TenantId } from "../shared/tenant.js";
 import {
   MULTIPLAYER_TEST_STUDENTS,
   type JoinedMultiplayerTestStudent,
@@ -83,7 +84,7 @@ async function loadActiveRun(adminUid: string): Promise<StoredTestRun | null> {
   return snapshot.exists ? parseStoredTestRun(snapshot.data()) : null;
 }
 
-export async function createMultiplayerTestRun(adminUid: string): Promise<MultiplayerTestSessionResult> {
+export async function createMultiplayerTestRun(adminUid: string, tenantId: TenantId): Promise<MultiplayerTestSessionResult> {
   const previous = await loadActiveRun(adminUid);
   if (previous) await deleteStoredRun(previous);
 
@@ -103,6 +104,7 @@ export async function createMultiplayerTestRun(adminUid: string): Promise<Multip
   const batch = db.batch();
   batch.set(db.collection(SESSION_COLLECTION).doc(roomId), {
     roomId,
+    tenantId,
     gameId: "sentence-builder",
     status: "waiting",
     roundId: null,
@@ -140,8 +142,10 @@ export async function joinMultiplayerTestRun(
   const sessionRef = db.collection(SESSION_COLLECTION).doc(roomId);
   const initialSession = await sessionRef.get();
   const initialData: unknown = initialSession.exists ? initialSession.data() : null;
-  const ownerUid = isRecord(initialData) && typeof initialData.testOwnerUid === "string" ? initialData.testOwnerUid : "";
+  if (!isRecord(initialData)) throw new Error("유효한 테스트 방이 아닙니다.");
+  const ownerUid = typeof initialData.testOwnerUid === "string" ? initialData.testOwnerUid : "";
   if (!ownerUid) throw new Error("유효한 테스트 방이 아닙니다.");
+  const tenantId = effectiveTenantId(initialData.tenantId);
   const runRef = db.collection(TEST_RUN_COLLECTION).doc(ownerUid);
   const student = await db.runTransaction(async (tx) => {
     const [sessionSnapshot, runSnapshot] = await Promise.all([
@@ -168,6 +172,7 @@ export async function joinMultiplayerTestRun(
 
   await adminAuth.setCustomUserClaims(uid, {
     role: "test-student",
+    tenantId,
     testRoomId: roomId,
     testOwnerUid: ownerUid,
     studentNumber: student.studentNumber,

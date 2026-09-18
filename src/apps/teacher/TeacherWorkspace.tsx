@@ -10,11 +10,14 @@ import TeacherSettingsPage from "../../features/teacher/settings/TeacherSettings
 import TeacherStudentsPage from "../../features/teacher/students/TeacherStudentsPage.tsx";
 import TeacherTestToolPage from "../../features/teacher/test-tool/TeacherTestToolPage.tsx";
 import TeacherNav from "./TeacherNav.tsx";
+import type { TenantConfig } from "../../tenant/config.ts";
+import { PRIMARY_TENANT_ID } from "../../tenant/scope.ts";
 import { getTeacherView, TEACHER_VIEW, type TeacherView } from "./teacherRoute.ts";
 
-export default function TeacherWorkspace() {
+export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantConfig }) {
   const [view, setView] = useState<TeacherView>(getTeacherView);
   const roomId = getRoomIdFromLocation();
+  const activeView = tenant.id !== PRIMARY_TENANT_ID && view === TEACHER_VIEW.AI ? TEACHER_VIEW.DASHBOARD : view;
 
   useEffect(() => {
     const handleHashChange = (): void => setView(getTeacherView());
@@ -24,15 +27,15 @@ export default function TeacherWorkspace() {
 
   return (
     <>
-      <TeacherNav currentView={view} onLogout={signOutAdmin} />
-      {view === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
-      {view === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
-      {view === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
-      {view === TEACHER_VIEW.QUIZ_GAME ? <TeacherQuizGamePage roomId={roomId} /> : null}
-      {view === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
-      {view === TEACHER_VIEW.TEST_TOOL ? <TeacherTestToolPage roomId={roomId} /> : null}
-      {view === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
-      {view === TEACHER_VIEW.DASHBOARD ? <TeacherDashboardPage roomId={roomId} /> : null}
+      <TeacherNav currentView={activeView} tenant={tenant} onLogout={signOutAdmin} />
+      {activeView === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
+      {activeView === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
+      {activeView === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
+      {activeView === TEACHER_VIEW.QUIZ_GAME ? <TeacherQuizGamePage roomId={roomId} /> : null}
+      {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
+      {activeView === TEACHER_VIEW.TEST_TOOL ? <TeacherTestToolPage roomId={roomId} tenant={tenant} /> : null}
+      {activeView === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
+      {activeView === TEACHER_VIEW.DASHBOARD ? <TeacherDashboardPage roomId={roomId} showAiAdmin={tenant.id === PRIMARY_TENANT_ID} /> : null}
     </>
   );
 }

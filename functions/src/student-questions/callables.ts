@@ -2,7 +2,7 @@ import { logger } from "firebase-functions";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { AiProviderError } from "../ai/ollamaProvider.js";
-import { requireAdmin, requireAnonymous } from "../shared/auth.js";
+import { requireAdminForRoom, requireRoomStudent } from "../shared/auth.js";
 import { consumeAiTutorTurn } from "../ai-tutor/rateLimit.js";
 import { finalizeStudentQuestionRun as finalizeRun, getAuthoringHelp } from "./service.js";
 import { parseFinalizeInput, parseHelpInput, StudentQuestionValidationError } from "./validation.js";
@@ -16,13 +16,12 @@ function mapped(error: unknown): HttpsError {
   return new HttpsError("internal", "학생 질문 작업을 처리하지 못했습니다.");
 }
 export const getStudentQuestionAuthoringHelp = onCall(options, async (request) => {
-  const uid = requireAnonymous(request);
-  try { const input = parseHelpInput(request.data); await consumeAiTutorTurn(uid); return await getAuthoringHelp(uid, input); } catch (error: unknown) { throw mapped(error); }
+  try { const input = parseHelpInput(request.data); const uid = await requireRoomStudent(request, input.roomId); await consumeAiTutorTurn(uid); return await getAuthoringHelp(uid, input); } catch (error: unknown) { throw mapped(error); }
 });
 export const finalizeStudentQuestionRun = onCall(options, async (request) => {
   try {
     const input = parseFinalizeInput(request.data);
-    const callerUid = input.force ? (await requireAdmin(request), null) : requireAnonymous(request);
+    const callerUid = input.force ? (await requireAdminForRoom(request, input.roomId), null) : await requireRoomStudent(request, input.roomId);
     return await finalizeRun(input.roomId, input.runId, input.force, callerUid);
   } catch (error: unknown) { throw mapped(error); }
 });

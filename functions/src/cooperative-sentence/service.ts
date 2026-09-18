@@ -2,6 +2,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
+import { belongsToTenant, effectiveTenantId, type TenantId } from "../shared/tenant.js";
+import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { hardModeDeadline, isHardModeTurnExpired, partnerDisplayName, shuffled, TEAM_NAMES, teamSizes } from "./model.js";
 import type { CooperativeExpireInput, CooperativeInput, CooperativeSubmitInput, MemberProfile, StoredTeam } from "./types.js";
 
@@ -58,7 +60,15 @@ async function validateRound(input: CooperativeInput) {
   if (!isRecord(data) || data.status !== "playing" || data.roundId !== input.roundId || data.gameId !== GAME_ID) throw new HttpsError("failed-precondition", "진행 중인 커플 문장만들기 라운드가 아닙니다.");
   const setId = isRecord(data.gameConfig) ? string(data.gameConfig.setId) : "";
   if (!setId) throw new HttpsError("failed-precondition", "선택된 끊어읽기 세트가 없습니다.");
-  return { sessionRef, setId, sessionData: data };
+  return { sessionRef, setId, tenantId: effectiveTenantId(data.tenantId), sessionData: data };
+}
+
+async function learningSetContent(setId: string, tenantId: TenantId) {
+  const setRef = tenantLearningSetsCollection(tenantId).doc(setId);
+  const [metadata, content] = await Promise.all([setRef.get(), setRef.collection("content").doc("main").get()]);
+  const metadataData: unknown = metadata.exists ? metadata.data() : null;
+  if (!isRecord(metadataData) || !belongsToTenant(metadataData.tenantId, tenantId)) throw new HttpsError("permission-denied", "이 사용자의 학습 세트가 아닙니다.");
+  return { metadataData, content };
 }
 
 function assertRoundTimeRemaining(sessionData: Record<string, unknown>): void {
@@ -70,10 +80,8 @@ function assertRoundTimeRemaining(sessionData: Record<string, unknown>): void {
 }
 
 export async function ensureRound(input: CooperativeInput): Promise<void> {
-  const { sessionRef, setId } = await validateRound(input);
-  const metadata = await db.collection("learningSets").doc(setId).get();
-  const content = await db.collection("learningSets").doc(setId).collection("content").doc("main").get();
-  const metadataData: unknown = metadata.exists ? metadata.data() : null;
+  const { sessionRef, setId, tenantId } = await validateRound(input);
+  const { metadataData, content } = await learningSetContent(setId, tenantId);
   if (!isRecord(metadataData) || metadataData.type !== "reading-chunks") throw new HttpsError("failed-precondition", "커플 문장만들기는 끊어읽기 세트만 사용할 수 있습니다.");
   const questionCount = questionItems(content.exists ? content.data() : null).length;
   if (questionCount === 0) throw new HttpsError("failed-precondition", "세트에 문항이 없습니다.");
@@ -149,9 +157,9 @@ export async function refreshMatch(input: CooperativeInput): Promise<void> {
 }
 
 export async function submitSentence(uid: string, input: CooperativeSubmitInput) {
-  const { sessionRef, setId, sessionData } = await validateRound(input);
+  const { sessionRef, setId, tenantId, sessionData } = await validateRound(input);
   assertRoundTimeRemaining(sessionData);
-  const content = await db.collection("learningSets").doc(setId).collection("content").doc("main").get();
+  const { content } = await learningSetContent(setId, tenantId);
   const items = questionItems(content.exists ? content.data() : null);
   const roundRef = sessionRef.collection("rounds").doc(input.roundId);
   return db.runTransaction(async (tx) => {

@@ -1,7 +1,7 @@
 import { logger } from "firebase-functions";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { AiProviderError } from "../ai/ollamaProvider.js";
-import { requireAnonymous } from "../shared/auth.js";
+import { requireRoomStudent } from "../shared/auth.js";
 import { consumeAiTutorTurn } from "./rateLimit.js";
 import { evaluateAiTutorTurn } from "./service.js";
 import { AiTutorValidationError, parseAiTutorTurnInput } from "./validation.js";
@@ -20,13 +20,12 @@ function callableError(error: unknown): HttpsError {
 }
 
 export const submitAiTutorTurn = onCall(options, async (request) => {
-  const uid = requireAnonymous(request);
   try {
     const turn = parseAiTutorTurnInput(request.data);
+    const uid = await requireRoomStudent(request, turn.roomId);
     await consumeAiTutorTurn(uid);
     return await evaluateAiTutorTurn(uid, turn);
   } catch (error: unknown) {
     throw callableError(error);
   }
 });
-

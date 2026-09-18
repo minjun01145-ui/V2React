@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { subscribeAdminAuth } from "./teacherAuth.ts";
-import { subscribeStudentAuth, subscribeStudentIdentity } from "./studentAuth.ts";
+import { ensureStudentTenantClaim, subscribeStudentAuth, subscribeStudentIdentity } from "./studentAuth.ts";
+import { effectiveTenantId, type TenantId } from "../tenant/scope.ts";
 import type { AdminSession, AuthState, StudentIdentity } from "./types.ts";
 
-async function hasVerifiedStudentClaim(user: User): Promise<boolean> {
-  const token = await user.getIdTokenResult();
-  return token.claims.role === "student"
+async function hasVerifiedStudentClaim(user: User, tenantId: TenantId): Promise<boolean> {
+  let token = await user.getIdTokenResult();
+  const hasStudentIdentity = token.claims.role === "student"
     && typeof token.claims.studentNumber === "string"
     && typeof token.claims.displayName === "string";
+  if (!hasStudentIdentity) return false;
+  if (token.claims.tenantId === undefined || token.claims.tenantId === null) {
+    await ensureStudentTenantClaim(user);
+    token = await user.getIdTokenResult(true);
+  }
+  return effectiveTenantId(token.claims.tenantId) === tenantId;
 }
 
-export function useStudentAuth(): AuthState<StudentIdentity> {
+export function useStudentAuth(tenantId: TenantId): AuthState<StudentIdentity> {
   const [state, setState] = useState<AuthState<StudentIdentity>>({ value: null, loading: true, error: null });
 
   useEffect(() => {
@@ -29,7 +36,7 @@ export function useStudentAuth(): AuthState<StudentIdentity> {
       }
 
       setState((current) => ({ ...current, loading: true, error: null }));
-      void hasVerifiedStudentClaim(user)
+      void hasVerifiedStudentClaim(user, tenantId)
         .then((verified) => {
           if (currentGeneration !== generation) return;
           if (!verified) {
@@ -38,7 +45,7 @@ export function useStudentAuth(): AuthState<StudentIdentity> {
           }
           stopIdentity = subscribeStudentIdentity(
             user.uid,
-            (identity) => setState({ value: identity, loading: false, error: null }),
+            (identity) => setState({ value: identity?.tenantId === tenantId ? identity : null, loading: false, error: null }),
             (error) => setState({ value: null, loading: false, error }),
           );
         })
@@ -53,16 +60,16 @@ export function useStudentAuth(): AuthState<StudentIdentity> {
       stopIdentity?.();
       stopAuth();
     };
-  }, []);
+  }, [tenantId]);
 
   return state;
 }
 
-export function useAdminAuth(): AuthState<AdminSession> {
+export function useAdminAuth(tenantId: TenantId): AuthState<AdminSession> {
   const [state, setState] = useState<AuthState<AdminSession>>({ value: null, loading: true, error: null });
-  useEffect(() => subscribeAdminAuth(
+  useEffect(() => subscribeAdminAuth(tenantId,
     (admin) => setState({ value: admin, loading: false, error: null }),
     (error) => setState({ value: null, loading: false, error }),
-  ), []);
+  ), [tenantId]);
   return state;
 }
