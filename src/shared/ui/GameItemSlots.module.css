@@ -1,0 +1,75 @@
+
+.slots {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: .5rem;
+  width: min(760px, 100%);
+  margin: .65rem auto 0;
+}
+
+.slots button {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .4rem;
+  min-width: 0;
+  padding: .55rem .65rem;
+  border: 1px solid #86bdd7;
+  border-radius: .85rem;
+  color: #174f70;
+  background: rgba(255,255,255,.9);
+  font: 800 .76rem/1.2 inherit;
+  cursor: pointer;
+  box-shadow: 0 5px 15px rgba(35,105,143,.1);
+}
+
+.slots button:not(:disabled):hover {
+  border-color: #2f91bf;
+  transform: translateY(-1px);
+}
+
+.slots button:disabled {
+  color: #91a7b4;
+  background: rgba(240,246,249,.72);
+  cursor: not-allowed;
+  opacity: .72;
+}
+
+.slots kbd {
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  border-radius: .4rem;
+  color: #fff;
+  background: #287fa9;
+  font: 900 .72rem/1 inherit;
+}
+
+.slots button:disabled kbd {
+  background: #9aadb7;
+}
+
+.slots span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slots b {
+  display: grid;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: #ef6d62;
+}
+
+@media (max-width: 760px) {
+  .slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

@@ -7,6 +7,7 @@ import {
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
 import { evaluateBattleAnswer } from "./aiEvaluator.js";
+import { parseBattleGameConfig, resolveBattleQuestionSide } from "./config.js";
 import {
   BATTLE_INK_BLOCK_MS,
   battleInkTargetId,
@@ -36,7 +37,6 @@ import type {
 const GAME_ID = "one-on-one-battle";
 const HEARTS = 2;
 const CHOOSE_MS = 10_000;
-const ANSWER_MS = 20_000;
 const RESULT_MS = 4_500;
 const SAME_OPPONENT_FALLBACK_MS = 12_000;
 
@@ -67,6 +67,7 @@ function items(value: unknown): BattleItem[] {
   if (!isRecord(value) || !Array.isArray(value.items)) {
     throw new HttpsError("failed-precondition", "학습 세트 문항을 찾을 수 없습니다.");
   }
+
   return value.items.flatMap((raw, index) => {
     if (!isRecord(raw)) return [];
     const source = text(raw.sourceText).replaceAll("/", " ").replace(/\s+/g, " ");
@@ -98,7 +99,6 @@ function storedMatch(value: unknown): StoredBattleMatch | null {
 
   const rawHearts = value.hearts;
   const rawInk = isRecord(value.inkBlockedUntilAtMs) ? value.inkBlockedUntilAtMs : {};
-  const rewardItemId = value.rewardItemId === "ink" ? "ink" : null;
 
   return {
     memberIds,
@@ -122,7 +122,7 @@ function storedMatch(value: unknown): StoredBattleMatch | null {
     expectedAnswer: text(value.expectedAnswer) || null,
     gradingSubmissionId: text(value.gradingSubmissionId) || null,
     eventRevision: integer(value.eventRevision),
-    rewardItemId,
+    rewardItemId: value.rewardItemId === "ink" ? "ink" : null,
     inkBlockedUntilAtMs: Object.fromEntries(
       memberIds.map((id) => [
         id,
@@ -145,9 +145,16 @@ async function validateRound(input: BattleInput) {
     throw new HttpsError("failed-precondition", "진행 중인 1:1 배틀 라운드가 아닙니다.");
   }
 
-  const setId = isRecord(data.gameConfig) ? text(data.gameConfig.setId) : "";
+  const rawGameConfig = isRecord(data.gameConfig) ? data.gameConfig : {};
+  const setId = text(rawGameConfig.setId);
   if (!setId) throw new HttpsError("failed-precondition", "선택된 학습 세트가 없습니다.");
-  return { sessionRef, setId, sessionData: data };
+
+  return {
+    sessionRef,
+    setId,
+    sessionData: data,
+    battleConfig: parseBattleGameConfig(rawGameConfig),
+  };
 }
 
 function assertTime(data: Record<string, unknown>) {
@@ -173,6 +180,7 @@ function assignment(input: {
   const attackerId = input.match.memberIds[input.match.attackerIndex];
   const defenderId = input.match.memberIds[input.match.defenderIndex];
   const blockedUntil = input.match.inkBlockedUntilAtMs[input.playerId] ?? 0;
+
   return {
     playerId: input.playerId,
     matchId: input.matchId,
@@ -530,7 +538,7 @@ async function loadItems(setId: string) {
 }
 
 export async function issueQuestion(uid: string, input: BattleIssueInput) {
-  const { sessionRef, setId, sessionData } = await validateRound(input);
+  const { sessionRef, setId, sessionData, battleConfig } = await validateRound(input);
   assertTime(sessionData);
   const allItems = await loadItems(setId);
   const roundRef = sessionRef.collection("rounds").doc(input.roundId);
@@ -565,14 +573,15 @@ export async function issueQuestion(uid: string, input: BattleIssueInput) {
     const item = allItems.find((candidate) => candidate.id === input.itemId);
     if (!item) throw new HttpsError("not-found", "선택한 문제를 찾을 수 없습니다.");
 
-    const selected = questionText(item, input.side);
+    const selectedSide = resolveBattleQuestionSide(battleConfig.direction, input.side);
+    const selected = questionText(item, selectedSide);
     const now = Date.now();
     const next: StoredBattleMatch = {
       ...match,
       phase: "answering",
-      deadlineAtMs: now + ANSWER_MS,
+      deadlineAtMs: now + battleConfig.answerDurationMs,
       selectedItemId: item.id,
-      selectedSide: input.side,
+      selectedSide,
       prompt: selected.prompt,
       expectedAnswer: selected.expectedAnswer,
       rewardItemId,
@@ -772,7 +781,7 @@ export async function submitAnswer(
   rewardAccountId: string,
   input: BattleSubmitInput,
 ) {
-  const { sessionRef, sessionData } = await validateRound(input);
+  const { sessionRef, sessionData, battleConfig } = await validateRound(input);
   assertTime(sessionData);
   const roundRef = sessionRef.collection("rounds").doc(input.roundId);
 
@@ -840,10 +849,11 @@ export async function submitAnswer(
       ) {
         return;
       }
+
       const next: StoredBattleMatch = {
         ...match,
         phase: "answering",
-        deadlineAtMs: Date.now() + ANSWER_MS,
+        deadlineAtMs: Date.now() + battleConfig.answerDurationMs,
         gradingSubmissionId: null,
       };
       await writeActiveAssignments(tx, roundRef, grading.matchId, next, Date.now());
@@ -889,7 +899,7 @@ export async function submitAnswer(
 }
 
 export async function expirePhase(uid: string, input: BattleExpireInput) {
-  const { sessionRef, setId, sessionData } = await validateRound(input);
+  const { sessionRef, setId, sessionData, battleConfig } = await validateRound(input);
   assertTime(sessionData);
   const allItems = await loadItems(setId);
   const roundRef = sessionRef.collection("rounds").doc(input.roundId);
@@ -925,15 +935,19 @@ export async function expirePhase(uid: string, input: BattleExpireInput) {
         ?? allItems[match.questionNumber % allItems.length];
       if (!item) return { accepted: false };
 
-      const side = match.questionNumber % 2 === 0 ? "source" : "meaning";
-      const selected = questionText(item, side);
+      const requestedSide = match.questionNumber % 2 === 0 ? "source" : "meaning";
+      const selectedSide = resolveBattleQuestionSide(
+        battleConfig.direction,
+        requestedSide,
+      );
+      const selected = questionText(item, selectedSide);
       const now = Date.now();
       const next: StoredBattleMatch = {
         ...match,
         phase: "answering",
-        deadlineAtMs: now + ANSWER_MS,
+        deadlineAtMs: now + battleConfig.answerDurationMs,
         selectedItemId: item.id,
-        selectedSide: side,
+        selectedSide,
         prompt: selected.prompt,
         expectedAnswer: selected.expectedAnswer,
         rewardItemId,

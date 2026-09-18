@@ -1,3 +1,4 @@
+
 import { defineGame, type GameDefinition } from "../game-engine/contracts/gameDefinition.ts";
 
 const definitions = [
@@ -72,6 +73,29 @@ const definitions = [
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     requiresStoredSet: true,
     handlesOwnTimedBoundary: true,
+    settings: [
+      {
+        kind: "select",
+        key: "battle-direction",
+        label: "출제 방향",
+        defaultValue: "free",
+        options: [
+          { value: "free", label: "영작·해석 모두 (학생 선택)" },
+          { value: "translation-only", label: "해석 문제만 (영어 → 한글)" },
+          { value: "composition-only", label: "영작 문제만 (한글 → 영어)" },
+        ],
+      },
+      {
+        kind: "select",
+        key: "battle-answer-seconds",
+        label: "문제 푸는 시간",
+        defaultValue: "20",
+        options: [10, 20, 30, 40].map((seconds) => ({
+          value: String(seconds),
+          label: `${seconds}초`,
+        })),
+      },
+    ],
     loadStudent: () => import("./one-on-one-battle/OneOnOneBattleStudentGame.tsx"),
     loadTeacher: () => import("./one-on-one-battle/OneOnOneBattleTeacherGame.tsx"),
   }),

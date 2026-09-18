@@ -1,21 +1,182 @@
-.game { width: min(900px, calc(100% - 28px)); margin: 24px auto; display: grid; gap: 18px; }
-.topbar { display: flex; justify-content: space-between; align-items: end; gap: 16px; }
-.topbar span, .eyebrow { color: #6553d7; font-weight: 800; letter-spacing: .08em; }
-.topbar h1 { margin: 4px 0 0; }
-.metrics { display: flex; gap: 16px; align-items: center; }
-.metrics strong { font-size: 1.25rem; }
-.questionCard { padding: clamp(22px, 5vw, 42px); background: linear-gradient(135deg, #fff 0%, #f2efff 100%); }
-.questionCard h2 { margin: 12px 0; font-size: clamp(1.7rem, 5vw, 3rem); line-height: 1.25; }
-.guide { margin: 0; color: #625f70; }
-.answerForm { display: grid; gap: 10px; }
-.answerForm label { font-weight: 800; }
-.answerForm textarea { width: 100%; box-sizing: border-box; resize: vertical; border: 2px solid #d8d3ee; border-radius: 16px; padding: 16px; font: inherit; background: #fff; }
-.answerForm textarea:focus { outline: 3px solid #dcd5ff; border-color: #6553d7; }
-.feedback { border-radius: 18px; padding: 20px; background: #f4f2ff; border: 1px solid #d8d1ff; }
-.feedback[data-kind="correct"] { background: #eaf9ef; border-color: #a9dfb9; }
-.feedback[data-kind="retry"] { background: #fff8e5; border-color: #ead18a; }
-.feedback[data-kind="off-topic"] { background: #f2f2f4; border-color: #d4d4d8; }
-.feedback p { margin: 8px 0; line-height: 1.55; }
-.error { color: #a32626; font-weight: 700; }
-@media (max-width: 620px) { .topbar { align-items: start; flex-direction: column; } .metrics { width: 100%; justify-content: space-between; } }
-.author { margin:.25rem 0; color:var(--color-muted); font-weight:800; }
+
+.game {
+  width: min(1080px, calc(100% - 20px));
+  margin: 10px auto;
+  display: grid;
+  gap: 10px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar span,
+.eyebrow {
+  color: #6553d7;
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.topbar h1 {
+  margin: 2px 0 0;
+  font-size: clamp(1.15rem, 2.5vw, 1.55rem);
+  line-height: 1.2;
+}
+
+.metrics {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.metrics strong {
+  font-size: 1.08rem;
+}
+
+.questionCard {
+  padding: clamp(14px, 2.5vw, 22px);
+  background: linear-gradient(135deg, #fff 0%, #f2efff 100%);
+}
+
+.questionCard h2 {
+  margin: 6px 0;
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  line-height: 1.28;
+}
+
+.guide {
+  margin: 0;
+  color: #625f70;
+  font-size: .86rem;
+  line-height: 1.35;
+}
+
+.author {
+  margin: .18rem 0;
+  color: var(--color-muted);
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.answerForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.answerForm label {
+  grid-column: 1 / -1;
+  font-size: .9rem;
+  font-weight: 800;
+}
+
+.answerForm textarea {
+  width: 100%;
+  min-height: 78px;
+  max-height: 150px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 2px solid #d8d3ee;
+  border-radius: 12px;
+  padding: 11px 12px;
+  font: inherit;
+  line-height: 1.4;
+  background: #fff;
+}
+
+.answerForm textarea:focus {
+  outline: 3px solid #dcd5ff;
+  border-color: #6553d7;
+}
+
+.feedback {
+  border-radius: 14px;
+  padding: 12px 14px;
+  background: #f4f2ff;
+  border: 1px solid #d8d1ff;
+}
+
+.feedback[data-kind="correct"] {
+  background: #eaf9ef;
+  border-color: #a9dfb9;
+}
+
+.feedback[data-kind="retry"] {
+  background: #fff8e5;
+  border-color: #ead18a;
+}
+
+.feedback[data-kind="off-topic"] {
+  background: #f2f2f4;
+  border-color: #d4d4d8;
+}
+
+.feedback p {
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.error {
+  margin: 0;
+  color: #a32626;
+  font-weight: 700;
+}
+
+@media (max-height: 800px) and (min-width: 700px) {
+  .game {
+    margin: 6px auto;
+    gap: 7px;
+  }
+
+  .questionCard {
+    padding: 11px 15px;
+  }
+
+  .questionCard h2 {
+    margin: 4px 0;
+    font-size: clamp(1.08rem, 2.3vw, 1.55rem);
+  }
+
+  .guide {
+    font-size: .8rem;
+  }
+
+  .answerForm {
+    gap: 6px;
+  }
+
+  .answerForm textarea {
+    min-height: 64px;
+    padding: 9px 10px;
+  }
+
+  .feedback {
+    padding: 9px 12px;
+    font-size: .9rem;
+  }
+}
+
+@media (max-width: 620px) {
+  .topbar {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .metrics {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .answerForm {
+    grid-template-columns: 1fr;
+  }
+
+  .answerForm label {
+    grid-column: auto;
+  }
+}

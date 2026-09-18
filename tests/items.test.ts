@@ -15,6 +15,10 @@ import {
   canUseBattleInk,
 } from "../src/games/one-on-one-battle/battleSharedItems.ts";
 import {
+  parseBattleGameConfig,
+  resolveBattleQuestionSide,
+} from "../src/games/one-on-one-battle/config.ts";
+import {
   ACID_RAIN_SHARED_ITEM_EFFECTS,
   acidRainItemEffect,
   acidRainPersistentItemId,
@@ -87,6 +91,23 @@ assert.equal(canUseBattleInk("answering", "attacker"), true);
 assert.equal(canUseBattleInk("choosing", "attacker"), false);
 assert.equal(canUseBattleInk("answering", "defender"), false);
 assert.equal(canUseBattleInk("grading", "attacker"), false);
+
+assert.deepEqual(parseBattleGameConfig({}), {
+  direction: "free",
+  answerSeconds: 20,
+  answerDurationMs: 20_000,
+});
+assert.deepEqual(parseBattleGameConfig({
+  "battle-direction": "translation-only",
+  "battle-answer-seconds": "30",
+}), {
+  direction: "translation-only",
+  answerSeconds: 30,
+  answerDurationMs: 30_000,
+});
+assert.equal(resolveBattleQuestionSide("translation-only", "source"), "meaning");
+assert.equal(resolveBattleQuestionSide("composition-only", "meaning"), "source");
+assert.equal(resolveBattleQuestionSide("free", "source"), "source");
 
 assert.equal(getSharedItemDefinition("ink").name, "먹물");
 assert.equal(getSharedItemDefinition("bomb").emoji, "💣");
