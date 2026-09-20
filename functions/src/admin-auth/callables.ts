@@ -3,7 +3,7 @@ import { requireAdminTenant } from "../shared/auth.js";
 import { adminAuth, db } from "../shared/firebase.js";
 import type { TenantId } from "../shared/tenant.js";
 
-const callableOptions = { region: "asia-northeast3", enforceAppCheck: false } as const;
+const callableOptions = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public" } as const;
 
 const BOOTSTRAP_ADMINS: Readonly<Record<string, { readonly email: string; readonly tenantId: TenantId }>> = Object.freeze({
   "9fk18smCbqPFK03L6pf3G1e0e8v1": Object.freeze({

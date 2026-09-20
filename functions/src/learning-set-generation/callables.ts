@@ -4,7 +4,7 @@ import { AiProviderError } from "../ai/ollamaProvider.js";
 import { requireAdminTenant } from "../shared/auth.js";
 import { generateLearningSetDraft, LearningSetGenerationError } from "./service.js";
 
-const options = { region: "asia-northeast3", enforceAppCheck: false, timeoutSeconds: 300, maxInstances: 3, memory: "512MiB" } as const;
+const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public", timeoutSeconds: 300, maxInstances: 3, memory: "512MiB" } as const;
 
 function callableError(error: unknown): HttpsError {
   if (error instanceof HttpsError) return error;

@@ -16,7 +16,7 @@ import type {
   WordUnoStage,
 } from "./types.js";
 
-const options = { region: "asia-northeast3", enforceAppCheck: false, timeoutSeconds: 120 } as const;
+const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public", timeoutSeconds: 120 } as const;
 
 function base(value: unknown): WordUnoBaseInput {
   if (!isRecord(value)) throw new HttpsError("invalid-argument", "Word UNO 정보가 없습니다.");
