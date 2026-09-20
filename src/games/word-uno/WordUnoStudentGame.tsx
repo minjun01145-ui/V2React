@@ -17,7 +17,22 @@ import Card from "../../shared/ui/Card.tsx";
 import styles from "./WordUno.module.css";
 
 const ROUND_DURATION_MS = 3 * 60_000;
-const TURN_DURATION_MS = 10_000;
+const TURN_DURATION_MS = 20_000;
+
+type OpponentSeat = "left" | "top" | "right";
+
+function opponentSeat(index: number, count: number): OpponentSeat {
+  if (count <= 1) return "top";
+  if (count === 2) return index === 0 ? "left" : "right";
+  return (["left", "top", "right"] as const)[index] ?? "top";
+}
+
+function CardBackStack({ count }: { readonly count: number }) {
+  return <div className={styles.cardBackStack} aria-label={`${count}장의 카드`}>
+    {Array.from({ length: Math.min(3, count) }, (_unused, index) => <span aria-hidden="true" key={index} />)}
+    <strong>{count}장</strong>
+  </div>;
+}
 
 function actionLabel(kind: "skip" | "draw-two" | "wild"): string {
   if (kind === "skip") return "SKIP";
@@ -165,6 +180,9 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
     }
   };
 
+  const opponents = state.members.filter((member) => member.playerId !== player.id);
+  const self = memberById.get(player.id);
+
   return <div className={styles.shell} data-colors={colorsEnabled ? "on" : "off"}>
     <div className={styles.gameHeader}>
       <div><span>{state.groupLabel ?? "Word UNO"}</span><strong>{isMyTurn ? "내 차례" : `${memberById.get(state.currentPlayerId ?? "")?.nickname ?? "다른 친구"} 차례`}</strong></div>
@@ -176,24 +194,48 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
       ? <DeadlineCountdownBar deadlineAtMs={state.turnDeadlineAtMs} durationMs={TURN_DURATION_MS} label="턴 남은 시간" />
       : null}
 
-    <div className={styles.memberStrip}>
-      {state.members.map((member) => <div key={member.playerId} data-current={member.playerId === state.currentPlayerId}>
-        <strong>{member.nickname}</strong><span>{member.handCount}장</span>{member.rank ? <em>{member.rank}등</em> : null}
+    <div className={styles.unoTableScene} aria-label="Word UNO 게임 테이블">
+      {opponents.map((member, index) => <div
+        className={styles.opponentSeat}
+        data-seat={opponentSeat(index, opponents.length)}
+        data-current={member.playerId === state.currentPlayerId}
+        key={member.playerId}
+      >
+        <div className={styles.seatHeading}>
+          <strong>{member.nickname}</strong>
+          {member.rank ? <em>{member.rank}등</em> : member.playerId === state.currentPlayerId ? <em>현재 차례</em> : null}
+        </div>
+        <CardBackStack count={member.handCount} />
       </div>)}
-    </div>
 
-    <div className={styles.tableArea}>
-      <div className={styles.topCardWrap}>
-        <span>바닥 카드</span>
-        {state.topCard
-          ? <div className={styles.cardFace} data-stage={state.topCard.kind === "word" ? state.topCard.stage : undefined} data-kind={state.topCard.kind}><CardFace card={state.topCard} showFamily /></div>
-          : <div className={styles.emptyCard}>카드 준비 중</div>}
+      <div className={styles.tableCenter}>
+        <div className={styles.feltTable}>
+          <button
+            type="button"
+            className={styles.drawPileButton}
+            onClick={() => void draw()}
+            disabled={!isMyTurn || busy || turnCountdown?.expired}
+            aria-label="카드 한 장 뽑기"
+          >
+            <span>WORD</span><strong>UNO</strong><small>한 장 뽑기</small>
+          </button>
+          <div className={styles.discardArea}>
+            <span>PLAY</span>
+            {state.topCard
+              ? <div className={styles.cardFace} data-stage={state.topCard.kind === "word" ? state.topCard.stage : undefined} data-kind={state.topCard.kind}><CardFace card={state.topCard} showFamily /></div>
+              : <div className={styles.emptyCard}>카드 준비 중</div>}
+          </div>
+        </div>
+        <div className={styles.tableRule}>
+          <strong>{isMyTurn ? "내 차례 · 카드를 내거나 덱을 눌러 한 장 뽑으세요." : "차례를 기다리고 있습니다."}</strong>
+          {state.activeFamilyForms ? <span>같은 단어 변화: {state.activeFamilyForms.join(" → ")}</span> : null}
+          <span>SKIP과 +2는 언제든 낼 수 있으며 현재 단계는 바뀌지 않습니다.</span>
+        </div>
       </div>
-      <Card className={styles.ruleCard}>
-        <strong>{isMyTurn ? "카드를 내거나 한 장 뽑으세요." : "차례를 기다리고 있습니다."}</strong>
-        {state.activeFamilyForms ? <span>같은 단어 변화: {state.activeFamilyForms.join(" → ")}</span> : null}
-        <span>SKIP과 +2는 언제든 낼 수 있으며 현재 단계는 바뀌지 않습니다.</span>
-      </Card>
+
+      <div className={styles.selfSeat} data-current={isMyTurn}>
+        <span>나</span><strong>{self?.nickname ?? player.nickname ?? "내 카드"}</strong><em>{state.hand.length}장</em>
+      </div>
     </div>
 
     {actionError ? <p className={styles.actionError} role="alert">{actionError}</p> : null}
@@ -205,7 +247,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
     </Card> : null}
 
     <section className={styles.handSection} aria-label="내 카드">
-      <div className={styles.handHeading}><div><span>내 카드</span><strong>{state.hand.length}장</strong></div><Button onClick={() => void draw()} disabled={!isMyTurn || busy || turnCountdown?.expired}>한 장 뽑기</Button></div>
+      <div className={styles.handHeading}><div><span>내 카드</span><strong>{state.hand.length}장</strong></div><span className={styles.handHint}>낼 카드가 없으면 테이블의 덱을 눌러 뽑으세요.</span></div>
       <div className={styles.hand} key={shakeRevision} data-shake={Boolean(actionError)}>
         {state.hand.map((card) => <button
           type="button"

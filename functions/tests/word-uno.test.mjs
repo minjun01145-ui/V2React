@@ -120,6 +120,7 @@ assert.equal(created.activeFamilyId, created.discardPile[0]?.familyId);
 assert.equal(created.currentPlayerId, "a");
 assert.equal(created.turnDeadlineAtMs, 1_000 + WORD_UNO_TURN_MS);
 assert.equal(WORD_UNO_ROUND_MS, 180_000);
+assert.equal(WORD_UNO_TURN_MS, 20_000);
 
 assert.equal(isPlayableCard(word("same-stage", "x", 1), 1, "family"), true);
 assert.equal(isPlayableCard(word("same-family", "family", 3), 1, "family"), true);

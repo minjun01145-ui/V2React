@@ -12,7 +12,7 @@ import type {
 export const WORD_UNO_HAND_SIZE = 7;
 export const WORD_UNO_FAMILY_SLOTS = 30;
 export const WORD_UNO_ROUND_MS = 180_000;
-export const WORD_UNO_TURN_MS = 10_000;
+export const WORD_UNO_TURN_MS = 20_000;
 
 export class WordUnoRuleError extends Error {}
 
