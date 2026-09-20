@@ -65,6 +65,21 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.testOwnerUid == request.auth.token.testOwnerUid;
     }
 
+    // Test iframes keep a live listener on their room document. During teardown the
+    // server deletes that document before the iframe unmounts; allow that exact test
+    // identity to observe the final "document missing" snapshot without weakening
+    // access to any existing room or nested game data.
+    function isDeletedTestRoomReader(roomId) {
+      return signedIn()
+        && request.auth.token.role == "test-student"
+        && request.auth.token.studentNumber is string
+        && request.auth.token.displayName is string
+        && request.auth.token.testOwnerUid is string
+        && request.auth.token.testRoomId == roomId
+        && validTenantId(authTenantId())
+        && !exists(/databases/$(database)/documents/multiplayerSessions/$(roomId));
+    }
+
     function isRoomStudent(roomId) {
       return (
         isRosterStudent()
@@ -355,7 +370,7 @@ service cloud.firestore {
     }
 
     match /multiplayerSessions/{roomId} {
-      allow read: if isRoomStudent(roomId) || isRoomAdmin(roomId);
+      allow read: if isRoomStudent(roomId) || isRoomAdmin(roomId) || isDeletedTestRoomReader(roomId);
       allow create: if validTenantId(tenantIdFrom(request.resource.data))
         && roomIdMatchesTenant(roomId, tenantIdFrom(request.resource.data))
         && request.resource.data.roomId == roomId

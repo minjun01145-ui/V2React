@@ -161,6 +161,10 @@ if (!multiplayerTestCallables.includes("requireAnonymous(request)")) {
 if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
   violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
 }
+if (!rules.includes("isDeletedTestRoomReader(roomId)")
+  || !rules.includes("!exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))")) {
+  violations.push("security/firestore.rules.secure: test-session teardown may expose only the deleted room's final snapshot to its bound test identity");
+}
 if (!rules.includes("roomIdMatchesTenant(roomId, tenantIdFrom(request.resource.data))")
   || !rules.includes("request.resource.data.roomId == roomId")) {
   violations.push("security/firestore.rules.secure: room creation must bind the physical room ID to its tenant namespace");
