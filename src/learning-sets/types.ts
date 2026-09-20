@@ -1,6 +1,7 @@
 export const LEARNING_SET_TYPE = Object.freeze({
   VOCABULARY: "vocabulary",
   READING_CHUNKS: "reading-chunks",
+  FORM_CHANGES: "form-changes",
   STUDENT_QUESTIONS: "student-questions",
 } as const);
 
@@ -14,6 +15,8 @@ export interface LearningSetItem {
   readonly id: string;
   readonly sourceText: string;
   readonly meaning: string;
+  readonly form2?: string;
+  readonly form3?: string;
   readonly author?: {
     readonly studentNumber: string;
     readonly displayName: string;
@@ -53,6 +56,7 @@ export interface SaveLearningSetInput {
 
 export function learningSetTypeLabel(type: LearningSetType): string {
   if (type === LEARNING_SET_TYPE.READING_CHUNKS) return "끊어읽기";
+  if (type === LEARNING_SET_TYPE.FORM_CHANGES) return "단어 변화형";
   if (type === LEARNING_SET_TYPE.STUDENT_QUESTIONS) return "학생 질문";
   return "단어";
 }

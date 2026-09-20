@@ -2,7 +2,7 @@ import { doc, getDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { db } from "../firebase/firebaseClient.ts";
 import { currentTenantConfig } from "../tenant/config.ts";
 import { tenantLearningSetRef } from "../tenant/firestoreData.ts";
-import type { LearningSet, SaveLearningSetInput } from "./types.ts";
+import { LEARNING_SET_TYPE, type LearningSet, type SaveLearningSetInput } from "./types.ts";
 import { validateLearningSetName } from "./validation.ts";
 import { invalidateLearningSetCache } from "./readRepository.ts";
 
@@ -19,7 +19,13 @@ export async function saveLearningSet(input: SaveLearningSetInput): Promise<Lear
   const name = validateLearningSetName(input.name);
   const now = Date.now();
   const createdAtMs = input.createdAtMs && input.createdAtMs > 0 ? input.createdAtMs : now;
-  const items = input.items.map((item) => ({ id: item.id, sourceText: item.sourceText, meaning: item.meaning, ...(item.author ? { author: item.author } : {}) }));
+  const items = input.items.map((item) => ({
+    id: item.id,
+    sourceText: item.sourceText,
+    meaning: item.meaning,
+    ...(input.type === LEARNING_SET_TYPE.FORM_CHANGES ? { form2: item.form2, form3: item.form3 } : {}),
+    ...(item.author ? { author: item.author } : {}),
+  }));
   const batch = writeBatch(db);
   const setRef = tenantLearningSetRef(tenantId, id);
   batch.set(setRef, {

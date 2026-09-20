@@ -30,8 +30,16 @@ export async function testAiProviderConnection(): Promise<AiModelListResult> {
   return listOllamaCloudModels(settings, apiKey);
 }
 
-export async function generateAiReply(messages: readonly AiMessage[]): Promise<AiChatResult> {
+export async function generateAiReply(
+  messages: readonly AiMessage[],
+  options: { readonly minimumOutputTokens?: number } = {},
+): Promise<AiChatResult> {
   assertAiMessages(messages);
   const { settings, apiKey } = await readyProvider();
-  return sendOllamaCloudChat(settings, apiKey, messages);
+  const minimumOutputTokens = Math.min(4096, Math.max(0, Math.trunc(options.minimumOutputTokens ?? 0)));
+  return sendOllamaCloudChat(
+    minimumOutputTokens > settings.maxOutputTokens ? { ...settings, maxOutputTokens: minimumOutputTokens } : settings,
+    apiKey,
+    messages,
+  );
 }

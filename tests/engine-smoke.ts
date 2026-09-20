@@ -63,6 +63,7 @@ const game = defineGame({
 });
 assert.deepEqual(game.supportedSetTypes, ["reading-chunks"]);
 assert.equal(game.timing, "timed", "새 게임은 기본적으로 시간제여야 합니다.");
+assert.equal(game.fixedTimedMode, null);
 assert.equal(game.minimumSetItemCount, 1);
 assert.deepEqual(game.minimumSetItemCountByType, {});
 assert.deepEqual(game.settings, []);
@@ -82,6 +83,8 @@ assert.equal(simpleQuiz.settings[0]?.key, "choice-count");
 assert.equal(simpleQuiz.settings[0]?.defaultValue, "4");
 const pokemonCatch = getGame("pokemon-catch");
 assert.equal(pokemonCatch.timing, "timed", "포켓몬 잡기는 공용 시간제 게임 계약을 사용해야 합니다.");
+const wordUno = getGame("word-uno");
+assert.equal(wordUno.fixedTimedMode, "3-minutes", "Word UNO는 3분 고정 시간제를 사용해야 합니다.");
 const invalidGame = {
   id: "Bad Game",
   title: "x",

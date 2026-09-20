@@ -100,6 +100,27 @@ const definitions = [
     loadTeacher: () => import("./one-on-one-battle/OneOnOneBattleTeacherGame.tsx"),
   }),
   defineGame({
+    id: "word-uno",
+    title: "Word UNO",
+    timing: "timed",
+    fixedTimedMode: "3-minutes",
+    supportedSetTypes: ["form-changes"],
+    requiresStoredSet: true,
+    handlesOwnTimedBoundary: true,
+    settings: [{
+      kind: "select",
+      key: "word-uno-colors",
+      label: "카드 색상",
+      defaultValue: "on",
+      options: [
+        { value: "on", label: "켜기" },
+        { value: "off", label: "끄기" },
+      ],
+    }],
+    loadStudent: () => import("./word-uno/WordUnoStudentGame.tsx"),
+    loadTeacher: () => import("./word-uno/WordUnoTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "simple-quiz",
     title: "심플퀴즈",
     supportedSetTypes: ["vocabulary"],

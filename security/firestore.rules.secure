@@ -564,6 +564,27 @@ service cloud.firestore {
           allow write: if false;
         }
 
+        // Word UNO의 덱·상대 손패·턴 원본 상태는 서버와 교사에게만 공개한다.
+        // 학생은 본인 손패와 공개 그룹 정보만 담긴 assignment 문서만 읽는다.
+        match /wordUnoState/{documentId} {
+          allow read: if isRoomAdmin(roomId);
+          allow write: if false;
+        }
+
+        match /wordUnoGroups/{groupId} {
+          allow read: if isRoomAdmin(roomId);
+          allow write: if false;
+        }
+
+        match /wordUnoAssignments/{uid} {
+          allow read: if isRoomAdmin(roomId) || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow write: if false;
+        }
+
+        match /wordUnoOperations/{uid}/items/{operationId} {
+          allow read, write: if false;
+        }
+
         match /answers/{answerId} {
           allow read: if isRoomAdmin(roomId);
           allow create: if isRoomStudent(roomId)

@@ -71,7 +71,7 @@ export function useGameSetup(refreshKey: string | null = null): GameSetupState {
 
   const buildGameConfig = (): Readonly<Record<string, unknown>> => {
     const baseConfig: Readonly<Record<string, unknown>> = { ...(selectedSet ? { setId: selectedSet.id } : {}), ...settingValues };
-    return selectedGame.timing === "timed" ? withTimedGameConfig(baseConfig, timedMode) : baseConfig;
+    return selectedGame.timing === "timed" ? withTimedGameConfig(baseConfig, selectedGame.fixedTimedMode ?? timedMode) : baseConfig;
   };
 
   return {

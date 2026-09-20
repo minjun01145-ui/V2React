@@ -6,13 +6,14 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node tests/architecture.test.mjs && node tests/pin.test.mjs && node tests/ollama-provider.test.mjs && node tests/ai-tutor.test.mjs && node tests/free-response.test.mjs && node tests/student-questions.test.mjs && node tests/cooperative-sentence.test.mjs && node tests/battle.test.mjs && node tests/items.test.mjs && node tests/acid-rain-items.test.mjs",
+    "test": "npm run build && node tests/architecture.test.mjs && node tests/pin.test.mjs && node tests/ollama-provider.test.mjs && node tests/learning-set-generation.test.mjs && node tests/word-uno.test.mjs && node tests/ai-tutor.test.mjs && node tests/free-response.test.mjs && node tests/student-questions.test.mjs && node tests/cooperative-sentence.test.mjs && node tests/battle.test.mjs && node tests/items.test.mjs && node tests/acid-rain-items.test.mjs",
     "deploy": "npm run build && firebase deploy --only functions"
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^7.0.0",
     "firebase-admin": "^14.2.0",
-    "firebase-functions": "^7.3.2"
+    "firebase-functions": "^7.3.2",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

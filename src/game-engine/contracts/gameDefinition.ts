@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { ActiveGameSession, GameSession, Player } from "../../multiplayer/types.ts";
+import type { TimedGameMode } from "../timed-game/config.ts";
 
 export type TeacherGameModuleProps = {
   readonly role: "teacher";
@@ -54,13 +55,14 @@ export interface GameDefinition {
   readonly preloadPlayerProgress: boolean;
   readonly supportsFiniteQuizQuestions: boolean;
   readonly handlesOwnTimedBoundary: boolean;
+  readonly fixedTimedMode: TimedGameMode | null;
   readonly presentQuizQuestion?: (item: GameQuizQuestionInput, config: Readonly<Record<string, string>>) => GameQuizQuestionPresentation;
   readonly prepareStudent?: (context: StudentGamePreparationContext) => Promise<(() => void) | void>;
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions" | "handlesOwnTimedBoundary"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions" | "handlesOwnTimedBoundary" | "fixedTimedMode"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
   readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;
@@ -69,6 +71,7 @@ export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetIte
   readonly preloadPlayerProgress?: boolean;
   readonly supportsFiniteQuizQuestions?: boolean;
   readonly handlesOwnTimedBoundary?: boolean;
+  readonly fixedTimedMode?: TimedGameMode | null;
 };
 
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -115,6 +118,7 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     preloadPlayerProgress: definition.preloadPlayerProgress ?? false,
     supportsFiniteQuizQuestions: definition.supportsFiniteQuizQuestions ?? false,
     handlesOwnTimedBoundary: definition.handlesOwnTimedBoundary ?? false,
+    fixedTimedMode: definition.fixedTimedMode ?? null,
     settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
 }

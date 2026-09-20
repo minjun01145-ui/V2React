@@ -14,7 +14,7 @@ import Card from "../../../shared/ui/Card.tsx";
 import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherQuizGamePage.module.css";
 
-const engines = [...listGames().filter((game) => game.supportedSetTypes.length > 0), getGame("free-response")];
+const engines = [...listGames().filter((game) => game.supportedSetTypes.length > 0 && game.fixedTimedMode === null), getGame("free-response")];
 
 function newRound(index: number): QuizGameRound {
   const game = engines[0] ?? getGame("simple-quiz");
