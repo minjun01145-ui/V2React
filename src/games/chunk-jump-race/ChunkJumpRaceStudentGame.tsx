@@ -91,7 +91,6 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
   readonly course: ReturnType<typeof buildChunkJumpCourse>;
 }) {
   const controllerRef = useRef<ChunkJumpRaceController | null>(null);
-  const feedbackTimerRef = useRef<number | null>(null);
   const choiceEffectTimerRef = useRef<number | null>(null);
   const completedSentenceRef = useRef<{ readonly text: string; readonly meaning: string } | null>(null);
   const storageKey = raceStorageKey(roundId, playerId);
@@ -113,15 +112,8 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
   const expired = clock.expired;
 
   useEffect(() => () => {
-    if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
     if (choiceEffectTimerRef.current !== null) window.clearTimeout(choiceEffectTimerRef.current);
   }, []);
-
-  const clearFeedbackTimer = (): void => {
-    if (feedbackTimerRef.current === null) return;
-    window.clearTimeout(feedbackTimerRef.current);
-    feedbackTimerRef.current = null;
-  };
 
   const choose = (choice: string): void => {
     if (busy || expired) return;
@@ -150,7 +142,6 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
         choiceEffectTimerRef.current = null;
       }
       setCorrectChoice(null);
-      clearFeedbackTimer();
       setFeedback({ kind: "death" });
       setBusy(true);
     }
@@ -180,14 +171,9 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
         if (kind === "correct" && completedSentenceRef.current) {
           const completedSentence = completedSentenceRef.current;
           completedSentenceRef.current = null;
-          clearFeedbackTimer();
           setFeedback(null);
-          const completionEffect = createLearningCompletion(completedSentence);
-          effects.play(completionEffect);
-          feedbackTimerRef.current = window.setTimeout(() => {
-            setBusy(false);
-            feedbackTimerRef.current = null;
-          }, completionEffect.durationMs);
+          effects.play(createLearningCompletion(completedSentence));
+          setBusy(false);
           return;
         }
         completedSentenceRef.current = null;
