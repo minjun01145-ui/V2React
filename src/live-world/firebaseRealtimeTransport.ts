@@ -59,12 +59,6 @@ function parseSnapshot(snapshot: DataSnapshot): LiveMovementSnapshot | null {
   };
 }
 
-function reportInvalidSnapshot(snapshot: DataSnapshot, handlers: LiveMovementTransportHandlers): void {
-  const parsed = parseSnapshot(snapshot);
-  if (parsed) handlers.onSnapshot(parsed);
-  else handlers.onError?.(new Error("Ignored malformed live movement snapshot."));
-}
-
 function livePlayersPath(tenantId: TenantId, scope: LiveWorldScope): string {
   const tenant = pathSegment(tenantId, "tenantId");
   const roomId = pathSegment(scope.roomId, "roomId");
@@ -74,15 +68,26 @@ function livePlayersPath(tenantId: TenantId, scope: LiveWorldScope): string {
 }
 
 function subscribePlayers(
+  database: Database,
   playersRef: ReturnType<typeof ref>,
   handlers: LiveMovementTransportHandlers,
 ): Unsubscribe[] {
+  let serverOffsetMs = 0;
+  const receive = (snapshot: DataSnapshot): void => {
+    const parsed = parseSnapshot(snapshot);
+    if (parsed) handlers.onSnapshot({ ...parsed, sentAtMs: parsed.sentAtMs - serverOffsetMs });
+    else handlers.onError?.(new Error("Ignored malformed live movement snapshot."));
+  };
+  const onError = (error: Error): void => { handlers.onError?.(error); };
   return [
-    onChildAdded(playersRef, (snapshot) => reportInvalidSnapshot(snapshot, handlers)),
-    onChildChanged(playersRef, (snapshot) => reportInvalidSnapshot(snapshot, handlers)),
+    onValue(ref(database, ".info/serverTimeOffset"), (snapshot) => {
+      serverOffsetMs = finiteNumber(snapshot.val()) ?? 0;
+    }, onError),
+    onChildAdded(playersRef, receive, onError),
+    onChildChanged(playersRef, receive, onError),
     onChildRemoved(playersRef, (snapshot) => {
       if (snapshot.key) handlers.onLeave(snapshot.key);
-    }),
+    }, onError),
   ];
 }
 
@@ -112,11 +117,11 @@ export function createFirebaseRealtimeMovementTransport(database: Database, tena
       };
 
       const subscriptions: Unsubscribe[] = [
-        ...subscribePlayers(playersRef, handlers),
+        ...subscribePlayers(database, playersRef, handlers),
         onValue(connectedRef, (snapshot) => {
           if (closed || snapshot.val() !== true) return;
           void onDisconnect(ownRef).remove()
-            .then(() => lastUpdate ? write(lastUpdate) : undefined)
+            .then(() => !closed && lastUpdate ? write(lastUpdate) : undefined)
             .catch((reason: unknown) => {
               handlers.onError?.(reason instanceof Error ? reason : new Error("Live movement reconnect failed."));
             });
@@ -148,7 +153,7 @@ export function createFirebaseRealtimeMovementObserverTransport(database: Databa
       handlers: LiveMovementTransportHandlers,
     ): Promise<LiveMovementObserverConnection> {
       const playersRef = ref(database, livePlayersPath(tenantId, scope));
-      const subscriptions = subscribePlayers(playersRef, handlers);
+      const subscriptions = subscribePlayers(database, playersRef, handlers);
       let closed = false;
       return {
         async close(): Promise<void> {

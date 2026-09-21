@@ -1,17 +1,20 @@
 import type { LiveMovementSnapshot, LiveRemoteFrame } from "./types.ts";
 
 export interface LiveMovementTrack {
-  readonly previous: LiveMovementSnapshot | null;
   readonly latest: LiveMovementSnapshot;
+  readonly snapshots: readonly LiveMovementSnapshot[];
 }
 
 export function appendMovementSnapshot(
   track: LiveMovementTrack | null,
   snapshot: LiveMovementSnapshot,
 ): LiveMovementTrack {
-  if (!track) return { previous: null, latest: snapshot };
+  if (!track) return { latest: snapshot, snapshots: [snapshot] };
   if (snapshot.sequence <= track.latest.sequence) return track;
-  return { previous: track.latest, latest: snapshot };
+  // Two samples cannot cover a delay longer than one publish interval. Keep a
+  // bounded history so a newly arrived packet does not move the render window.
+  const snapshots = track.snapshots.filter((item) => item.sentAtMs < snapshot.sentAtMs).slice(-31);
+  return { latest: snapshot, snapshots: [...snapshots, snapshot] };
 }
 
 function lerp(start: number, end: number, amount: number): number {
@@ -38,7 +41,11 @@ export function sampleMovementTrack(
   renderAtMs: number,
   maxExtrapolationMs: number,
 ): LiveRemoteFrame {
-  const { previous, latest } = track;
+  const first = track.snapshots[0]!;
+  if (renderAtMs <= first.sentAtMs) return frame(first);
+  const upperIndex = track.snapshots.findIndex((snapshot) => snapshot.sentAtMs >= renderAtMs);
+  const latest = upperIndex >= 0 ? track.snapshots[upperIndex]! : track.latest;
+  const previous = upperIndex > 0 ? track.snapshots[upperIndex - 1]! : null;
   if (!previous || latest.sentAtMs <= previous.sentAtMs) {
     const aheadMs = Math.max(0, Math.min(maxExtrapolationMs, renderAtMs - latest.sentAtMs));
     return frame(

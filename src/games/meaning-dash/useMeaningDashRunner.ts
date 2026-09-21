@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createAnswerResult } from "../../game-engine/core/answerResult.ts";
+import { movementAction } from "../../game-engine/input/movementKeys.ts";
 import { applyResultToProgress, createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import type { LiveMovementState } from "../../live-world/core/types.ts";
 import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
@@ -88,6 +89,26 @@ export function useMeaningDashRunner(input: {
   const mountedRef = useRef(true);
 
   useEffect(() => {
+    // StrictMode replays effects; do not reset a round that was already hydrated.
+    if (initializedRoundRef.current === session.roundId) return;
+    const emptyProgress = createEmptyProgress<DashDetails>();
+    targetLaneRef.current = 1;
+    slowUntilRef.current = 0;
+    saveBlockedRef.current = false;
+    runnerRef.current = INITIAL_RUNNER;
+    progressRef.current = emptyProgress;
+    setRunner(INITIAL_RUNNER);
+    setProgress(emptyProgress);
+    setFeedback("");
+    setSaveError(null);
+    setReady(false);
+    if (feedbackTimerRef.current !== null) {
+      window.clearTimeout(feedbackTimerRef.current);
+      feedbackTimerRef.current = null;
+    }
+  }, [session.roundId]);
+
+  useEffect(() => {
     if (remoteProgress.loading || initializedRoundRef.current === session.roundId) return;
     const hydrated = normalizeProgress<DashDetails>(remoteProgress.value, Number.MAX_SAFE_INTEGER);
     const y = hydrated.currentIndex > 0 ? meaningDashGateY(hydrated.currentIndex - 1) + 0.15 : 0;
@@ -100,9 +121,12 @@ export function useMeaningDashRunner(input: {
     setReady(true);
   }, [remoteProgress.loading, remoteProgress.value, session.roundId]);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
-    if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
+    };
   }, []);
 
   const recordGate = useCallback((gateIndex: number, selectedLane: 0 | 1 | 2): void => {
@@ -173,7 +197,7 @@ export function useMeaningDashRunner(input: {
   }, [course, player, roomId, session.gameId, session.roundId]);
 
   useEffect(() => {
-    if (!ready) return undefined;
+    if (!ready || initializedRoundRef.current !== session.roundId) return undefined;
     let animationFrame = 0;
     let lastAt = performance.now();
     const tick = (now: number): void => {
@@ -217,13 +241,16 @@ export function useMeaningDashRunner(input: {
     setRunner((current) => ({ ...current, lane: next }));
   }, []);
 
+  const readyForRound = ready && initializedRoundRef.current === session.roundId;
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.repeat) return;
-      if (event.key === "ArrowLeft" || event.key.toLowerCase() === "a") {
+      if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      const action = movementAction(event.code, event.key);
+      if (action === "left") {
         event.preventDefault();
         moveLane(-1);
-      } else if (event.key === "ArrowRight" || event.key.toLowerCase() === "d") {
+      } else if (action === "right") {
         event.preventDefault();
         moveLane(1);
       }
@@ -242,7 +269,7 @@ export function useMeaningDashRunner(input: {
     progress,
     feedback,
     saveError: saveError ?? remoteProgress.error,
-    ready,
+    ready: readyForRound,
     nextQuestion,
     moveLeft: () => moveLane(-1),
     moveRight: () => moveLane(1),

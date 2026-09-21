@@ -23,6 +23,12 @@ const second: LiveMovementSnapshot = {
   sentAtMs: 1_200,
   state: { x: 2, y: 10, vx: 10, vy: 0 },
 };
+const third: LiveMovementSnapshot = {
+  playerId: "other",
+  sequence: 3,
+  sentAtMs: 1_400,
+  state: { x: 4, y: 10, vx: 10, vy: 0 },
+};
 
 let track = appendMovementSnapshot(null, first);
 track = appendMovementSnapshot(track, second);
@@ -30,6 +36,8 @@ assert.equal(sampleMovementTrack(track, 1_100, 180).x, 1);
 assert.equal(sampleMovementTrack(track, 1_300, 180).x, 3);
 assert.equal(sampleMovementTrack(track, 2_000, 180).x, 3.8, "extrapolation must be capped");
 assert.equal(appendMovementSnapshot(track, first), track, "older packets must not replace the newest sample");
+track = appendMovementSnapshot(track, third);
+assert.equal(sampleMovementTrack(track, 1_100, 180).x, 1, "interpolation delay must retain enough history after newer packets arrive");
 
 class TestTransport implements LiveMovementTransport {
   readonly sent: LiveMovementUpdate[] = [];
@@ -128,5 +136,25 @@ observerTransport.handlers?.onLeave("student");
 assert.deepEqual(observer.samplePlayers(2_000), []);
 await observer.close();
 assert.equal(observerTransport.closed, true);
+
+const lateTransport = new TestTransport();
+const lateEngine = new LiveMovementEngine("self", lateTransport);
+const connecting = lateEngine.connect(
+  { roomId: "room", roundId: "round", channelId: "movement" },
+  { x: 0, y: 0, vx: 0, vy: 0 },
+);
+await lateEngine.close();
+await connecting;
+assert.equal(lateTransport.closed, true, "unmounting during connect must close the eventual connection");
+assert.equal(lateTransport.sent.length, 0, "a closed engine must not publish a ghost player");
+lateTransport.handlers?.onSnapshot(first);
+assert.deepEqual(lateEngine.sampleRemotePlayers(), [], "late callbacks must not restore closed tracks");
+
+const lateObserverTransport = new TestObserverTransport();
+const lateObserver = new LiveMovementObserver(lateObserverTransport);
+const subscribing = lateObserver.connect({ roomId: "room", roundId: "round", channelId: "movement" });
+await lateObserver.close();
+await subscribing;
+assert.equal(lateObserverTransport.closed, true, "an observer closed during subscription must release it");
 
 console.log("live world engine tests passed");

@@ -3,8 +3,6 @@ import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/t
 import { createLiveMovementEngine, createLiveMovementObserver } from "../../live-world/client.ts";
 import { MEANING_DASH_CHANNEL_ID } from "./model.ts";
 
-const SAMPLE_INTERVAL_MS = 50;
-
 export function useMeaningDashPlayerLiveWorld(input: {
   readonly roomId: string;
   readonly roundId: string;
@@ -38,11 +36,14 @@ export function useMeaningDashPlayerLiveWorld(input: {
       setFrames([]);
       return undefined;
     }
-    const timer = window.setInterval(() => {
+    let frame = 0;
+    const sample = (): void => {
       const engine = engineRef.current;
       if (engine) setFrames(engine.sampleRemotePlayers());
-    }, SAMPLE_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+      frame = requestAnimationFrame(sample);
+    };
+    frame = requestAnimationFrame(sample);
+    return () => cancelAnimationFrame(frame);
   }, [enabled]);
 
   const publish = useCallback((state: LiveMovementState): void => {
@@ -73,11 +74,14 @@ export function useMeaningDashObserverLiveWorld(roomId: string, roundId: string)
   }, [roomId, roundId]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    let frame = 0;
+    const sample = (): void => {
       const observer = observerRef.current;
       if (observer) setFrames(observer.samplePlayers());
-    }, SAMPLE_INTERVAL_MS);
-    return () => window.clearInterval(timer);
+      frame = requestAnimationFrame(sample);
+    };
+    frame = requestAnimationFrame(sample);
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   return { frames, error };

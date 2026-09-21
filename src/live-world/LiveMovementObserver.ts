@@ -27,8 +27,9 @@ export class LiveMovementObserver {
   async connect(scope: LiveWorldScope): Promise<void> {
     if (this.connection) throw new Error("Live movement observer is already connected.");
     if (this.closed) throw new Error("Live movement observer has already been closed.");
-    this.connection = await this.transport.subscribe(scope, {
+    const connection = await this.transport.subscribe(scope, {
       onSnapshot: (snapshot) => {
+        if (this.closed) return;
         const current = this.tracks.get(snapshot.playerId) ?? null;
         this.tracks.set(snapshot.playerId, appendMovementSnapshot(current, snapshot));
       },
@@ -37,6 +38,8 @@ export class LiveMovementObserver {
       },
       onError: this.onError,
     });
+    if (this.closed) await connection.close();
+    else this.connection = connection;
   }
 
   samplePlayers(nowMs = Date.now()): readonly LiveRemoteFrame[] {

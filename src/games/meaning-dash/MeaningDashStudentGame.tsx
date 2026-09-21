@@ -70,10 +70,12 @@ function StudentMeaningDashRuntime({
     {live.error ? <div className={styles.connectionError}>실시간 연결 오류: {live.error.message}</div> : null}
     {game.saveError ? <div className={styles.connectionError}>기록 저장 오류: {game.saveError.message}</div> : null}
     {game.feedback ? <div className={styles.feedback}>{game.feedback}</div> : null}
-    <MeaningDashScene course={course} runners={runners} cameraY={game.runner.y} />
+    <div tabIndex={0} aria-label="Meaning Dash 조작 영역" onPointerDown={(event) => event.currentTarget.focus({ preventScroll: true })}>
+      <MeaningDashScene course={course} runners={runners} cameraY={game.runner.y} />
+    </div>
     <div className={styles.controls}>
       <button type="button" onClick={game.moveLeft} aria-label="왼쪽 길로 이동">←</button>
-      <span>← → 또는 A D</span>
+      <span>화면을 누른 뒤 ← → 또는 A D</span>
       <button type="button" onClick={game.moveRight} aria-label="오른쪽 길로 이동">→</button>
     </div>
   </div>;

@@ -73,8 +73,10 @@ export class LiveMovementEngine {
     if (this.connection) throw new Error("Live movement engine is already connected.");
     if (this.closed) throw new Error("Live movement engine has already been closed.");
 
+    const firstState = finiteState(initialState);
     const connection = await this.transport.connect(scope, this.playerId, {
       onSnapshot: (snapshot) => {
+        if (this.closed) return;
         if (snapshot.playerId === this.playerId) return;
         const current = this.tracks.get(snapshot.playerId) ?? null;
         this.tracks.set(snapshot.playerId, appendMovementSnapshot(current, snapshot));
@@ -84,9 +86,12 @@ export class LiveMovementEngine {
       },
       onError: this.onError,
     });
+    if (this.closed) {
+      await connection.close();
+      return;
+    }
     this.connection = connection;
 
-    const firstState = finiteState(initialState);
     this.lastQueuedState = firstState;
     this.sequence += 1;
     await connection.publish({ sequence: this.sequence, state: firstState });

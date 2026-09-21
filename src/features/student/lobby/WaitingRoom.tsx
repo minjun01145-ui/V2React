@@ -5,6 +5,7 @@ import { usePlayers } from "../../../multiplayer/hooks.ts";
 import type { GameSession, PlayerAvatar } from "../../../multiplayer/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Card from "../../../shared/ui/Card.tsx";
+import Button from "../../../shared/ui/Button.tsx";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import CharacterShop from "../shop/CharacterShop.tsx";
 import TypingGameButton from "./TypingGameButton.tsx";
@@ -16,6 +17,7 @@ import StudentWaitingDice from "../../../waiting-dice/StudentWaitingDice.tsx";
 
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
+const LobbyPlatformer = lazy(() => import("../../../games/lobby-platformer/LobbyPlatformer.tsx"));
 
 interface Props {
   readonly roomId: string;
@@ -30,6 +32,7 @@ interface Props {
 export default function WaitingRoom({ roomId, session, selfStudentNumber, displayName, nickname, avatar, uid }: Props) {
   const { activePlayers } = usePlayers(roomId);
   const [typingOpen, setTypingOpen] = useState<"sentence" | "acid-rain" | null>(null);
+  const [platformerOpen, setPlatformerOpen] = useState(false);
   const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
   const typingConfig = savedTypingConfig ?? createWaitingTypingConfig(typingDemoSet.id);
   const activity = session.classroomActivity;
@@ -42,6 +45,17 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
       {typingOpen === "sentence"
         ? <SentencePracticeGame roomId={roomId} nickname={nickname || displayName} config={typingConfig} onExit={() => setTypingOpen(null)} />
         : <TypingPracticeGame config={typingConfig} onExit={() => setTypingOpen(null)} />}
+    </Suspense>;
+  }
+  if (platformerOpen) {
+    return <Suspense fallback={<StatusPanel title="플랫포머 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
+      <LobbyPlatformer
+        roomId={roomId}
+        playerId={uid}
+        label={nickname || displayName}
+        players={activePlayers}
+        onExit={() => setPlatformerOpen(false)}
+      />
     </Suspense>;
   }
   return (
@@ -66,6 +80,7 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
       <div className={styles.actions}>
         <TypingGameButton mode="sentence" onClick={() => setTypingOpen("sentence")} />
         <TypingGameButton mode="acid-rain" onClick={() => setTypingOpen("acid-rain")} />
+        <Button variant="ghost" onClick={() => setPlatformerOpen(true)}>플랫포머 (테스트)</Button>
         {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
       </div>
     </div>

@@ -97,6 +97,7 @@ function WaitingRoomSkeleton({
       <PlayerGrid players={activePlayers} selfStudentNumber={selfStudentNumber} />
       <TypingGameButton mode="sentence" disabled />
       <TypingGameButton mode="acid-rain" disabled />
+      <Button variant="ghost" disabled>플랫포머 (테스트)</Button>
       <Button variant="ghost" disabled>상점 보기</Button>
     </>
   );

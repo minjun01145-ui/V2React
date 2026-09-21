@@ -7,7 +7,7 @@ import {
   meaningDashQuestionForGate,
   type MeaningDashCourse,
 } from "./model.ts";
-import runnerUrl from "./test-runner.svg";
+import runnerUrl from "../../game-engine/assets/test-runner.svg";
 import styles from "./MeaningDash.module.css";
 
 export interface MeaningDashRenderableRunner {

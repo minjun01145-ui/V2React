@@ -123,7 +123,6 @@
   z-index: 5;
   width: 48px;
   transform: translate(-50%, 50%);
-  transition: left 55ms linear, bottom 55ms linear;
   pointer-events: none;
 }
 
