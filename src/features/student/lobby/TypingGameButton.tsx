@@ -1,12 +1,14 @@
 import Button from "../../../shared/ui/Button.tsx";
 import type { ButtonHTMLAttributes } from "react";
 
-interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {}
+interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+  readonly mode?: "sentence" | "acid-rain";
+}
 
-export default function TypingGameButton({ disabled = false, ...props }: Props) {
+export default function TypingGameButton({ disabled = false, mode = "acid-rain", ...props }: Props) {
   return (
     <Button variant="ghost" disabled={disabled} {...props}>
-      ⌨️ 기다리는 동안 타자 게임하기
+      ⌨️ {mode === "sentence" ? "단문" : "산성비"} 타자게임 하기
     </Button>
   );
 }

@@ -204,6 +204,7 @@ export function useTypingPracticeGame(
           && !comparison.hasError
           && comparison.matchedUnitCount === comparison.inputUnits.length;
       })
+      ?? words.find((word) => word.id === trackedWordId.current)
       ?? words[0];
     if (trackedWordId.current !== (prefixWord?.id ?? null) || nextInput.length === 0) maxPrefix.current = 0;
     trackedWordId.current = prefixWord?.id ?? null;

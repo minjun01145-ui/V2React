@@ -10,5 +10,6 @@ export { enableCooperativeHardMode, ensureCooperativeRound, expireCooperativeTur
 export { ensureBattleRound, expireBattlePhase, issueBattleQuestion, refreshBattleMatch, submitBattleAnswer, useBattleItem } from "./battle/callables.js";
 export { consumeStudentItem, getStudentItemInventory } from "./items/callables.js";
 export { grantAcidRainItem } from "./acid-rain-items/callables.js";
+export { completeTypingPractice } from "./typing-practice/callables.js";
 export { generateLearningSet } from "./learning-set-generation/callables.js";
 export { ensureWordUnoRound, playWordUnoCard, drawWordUnoCard, expireWordUnoTurn, expireWordUnoRound } from "./word-uno/callables.js";

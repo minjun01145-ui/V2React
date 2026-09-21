@@ -15,6 +15,7 @@ import { shouldShowStudentQuestionAuthoring } from "../../../student-question-ac
 import StudentWaitingDice from "../../../waiting-dice/StudentWaitingDice.tsx";
 
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
+const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
 
 interface Props {
   readonly roomId: string;
@@ -28,7 +29,7 @@ interface Props {
 
 export default function WaitingRoom({ roomId, session, selfStudentNumber, displayName, nickname, avatar, uid }: Props) {
   const { activePlayers } = usePlayers(roomId);
-  const [typingOpen, setTypingOpen] = useState(false);
+  const [typingOpen, setTypingOpen] = useState<"sentence" | "acid-rain" | null>(null);
   const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
   const typingConfig = savedTypingConfig ?? createWaitingTypingConfig(typingDemoSet.id);
   const activity = session.classroomActivity;
@@ -37,7 +38,11 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
   if (targeted && activity?.phase === "active" && authoring.loading) return <StatusPanel title="질문 만들기 확인 중" tone="waiting">제출 상태를 불러오고 있습니다.</StatusPanel>;
   if (activity && shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)) return <StudentQuestionAuthoring roomId={roomId} playerId={uid} activity={activity} />;
   if (typingOpen && typingConfig) {
-    return <Suspense fallback={<StatusPanel title="타자 연습 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}><TypingPracticeGame config={typingConfig} onExit={() => setTypingOpen(false)} /></Suspense>;
+    return <Suspense fallback={<StatusPanel title="타자 연습 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
+      {typingOpen === "sentence"
+        ? <SentencePracticeGame roomId={roomId} nickname={nickname || displayName} config={typingConfig} onExit={() => setTypingOpen(null)} />
+        : <TypingPracticeGame config={typingConfig} onExit={() => setTypingOpen(null)} />}
+    </Suspense>;
   }
   return (
     <div className={styles.stack}>
@@ -59,7 +64,8 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
         <PlayerGrid players={activePlayers} selfStudentNumber={selfStudentNumber} />
       </Card>
       <div className={styles.actions}>
-        <TypingGameButton onClick={() => setTypingOpen(true)} />
+        <TypingGameButton mode="sentence" onClick={() => setTypingOpen("sentence")} />
+        <TypingGameButton mode="acid-rain" onClick={() => setTypingOpen("acid-rain")} />
         {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
       </div>
     </div>

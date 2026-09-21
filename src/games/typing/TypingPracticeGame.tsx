@@ -129,6 +129,8 @@ export function TypingPracticeBoard({
   ]);
 
   const game = useTypingPracticeGame(questionSet, config, itemStore);
+  const activeWord = game.words.find((word) => word.id === game.activeWordId);
+  const inputHasError = Boolean(activeWord && getTypingComparisonState(activeWord.question.targetText, game.input, config).hasError);
   const effects = useGameEffectEngine();
   const overlayOpen = game.status !== "playing";
   const liveMetricValues = useRef<TypingLiveMetricValues>({
@@ -348,7 +350,7 @@ export function TypingPracticeBoard({
             <span>
               {itemEmoji(word.itemKind)}
               <b>{word.question.targetText.slice(0, prefixLength)}</b>
-              {word.question.targetText.slice(prefixLength)}
+              <em data-error={word.id === game.activeWordId && comparison.hasError}>{word.question.targetText.slice(prefixLength)}</em>
             </span>
           </div>;
         })}
@@ -380,12 +382,13 @@ export function TypingPracticeBoard({
         autoCapitalize="off"
         spellCheck={false}
         value={game.input}
+        aria-invalid={inputHasError}
         onChange={(event) => game.updateInput(event.target.value)}
         onKeyDown={onInputKeyDown}
         disabled={overlayOpen || game.itemUsePending}
         placeholder="여기에 타자 입력"
       />
-      <small>대소문자와 특수문자는 생략 가능 · 1 또는 2를 입력하고 Enter를 누르면 아이템 사용</small>
+      <small role="status">{inputHasError ? "빨간 부분부터는 타수가 기록되지 않아요. 오타를 고쳐주세요." : "대소문자와 특수문자는 생략 가능 · 1 또는 2를 입력하고 Enter를 누르면 아이템 사용"}</small>
     </label>
 
     <GameItemSlots

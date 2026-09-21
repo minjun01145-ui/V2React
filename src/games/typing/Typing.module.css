@@ -14,7 +14,7 @@
 .cardHeader > span { flex:0 0 auto; padding:.32rem .62rem; border-radius:999px; color:#fff; background:#6973db; font-size:.7rem; font-weight:900; }
 .cardHeader p { margin:0; text-align:right; font-size:.9rem; font-weight:750; }
 .target { margin:clamp(1.4rem,4vw,2.4rem) 0; color:#a2a8b7; text-align:center; font-size:clamp(1.45rem,4vw,2.4rem); font-weight:850; line-height:1.55; letter-spacing:-.025em; overflow-wrap:anywhere; }
-.target span { color:#15a479; }
+.target span { color:#168bd0; }
 .target b { color:inherit; font:inherit; }
 .target b[data-error="true"] { color:#d04c5a; text-decoration:underline wavy rgba(208,76,90,.45); text-underline-offset:.28em; }
 .inputLabel > span { display:block; margin-bottom:.45rem; color:#626d87; font-size:.78rem; font-weight:850; }
@@ -22,6 +22,14 @@
 .inputLabel textarea:focus { border-color:#6d75df; box-shadow:0 0 0 4px rgba(109,117,223,.13); }
 .inputLabel textarea[aria-invalid="true"] { border-color:#dc6672; background:#fffafb; }
 .inputLabel textarea:disabled { color:#657087; background:#f2f4f9; }
+.inputLabel input { box-sizing:border-box; width:100%; padding:1rem; border:2px solid #d8ddef; border-radius:1rem; color:#202b45; background:#fbfcff; font:inherit; font-size:1.2rem; }
+.inputLabel input:focus { outline:3px solid #d8ddef; border-color:#6d75df; }
+.inputLabel input[aria-invalid="true"] { border-color:#dc6672; background:#fffafb; }
+.upcoming { margin:1.5rem 0 0; padding-left:2rem; color:#68738c; }
+.upcoming li { padding:.8rem .3rem; border-top:1px solid #e2e6ef; overflow-wrap:anywhere; }
+.tableScroll { overflow-x:auto; }
+.ranking { width:100%; border-collapse:collapse; text-align:left; }
+.ranking th, .ranking td { padding:.8rem; border-bottom:1px solid #e2e6ef; white-space:nowrap; }
 .feedback { display:flex; min-height:2.8rem; align-items:center; justify-content:center; gap:.75rem; margin-top:.85rem; padding:.55rem .8rem; border-radius:1rem; color:#68738c; background:#f5f7fb; text-align:center; font-size:.82rem; font-weight:800; }
 .feedback[data-tone="error"] { color:#b9414d; background:#fff0f2; }
 .feedback[data-tone="correct"] { color:#087d61; background:#e4f8f2; }
