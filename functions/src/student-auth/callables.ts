@@ -77,7 +77,8 @@ export const completeStudentLogin = onCall(callableOptions, async (request) => {
   return { studentNumber, displayName, pinWasCreated };
 });
 
-export const syncStudentTenantClaim = onCall(callableOptions, async (request) => {
+// Browser preflight must reach onCall; Firebase authentication is checked below.
+export const syncStudentTenantClaim = onCall({ ...callableOptions, invoker: "public" }, async (request) => {
   const uid = requireAnonymous(request);
   const token = request.auth?.token;
   const studentNumber = typeof token?.studentNumber === "string" ? token.studentNumber : "";
