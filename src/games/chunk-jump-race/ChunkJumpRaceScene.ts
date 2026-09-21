@@ -9,12 +9,14 @@ const BALL_RADIUS = 14;
 const BALL_BASE_Y = PLATFORM_TOP_Y - BALL_RADIUS;
 const PLATFORM_WIDTH = 88;
 const PLATFORM_HEIGHT = 16;
-const JUMP_SQUASH_MS = 62;
-const JUMP_FLY_MS = 320;
-const WRONG_SQUASH_MS = 55;
-const WRONG_FALL_MS = 205;
-const WRONG_HIDE_MS = 95;
-const WRONG_RESPAWN_MS = 82;
+const JUMP_SQUASH_MS = 34;
+const JUMP_FLY_MS = 225;
+const WRONG_SQUASH_MS = 35;
+const WRONG_FALL_MS = 145;
+const WRONG_HIDE_MS = 45;
+const WRONG_RESPAWN_MS = 65;
+const STUDENT_ZOOM = 1.42;
+const TEACHER_ZOOM = 0.76;
 const COLORS = [0x4f46e5, 0x0891b2, 0x16a34a, 0xd97706, 0xdc2626, 0x9333ea, 0x0f766e, 0xdb2777] as const;
 
 interface RaceActor {
@@ -22,6 +24,7 @@ interface RaceActor {
   readonly ball: Phaser.GameObjects.Arc;
   readonly shadow: Phaser.GameObjects.Ellipse;
   readonly label: Phaser.GameObjects.Text;
+  readonly color: number;
 }
 
 type Motion =
@@ -78,6 +81,7 @@ function createActor(scene: Phaser.Scene, playerId: string, label: string, self:
     ball,
     shadow,
     label: name,
+    color,
   };
 }
 
@@ -89,6 +93,8 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
   private localState: LiveMovementState;
   private motion: Motion | null = null;
   private platformGraphics!: Phaser.GameObjects.Graphics;
+  private effectGraphics!: Phaser.GameObjects.Graphics;
+  private burst: { readonly kind: "correct" | "wrong"; readonly startedAt: number; readonly x: number; readonly y: number } | null = null;
 
   constructor(options: SceneOptions) {
     super("chunk-jump-race");
@@ -99,8 +105,10 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor("#dff6ff");
+    this.cameras.main.setZoom(this.options.mode === "student" ? STUDENT_ZOOM : TEACHER_ZOOM);
     this.drawBackdrop();
     this.platformGraphics = this.add.graphics().setDepth(2);
+    this.effectGraphics = this.add.graphics().setDepth(19);
     if (this.options.localPlayer) {
       this.localActor = createActor(this, this.options.localPlayer.id, this.options.localPlayer.label, true);
       this.positionActor(this.localActor, this.localState, 0, 0);
@@ -108,6 +116,7 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.remotes.clear();
       this.motion = null;
+      this.burst = null;
     });
   }
 
@@ -117,12 +126,14 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
     this.renderPlayers(frames);
     this.updateCamera(frames);
     this.drawPlatforms();
+    this.drawEffects(time);
   }
 
   jumpForward(): boolean {
     if (!this.localActor || this.motion) return false;
     this.localActor.ball.setScale(1.24, 0.72);
     this.localActor.shadow.setScale(1.18, 0.8);
+    this.burst = null;
     this.motion = {
       kind: "correct",
       startedAt: this.time.now,
@@ -135,6 +146,8 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
   fallBack(targetDistance: number): boolean {
     if (!this.localActor || this.motion) return false;
     this.localActor.ball.setScale(1.18, 0.78);
+    this.burst = { kind: "wrong", startedAt: this.time.now, x: worldX(this.localDistance), y: BALL_BASE_Y };
+    this.cameras.main.shake(80, 0.008, true);
     this.motion = {
       kind: "wrong",
       startedAt: this.time.now,
@@ -170,10 +183,10 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
       return;
     }
     const raw = Math.min(1, (elapsed - JUMP_SQUASH_MS) / JUMP_FLY_MS);
-    const travel = Phaser.Math.Easing.Cubic.Out(raw);
+    const travel = Phaser.Math.Easing.Quartic.Out(raw);
     const x = Phaser.Math.Linear(fromX, toX, travel);
-    const y = BALL_BASE_Y - Math.sin(Math.PI * raw) * 82;
-    this.localActor?.ball.setScale(Phaser.Math.Linear(1.08, 0.98, raw), Phaser.Math.Linear(0.9, 1.04, raw));
+    const y = BALL_BASE_Y - Math.sin(Math.PI * raw) * 88;
+    this.localActor?.ball.setScale(Phaser.Math.Linear(1.2, 0.96, raw), Phaser.Math.Linear(0.78, 1.08, raw));
     this.localActor?.shadow.setScale(Phaser.Math.Linear(1, 0.58, Math.sin(Math.PI * raw)), 1);
     this.localState = {
       x,
@@ -185,10 +198,12 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
     this.localDistance = motion.toDistance;
     this.localState = chunkJumpLandedState(this.localDistance);
     this.motion = null;
+    this.burst = { kind: "correct", startedAt: time, x: toX, y: BALL_BASE_Y };
+    this.cameras.main.shake(65, 0.0045, true);
     if (this.localActor) {
-      this.localActor.ball.setScale(1.18, 0.82);
+      this.localActor.ball.setScale(1.24, 0.76);
       this.localActor.shadow.setScale(1.08, 0.9);
-      this.tweens.add({ targets: [this.localActor.ball, this.localActor.shadow], scaleX: 1, scaleY: 1, duration: 90, ease: "Back.Out" });
+      this.tweens.add({ targets: [this.localActor.ball, this.localActor.shadow], scaleX: 1, scaleY: 1, duration: 70, ease: "Back.Out" });
     }
     this.options.onSettled("correct", this.localDistance);
   }
@@ -210,12 +225,12 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
       const raw = (elapsed - fallStart) / WRONG_FALL_MS;
       this.localActor.container.setAlpha(1);
       this.localActor.ball.setScale(Phaser.Math.Linear(1.05, 0.88, raw), Phaser.Math.Linear(0.9, 1.14, raw));
-      this.localState = { x: fromX, y: BALL_BASE_Y + raw * raw * 230, vx: 0, vy: 520 * raw };
+      this.localState = { x: fromX, y: BALL_BASE_Y + raw * raw * 270, vx: 0, vy: 700 * raw };
       return;
     }
     if (elapsed < respawnStart) {
       this.localActor.container.setAlpha(0);
-      this.localState = { x: fromX, y: BALL_BASE_Y + 230, vx: 0, vy: 0 };
+      this.localState = { x: fromX, y: BALL_BASE_Y + 270, vx: 0, vy: 0 };
       return;
     }
     const raw = Math.min(1, (elapsed - respawnStart) / WRONG_RESPAWN_MS);
@@ -297,18 +312,98 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
 
   private updateCamera(frames: readonly LiveRemoteFrame[]): void {
     const camera = this.cameras.main;
+    const visibleWidth = camera.width / camera.zoom;
     let focusX = this.localActor ? this.localState.x : PLATFORM_START_X;
     const visibleFrames = this.localActor ? [] : frames.filter((frame) => this.options.playerLabel(frame.playerId));
-    if (visibleFrames.length > 0) focusX = Math.max(...visibleFrames.map((frame) => frame.x));
-    const anchor = this.localActor ? 0.33 : 0.72;
-    const desired = Math.max(0, focusX - camera.width * anchor);
-    camera.scrollX = Phaser.Math.Linear(camera.scrollX, desired, this.localActor ? 0.18 : 0.1);
+    if (visibleFrames.length > 0) {
+      const leaders = [...visibleFrames].sort((left, right) => right.x - left.x).slice(0, 6);
+      const leaderX = leaders[0]?.x ?? PLATFORM_START_X;
+      const packX = leaders.at(-1)?.x ?? leaderX;
+      focusX = (leaderX + packX) / 2;
+    }
+
+    const anchor = this.localActor ? 0.27 : 0.52;
+    let cameraEase = this.localActor ? 0.22 : 0.09;
+    if (this.localActor && this.motion?.kind === "correct") {
+      const elapsed = Math.max(0, this.time.now - this.motion.startedAt - JUMP_SQUASH_MS);
+      const raw = Math.max(0, Math.min(1, elapsed / JUMP_FLY_MS));
+      if (raw < 0.38) focusX = worldX(this.motion.fromDistance);
+      else {
+        focusX = worldX(this.motion.toDistance);
+        cameraEase = 0.48;
+      }
+    } else if (this.localActor && this.motion?.kind === "wrong") {
+      const elapsed = Math.max(0, this.time.now - this.motion.startedAt);
+      const moveCameraAt = WRONG_SQUASH_MS + WRONG_FALL_MS + WRONG_HIDE_MS;
+      focusX = worldX(elapsed < moveCameraAt ? this.motion.fromDistance : this.motion.toDistance);
+      cameraEase = elapsed < moveCameraAt ? 0.16 : 0.42;
+    }
+    const worldLeft = Math.max(0, focusX - visibleWidth * anchor);
+    const desiredScroll = worldLeft - camera.width / 2 + visibleWidth / 2;
+    camera.scrollX = Phaser.Math.Linear(camera.scrollX, desiredScroll, cameraEase);
+  }
+
+  private drawEffects(time: number): void {
+    const graphics = this.effectGraphics;
+    graphics.clear();
+    if (this.localActor && this.motion?.kind === "correct") {
+      const elapsed = Math.max(0, time - this.motion.startedAt - JUMP_SQUASH_MS);
+      const raw = Math.max(0, Math.min(1, elapsed / JUMP_FLY_MS));
+      if (raw > 0 && raw < 1) {
+        const direction = 1 - raw * 0.25;
+        for (let index = 0; index < 4; index += 1) {
+          const alpha = (0.22 - index * 0.04) * direction;
+          const trailX = this.localState.x - 22 - index * 18;
+          graphics.fillStyle(this.localActor.color, alpha);
+          graphics.fillCircle(trailX, this.localState.y + index * 1.5, Math.max(4, BALL_RADIUS - index * 2.2));
+          graphics.lineStyle(3 - index * 0.45, 0xffffff, alpha * 0.75);
+          graphics.lineBetween(trailX - 28, this.localState.y + index * 8 - 12, trailX - 5, this.localState.y + index * 8 - 12);
+        }
+      }
+    }
+    if (this.localActor && this.motion?.kind === "wrong") {
+      const elapsed = Math.max(0, time - this.motion.startedAt - WRONG_SQUASH_MS);
+      if (elapsed > 0 && elapsed < WRONG_FALL_MS) {
+        const raw = elapsed / WRONG_FALL_MS;
+        graphics.lineStyle(4, 0xef4444, 0.34 * (1 - raw));
+        for (let index = -2; index <= 2; index += 1) {
+          const x = this.localState.x + index * 9;
+          graphics.lineBetween(x, this.localState.y - 36 - Math.abs(index) * 5, x, this.localState.y - 8);
+        }
+      }
+    }
+    if (!this.burst) return;
+    const age = Math.max(0, time - this.burst.startedAt);
+    const duration = this.burst.kind === "correct" ? 180 : 150;
+    if (age >= duration) {
+      this.burst = null;
+      return;
+    }
+    const raw = age / duration;
+    const alpha = 1 - raw;
+    const color = this.burst.kind === "correct" ? 0xffffff : 0xef4444;
+    const radius = Phaser.Math.Linear(18, this.burst.kind === "correct" ? 54 : 42, raw);
+    graphics.lineStyle(this.burst.kind === "correct" ? 4 : 5, color, alpha * 0.75);
+    graphics.strokeCircle(this.burst.x, this.burst.y, radius);
+    for (let index = 0; index < 8; index += 1) {
+      const angle = index * Math.PI / 4;
+      const inner = radius + 4;
+      const outer = radius + 18 * alpha;
+      graphics.lineBetween(
+        this.burst.x + Math.cos(angle) * inner,
+        this.burst.y + Math.sin(angle) * inner,
+        this.burst.x + Math.cos(angle) * outer,
+        this.burst.y + Math.sin(angle) * outer,
+      );
+    }
   }
 
   private drawPlatforms(): void {
     const camera = this.cameras.main;
-    const first = Math.max(0, Math.floor((camera.scrollX - PLATFORM_START_X) / PLATFORM_SPACING) - 2);
-    const count = Math.ceil(camera.width / PLATFORM_SPACING) + 6;
+    const visibleWidth = camera.width / camera.zoom;
+    const worldLeft = camera.scrollX + camera.width / 2 - visibleWidth / 2;
+    const first = Math.max(0, Math.floor((worldLeft - PLATFORM_START_X) / PLATFORM_SPACING) - 2);
+    const count = Math.ceil(visibleWidth / PLATFORM_SPACING) + 6;
     this.platformGraphics.clear();
     for (let offset = 0; offset < count; offset += 1) {
       const distance = first + offset;

@@ -4,6 +4,8 @@ import { createActor, positionActor, type PlatformerActor } from "./actors.ts";
 import { PLATFORMS, PLAYER_HEIGHT, PLAYER_WIDTH, RUN_SPEED, SPAWN, WORLD_HEIGHT, WORLD_WIDTH } from "./level.ts";
 import { clearPlatformerInput, createJumpState, takeJump, type PlatformerInput } from "./movement.ts";
 
+const STUDENT_CAMERA_ZOOM = 1.28;
+
 export interface PlatformerSceneOptions {
   readonly input: PlatformerInput;
   readonly label: string;
@@ -46,6 +48,7 @@ export default class PlatformerScene extends Phaser.Scene {
     this.physics.add.collider(this.player, platforms);
     this.actor = createActor(this, `${this.options.label} · 나`, true);
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.cameras.main.setZoom(STUDENT_CAMERA_ZOOM);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12, -120, 70);
     this.cameras.main.setDeadzone(120, 100);
 

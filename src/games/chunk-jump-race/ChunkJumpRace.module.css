@@ -1,7 +1,8 @@
-.shell {
-  display: grid;
-  gap: 10px;
+.studentShell {
+  position: relative;
   min-width: 0;
+  overflow: hidden;
+  border-radius: 16px;
 }
 
 .teacherShell {
@@ -62,14 +63,22 @@
 
 .canvasWrap { position: relative; min-width: 0; }
 .canvasHost {
-  height: min(55vh, 520px);
-  min-height: 390px;
   overflow: hidden;
   border: 3px solid #17324d;
   border-radius: 16px;
   background: #dff6ff;
 }
 .canvasHost canvas { display: block; }
+
+.studentCanvasHost {
+  height: min(76vh, 720px);
+  min-height: 520px;
+}
+
+.teacherCanvasHost {
+  height: min(58vh, 560px);
+  min-height: 410px;
+}
 
 .connectionError {
   position: absolute;
@@ -88,43 +97,96 @@
   text-align: center;
 }
 
-.choiceArea {
-  display: grid;
+.studentHud {
+  position: absolute;
+  z-index: 25;
+  top: 12px;
+  left: 14px;
+  display: flex;
+  align-items: center;
   gap: 7px;
+  pointer-events: none;
 }
 
-.choiceHint {
-  color: #486581;
-  font-size: 12px;
-  font-weight: 800;
+.studentHud > span {
+  display: grid;
+  min-width: 54px;
+  padding: 6px 9px;
+  border: 1px solid rgba(23, 50, 77, .18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .8);
+  box-shadow: 0 3px 10px rgba(15, 42, 67, .08);
   text-align: center;
+  backdrop-filter: blur(5px);
 }
 
-.choices {
+.studentHud small { color: #627d98; font-size: 9px; font-weight: 900; }
+.studentHud b { color: #102a43; font-size: 18px; line-height: 1; }
+
+.skyQuestion {
+  position: absolute;
+  z-index: 24;
+  top: 28px;
+  left: 50%;
+  display: grid;
+  width: min(720px, 78%);
+  gap: 10px;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+.skyPrompt {
+  justify-self: center;
+  max-width: 100%;
+  padding: 5px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .72);
+  color: #102a43;
+  font-size: clamp(22px, 3vw, 34px);
+  font-weight: 950;
+  line-height: 1.12;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, .8);
+  backdrop-filter: blur(4px);
+}
+
+.skyChoices {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 9px;
+  pointer-events: auto;
 }
 
-.choices button {
-  min-height: 66px;
-  padding: 10px 12px;
-  border: 3px solid #17324d;
+.skyChoices button {
+  min-height: 54px;
+  padding: 8px 10px;
+  border: 2px solid rgba(23, 50, 77, .92);
   border-radius: 12px;
-  background: linear-gradient(#fff, #f0f7ff);
+  background: rgba(255, 255, 255, .88);
   color: #102a43;
   font: inherit;
-  font-size: clamp(15px, 1.9vw, 20px);
+  font-size: clamp(14px, 1.75vw, 19px);
   font-weight: 900;
   line-height: 1.15;
   cursor: pointer;
-  box-shadow: 0 5px 0 #17324d;
-  transition: transform 70ms ease, box-shadow 70ms ease, background 70ms ease;
+  box-shadow: 0 4px 0 rgba(23, 50, 77, .92), 0 7px 18px rgba(15, 42, 67, .1);
+  backdrop-filter: blur(5px);
+  transition: transform 55ms ease, box-shadow 55ms ease, background 55ms ease;
 }
 
-.choices button:hover:not(:disabled) { background: #e6f6ff; }
-.choices button:active:not(:disabled) { transform: translateY(4px) scale(.985); box-shadow: 0 1px 0 #17324d; }
-.choices button:disabled { cursor: default; opacity: .62; box-shadow: 0 2px 0 #17324d; transform: translateY(3px); }
+.skyChoices button:hover:not(:disabled) { background: #fff; transform: translateY(-1px); }
+.skyChoices button:active:not(:disabled) { transform: translateY(4px) scale(.97); box-shadow: 0 0 0 rgba(23, 50, 77, .92); }
+.skyChoices button:disabled { cursor: default; opacity: .55; transform: translateY(2px); box-shadow: 0 2px 0 rgba(23, 50, 77, .8); }
+
+.skyHint {
+  justify-self: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .88);
+  color: #486581;
+  font-size: 12px;
+  font-weight: 900;
+}
 
 .ranking {
   align-self: start;
@@ -160,11 +222,15 @@
 @media (max-width: 640px) {
   .hud { display: grid; }
   .hudStats { justify-content: space-between; }
-  .canvasHost { min-height: 330px; height: 48vh; }
-  .choices { grid-template-columns: 1fr; gap: 7px; }
-  .choices button { min-height: 52px; }
+  .studentCanvasHost { min-height: 430px; height: 68vh; }
+  .teacherCanvasHost { min-height: 350px; height: 48vh; }
+  .studentHud { top: 8px; left: 8px; transform: scale(.88); transform-origin: top left; }
+  .skyQuestion { top: 62px; width: 92%; gap: 7px; }
+  .skyPrompt { font-size: clamp(19px, 6vw, 28px); }
+  .skyChoices { gap: 5px; }
+  .skyChoices button { min-height: 48px; padding-inline: 6px; font-size: 13px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .choices button { transition: none; }
+  .skyChoices button { transition: none; }
 }

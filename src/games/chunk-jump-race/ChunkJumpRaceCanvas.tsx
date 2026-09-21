@@ -136,7 +136,7 @@ const ChunkJumpRaceCanvas = forwardRef<ChunkJumpRaceController, Props>(function 
 
   return <div className={styles.canvasWrap}>
     {connectionError ? <div className={styles.connectionError}>실시간 연결 오류: {connectionError.message}</div> : null}
-    <div ref={hostRef} className={styles.canvasHost} />
+    <div ref={hostRef} className={`${styles.canvasHost} ${props.role === "student" ? styles.studentCanvasHost : styles.teacherCanvasHost}`} />
   </div>;
 });
 

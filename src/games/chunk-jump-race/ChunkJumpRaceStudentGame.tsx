@@ -112,19 +112,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     if (controllerRef.current?.fallBack(targetDistance)) setBusy(true);
   };
 
-  return <div className={styles.shell}>
-    <header className={styles.hud}>
-      <div className={styles.promptBlock}>
-        <strong>끊어읽기 점프 레이스</strong>
-        <span>{step.currentChunks.join(" / ")}</span>
-        <small>{step.sentence.meaning}</small>
-      </div>
-      <div className={styles.hudStats}>
-        <div><span>거리</span><strong>{distance}</strong></div>
-        <div><span>순위</span><strong>{ownRank}위</strong></div>
-        <TimedGameStatus session={session} compact />
-      </div>
-    </header>
+  return <div className={styles.studentShell}>
     <ChunkJumpRaceCanvas
       ref={controllerRef}
       role="student"
@@ -147,11 +135,17 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
         setBusy(false);
       }}
     />
-    <div className={styles.choiceArea} aria-label="다음 끊어읽기 조각 선택">
-      <span className={styles.choiceHint}>{expired ? "시간 종료" : busy ? "점프 중…" : "다음에 이어질 청크를 고르세요"}</span>
-      <div className={styles.choices}>
+    <div className={styles.studentHud}>
+      <span><small>거리</small><b>{distance}</b></span>
+      <span><small>순위</small><b>{ownRank}위</b></span>
+      <TimedGameStatus session={session} compact />
+    </div>
+    <div className={styles.skyQuestion} aria-label="다음 끊어읽기 조각 선택">
+      <strong className={styles.skyPrompt}>{step.currentChunks.join(" / ")}</strong>
+      <div className={styles.skyChoices}>
         {choices.map((choice) => <button type="button" onClick={() => choose(choice)} disabled={busy || expired} key={choice}>{choice}</button>)}
       </div>
+      {expired ? <span className={styles.skyHint}>시간 종료</span> : null}
     </div>
   </div>;
 }
