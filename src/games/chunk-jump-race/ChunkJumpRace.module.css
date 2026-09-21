@@ -75,6 +75,14 @@
   min-height: 520px;
 }
 
+.completionEffectLayer {
+  position: absolute;
+  z-index: 23;
+  align-items: start;
+  padding-top: 150px;
+  overflow: visible;
+}
+
 .teacherCanvasHost {
   height: min(58vh, 560px);
   min-height: 410px;
@@ -308,6 +316,7 @@
   .skyPrompt { font-size: clamp(19px, 6vw, 28px); }
   .skyChoices { gap: 5px; }
   .skyChoices button { min-height: 48px; padding-inline: 6px; font-size: 13px; }
+  .completionEffectLayer { padding-top: 168px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

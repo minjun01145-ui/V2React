@@ -4,11 +4,14 @@ import styles from "./GameEffectLayer.module.css";
 
 const PARTICLES = Array.from({ length: 12 }, (_, index) => index);
 
-export function GameEffectLayer({ effect }: { readonly effect: ActiveGameEffect | null }) {
+export function GameEffectLayer({ effect, className }: {
+  readonly effect: ActiveGameEffect | null;
+  readonly className?: string | undefined;
+}) {
   if (!effect) return null;
 
   return <div
-    className={styles.layer}
+    className={className ? `${styles.layer} ${className}` : styles.layer}
     data-kind={effect.kind}
     data-level={effect.level}
     data-tone={effect.tone}

@@ -113,24 +113,46 @@
 .layer[data-level="max"] .particles { transform: scale(1.16); }
 
 .layer[data-kind="learning-completion"] .burst {
-  width: min(84vw, 760px);
+  width: min(58vw, 520px);
+  min-width: min(58vw, 300px);
+  padding: .58rem .9rem .68rem;
+  border-width: 2px;
+  border-radius: 1rem;
+  background: linear-gradient(145deg, rgba(101, 100, 232, .72), rgba(74, 72, 190, .72));
+  box-shadow: 0 10px 30px rgba(45, 43, 120, .2), inset 0 1px 0 rgba(255, 255, 255, .38);
+  backdrop-filter: blur(4px);
   animation-name: effect-learning-complete;
+}
+
+.layer[data-kind="learning-completion"] .flash,
+.layer[data-kind="learning-completion"] .particles,
+.layer[data-kind="learning-completion"] .badge {
+  display: none;
+}
+
+.layer[data-kind="learning-completion"] .headline {
+  margin-top: 0;
+  font-size: clamp(.82rem, 1.7vw, 1rem);
+  letter-spacing: 0;
+  opacity: .9;
 }
 
 .layer[data-kind="learning-completion"] .metric {
   max-width: 100%;
-  margin-top: .45rem;
-  font-size: clamp(1.45rem, 4.5vw, 2.6rem);
-  line-height: 1.22;
+  margin-top: .2rem;
+  font-size: clamp(1rem, 2.5vw, 1.45rem);
+  line-height: 1.16;
+  animation: none;
 }
 
 .layer[data-kind="learning-completion"] .detail {
-  max-width: min(92%, 650px);
-  margin-top: .8rem;
-  padding: .62rem 1rem;
-  border-radius: 1rem;
-  font-size: clamp(.95rem, 2.5vw, 1.2rem);
-  line-height: 1.35;
+  max-width: 94%;
+  margin-top: .35rem;
+  padding: .3rem .62rem;
+  border-radius: .65rem;
+  font-size: clamp(.78rem, 1.8vw, .95rem);
+  line-height: 1.25;
+  animation: none;
 }
 
 @keyframes effect-flash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }

@@ -148,7 +148,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
   };
 
   return <div className={styles.studentShell}>
-    <GameEffectLayer effect={effects.activeEffect} />
+    <GameEffectLayer effect={effects.activeEffect} className={styles.completionEffectLayer} />
     <ChunkJumpRaceCanvas
       ref={controllerRef}
       role="student"
