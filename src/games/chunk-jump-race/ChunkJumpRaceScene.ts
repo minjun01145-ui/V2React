@@ -67,7 +67,7 @@ function stackColumns(count: number): number {
 function createActor(scene: Phaser.Scene, playerId: string, label: string, self: boolean): RaceActor {
   const color = actorColor(playerId);
   const shadow = scene.add.ellipse(0, 11, 32, 8, 0x111827, 0.18);
-  const ball = scene.add.circle(0, 0, BALL_RADIUS, color).setStrokeStyle(self ? 4 : 2, self ? 0xffffff : 0x172033, 0.95);
+  const ball = scene.add.circle(0, 0, BALL_RADIUS, color);
   const name = scene.add.text(0, -29, self ? `${label} · 나` : label, {
     fontFamily: "sans-serif",
     fontSize: self ? "12px" : "11px",
@@ -75,7 +75,7 @@ function createActor(scene: Phaser.Scene, playerId: string, label: string, self:
     color: self ? "#102a43" : "#243b53",
     backgroundColor: "rgba(255,255,255,0.92)",
     padding: { x: 5, y: 3 },
-  }).setOrigin(0.5);
+  }).setOrigin(0.5).setResolution(2);
   return {
     container: scene.add.container(0, 0, [shadow, ball, name]).setDepth(self ? 20 : 10),
     ball,
@@ -285,23 +285,26 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
       landedGroups.set(distance, group);
     }
 
-    const offsets = new Map<string, { x: number; y: number }>();
+    const offsets = new Map<string, { ballX: number; labelX: number; labelY: number }>();
     for (const group of landedGroups.values()) {
       group.sort((left, right) => left.id.localeCompare(right.id));
       const columns = stackColumns(group.length);
       group.forEach((entry, index) => {
         const column = index % columns;
         const row = Math.floor(index / columns);
+        const spread = Math.min(72, Math.max(16, (group.length - 1) * 14));
+        const ballX = group.length === 1 ? 0 : Phaser.Math.Linear(-spread, spread, index / (group.length - 1));
         offsets.set(entry.id, {
-          x: (column - (columns - 1) / 2) * 20,
-          y: -row * 18,
+          ballX: Math.round(ballX),
+          labelX: Math.round((column - (columns - 1) / 2) * 72 - ballX),
+          labelY: -31 - row * 22,
         });
       });
     }
 
     for (const entry of entries) {
-      const offset = offsets.get(entry.id) ?? { x: 0, y: 0 };
-      this.positionActor(entry.actor, entry.state, offset.x, offset.y);
+      const offset = offsets.get(entry.id) ?? { ballX: 0, labelX: 0, labelY: -29 };
+      this.positionActor(entry.actor, entry.state, offset.ballX, offset.labelX, offset.labelY);
       if (!entry.self) {
         const airborne = Math.abs(entry.state.y - BALL_BASE_Y) > 8;
         entry.actor.ball.setScale(airborne ? 0.96 : 1);
@@ -310,9 +313,10 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
     }
   }
 
-  private positionActor(actor: RaceActor, state: LiveMovementState, offsetX: number, offsetY: number): void {
-    actor.container.setPosition(state.x + offsetX, state.y + offsetY);
-    actor.shadow.setY(BALL_BASE_Y - state.y - offsetY + 11);
+  private positionActor(actor: RaceActor, state: LiveMovementState, ballOffsetX: number, labelOffsetX = 0, labelOffsetY = -29): void {
+    actor.container.setPosition(Math.round(state.x + ballOffsetX), Math.round(state.y));
+    actor.label.setPosition(labelOffsetX, labelOffsetY);
+    actor.shadow.setY(BALL_BASE_Y - state.y + 11);
     actor.shadow.setAlpha(Math.abs(state.y - BALL_BASE_Y) > 10 ? 0.1 : 0.18);
   }
 

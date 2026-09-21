@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { ActiveGameEffect } from "./model.ts";
 import styles from "./GameEffectLayer.module.css";
 
@@ -8,9 +9,11 @@ export function GameEffectLayer({ effect }: { readonly effect: ActiveGameEffect 
 
   return <div
     className={styles.layer}
+    data-kind={effect.kind}
     data-level={effect.level}
     data-tone={effect.tone}
     key={effect.id}
+    style={{ "--effect-duration": `${effect.durationMs}ms` } as CSSProperties}
     aria-live="assertive"
     aria-atomic="true"
   >

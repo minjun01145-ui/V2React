@@ -35,7 +35,7 @@
   background: linear-gradient(145deg, color-mix(in srgb, var(--effect-main) 74%, white), var(--effect-main));
   box-shadow: 0 22px 70px color-mix(in srgb, var(--effect-main) 40%, transparent), inset 0 1px 0 rgba(255, 255, 255, .45);
   text-align: center;
-  animation: effect-burst .78s cubic-bezier(.18, .86, .22, 1.25) both;
+  animation: effect-burst var(--effect-duration, .78s) cubic-bezier(.18, .86, .22, 1.25) both;
 }
 
 .badge {
@@ -112,9 +112,31 @@
 .layer[data-level="max"] .headline { text-transform: uppercase; animation: effect-glow .5s ease-in-out infinite alternate; }
 .layer[data-level="max"] .particles { transform: scale(1.16); }
 
+.layer[data-kind="learning-completion"] .burst {
+  width: min(84vw, 760px);
+  animation-name: effect-learning-complete;
+}
+
+.layer[data-kind="learning-completion"] .metric {
+  max-width: 100%;
+  margin-top: .45rem;
+  font-size: clamp(1.45rem, 4.5vw, 2.6rem);
+  line-height: 1.22;
+}
+
+.layer[data-kind="learning-completion"] .detail {
+  max-width: min(92%, 650px);
+  margin-top: .8rem;
+  padding: .62rem 1rem;
+  border-radius: 1rem;
+  font-size: clamp(.95rem, 2.5vw, 1.2rem);
+  line-height: 1.35;
+}
+
 @keyframes effect-flash { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes effect-burst { 0% { opacity: 0; transform: translateY(20px) scale(.58) rotate(-4deg); } 38% { opacity: 1; transform: translateY(0) scale(1.06) rotate(1deg); } 76% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: translateY(-12px) scale(.96); } }
 @keyframes effect-burst-strong { 0% { opacity: 0; transform: scale(.4) rotate(-8deg); } 35% { opacity: 1; transform: scale(1.13) rotate(2deg); } 68% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.04); } }
+@keyframes effect-learning-complete { 0% { opacity: 0; transform: scale(.72); } 12% { opacity: 1; transform: scale(1.04); } 22%, 86% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.025); } }
 @keyframes effect-score { from { opacity: 0; transform: scale(.45); } to { opacity: 1; transform: scale(1); } }
 @keyframes effect-detail { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes effect-glow { to { text-shadow: 0 0 18px #fff, 0 0 30px rgba(255, 230, 106, .82); transform: scale(1.035); } }

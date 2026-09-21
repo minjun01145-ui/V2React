@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { createGameAnnouncement, createScoreCelebration, GAME_EFFECT_LEVEL, gameEffectLevel } from "../src/game-engine/effects/model.ts";
+import { createGameAnnouncement, createLearningCompletion, createScoreCelebration, GAME_EFFECT_LEVEL, gameEffectLevel } from "../src/game-engine/effects/model.ts";
 
 assert.equal(gameEffectLevel(1), GAME_EFFECT_LEVEL.STANDARD);
 assert.equal(gameEffectLevel(2), GAME_EFFECT_LEVEL.COMBO);
@@ -33,5 +33,10 @@ const maxEffect = createScoreCelebration({ scoreDelta: 200, combo: 12 });
 assert.equal(maxEffect.headline, "12 MAX COMBO!");
 assert.equal(maxEffect.bonusScore, 100);
 assert.equal(maxEffect.level, GAME_EFFECT_LEVEL.MAX);
+
+assert.deepEqual(createLearningCompletion({ text: "There are many ways.", meaning: "많은 방법이 있다." }), {
+  kind: "learning-completion", tone: "success", badge: "✓", headline: "문장 완성!", metric: "There are many ways.", detail: "많은 방법이 있다.",
+  combo: 0, bonusScore: 0, level: GAME_EFFECT_LEVEL.COMBO, durationMs: 2_400,
+});
 
 console.log("game effect engine tests passed");

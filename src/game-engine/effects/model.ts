@@ -8,7 +8,7 @@ export const GAME_EFFECT_LEVEL = {
 export type GameEffectLevel = (typeof GAME_EFFECT_LEVEL)[keyof typeof GAME_EFFECT_LEVEL];
 
 export interface GameEffectDefinition {
-  readonly kind: "score-celebration" | "announcement";
+  readonly kind: "score-celebration" | "announcement" | "learning-completion";
   readonly tone: "success" | "warning" | "info";
   readonly badge: string;
   readonly headline: string;
@@ -18,6 +18,25 @@ export interface GameEffectDefinition {
   readonly bonusScore: number;
   readonly level: GameEffectLevel;
   readonly durationMs: number;
+}
+
+export function createLearningCompletion(input: {
+  readonly text: string;
+  readonly meaning: string;
+  readonly durationMs?: number;
+}): GameEffectDefinition {
+  return {
+    kind: "learning-completion",
+    tone: "success",
+    badge: "✓",
+    headline: "문장 완성!",
+    metric: input.text,
+    detail: input.meaning,
+    combo: 0,
+    bonusScore: 0,
+    level: GAME_EFFECT_LEVEL.COMBO,
+    durationMs: input.durationMs ?? 2_400,
+  };
 }
 
 export interface ActiveGameEffect extends GameEffectDefinition {

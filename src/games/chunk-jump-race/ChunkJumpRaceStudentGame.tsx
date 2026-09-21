@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
+import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
+import { createLearningCompletion } from "../../game-engine/effects/model.ts";
+import { playCorrectChime } from "../../game-engine/effects/sound.ts";
+import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
@@ -88,17 +92,16 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
 }) {
   const controllerRef = useRef<ChunkJumpRaceController | null>(null);
   const feedbackTimerRef = useRef<number | null>(null);
-  const completedSentenceRef = useRef<string | null>(null);
+  const choiceEffectTimerRef = useRef<number | null>(null);
+  const completedSentenceRef = useRef<{ readonly text: string; readonly meaning: string } | null>(null);
   const storageKey = raceStorageKey(roundId, playerId);
   const [initialProgress] = useState<StoredRaceProgress>(() => readRaceProgress(storageKey, course));
   const [progress, setProgress] = useState<StoredRaceProgress>(initialProgress);
   const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState<
-    | { readonly kind: "death" }
-    | { readonly kind: "sentence"; readonly text: string }
-    | null
-  >(null);
+  const [feedback, setFeedback] = useState<{ readonly kind: "death" } | null>(null);
+  const [correctChoice, setCorrectChoice] = useState<string | null>(null);
   const [standings, setStandings] = useState<readonly ChunkJumpStanding[]>([]);
+  const effects = useGameEffectEngine();
   const clock = useTimedGameClock(session);
   const { cursor, distance } = progress;
   const step = chunkJumpStep(course, cursor);
@@ -111,6 +114,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
 
   useEffect(() => () => {
     if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
+    if (choiceEffectTimerRef.current !== null) window.clearTimeout(choiceEffectTimerRef.current);
   }, []);
 
   const clearFeedbackTimer = (): void => {
@@ -124,7 +128,16 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     if (choice === step.answer) {
       if (controllerRef.current?.jumpForward()) {
         const completesSentence = cursor.chunkIndex + 1 >= step.sentence.chunks.length - 1;
-        completedSentenceRef.current = completesSentence ? step.sentence.chunks.join(" / ") : null;
+        completedSentenceRef.current = completesSentence
+          ? { text: step.sentence.chunks.join(" / "), meaning: step.sentence.meaning }
+          : null;
+        if (choiceEffectTimerRef.current !== null) window.clearTimeout(choiceEffectTimerRef.current);
+        setCorrectChoice(choice);
+        choiceEffectTimerRef.current = window.setTimeout(() => {
+          setCorrectChoice(null);
+          choiceEffectTimerRef.current = null;
+        }, 360);
+        playCorrectChime();
         setBusy(true);
       }
       return;
@@ -132,6 +145,11 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     const targetDistance = Math.max(0, distance - CHUNK_JUMP_RESPAWN_PENALTY);
     if (controllerRef.current?.fallBack(targetDistance)) {
       completedSentenceRef.current = null;
+      if (choiceEffectTimerRef.current !== null) {
+        window.clearTimeout(choiceEffectTimerRef.current);
+        choiceEffectTimerRef.current = null;
+      }
+      setCorrectChoice(null);
       clearFeedbackTimer();
       setFeedback({ kind: "death" });
       setBusy(true);
@@ -139,6 +157,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
   };
 
   return <div className={styles.studentShell}>
+    <GameEffectLayer effect={effects.activeEffect} />
     <ChunkJumpRaceCanvas
       ref={controllerRef}
       role="student"
@@ -159,15 +178,16 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
           return next;
         });
         if (kind === "correct" && completedSentenceRef.current) {
-          const text = completedSentenceRef.current;
+          const completedSentence = completedSentenceRef.current;
           completedSentenceRef.current = null;
           clearFeedbackTimer();
-          setFeedback({ kind: "sentence", text });
+          setFeedback(null);
+          const completionEffect = createLearningCompletion(completedSentence);
+          effects.play(completionEffect);
           feedbackTimerRef.current = window.setTimeout(() => {
-            setFeedback(null);
             setBusy(false);
             feedbackTimerRef.current = null;
-          }, 520);
+          }, completionEffect.durationMs);
           return;
         }
         completedSentenceRef.current = null;
@@ -183,17 +203,19 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     <div className={styles.skyQuestion} aria-label="다음 끊어읽기 조각 선택">
       <strong className={styles.skyPrompt}>{step.currentChunks.join(" / ")}</strong>
       <div className={styles.skyChoices}>
-        {choices.map((choice) => <button type="button" onClick={() => choose(choice)} disabled={busy || expired} key={choice}>{choice}</button>)}
+        {choices.map((choice) => <button
+          type="button"
+          className={choice === correctChoice ? styles.correctChoice : undefined}
+          onClick={() => choose(choice)}
+          disabled={busy || expired}
+          key={choice}
+        >{choice}</button>)}
       </div>
       {expired ? <span className={styles.skyHint}>시간 종료</span> : null}
     </div>
     {feedback?.kind === "death" ? <div className={`${styles.raceFeedback} ${styles.deathFeedback}`} role="status">
       <strong>죽었습니다!</strong>
       <span>{CHUNK_JUMP_RESPAWN_PENALTY}칸 아래에서 리스폰됩니다.</span>
-    </div> : null}
-    {feedback?.kind === "sentence" ? <div className={`${styles.raceFeedback} ${styles.sentenceFeedback}`} role="status">
-      <small>문장 완성!</small>
-      <strong>{feedback.text}</strong>
     </div> : null}
   </div>;
 }
