@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
@@ -87,10 +87,17 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
   readonly course: ReturnType<typeof buildChunkJumpCourse>;
 }) {
   const controllerRef = useRef<ChunkJumpRaceController | null>(null);
+  const feedbackTimerRef = useRef<number | null>(null);
+  const completedSentenceRef = useRef<string | null>(null);
   const storageKey = raceStorageKey(roundId, playerId);
   const [initialProgress] = useState<StoredRaceProgress>(() => readRaceProgress(storageKey, course));
   const [progress, setProgress] = useState<StoredRaceProgress>(initialProgress);
   const [busy, setBusy] = useState(false);
+  const [feedback, setFeedback] = useState<
+    | { readonly kind: "death" }
+    | { readonly kind: "sentence"; readonly text: string }
+    | null
+  >(null);
   const [standings, setStandings] = useState<readonly ChunkJumpStanding[]>([]);
   const clock = useTimedGameClock(session);
   const { cursor, distance } = progress;
@@ -102,14 +109,33 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
   const ownRank = Math.max(1, standings.findIndex((standing) => standing.playerId === playerId) + 1);
   const expired = clock.expired;
 
+  useEffect(() => () => {
+    if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
+  }, []);
+
+  const clearFeedbackTimer = (): void => {
+    if (feedbackTimerRef.current === null) return;
+    window.clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = null;
+  };
+
   const choose = (choice: string): void => {
     if (busy || expired) return;
     if (choice === step.answer) {
-      if (controllerRef.current?.jumpForward()) setBusy(true);
+      if (controllerRef.current?.jumpForward()) {
+        const completesSentence = cursor.chunkIndex + 1 >= step.sentence.chunks.length - 1;
+        completedSentenceRef.current = completesSentence ? step.sentence.chunks.join(" / ") : null;
+        setBusy(true);
+      }
       return;
     }
     const targetDistance = Math.max(0, distance - CHUNK_JUMP_RESPAWN_PENALTY);
-    if (controllerRef.current?.fallBack(targetDistance)) setBusy(true);
+    if (controllerRef.current?.fallBack(targetDistance)) {
+      completedSentenceRef.current = null;
+      clearFeedbackTimer();
+      setFeedback({ kind: "death" });
+      setBusy(true);
+    }
   };
 
   return <div className={styles.studentShell}>
@@ -132,6 +158,20 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
           saveRaceProgress(storageKey, next);
           return next;
         });
+        if (kind === "correct" && completedSentenceRef.current) {
+          const text = completedSentenceRef.current;
+          completedSentenceRef.current = null;
+          clearFeedbackTimer();
+          setFeedback({ kind: "sentence", text });
+          feedbackTimerRef.current = window.setTimeout(() => {
+            setFeedback(null);
+            setBusy(false);
+            feedbackTimerRef.current = null;
+          }, 520);
+          return;
+        }
+        completedSentenceRef.current = null;
+        setFeedback(null);
         setBusy(false);
       }}
     />
@@ -147,5 +187,13 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
       </div>
       {expired ? <span className={styles.skyHint}>시간 종료</span> : null}
     </div>
+    {feedback?.kind === "death" ? <div className={`${styles.raceFeedback} ${styles.deathFeedback}`} role="status">
+      <strong>죽었습니다!</strong>
+      <span>{CHUNK_JUMP_RESPAWN_PENALTY}칸 아래에서 리스폰됩니다.</span>
+    </div> : null}
+    {feedback?.kind === "sentence" ? <div className={`${styles.raceFeedback} ${styles.sentenceFeedback}`} role="status">
+      <small>문장 완성!</small>
+      <strong>{feedback.text}</strong>
+    </div> : null}
   </div>;
 }

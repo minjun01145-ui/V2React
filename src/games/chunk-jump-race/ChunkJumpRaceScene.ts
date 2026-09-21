@@ -13,8 +13,8 @@ const JUMP_SQUASH_MS = 34;
 const JUMP_FLY_MS = 225;
 const WRONG_SQUASH_MS = 35;
 const WRONG_FALL_MS = 145;
-const WRONG_HIDE_MS = 45;
-const WRONG_RESPAWN_MS = 65;
+const WRONG_HIDE_MS = 330;
+const WRONG_RESPAWN_MS = 130;
 const STUDENT_ZOOM = 1.42;
 const TEACHER_ZOOM = 0.76;
 const COLORS = [0x4f46e5, 0x0891b2, 0x16a34a, 0xd97706, 0xdc2626, 0x9333ea, 0x0f766e, 0xdb2777] as const;
@@ -95,6 +95,7 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
   private platformGraphics!: Phaser.GameObjects.Graphics;
   private effectGraphics!: Phaser.GameObjects.Graphics;
   private burst: { readonly kind: "correct" | "wrong"; readonly startedAt: number; readonly x: number; readonly y: number } | null = null;
+  private teacherFocus: Phaser.GameObjects.Zone | null = null;
 
   constructor(options: SceneOptions) {
     super("chunk-jump-race");
@@ -112,11 +113,16 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
     if (this.options.localPlayer) {
       this.localActor = createActor(this, this.options.localPlayer.id, this.options.localPlayer.label, true);
       this.positionActor(this.localActor, this.localState, 0, 0);
+    } else {
+      const visibleWidth = this.cameras.main.width / this.cameras.main.zoom;
+      this.teacherFocus = this.add.zone(Math.max(PLATFORM_START_X, visibleWidth / 2), BALL_BASE_Y, 1, 1).setVisible(false);
+      this.cameras.main.startFollow(this.teacherFocus, true, 0.1, 0.1);
     }
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.remotes.clear();
       this.motion = null;
       this.burst = null;
+      this.teacherFocus = null;
     });
   }
 
@@ -313,18 +319,19 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
   private updateCamera(frames: readonly LiveRemoteFrame[]): void {
     const camera = this.cameras.main;
     const visibleWidth = camera.width / camera.zoom;
-    let focusX = this.localActor ? this.localState.x : PLATFORM_START_X;
-    const visibleFrames = this.localActor ? [] : frames.filter((frame) => this.options.playerLabel(frame.playerId));
-    if (visibleFrames.length > 0) {
-      const leaders = [...visibleFrames].sort((left, right) => right.x - left.x).slice(0, 6);
-      const leaderX = leaders[0]?.x ?? PLATFORM_START_X;
-      const packX = leaders.at(-1)?.x ?? leaderX;
-      focusX = (leaderX + packX) / 2;
+    if (!this.localActor) {
+      const visibleFrames = frames.filter((frame) => this.options.playerLabel(frame.playerId));
+      const leader = visibleFrames.reduce<LiveRemoteFrame | null>((best, frame) => !best || frame.x > best.x ? frame : best, null);
+      if (this.teacherFocus) {
+        this.teacherFocus.x = Math.max(leader?.x ?? PLATFORM_START_X, visibleWidth / 2);
+        this.teacherFocus.y = BALL_BASE_Y;
+      }
+      return;
     }
-
-    const anchor = this.localActor ? 0.27 : 0.52;
-    let cameraEase = this.localActor ? 0.22 : 0.09;
-    if (this.localActor && this.motion?.kind === "correct") {
+    let focusX = this.localActor ? this.localState.x : PLATFORM_START_X;
+    const anchor = 0.27;
+    let cameraEase = 0.22;
+    if (this.motion?.kind === "correct") {
       const elapsed = Math.max(0, this.time.now - this.motion.startedAt - JUMP_SQUASH_MS);
       const raw = Math.max(0, Math.min(1, elapsed / JUMP_FLY_MS));
       if (raw < 0.38) focusX = worldX(this.motion.fromDistance);
@@ -332,7 +339,7 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
         focusX = worldX(this.motion.toDistance);
         cameraEase = 0.48;
       }
-    } else if (this.localActor && this.motion?.kind === "wrong") {
+    } else if (this.motion?.kind === "wrong") {
       const elapsed = Math.max(0, this.time.now - this.motion.startedAt);
       const moveCameraAt = WRONG_SQUASH_MS + WRONG_FALL_MS + WRONG_HIDE_MS;
       focusX = worldX(elapsed < moveCameraAt ? this.motion.fromDistance : this.motion.toDistance);
@@ -383,18 +390,35 @@ export default class ChunkJumpRaceScene extends Phaser.Scene {
     const alpha = 1 - raw;
     const color = this.burst.kind === "correct" ? 0xffffff : 0xef4444;
     const radius = Phaser.Math.Linear(18, this.burst.kind === "correct" ? 54 : 42, raw);
-    graphics.lineStyle(this.burst.kind === "correct" ? 4 : 5, color, alpha * 0.75);
+    graphics.lineStyle(this.burst.kind === "correct" ? 5 : 5, color, alpha * 0.82);
     graphics.strokeCircle(this.burst.x, this.burst.y, radius);
-    for (let index = 0; index < 8; index += 1) {
-      const angle = index * Math.PI / 4;
+    if (this.burst.kind === "correct") {
+      graphics.lineStyle(3, 0xffe066, alpha * 0.72);
+      graphics.strokeCircle(this.burst.x, this.burst.y, radius * 0.68);
+      graphics.fillStyle(0xffffff, alpha * 0.55);
+      graphics.fillCircle(this.burst.x, this.burst.y, Math.max(2, 14 * (1 - raw)));
+    }
+    const rayCount = this.burst.kind === "correct" ? 14 : 8;
+    for (let index = 0; index < rayCount; index += 1) {
+      const angle = index * Math.PI * 2 / rayCount;
       const inner = radius + 4;
-      const outer = radius + 18 * alpha;
+      const outer = radius + (this.burst.kind === "correct" ? 34 : 18) * alpha;
+      if (this.burst.kind === "correct") graphics.lineStyle(index % 2 === 0 ? 4 : 2.5, index % 2 === 0 ? 0xffffff : 0xffe066, alpha * 0.8);
       graphics.lineBetween(
         this.burst.x + Math.cos(angle) * inner,
         this.burst.y + Math.sin(angle) * inner,
         this.burst.x + Math.cos(angle) * outer,
         this.burst.y + Math.sin(angle) * outer,
       );
+      if (this.burst.kind === "correct") {
+        const sparkDistance = radius + 20 + index % 3 * 9;
+        graphics.fillStyle(index % 2 === 0 ? 0xffffff : 0xffe066, alpha * 0.8);
+        graphics.fillCircle(
+          this.burst.x + Math.cos(angle) * sparkDistance,
+          this.burst.y + Math.sin(angle) * sparkDistance,
+          2.5 + (index % 3),
+        );
+      }
     }
   }
 
