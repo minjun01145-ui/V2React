@@ -294,8 +294,17 @@ export async function startSession(roomId: string, options: StartSessionOptions 
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
     if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || parseStudentQuestionActivity(currentData.classroomActivity)) return;
 
+    const currentPlayerSnapshots = await Promise.all(
+      activePlayers.map((player) => tx.get(playerRef(roomId, player.id))),
+    );
+    const participantPlayers = activePlayers.map((player, index) => {
+      const currentPlayerSnapshot = currentPlayerSnapshots[index];
+      const currentPlayer = currentPlayerSnapshot ? parsePlayer(currentPlayerSnapshot) : null;
+      return currentPlayer ?? player;
+    });
+
     tx.update(sessionRef(roomId), nextSession);
-    for (const player of activePlayers) {
+    for (const player of participantPlayers) {
       tx.set(roundParticipantRef(roomId, roundId, player.id), {
         ...participantIdentity(player),
         joinedAt: serverTimestamp(),
@@ -321,6 +330,47 @@ export async function updatePlayerNickname(
   await updateDoc(playerRef(roomId, playerId), {
     nickname: normalized,
     nicknameGrade: normalized ? nicknameGrade : null,
+  });
+}
+
+export async function replaceRandomNicknameIfUnchanged(
+  roomId: string,
+  playerId: string,
+  expectedNickname: string,
+  expectedGrade: NicknameGrade,
+  nextNickname: string,
+  nextGrade: NicknameGrade,
+): Promise<boolean> {
+  const expected = expectedNickname.trim();
+  const next = nextNickname.trim();
+  return runTransaction(db, async (tx) => {
+    const ref = playerRef(roomId, playerId);
+    const snapshot = await tx.get(ref);
+    const currentSession = await tx.get(sessionRef(roomId));
+    if (!snapshot.exists()) return false;
+    const data: unknown = snapshot.data();
+    if (!isRecord(data)) return false;
+    const currentNickname = typeof data.nickname === "string" ? data.nickname.trim() : "";
+    const currentGrade = parseNicknameGrade(data.nicknameGrade);
+    if (currentNickname !== expected || currentGrade !== expectedGrade) return false;
+
+    const sessionData: unknown = currentSession.exists() ? currentSession.data() : null;
+    const sessionStatus = isRecord(sessionData) ? parseStatus(sessionData.status) : null;
+    const roundId = isRecord(sessionData) && typeof sessionData.roundId === "string" ? sessionData.roundId : null;
+    const participantRef = roundId && (sessionStatus === SESSION_STATUS.PREPARING || sessionStatus === SESSION_STATUS.PLAYING)
+      ? roundParticipantRef(roomId, roundId, playerId)
+      : null;
+    const participantSnapshot = participantRef ? await tx.get(participantRef) : null;
+    if (participantSnapshot?.exists()) {
+      const participant = parseRoundParticipant(participantSnapshot.id, participantSnapshot.data());
+      if (!participant || participant.nickname !== expected || participant.nicknameGrade !== expectedGrade) return false;
+    }
+
+    tx.update(ref, { nickname: next, nicknameGrade: nextGrade });
+    if (participantRef && participantSnapshot?.exists()) {
+      tx.update(participantRef, { nickname: next, nicknameGrade: nextGrade });
+    }
+    return true;
   });
 }
 

@@ -1,4 +1,5 @@
 import { updatePlayerNickname } from "../../../multiplayer/repository.ts";
+import type { NicknameGrade } from "../../../multiplayer/types.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import {
@@ -13,9 +14,10 @@ interface Props {
   readonly playerId: string;
   readonly displayName: string;
   readonly nickname: string | null;
+  readonly nicknameGrade: NicknameGrade | null;
 }
 
-export default function NicknameChangeButton({ roomId, playerId, displayName, nickname }: Props) {
+export default function NicknameChangeButton({ roomId, playerId, displayName, nickname, nicknameGrade }: Props) {
   const popup = usePopup();
 
   const changeNickname = async (): Promise<void> => {
@@ -37,7 +39,7 @@ export default function NicknameChangeButton({ roomId, playerId, displayName, ni
       validate: (values) => validateNickname(values.nickname),
       onConfirm: async (values) => {
         const nextNickname = normalizeNickname(values.nickname) || null;
-        if (nextNickname === nickname) return null;
+        if (nextNickname === nickname && !nicknameGrade) return null;
         await updatePlayerNickname(roomId, playerId, nextNickname);
         return null;
       },

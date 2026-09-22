@@ -76,6 +76,7 @@ export default function CharacterShop({ identity, roomId, nickname, nicknameGrad
               playerId={identity.uid}
               displayName={identity.displayName}
               nickname={nickname}
+              nicknameGrade={nicknameGrade}
             />
           </div>
           {nickname ? <p className={styles.realName}>본명 {identity.displayName}</p> : null}

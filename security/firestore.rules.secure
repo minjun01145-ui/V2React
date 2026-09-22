@@ -535,7 +535,7 @@ service cloud.firestore {
           );
           allow update: if isRoomAdmin(roomId) || (
             isRoomStudent(roomId)
-              && activeRound(roomId, roundId)
+              && (preparingRound(roomId, roundId) || activeRound(roomId, roundId))
               && request.auth.uid == uid
               && resource.data.playerId == uid
               && request.resource.data.playerId == resource.data.playerId
