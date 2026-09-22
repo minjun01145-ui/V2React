@@ -277,7 +277,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
 
   private createActor(label: string, self: boolean): Actor {
     const shadow = this.add.ellipse(0, -2, 36, 9, 0x243b53, 0.16);
-    const image = this.add.image(0, 0, "chunk-line-up-runner").setOrigin(0.5, 1).setDisplaySize(44, 53);
+    const image = this.add.image(0, 0, "chunk-line-up-runner").setOrigin(0.5, 1).setDisplaySize(50, 60);
     if (!self) image.setTint(0xc9e8ff);
     const name = this.add.text(0, -61, compact(label, 14), {
       fontFamily: "sans-serif",
@@ -285,7 +285,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       color: self ? "#103b31" : "#24445e",
       backgroundColor: "rgba(255,255,255,.82)",
       padding: { x: 4, y: 2 },
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setY(-68);
     const token = this.add.text(0, -78, "", {
       fontFamily: "sans-serif",
       fontSize: self ? "13px" : "10px",
@@ -293,7 +293,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       color: self ? "#5b2500" : "#334155",
       backgroundColor: self ? "rgba(254,243,199,.96)" : "rgba(255,255,255,.76)",
       padding: { x: self ? 6 : 4, y: 2 },
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setY(-86);
     return {
       container: this.add.container(0, 0, [shadow, image, name, token]).setDepth(self ? 22 : 18),
       shadow,
@@ -306,9 +306,12 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private updateActor(actor: Actor, state: LiveMovementState, time: number, token: string | undefined, riding: boolean): void {
     actor.container.setPosition(Math.round(state.x), Math.round(state.y + PLAYER_HEIGHT / 2));
     const running = Math.abs(state.vx) > 15 && Math.abs(state.vy) < 8;
-    actor.image.setY(running ? -Math.abs(Math.sin(time / 72)) * 3.5 : 0);
-    actor.image.setRotation(running ? Math.sin(time / 72) * 0.085 : Phaser.Math.Clamp(state.vx / 3500, -0.085, 0.085));
-    actor.shadow.setScale(running ? 0.86 + Math.abs(Math.sin(time / 72)) * 0.12 : 1, 1);
+    const stride = time / 56;
+    const bounce = Math.abs(Math.sin(stride));
+    actor.image.setY(running ? -bounce * 6 : 0);
+    actor.image.setRotation(running ? Math.sin(stride) * 0.15 : Phaser.Math.Clamp(state.vx / 3000, -0.1, 0.1));
+    actor.image.setScale(running ? 1 + Math.cos(stride) * 0.04 : 1, running ? 1 - bounce * 0.055 : 1);
+    actor.shadow.setScale(running ? 0.76 + bounce * 0.24 : 1, 1);
     actor.container.setAlpha(riding ? 0.56 : 1);
     if (Math.abs(state.vx) > 5) actor.image.setFlipX(state.vx < 0);
     const nextToken = compact(token ?? "", actor === this.localActor ? 26 : 17);

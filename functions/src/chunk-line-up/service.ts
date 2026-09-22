@@ -9,6 +9,7 @@ import {
   chooseChunkLineUpReplacementSource,
   chooseChunkLineUpTarget,
   chunkLineUpGroupComplete,
+  isChunkLineUpElevatorDestinationOpen,
   chunkLineUpSlotAcceptsToken,
   instantiateChunkLineUpGroup,
   instantiateChunkLineUpReplacement,
@@ -350,18 +351,22 @@ export async function setChunkLineUpElevatorDestinationService(
 ): Promise<ChunkLineUpElevatorResult> {
   const round = await validateRound(input);
   if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
-  const stateSnapshot = await stateRef(round.roundRef).get();
-  const gameState = parseServerState(stateSnapshot.exists ? stateSnapshot.data() : null);
-  if (!gameState) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
-  const floorCount = gameState.board.groups.length;
+  const sRef = stateRef(round.roundRef);
   const ref = elevatorRef(round.roundRef);
   return db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(ref);
+    const [stateSnapshot, snapshot] = await Promise.all([tx.get(sRef), tx.get(ref)]);
+    const gameState = parseServerState(stateSnapshot.exists ? stateSnapshot.data() : null);
+    if (!gameState) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
+    const floorCount = gameState.board.groups.length;
+    if (input.destinationFloor >= floorCount) throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
     const now = Date.now();
     const current = resolveChunkLineUpElevatorState(
       parseElevatorState(snapshot.exists ? snapshot.data() : null) ?? createChunkLineUpElevatorState(floorCount, now),
       now,
     );
+    if (!isChunkLineUpElevatorDestinationOpen(gameState.board, input.destinationFloor, input.destinationGroupId)) {
+      return { accepted: false, state: current };
+    }
     const result = chooseChunkLineUpElevatorDestination(
       current,
       input.elevatorId,

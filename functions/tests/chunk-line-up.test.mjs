@@ -5,6 +5,7 @@ import {
   chooseChunkLineUpTarget,
   chunkLineUpGroupComplete,
   chunkLineUpSlotAcceptsToken,
+  isChunkLineUpElevatorDestinationOpen,
   instantiateChunkLineUpGroup,
   instantiateChunkLineUpReplacement,
   openChunkLineUpTargets,
@@ -133,6 +134,23 @@ assert.equal(openChunkLineUpTargets([replacement]).length, 3,
   "replacement groups should retain fixed overflow slots when only three new open targets are needed");
 
 const publicBoard = publicChunkLineUpBoard(board);
+const firstOpenGroupIndex = board.groups.findIndex((group) => group.slots.some((slot) => !slot.fixed && !slot.filledBy));
+const firstOpenGroup = board.groups[firstOpenGroupIndex];
+assert(firstOpenGroup);
+assert.equal(isChunkLineUpElevatorDestinationOpen(board, firstOpenGroupIndex, firstOpenGroup.id), true,
+  "an open sentence can be selected as an elevator destination");
+assert.equal(isChunkLineUpElevatorDestinationOpen(board, firstOpenGroupIndex, "replaced-sentence"), false,
+  "a stale sentence selection must not redirect to a replacement group on the same floor");
+const closedDestinationBoard = {
+  ...board,
+  groups: board.groups.map((group, index) => index === firstOpenGroupIndex
+    ? { ...group, slots: group.slots.map((slot) => ({ ...slot, fixed: true })) }
+    : group),
+};
+assert.equal(isChunkLineUpElevatorDestinationOpen(closedDestinationBoard, firstOpenGroupIndex, firstOpenGroup.id), false,
+  "a sentence with no open matching slots is no longer a valid destination");
+assert.equal(isChunkLineUpElevatorDestinationOpen(board, 99, firstOpenGroup.id), false,
+  "a nonexistent sentence floor must not be accepted");
 const firstOpen = publicBoard.groups.flatMap((group) => group.slots).find((slot) => !slot.fixed && !slot.filledBy);
 assert(firstOpen);
 assert.equal(firstOpen.text, "", "student-visible board must hide unresolved slot answers");

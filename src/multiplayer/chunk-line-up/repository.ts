@@ -208,7 +208,14 @@ export async function setChunkLineUpElevatorDestination(
   roundId: string,
   elevatorId: ChunkLineUpElevatorId,
   destinationFloor: number,
+  destinationGroupId: string,
 ): Promise<ChunkLineUpElevatorResult> {
-  const response = await httpsCallable(functions, "setChunkLineUpElevatorDestination")({ roomId, roundId, elevatorId, destinationFloor });
+  const response = await httpsCallable(functions, "setChunkLineUpElevatorDestination")({
+    roomId,
+    roundId,
+    elevatorId,
+    destinationFloor,
+    destinationGroupId,
+  });
   return elevatorResult(response.data);
 }

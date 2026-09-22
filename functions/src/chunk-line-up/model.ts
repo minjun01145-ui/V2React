@@ -120,6 +120,15 @@ export function openChunkLineUpTargets(groups: readonly ChunkLineUpGroup[]): Chu
   ));
 }
 
+export function isChunkLineUpElevatorDestinationOpen(
+  board: ChunkLineUpBoard,
+  floor: number,
+  groupId: string,
+): boolean {
+  const group = board.groups[floor];
+  return group?.id === groupId && group.slots.some((slot) => !slot.fixed && !slot.filledBy);
+}
+
 export function chunkLineUpGroupComplete(group: ChunkLineUpGroup): boolean {
   return group.slots.every((slot) => slot.fixed || Boolean(slot.filledBy));
 }

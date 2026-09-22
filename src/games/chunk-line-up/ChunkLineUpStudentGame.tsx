@@ -57,7 +57,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
     }
   };
 
-  const chooseDestination = async (destinationFloor: number): Promise<void> => {
+  const chooseDestination = async (destinationFloor: number, destinationGroupId: string): Promise<void> => {
     if (!elevatorRide || destinationBusy || clock.expired) return;
     setDestinationBusy(true);
     try {
@@ -66,6 +66,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
         session.roundId,
         elevatorRide.elevatorId,
         destinationFloor,
+        destinationGroupId,
       );
       setLocalElevatorState(result.state);
       if (!result.accepted) setFeedback("stale");
@@ -119,7 +120,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
     ? localElevatorState
     : remoteElevatorState;
   const destinationChoices = board.groups
-    .map((group, floor) => ({ floor, prompt: group.prompt, open: group.slots.some((slot) => !slot.fixed && !slot.filledBy) }))
+    .map((group, floor) => ({ floor, groupId: group.id, prompt: group.prompt, open: group.slots.some((slot) => !slot.fixed && !slot.filledBy) }))
     .filter((choice) => choice.open && choice.floor !== elevatorRide?.currentFloor);
 
   return <div className={styles.studentShell}>
@@ -150,7 +151,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
           key={choice.floor}
           type="button"
           disabled={destinationBusy}
-          onClick={() => void chooseDestination(choice.floor)}
+          onClick={() => void chooseDestination(choice.floor, choice.groupId)}
         >{choice.prompt.replaceAll("/", " ")}</button>)}
       </div>
     </div> : null}

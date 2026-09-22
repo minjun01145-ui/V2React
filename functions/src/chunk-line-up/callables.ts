@@ -61,8 +61,11 @@ function elevatorDestination(value: unknown): ChunkLineUpElevatorDestinationInpu
   const destinationFloor = typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor)
     ? value.destinationFloor
     : -1;
-  if (destinationFloor < 0) throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
-  return { ...parsed, elevatorId: elevatorId(value.elevatorId), destinationFloor };
+  const destinationGroupId = typeof value.destinationGroupId === "string" ? value.destinationGroupId.trim() : "";
+  if (destinationFloor < 0 || !TOKEN_PATTERN.test(destinationGroupId)) {
+    throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
+  }
+  return { ...parsed, elevatorId: elevatorId(value.elevatorId), destinationFloor, destinationGroupId };
 }
 
 async function authorize(request: CallableRequest<unknown>, input: ChunkLineUpBaseInput): Promise<string> {
