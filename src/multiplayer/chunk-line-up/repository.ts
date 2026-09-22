@@ -6,7 +6,10 @@ import type {
   ChunkLineUpActionResult,
   ChunkLineUpAssignment,
   ChunkLineUpBoard,
+  ChunkLineUpElevatorCarState,
+  ChunkLineUpElevatorId,
   ChunkLineUpElevatorResult,
+  ChunkLineUpElevatorRider,
   ChunkLineUpElevatorState,
   ChunkLineUpGroup,
   ChunkLineUpSlot,
@@ -92,19 +95,48 @@ function actionResult(value: unknown): ChunkLineUpActionResult {
   throw new Error("Chunk Line-Up 처리 결과가 올바르지 않습니다.");
 }
 
+function elevatorRider(value: unknown): ChunkLineUpElevatorRider | null {
+  if (!isRecord(value)) return null;
+  const playerId = text(value.playerId);
+  const destinationFloor = value.destinationFloor === null
+    ? null
+    : typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor)
+      ? value.destinationFloor
+      : -1;
+  return playerId && (destinationFloor === null || destinationFloor >= 0)
+    ? { playerId, destinationFloor }
+    : null;
+}
+
+function elevatorCar(value: unknown, id: ChunkLineUpElevatorId): ChunkLineUpElevatorCarState | null {
+  if (!isRecord(value) || value.id !== id || !Array.isArray(value.seats) || !Array.isArray(value.queue)) return null;
+  if (value.phase !== "open" && value.phase !== "closing" && value.phase !== "moving" && value.phase !== "opening") return null;
+  const floor = integer(value.floor);
+  const targetFloor = value.targetFloor === null ? null : integer(value.targetFloor);
+  const phaseStartedAtMs = integer(value.phaseStartedAtMs);
+  const seats = value.seats.map(elevatorRider).filter((seat): seat is ChunkLineUpElevatorRider => seat !== null);
+  const queue = value.queue.map(integer);
+  if (floor < 0 || phaseStartedAtMs <= 0 || seats.length !== value.seats.length || seats.length > 3
+    || new Set(seats.map((seat) => seat.playerId)).size !== seats.length
+    || queue.some((item) => item < 0) || new Set(queue).size !== queue.length
+    || (targetFloor !== null && targetFloor < 0)) return null;
+  return { id, phase: value.phase, floor, targetFloor, phaseStartedAtMs, seats, queue };
+}
+
 function elevatorState(value: unknown): ChunkLineUpElevatorState | null {
-  if (!isRecord(value) || !Array.isArray(value.seats)) return null;
-  const cycle = typeof value.cycle === "number" && Number.isInteger(value.cycle) ? value.cycle : null;
-  const seats = value.seats.filter((seat): seat is string => typeof seat === "string" && Boolean(seat));
-  if (cycle === null || seats.length !== value.seats.length || new Set(seats).size !== seats.length || seats.length > 3) return null;
-  return { cycle, seats };
+  if (!isRecord(value)) return null;
+  const revision = integer(value.revision);
+  const lobbyFloor = integer(value.lobbyFloor);
+  const left = elevatorCar(value.left, "left");
+  const right = elevatorCar(value.right, "right");
+  return revision >= 1 && lobbyFloor >= 1 && left && right ? { revision, lobbyFloor, left, right } : null;
 }
 
 function elevatorResult(value: unknown): ChunkLineUpElevatorResult {
   if (!isRecord(value) || typeof value.accepted !== "boolean") throw new Error("엘리베이터 좌석 응답이 올바르지 않습니다.");
-  const parsed = elevatorState(value);
+  const parsed = elevatorState(value.state);
   if (!parsed) throw new Error("엘리베이터 좌석 상태가 올바르지 않습니다.");
-  return { ...parsed, accepted: value.accepted };
+  return { accepted: value.accepted, state: parsed };
 }
 
 function boardRef(roomId: string, roundId: string) {
@@ -161,7 +193,22 @@ export async function confirmChunkLineUpSlot(input: ConfirmChunkLineUpSlotInput)
   return actionResult(response.data);
 }
 
-export async function reserveChunkLineUpElevatorSeat(roomId: string, roundId: string): Promise<ChunkLineUpElevatorResult> {
-  const response = await httpsCallable(functions, "reserveChunkLineUpElevatorSeat")({ roomId, roundId });
+export async function reserveChunkLineUpElevatorSeat(
+  roomId: string,
+  roundId: string,
+  elevatorId: ChunkLineUpElevatorId,
+  floor: number,
+): Promise<ChunkLineUpElevatorResult> {
+  const response = await httpsCallable(functions, "reserveChunkLineUpElevatorSeat")({ roomId, roundId, elevatorId, floor });
+  return elevatorResult(response.data);
+}
+
+export async function setChunkLineUpElevatorDestination(
+  roomId: string,
+  roundId: string,
+  elevatorId: ChunkLineUpElevatorId,
+  destinationFloor: number,
+): Promise<ChunkLineUpElevatorResult> {
+  const response = await httpsCallable(functions, "setChunkLineUpElevatorDestination")({ roomId, roundId, elevatorId, destinationFloor });
   return elevatorResult(response.data);
 }

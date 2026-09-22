@@ -4,8 +4,16 @@ import { playCorrectChime } from "../../game-engine/effects/sound.ts";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useChunkLineUpBoard, useChunkLineUpElevator } from "../../multiplayer/chunk-line-up/hooks.ts";
-import { confirmChunkLineUpSlot, reserveChunkLineUpElevatorSeat } from "../../multiplayer/chunk-line-up/repository.ts";
-import type { ChunkLineUpElevatorState } from "../../multiplayer/chunk-line-up/types.ts";
+import {
+  confirmChunkLineUpSlot,
+  reserveChunkLineUpElevatorSeat,
+  setChunkLineUpElevatorDestination,
+} from "../../multiplayer/chunk-line-up/repository.ts";
+import type {
+  ChunkLineUpElevatorId,
+  ChunkLineUpElevatorRideInfo,
+  ChunkLineUpElevatorState,
+} from "../../multiplayer/chunk-line-up/types.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import ChunkLineUpCanvas, { type ChunkLineUpController } from "./ChunkLineUpCanvas.tsx";
@@ -19,6 +27,8 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   const elevatorBusyRef = useRef(false);
   const [feedback, setFeedback] = useState<"wrong" | "stale" | "connection" | null>(null);
   const [localElevatorState, setLocalElevatorState] = useState<ChunkLineUpElevatorState | null>(null);
+  const [elevatorRide, setElevatorRide] = useState<ChunkLineUpElevatorRideInfo | null>(null);
+  const [destinationBusy, setDestinationBusy] = useState(false);
   const clock = useTimedGameClock(session);
 
   if (!session.expectedPlayerIds.includes(player.id)) {
@@ -32,18 +42,39 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   if (!assignment) return <StatusPanel title="청크 배정 대기 중" tone="waiting">현재 청크를 배정하고 있습니다.</StatusPanel>;
   const label = displayLabel(player.displayName, player.nickname);
 
-  const reserveElevator = async (): Promise<void> => {
+  const reserveElevator = async (elevatorId: ChunkLineUpElevatorId, floor: number): Promise<void> => {
     if (elevatorBusyRef.current || clock.expired || elevatorState.error) return;
     elevatorBusyRef.current = true;
     try {
-      const result = await reserveChunkLineUpElevatorSeat(roomId, session.roundId);
-      setLocalElevatorState({ cycle: result.cycle, seats: result.seats });
+      const result = await reserveChunkLineUpElevatorSeat(roomId, session.roundId, elevatorId, floor);
+      setLocalElevatorState(result.state);
     } catch (reason: unknown) {
       console.error(reason);
       setFeedback("connection");
       window.setTimeout(() => setFeedback(null), 900);
     } finally {
       elevatorBusyRef.current = false;
+    }
+  };
+
+  const chooseDestination = async (destinationFloor: number): Promise<void> => {
+    if (!elevatorRide || destinationBusy || clock.expired) return;
+    setDestinationBusy(true);
+    try {
+      const result = await setChunkLineUpElevatorDestination(
+        roomId,
+        session.roundId,
+        elevatorRide.elevatorId,
+        destinationFloor,
+      );
+      setLocalElevatorState(result.state);
+      if (!result.accepted) setFeedback("stale");
+    } catch (reason: unknown) {
+      console.error(reason);
+      setFeedback("connection");
+    } finally {
+      setDestinationBusy(false);
+      window.setTimeout(() => setFeedback(null), 900);
     }
   };
 
@@ -84,12 +115,12 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   };
 
   const remoteElevatorState = elevatorState.value;
-  const effectiveElevatorState = localElevatorState && (
-    !remoteElevatorState
-      || localElevatorState.cycle > remoteElevatorState.cycle
-      || (localElevatorState.cycle === remoteElevatorState.cycle
-        && localElevatorState.seats.length > remoteElevatorState.seats.length)
-  ) ? localElevatorState : remoteElevatorState;
+  const effectiveElevatorState = localElevatorState && (!remoteElevatorState || localElevatorState.revision > remoteElevatorState.revision)
+    ? localElevatorState
+    : remoteElevatorState;
+  const destinationChoices = board.groups
+    .map((group, floor) => ({ floor, prompt: group.prompt, open: group.slots.some((slot) => !slot.fixed && !slot.filledBy) }))
+    .filter((choice) => choice.open && choice.floor !== elevatorRide?.currentFloor);
 
   return <div className={styles.studentShell}>
     <ChunkLineUpCanvas
@@ -101,9 +132,9 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       label={label}
       board={board}
       elevatorState={effectiveElevatorState}
-      startedAtMs={session.startedAtMs}
       onConfirm={(groupId, slotId) => void confirm(groupId, slotId)}
-      onReserveElevator={() => void reserveElevator()}
+      onReserveElevator={(elevatorId, floor) => void reserveElevator(elevatorId, floor)}
+      onElevatorRideChange={setElevatorRide}
     />
     <div className={styles.studentHud}>
       <div className={styles.tokenHud}><small>내 청크</small><strong>{assignment.token}</strong></div>
@@ -111,6 +142,18 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       <TimedGameStatus session={session} compact />
     </div>
     <div className={styles.controlsHint}>← → / A D 이동 · ↑ / W / Space 점프 · S / ↓ / Enter 슬롯 확정</div>
+    {elevatorRide && elevatorRide.destinationFloor === null ? <div className={styles.elevatorDestination}>
+      <strong>어디로 갈까요?</strong>
+      <span>{elevatorRide.elevatorId === "left" ? "왼쪽" : "오른쪽"} 엘리베이터 · 문장 선택</span>
+      <div>
+        {destinationChoices.map((choice) => <button
+          key={choice.floor}
+          type="button"
+          disabled={destinationBusy}
+          onClick={() => void chooseDestination(choice.floor)}
+        >{choice.prompt.replaceAll("/", " ")}</button>)}
+      </div>
+    </div> : null}
     {feedback ? <div className={feedback === "wrong" ? styles.wrongFeedback : styles.staleFeedback}>
       {feedback === "wrong"
         ? "여긴 아니에요!"

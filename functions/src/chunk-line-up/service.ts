@@ -6,7 +6,6 @@ import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { isRecord } from "../shared/validation.js";
 import {
   buildInitialChunkLineUpBoard,
-  chunkLineUpElevatorPhase,
   chooseChunkLineUpReplacementSource,
   chooseChunkLineUpTarget,
   chunkLineUpGroupComplete,
@@ -17,13 +16,24 @@ import {
   publicChunkLineUpBoard,
   type ChunkLineUpPlayerProfile,
 } from "./model.js";
+import {
+  boardChunkLineUpElevator,
+  chooseChunkLineUpElevatorDestination,
+  createChunkLineUpElevatorState,
+  resolveChunkLineUpElevatorState,
+} from "./elevatorModel.js";
 import type {
   ChunkLineUpActionResult,
   ChunkLineUpAssignment,
   ChunkLineUpBaseInput,
   ChunkLineUpBoard,
   ChunkLineUpConfirmInput,
+  ChunkLineUpElevatorBoardInput,
+  ChunkLineUpElevatorCarState,
+  ChunkLineUpElevatorDestinationInput,
+  ChunkLineUpElevatorId,
   ChunkLineUpElevatorResult,
+  ChunkLineUpElevatorRider,
   ChunkLineUpElevatorState,
   ChunkLineUpGroup,
   ChunkLineUpServerState,
@@ -252,6 +262,11 @@ export async function ensureChunkLineUpRoundService(input: ChunkLineUpBaseInput)
     if ((await tx.get(sRef)).exists) return;
     persistState(tx, sRef, round.setId, state, now);
     persistBoard(tx, boardRef(round.roundRef), initial.board, now);
+    tx.set(elevatorRef(round.roundRef), {
+      ...createChunkLineUpElevatorState(initial.board.groups.length, now),
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedAtMs: now,
+    });
   });
 }
 
@@ -270,38 +285,98 @@ function assignmentTargetOpen(assignment: ChunkLineUpAssignment, groups: readonl
 }
 
 function parseElevatorState(value: unknown): ChunkLineUpElevatorState | null {
-  if (!isRecord(value) || !Array.isArray(value.seats)) return null;
-  const cycle = integer(value.cycle);
-  const seats = value.seats.filter((seat): seat is string => typeof seat === "string" && Boolean(seat));
-  return Number.isInteger(cycle) && seats.length === value.seats.length && seats.length <= 3
-    ? { cycle, seats: [...new Set(seats)] }
-    : null;
+  if (!isRecord(value)) return null;
+  const revision = integer(value.revision);
+  const lobbyFloor = integer(value.lobbyFloor);
+  const parseRider = (raw: unknown): ChunkLineUpElevatorRider | null => {
+    if (!isRecord(raw)) return null;
+    const playerId = text(raw.playerId);
+    const destinationFloor = raw.destinationFloor === null ? null : integer(raw.destinationFloor);
+    return playerId && (destinationFloor === null || destinationFloor >= 0)
+      ? { playerId, destinationFloor }
+      : null;
+  };
+  const parseCar = (raw: unknown, id: ChunkLineUpElevatorId): ChunkLineUpElevatorCarState | null => {
+    if (!isRecord(raw) || raw.id !== id || !Array.isArray(raw.seats) || !Array.isArray(raw.queue)) return null;
+    const phase = raw.phase;
+    if (phase !== "open" && phase !== "closing" && phase !== "moving" && phase !== "opening") return null;
+    const floor = integer(raw.floor);
+    const targetFloor = raw.targetFloor === null ? null : integer(raw.targetFloor);
+    const phaseStartedAtMs = integer(raw.phaseStartedAtMs);
+    const seats = raw.seats.map(parseRider).filter((seat): seat is ChunkLineUpElevatorRider => seat !== null);
+    const queue = raw.queue.map(integer);
+    if (floor < 0 || phaseStartedAtMs <= 0 || seats.length !== raw.seats.length || seats.length > 3
+      || new Set(seats.map((seat) => seat.playerId)).size !== seats.length
+      || queue.some((item) => item < 0) || new Set(queue).size !== queue.length
+      || (targetFloor !== null && targetFloor < 0)) return null;
+    return { id, phase, floor, targetFloor, phaseStartedAtMs, seats, queue };
+  };
+  const left = parseCar(value.left, "left");
+  const right = parseCar(value.right, "right");
+  return revision >= 1 && lobbyFloor >= 1 && left && right ? { revision, lobbyFloor, left, right } : null;
 }
 
 export async function reserveChunkLineUpElevatorSeatService(
   uid: string,
-  input: ChunkLineUpBaseInput,
+  input: ChunkLineUpElevatorBoardInput,
 ): Promise<ChunkLineUpElevatorResult> {
   const round = await validateRound(input);
   if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
+  const stateSnapshot = await stateRef(round.roundRef).get();
+  const gameState = parseServerState(stateSnapshot.exists ? stateSnapshot.data() : null);
+  if (!gameState) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
+  const floorCount = gameState.board.groups.length;
+  if (input.floor < 0 || input.floor > floorCount) throw new HttpsError("invalid-argument", "엘리베이터 층 정보가 올바르지 않습니다.");
   const ref = elevatorRef(round.roundRef);
   return db.runTransaction(async (tx) => {
     const snapshot = await tx.get(ref);
     const now = Date.now();
-    const phase = chunkLineUpElevatorPhase(now, round.startedAtMs);
-    const current = parseElevatorState(snapshot.exists ? snapshot.data() : null);
-    const seats = current?.cycle === phase.cycle ? [...current.seats] : [];
-    if (!phase.boarding) return { accepted: seats.includes(uid), cycle: phase.cycle, seats };
-    if (seats.includes(uid)) return { accepted: true, cycle: phase.cycle, seats };
-    if (seats.length >= 3) return { accepted: false, cycle: phase.cycle, seats };
-    const nextSeats = [...seats, uid];
+    const current = parseElevatorState(snapshot.exists ? snapshot.data() : null)
+      ?? createChunkLineUpElevatorState(floorCount, now);
+    const result = boardChunkLineUpElevator(current, input.elevatorId, uid, input.floor, now);
+    const nextState = { ...result.state, revision: current.revision + 1 };
     tx.set(ref, {
-      cycle: phase.cycle,
-      seats: nextSeats,
+      ...nextState,
       updatedAt: FieldValue.serverTimestamp(),
       updatedAtMs: now,
     });
-    return { accepted: true, cycle: phase.cycle, seats: nextSeats };
+    return { accepted: result.accepted, state: nextState };
+  });
+}
+
+export async function setChunkLineUpElevatorDestinationService(
+  uid: string,
+  input: ChunkLineUpElevatorDestinationInput,
+): Promise<ChunkLineUpElevatorResult> {
+  const round = await validateRound(input);
+  if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
+  const stateSnapshot = await stateRef(round.roundRef).get();
+  const gameState = parseServerState(stateSnapshot.exists ? stateSnapshot.data() : null);
+  if (!gameState) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
+  const floorCount = gameState.board.groups.length;
+  const ref = elevatorRef(round.roundRef);
+  return db.runTransaction(async (tx) => {
+    const snapshot = await tx.get(ref);
+    const now = Date.now();
+    const current = resolveChunkLineUpElevatorState(
+      parseElevatorState(snapshot.exists ? snapshot.data() : null) ?? createChunkLineUpElevatorState(floorCount, now),
+      now,
+    );
+    const result = chooseChunkLineUpElevatorDestination(
+      current,
+      input.elevatorId,
+      uid,
+      input.destinationFloor,
+      floorCount,
+      now,
+    );
+    const nextState = { ...result.state, revision: current.revision + 1 };
+    tx.set(ref, {
+      ...nextState,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedAtMs: now,
+    });
+    return { accepted: result.accepted, state: nextState };
   });
 }
 

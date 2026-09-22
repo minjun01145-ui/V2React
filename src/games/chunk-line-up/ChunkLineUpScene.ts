@@ -4,23 +4,33 @@ import { clearPlatformerInput, createJumpState, takeJump } from "../../game-engi
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
 import type {
   ChunkLineUpBoard,
+  ChunkLineUpElevatorId,
+  ChunkLineUpElevatorRideInfo,
   ChunkLineUpElevatorState,
   ChunkLineUpSlot,
 } from "../../multiplayer/chunk-line-up/types.ts";
-import { chunkLineUpElevatorProgress } from "./model.ts";
+import {
+  CHUNK_LINE_UP_ELEVATOR_CAPACITY,
+  chunkLineUpElevatorDoorOpenRatio,
+  chunkLineUpElevatorFloorPosition,
+  findChunkLineUpPlayerElevator,
+  resolveChunkLineUpElevatorState,
+} from "./elevatorModel.ts";
 
-const RUN_SPEED = 285;
-const PLAYER_WIDTH = 24;
-const PLAYER_HEIGHT = 38;
+const RUN_SPEED = 270;
+const PLAYER_WIDTH = 28;
+const PLAYER_HEIGHT = 48;
 const HUD_SAFE_TOP = 72;
 const FLOOR_HEIGHT = 28;
-const ELEVATOR_X = 62;
-const ELEVATOR_WIDTH = 86;
-const ELEVATOR_HEIGHT = 14;
-const ELEVATOR_CAPACITY = 3;
+const ELEVATOR_SHAFT_WIDTH = 90;
+const ELEVATOR_CABIN_WIDTH = 76;
+const ELEVATOR_CABIN_HEIGHT = 56;
+const ELEVATOR_EDGE = 10;
+const ELEVATOR_LANDING_WIDTH = 82;
 
 interface Actor {
   readonly container: Phaser.GameObjects.Container;
+  readonly shadow: Phaser.GameObjects.Ellipse;
   readonly image: Phaser.GameObjects.Image;
   readonly name: Phaser.GameObjects.Text;
   readonly token: Phaser.GameObjects.Text;
@@ -51,10 +61,10 @@ export interface ChunkLineUpSceneOptions {
   readonly playerLabel: (playerId: string) => string | undefined;
   readonly playerToken: (playerId: string) => string | undefined;
   readonly onConfirm: (groupId: string, slotId: string) => void;
-  readonly elevatorEpochMs: number;
   readonly elevatorState: () => ChunkLineUpElevatorState | null;
   readonly nowMs: () => number;
-  readonly onReserveElevator: () => void;
+  readonly onReserveElevator: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
+  readonly onElevatorRideChange: (ride: ChunkLineUpElevatorRideInfo | null) => void;
 }
 
 function compact(value: string, max = 23): string {
@@ -82,11 +92,11 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private localActor: Actor | null = null;
   private jump = createJumpState();
   private readonly remotes = new Map<string, Actor>();
-  private elevator!: Phaser.GameObjects.Zone;
-  private elevatorBody!: Phaser.Physics.Arcade.Body;
-  private elevatorLabel!: Phaser.GameObjects.Text;
-  private elevatorAdmittedIds = new Set<string>();
-  private lastElevatorReserveAt = Number.NEGATIVE_INFINITY;
+  private readonly elevatorLabels = new Map<ChunkLineUpElevatorId, Phaser.GameObjects.Text>();
+  private elevatorFadedRiderIds = new Set<string>();
+  private localRide: ChunkLineUpElevatorRideInfo | null = null;
+  private localRideKey = "";
+  private lastElevatorReserveAt = new Map<ChunkLineUpElevatorId, number>();
   private burst: Burst | null = null;
   private spawnX = 0;
 
@@ -107,7 +117,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.effects = this.add.graphics().setDepth(30);
     this.platforms = this.physics.add.staticGroup();
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height + 140, true, true, true, false);
-    this.createElevator();
+    this.createElevatorLabels();
 
     if (this.options.mode === "student" && this.options.input && this.options.localPlayer) {
       const initial = this.options.initialState ?? { x: this.scale.width / 2, y: 38, vx: 0, vy: 0 };
@@ -115,14 +125,8 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       this.player = this.add.zone(this.spawnX, initial.y, PLAYER_WIDTH, PLAYER_HEIGHT);
       this.physics.add.existing(this.player);
       this.body = this.player.body as Phaser.Physics.Arcade.Body;
-      this.body.setCollideWorldBounds(true).setMaxVelocity(RUN_SPEED, 900).setDragX(1900);
+      this.body.setCollideWorldBounds(true).setMaxVelocity(RUN_SPEED, 900).setDragX(2300);
       this.physics.add.collider(this.player, this.platforms);
-      this.physics.add.collider(
-        this.player,
-        this.elevator,
-        undefined,
-        () => Boolean(this.options.localPlayer && this.elevatorAdmittedIds.has(this.options.localPlayer.id)),
-      );
       this.localActor = this.createActor(`${this.options.localPlayer.label} · 나`, true);
       const stop = (): void => {
         if (!this.body || !this.options.input) return;
@@ -170,8 +174,24 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   showWrong(): void {
     if (!this.body) return;
     this.burst = { kind: "wrong", x: this.body.center.x, y: this.body.center.y, startedAt: this.time.now };
-    this.body.setVelocityY(-330);
-    this.body.setVelocityX(Phaser.Math.Clamp(-this.body.velocity.x * 0.5, -150, 150));
+    this.body.setVelocityY(-390);
+    const kick = this.body.velocity.x === 0 ? (Math.random() < 0.5 ? -230 : 230) : -Math.sign(this.body.velocity.x) * 230;
+    this.body.setVelocityX(kick);
+    this.cameras.main.shake(150, 0.012);
+    if (this.localActor) {
+      this.localActor.image.setTint(0xff5c5c);
+      this.tweens.killTweensOf(this.localActor.image);
+      this.tweens.add({
+        targets: this.localActor.image,
+        x: { from: -5, to: 5 },
+        duration: 36,
+        yoyo: true,
+        repeat: 3,
+        onComplete: () => {
+          this.localActor?.image.setX(0).clearTint();
+        },
+      });
+    }
   }
 
   showCorrect(completedGroup: boolean): void {
@@ -182,13 +202,15 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       y: this.body.center.y,
       startedAt: this.time.now,
     };
+    if (completedGroup) this.cameras.main.flash(150, 255, 229, 130, false);
+    else this.cameras.main.shake(70, 0.0035);
     this.body.setAccelerationX(0).setVelocity(0, -140);
     this.time.delayedCall(170, () => this.respawnFromTop());
   }
 
   override update(time: number): void {
     const frames = this.options.samplePlayers();
-    this.updateElevator();
+    this.updateElevators();
     if (this.body && this.options.input) this.updateLocalPlayer(time);
     this.updateActors(time, frames);
     this.drawBurst(time);
@@ -198,6 +220,12 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const body = this.body;
     const input = this.options.input;
     if (!body || !input) return;
+    if (this.localRide) {
+      clearPlatformerInput(input);
+      body.setAccelerationX(0).setVelocity(0, 0);
+      this.options.publish(this.movement());
+      return;
+    }
     if (input.resetQueued || body.center.y > this.scale.height + 55) {
       input.resetQueued = false;
       this.respawnFromTop();
@@ -206,12 +234,27 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const left = directions.includes("left");
     const right = directions.includes("right");
     const grounded = body.blocked.down && body.velocity.y >= 0;
-    body.setAccelerationX((Number(right) - Number(left)) * (grounded ? 1800 : 1250));
-    body.setDragX(grounded ? 1900 : 620);
+    body.setAccelerationX((Number(right) - Number(left)) * (grounded ? 2350 : 1320));
+    body.setDragX(grounded ? 2350 : 650);
     const jumpVelocity = takeJump(this.jump, grounded, input.jumpQueued, time);
     input.jumpQueued = false;
     if (jumpVelocity !== null) body.setVelocityY(jumpVelocity);
+    this.keepOutsideElevatorShafts();
     this.options.publish(this.movement());
+  }
+
+  private keepOutsideElevatorShafts(): void {
+    if (!this.body || this.localRide) return;
+    const halfPlayer = PLAYER_WIDTH / 2;
+    const leftBoundary = ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + halfPlayer;
+    const rightBoundary = this.scale.width - ELEVATOR_EDGE - ELEVATOR_SHAFT_WIDTH - halfPlayer;
+    if (this.body.center.x < leftBoundary) {
+      this.body.x = leftBoundary - halfPlayer;
+      if (this.body.velocity.x < 0) this.body.setVelocityX(0);
+    } else if (this.body.center.x > rightBoundary) {
+      this.body.x = rightBoundary - halfPlayer;
+      if (this.body.velocity.x > 0) this.body.setVelocityX(0);
+    }
   }
 
   private movement(): LiveMovementState {
@@ -233,36 +276,40 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   }
 
   private createActor(label: string, self: boolean): Actor {
-    const image = this.add.image(0, 0, "chunk-line-up-runner").setOrigin(0.5, 1).setDisplaySize(31, 38);
+    const shadow = this.add.ellipse(0, -2, 36, 9, 0x243b53, 0.16);
+    const image = this.add.image(0, 0, "chunk-line-up-runner").setOrigin(0.5, 1).setDisplaySize(44, 53);
     if (!self) image.setTint(0xc9e8ff);
-    const name = this.add.text(0, -45, compact(label, 14), {
+    const name = this.add.text(0, -61, compact(label, 14), {
       fontFamily: "sans-serif",
-      fontSize: self ? "11px" : "9px",
+      fontSize: self ? "12px" : "10px",
       color: self ? "#103b31" : "#24445e",
       backgroundColor: "rgba(255,255,255,.82)",
       padding: { x: 4, y: 2 },
     }).setOrigin(0.5);
-    const token = this.add.text(0, -61, "", {
+    const token = this.add.text(0, -78, "", {
       fontFamily: "sans-serif",
-      fontSize: self ? "12px" : "9px",
+      fontSize: self ? "13px" : "10px",
       fontStyle: "bold",
       color: self ? "#5b2500" : "#334155",
       backgroundColor: self ? "rgba(254,243,199,.96)" : "rgba(255,255,255,.76)",
       padding: { x: self ? 6 : 4, y: 2 },
     }).setOrigin(0.5);
     return {
-      container: this.add.container(0, 0, [image, name, token]).setDepth(self ? 22 : 18),
+      container: this.add.container(0, 0, [shadow, image, name, token]).setDepth(self ? 22 : 18),
+      shadow,
       image,
       name,
       token,
     };
   }
 
-  private updateActor(actor: Actor, state: LiveMovementState, time: number, token: string | undefined): void {
+  private updateActor(actor: Actor, state: LiveMovementState, time: number, token: string | undefined, riding: boolean): void {
     actor.container.setPosition(Math.round(state.x), Math.round(state.y + PLAYER_HEIGHT / 2));
     const running = Math.abs(state.vx) > 15 && Math.abs(state.vy) < 8;
-    actor.image.setY(running ? -Math.abs(Math.sin(time / 85)) * 2 : 0);
-    actor.image.setRotation(running ? Math.sin(time / 85) * 0.05 : Phaser.Math.Clamp(state.vx / 4200, -0.07, 0.07));
+    actor.image.setY(running ? -Math.abs(Math.sin(time / 72)) * 3.5 : 0);
+    actor.image.setRotation(running ? Math.sin(time / 72) * 0.085 : Phaser.Math.Clamp(state.vx / 3500, -0.085, 0.085));
+    actor.shadow.setScale(running ? 0.86 + Math.abs(Math.sin(time / 72)) * 0.12 : 1, 1);
+    actor.container.setAlpha(riding ? 0.56 : 1);
     if (Math.abs(state.vx) > 5) actor.image.setFlipX(state.vx < 0);
     const nextToken = compact(token ?? "", actor === this.localActor ? 26 : 17);
     if (actor.token.text !== nextToken) actor.token.setText(nextToken);
@@ -270,7 +317,13 @@ export default class ChunkLineUpScene extends Phaser.Scene {
 
   private updateActors(time: number, frames: readonly LiveRemoteFrame[]): void {
     if (this.localActor && this.options.localPlayer && this.body) {
-      this.updateActor(this.localActor, this.movement(), time, this.options.playerToken(this.options.localPlayer.id));
+      this.updateActor(
+        this.localActor,
+        this.movement(),
+        time,
+        this.options.playerToken(this.options.localPlayer.id),
+        this.elevatorFadedRiderIds.has(this.options.localPlayer.id),
+      );
     }
     const visible = new Set<string>();
     for (const frame of frames) {
@@ -285,7 +338,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       }
       const compactLabel = compact(label, 14);
       if (actor.name.text !== compactLabel) actor.name.setText(compactLabel);
-      this.updateActor(actor, frame, time, this.options.playerToken(frame.playerId));
+      this.updateActor(actor, frame, time, this.options.playerToken(frame.playerId), this.elevatorFadedRiderIds.has(frame.playerId));
     }
     for (const [id, actor] of this.remotes) {
       if (visible.has(id)) continue;
@@ -310,7 +363,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const bottom = Math.max(top + 80, height - FLOOR_HEIGHT - 44);
     const rowStep = groups.length > 1 ? (bottom - top) / (groups.length - 1) : 0;
     const slotsLeft = Math.max(330, width * 0.27);
-    const slotsRight = width - 18;
+    const slotsRight = width - (ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + ELEVATOR_LANDING_WIDTH);
     const promptX = slotsLeft;
     const promptWidth = Math.max(180, slotsRight - slotsLeft);
     const slotGap = Math.max(4, Math.min(8, width * 0.006));
@@ -360,6 +413,17 @@ export default class ChunkLineUpScene extends Phaser.Scene {
         }).setOrigin(0.5, 1).setDepth(8);
         this.textNodes.push(label);
       });
+
+      const landingWidth = ELEVATOR_LANDING_WIDTH;
+      const leftLandingX = ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + landingWidth / 2 - 2;
+      const rightLandingX = width - leftLandingX;
+      this.terrain.fillStyle(0x668878, 1)
+        .fillRoundedRect(leftLandingX - landingWidth / 2, y, landingWidth, 10, 4)
+        .fillRoundedRect(rightLandingX - landingWidth / 2, y, landingWidth, 10, 4);
+      if (rebuildPhysics) {
+        this.platforms.add(this.add.zone(leftLandingX, y + 5, landingWidth, 10));
+        this.platforms.add(this.add.zone(rightLandingX, y + 5, landingWidth, 10));
+      }
     });
 
     const floorY = height - FLOOR_HEIGHT;
@@ -387,7 +451,6 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       const x = index % 2 === 0 ? 185 : 239;
       this.terrain.fillStyle(0x769786, 1).fillRoundedRect(x, y, 74, 10, 4);
     }
-    this.positionElevator(top + 18, floorY - 16);
     this.platforms.refresh();
   }
 
@@ -396,90 +459,149 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     if (!this.terrain) return;
   }
 
-  private createElevator(): void {
-    this.elevator = this.add.zone(ELEVATOR_X, this.scale.height - 70, ELEVATOR_WIDTH, ELEVATOR_HEIGHT);
-    this.physics.add.existing(this.elevator);
-    this.elevatorBody = this.elevator.body as Phaser.Physics.Arcade.Body;
-    this.elevatorBody.setAllowGravity(false).setImmovable(true).setVelocity(0, 0);
-    this.elevatorLabel = this.add.text(ELEVATOR_X, this.scale.height - 88, "엘리베이터 0/3", {
-      fontFamily: "sans-serif",
-      fontSize: "10px",
-      fontStyle: "bold",
-      color: "#334155",
-      backgroundColor: "rgba(255,255,255,.84)",
-      padding: { x: 4, y: 2 },
-    }).setOrigin(0.5).setDepth(10);
-  }
-
-  private elevatorBounds(): { readonly top: number; readonly bottom: number } {
-    const top = Math.max(HUD_SAFE_TOP + 54, 130);
-    const bottom = Math.max(top + 90, this.scale.height - FLOOR_HEIGHT - 20);
-    return { top, bottom };
-  }
-
-  private elevatorPosition(nowMs: number, top: number, bottom: number): { readonly y: number; readonly boarding: boolean } {
-    const phase = chunkLineUpElevatorProgress(nowMs, this.options.elevatorEpochMs);
-    return { y: Phaser.Math.Linear(bottom, top, phase.progress), boarding: phase.boarding };
-  }
-
-  private positionElevator(top: number, bottom: number): void {
-    if (!this.elevatorBody) return;
-    const next = this.elevatorPosition(this.options.nowMs(), top, bottom);
-    this.elevator.setX(ELEVATOR_X).setY(next.y);
-    this.elevatorBody.reset(ELEVATOR_X, next.y);
-    this.elevatorLabel.setX(ELEVATOR_X).setY(this.elevator.y - 18);
-  }
-
-  private localPlayerNearElevator(): boolean {
-    return Boolean(
-      this.body
-      && Math.abs(this.body.center.x - this.elevator.x) <= ELEVATOR_WIDTH / 2 + PLAYER_WIDTH / 2 + 12
-      && Math.abs(this.body.bottom - this.elevator.y) <= 32,
-    );
-  }
-
-  private updateElevator(): void {
-    if (!this.elevatorBody) return;
-    const { top, bottom } = this.elevatorBounds();
-    const previousY = this.elevator.y;
-    const now = this.options.nowMs();
-    const phase = chunkLineUpElevatorProgress(now, this.options.elevatorEpochMs);
-    const next = { y: Phaser.Math.Linear(bottom, top, phase.progress), boarding: phase.boarding };
-    const state = this.options.elevatorState();
-    const admitted = state?.cycle === phase.cycle ? state.seats.slice(0, ELEVATOR_CAPACITY) : [];
-    this.elevatorAdmittedIds = new Set(admitted);
-    const localId = this.options.localPlayer?.id;
-    if (
-      phase.boarding
-      && localId
-      && !this.elevatorAdmittedIds.has(localId)
-      && this.localPlayerNearElevator()
-      && now - this.lastElevatorReserveAt >= 350
-    ) {
-      this.lastElevatorReserveAt = now;
-      this.options.onReserveElevator();
+  private createElevatorLabels(): void {
+    for (const id of ["left", "right"] as const) {
+      const label = this.add.text(0, 0, "0/3", {
+        fontFamily: "sans-serif",
+        fontSize: "10px",
+        fontStyle: "bold",
+        color: "#f8fafc",
+        backgroundColor: "rgba(30,41,59,.9)",
+        padding: { x: 5, y: 2 },
+      }).setOrigin(0.5).setDepth(13);
+      this.elevatorLabels.set(id, label);
     }
-    this.elevatorLabel
-      .setText(`엘리베이터 ${admitted.length}/${ELEVATOR_CAPACITY}`)
-      .setPosition(ELEVATOR_X, next.y - 18);
+  }
+
+  private elevatorX(id: ChunkLineUpElevatorId): number {
+    return id === "left"
+      ? ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH / 2
+      : this.scale.width - ELEVATOR_EDGE - ELEVATOR_SHAFT_WIDTH / 2;
+  }
+
+  private floorTopY(floor: number): number {
+    const groupCount = this.board?.groups.length ?? 0;
+    const height = this.scale.height;
+    if (groupCount === 0 || floor >= groupCount) return height - FLOOR_HEIGHT;
+    const top = Math.max(HUD_SAFE_TOP + 38, 112);
+    const bottom = Math.max(top + 80, height - FLOOR_HEIGHT - 44);
+    if (groupCount === 1) return (top + bottom) / 2;
+    return top + (bottom - top) * floor / (groupCount - 1);
+  }
+
+  private elevatorPlatformY(floorPosition: number): number {
+    const groupCount = this.board?.groups.length ?? 0;
+    const bounded = Phaser.Math.Clamp(floorPosition, 0, groupCount);
+    const low = Math.floor(bounded);
+    const high = Math.ceil(bounded);
+    if (low === high) return this.floorTopY(low);
+    return Phaser.Math.Linear(this.floorTopY(low), this.floorTopY(high), bounded - low);
+  }
+
+  private localPlayerNearElevator(id: ChunkLineUpElevatorId, floor: number): boolean {
+    if (!this.body) return false;
+    const shaftX = this.elevatorX(id);
+    const xDistance = Math.abs(this.body.center.x - shaftX);
+    const yDistance = Math.abs(this.body.bottom - this.floorTopY(floor));
+    return xDistance <= ELEVATOR_SHAFT_WIDTH / 2 + PLAYER_WIDTH + 16 && yDistance <= 30;
+  }
+
+  private drawElevatorCar(
+    id: ChunkLineUpElevatorId,
+    car: ChunkLineUpElevatorState[ChunkLineUpElevatorId],
+    now: number,
+  ): void {
+    const x = this.elevatorX(id);
+    const groupCount = this.board?.groups.length ?? 0;
+    const shaftTop = this.floorTopY(0) - ELEVATOR_CABIN_HEIGHT - 16;
+    const shaftBottom = this.floorTopY(groupCount) + 8;
+    this.elevatorGraphics.fillStyle(0x27424f, 0.24)
+      .fillRoundedRect(x - ELEVATOR_SHAFT_WIDTH / 2, shaftTop, ELEVATOR_SHAFT_WIDTH, shaftBottom - shaftTop, 8);
+    this.elevatorGraphics.lineStyle(2, 0x355c6a, 0.75)
+      .strokeRoundedRect(x - ELEVATOR_SHAFT_WIDTH / 2, shaftTop, ELEVATOR_SHAFT_WIDTH, shaftBottom - shaftTop, 8);
+
+    const floorPosition = chunkLineUpElevatorFloorPosition(car, now);
+    const platformY = this.elevatorPlatformY(floorPosition);
+    const cabinTop = platformY - ELEVATOR_CABIN_HEIGHT + 6;
+    const cabinLeft = x - ELEVATOR_CABIN_WIDTH / 2;
+    this.elevatorGraphics.fillStyle(0xe7eef2, 1)
+      .fillRoundedRect(cabinLeft, cabinTop, ELEVATOR_CABIN_WIDTH, ELEVATOR_CABIN_HEIGHT, 5);
+    this.elevatorGraphics.lineStyle(2, 0x294d5c, 1)
+      .strokeRoundedRect(cabinLeft, cabinTop, ELEVATOR_CABIN_WIDTH, ELEVATOR_CABIN_HEIGHT, 5);
+
+    const openRatio = chunkLineUpElevatorDoorOpenRatio(car, now);
+    const half = ELEVATOR_CABIN_WIDTH / 2;
+    const panelWidth = half * (1 - openRatio);
+    this.elevatorGraphics.fillStyle(0x55727f, 0.96);
+    if (panelWidth > 0.5) {
+      this.elevatorGraphics.fillRect(cabinLeft, cabinTop + 2, panelWidth, ELEVATOR_CABIN_HEIGHT - 4);
+      this.elevatorGraphics.fillRect(x + half - panelWidth, cabinTop + 2, panelWidth, ELEVATOR_CABIN_HEIGHT - 4);
+    }
+    this.elevatorGraphics.fillStyle(0x355c6a, 1).fillRect(cabinLeft + 4, platformY + 3, ELEVATOR_CABIN_WIDTH - 8, 5);
+
+    const label = this.elevatorLabels.get(id);
+    label?.setText(`${id === "left" ? "L" : "R"} ${car.seats.length}/${CHUNK_LINE_UP_ELEVATOR_CAPACITY}`)
+      .setPosition(x, cabinTop - 13);
+  }
+
+  private updateElevators(): void {
     this.elevatorGraphics.clear();
-    this.elevatorGraphics.fillStyle(0x4d6b76, 1).fillRoundedRect(
-      ELEVATOR_X - ELEVATOR_WIDTH / 2,
-      next.y - ELEVATOR_HEIGHT / 2,
-      ELEVATOR_WIDTH,
-      ELEVATOR_HEIGHT,
-      5,
-    );
-    const localRiding = Boolean(
-      this.body
-      && localId
-      && this.elevatorAdmittedIds.has(localId)
-      && Math.abs(this.body.bottom - previousY) <= 22
-      && Math.abs(this.body.center.x - ELEVATOR_X) <= ELEVATOR_WIDTH / 2,
-    );
-    this.elevatorBody.reset(ELEVATOR_X, next.y);
-    if (localRiding && this.body) {
-      this.body.y += next.y - previousY;
+    if (!this.board) return;
+    const raw = this.options.elevatorState();
+    if (!raw) {
+      for (const label of this.elevatorLabels.values()) label.setVisible(false);
+      return;
+    }
+    const now = this.options.nowMs();
+    const state = resolveChunkLineUpElevatorState(raw, now);
+    for (const label of this.elevatorLabels.values()) label.setVisible(true);
+    this.drawElevatorCar("left", state.left, now);
+    this.drawElevatorCar("right", state.right, now);
+
+    this.elevatorFadedRiderIds = new Set([
+      ...(state.left.phase === "open" ? [] : state.left.seats.map((seat) => seat.playerId)),
+      ...(state.right.phase === "open" ? [] : state.right.seats.map((seat) => seat.playerId)),
+    ]);
+    const localId = this.options.localPlayer?.id;
+    const previousRide = this.localRide;
+    const ride = localId ? findChunkLineUpPlayerElevator(state, localId) : null;
+    this.localRide = ride ? {
+      elevatorId: ride.elevatorId,
+      currentFloor: ride.car.floor,
+      destinationFloor: ride.rider.destinationFloor,
+    } : null;
+    const rideKey = this.localRide
+      ? `${this.localRide.elevatorId}:${this.localRide.currentFloor}:${this.localRide.destinationFloor ?? "?"}`
+      : "";
+    if (rideKey !== this.localRideKey) {
+      this.localRideKey = rideKey;
+      this.options.onElevatorRideChange(this.localRide);
+    }
+
+    if (this.body && ride) {
+      clearPlatformerInput(this.options.input!);
+      const seatIndex = Math.max(0, ride.car.seats.findIndex((seat) => seat.playerId === localId));
+      const seatOffset = [-18, 0, 18][seatIndex] ?? 0;
+      const platformY = this.elevatorPlatformY(chunkLineUpElevatorFloorPosition(ride.car, now));
+      this.body.reset(this.elevatorX(ride.elevatorId) + seatOffset, platformY - PLAYER_HEIGHT / 2);
+    } else if (this.body && previousRide && !ride) {
+      const car = state[previousRide.elevatorId];
+      const exitDirection = previousRide.elevatorId === "left" ? 1 : -1;
+      const exitX = this.elevatorX(previousRide.elevatorId)
+        + exitDirection * (ELEVATOR_SHAFT_WIDTH / 2 + PLAYER_WIDTH + 8);
+      this.body.reset(exitX, this.floorTopY(car.floor) - PLAYER_HEIGHT / 2);
+      this.body.setVelocityX(exitDirection * 90);
+    }
+
+    if (!localId || ride) return;
+    for (const id of ["left", "right"] as const) {
+      const car = state[id];
+      if (car.phase !== "open" || car.seats.length >= CHUNK_LINE_UP_ELEVATOR_CAPACITY) continue;
+      if (!this.localPlayerNearElevator(id, car.floor)) continue;
+      const lastReserve = this.lastElevatorReserveAt.get(id) ?? Number.NEGATIVE_INFINITY;
+      if (now - lastReserve < 500) continue;
+      this.lastElevatorReserveAt.set(id, now);
+      this.options.onReserveElevator(id, car.floor);
     }
   }
 
@@ -510,6 +632,22 @@ export default class ChunkLineUpScene extends Phaser.Scene {
         this.burst.x + Math.cos(angle) * outer,
         this.burst.y + Math.sin(angle) * outer,
       );
+      if (correct) {
+        const starRadius = this.burst.kind === "complete" ? 8 : 6;
+        const starX = this.burst.x + Math.cos(angle) * (outer + 7 + ratio * 10);
+        const starY = this.burst.y + Math.sin(angle) * (outer + 7 + ratio * 10);
+        const points: Phaser.Math.Vector2[] = [];
+        for (let point = 0; point < 10; point += 1) {
+          const starAngle = -Math.PI / 2 + point * Math.PI / 5;
+          const pointRadius = point % 2 === 0 ? starRadius : starRadius * 0.42;
+          points.push(new Phaser.Math.Vector2(
+            starX + Math.cos(starAngle) * pointRadius,
+            starY + Math.sin(starAngle) * pointRadius,
+          ));
+        }
+        this.effects.fillStyle(this.burst.kind === "complete" ? 0xfbbf24 : 0xfde047, alpha);
+        this.effects.fillPoints(points, true);
+      }
     }
   }
 }

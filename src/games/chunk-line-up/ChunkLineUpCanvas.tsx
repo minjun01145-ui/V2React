@@ -8,7 +8,12 @@ import {
   createLiveMovementObserver,
   subscribeLiveServerTimeOffset,
 } from "../../live-world/client.ts";
-import type { ChunkLineUpBoard, ChunkLineUpElevatorState } from "../../multiplayer/chunk-line-up/types.ts";
+import type {
+  ChunkLineUpBoard,
+  ChunkLineUpElevatorId,
+  ChunkLineUpElevatorRideInfo,
+  ChunkLineUpElevatorState,
+} from "../../multiplayer/chunk-line-up/types.ts";
 import {
   CHUNK_LINE_UP_CHANNEL_ID,
   CHUNK_LINE_UP_WORLD_HEIGHT,
@@ -28,7 +33,6 @@ interface CommonProps {
   readonly board: ChunkLineUpBoard;
   readonly elevatorState: ChunkLineUpElevatorState | null;
   readonly onConfirm?: (groupId: string, slotId: string) => void;
-  readonly startedAtMs: number | null;
 }
 
 type Props = CommonProps & (
@@ -36,13 +40,15 @@ type Props = CommonProps & (
       readonly role: "student";
       readonly playerId: string;
       readonly label: string;
-      readonly onReserveElevator: () => void;
+      readonly onReserveElevator: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
+      readonly onElevatorRideChange: (ride: ChunkLineUpElevatorRideInfo | null) => void;
     }
   | {
       readonly role: "teacher";
       readonly playerId?: never;
       readonly label?: never;
       readonly onReserveElevator?: never;
+      readonly onElevatorRideChange?: never;
     }
 );
 
@@ -60,12 +66,14 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   const elevatorRef = useRef(props.elevatorState);
   const confirmRef = useRef(props.onConfirm);
   const reserveElevatorRef = useRef(props.role === "student" ? props.onReserveElevator : undefined);
+  const elevatorRideChangeRef = useRef(props.role === "student" ? props.onElevatorRideChange : undefined);
   const serverOffsetRef = useRef(0);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
   boardRef.current = props.board;
   elevatorRef.current = props.elevatorState;
   confirmRef.current = props.onConfirm;
   reserveElevatorRef.current = props.role === "student" ? props.onReserveElevator : undefined;
+  elevatorRideChangeRef.current = props.role === "student" ? props.onElevatorRideChange : undefined;
 
   useImperativeHandle(ref, () => ({
     rejectSlot: () => sceneRef.current?.showWrong(),
@@ -167,10 +175,10 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       playerLabel: (playerId) => boardRef.current.assignments[playerId]?.label,
       playerToken: (playerId) => boardRef.current.assignments[playerId]?.token,
       onConfirm: (groupId, slotId) => confirmRef.current?.(groupId, slotId),
-      elevatorEpochMs: props.startedAtMs ?? 0,
       elevatorState: () => elevatorRef.current,
       nowMs: () => Date.now() + serverOffsetRef.current,
-      onReserveElevator: () => reserveElevatorRef.current?.(),
+      onReserveElevator: (elevatorId, floor) => reserveElevatorRef.current?.(elevatorId, floor),
+      onElevatorRideChange: (ride) => elevatorRideChangeRef.current?.(ride),
     });
     sceneRef.current = scene;
     const game = new Phaser.Game({
@@ -199,7 +207,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       game.destroy(true);
       void closeLive();
     };
-  }, [props.label, props.playerId, props.role, props.roomId, props.roundId, props.startedAtMs]);
+  }, [props.label, props.playerId, props.role, props.roomId, props.roundId]);
 
   const press = (event: PointerEvent<HTMLButtonElement>, action: "left" | "right" | "jump" | "confirm"): void => {
     if (props.role !== "student") return;

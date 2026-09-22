@@ -32,7 +32,6 @@ export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameM
       roundId={session.roundId}
       board={board}
       elevatorState={elevatorState.value}
-      startedAtMs={session.startedAtMs}
     />
     {elevatorState.error ? <div className={styles.elevatorError}>엘리베이터 연결 오류 · 발판 경로는 정상 이용 가능</div> : null}
     <div className={styles.teacherRanking}>

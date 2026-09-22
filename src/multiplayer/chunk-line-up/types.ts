@@ -27,13 +27,40 @@ export interface ChunkLineUpBoard {
   readonly completedGroupCount: number;
 }
 
-export interface ChunkLineUpElevatorState {
-  readonly cycle: number;
-  readonly seats: readonly string[];
+export type ChunkLineUpElevatorId = "left" | "right";
+export type ChunkLineUpElevatorPhase = "open" | "closing" | "moving" | "opening";
+
+export interface ChunkLineUpElevatorRider {
+  readonly playerId: string;
+  readonly destinationFloor: number | null;
 }
 
-export interface ChunkLineUpElevatorResult extends ChunkLineUpElevatorState {
+export interface ChunkLineUpElevatorCarState {
+  readonly id: ChunkLineUpElevatorId;
+  readonly phase: ChunkLineUpElevatorPhase;
+  readonly floor: number;
+  readonly targetFloor: number | null;
+  readonly phaseStartedAtMs: number;
+  readonly seats: readonly ChunkLineUpElevatorRider[];
+  readonly queue: readonly number[];
+}
+
+export interface ChunkLineUpElevatorState {
+  readonly revision: number;
+  readonly lobbyFloor: number;
+  readonly left: ChunkLineUpElevatorCarState;
+  readonly right: ChunkLineUpElevatorCarState;
+}
+
+export interface ChunkLineUpElevatorResult {
   readonly accepted: boolean;
+  readonly state: ChunkLineUpElevatorState;
+}
+
+export interface ChunkLineUpElevatorRideInfo {
+  readonly elevatorId: ChunkLineUpElevatorId;
+  readonly currentFloor: number;
+  readonly destinationFloor: number | null;
 }
 
 export interface ConfirmChunkLineUpSlotInput {

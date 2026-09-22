@@ -5,8 +5,14 @@ import {
   confirmChunkLineUpSlotService,
   ensureChunkLineUpRoundService,
   reserveChunkLineUpElevatorSeatService,
+  setChunkLineUpElevatorDestinationService,
 } from "./service.js";
-import type { ChunkLineUpBaseInput, ChunkLineUpConfirmInput } from "./types.js";
+import type {
+  ChunkLineUpBaseInput,
+  ChunkLineUpConfirmInput,
+  ChunkLineUpElevatorBoardInput,
+  ChunkLineUpElevatorDestinationInput,
+} from "./types.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public", timeoutSeconds: 120 } as const;
 const ROOM_PATTERN = /^[\p{L}\p{N}._-]{1,64}$/u;
@@ -36,6 +42,29 @@ function confirm(value: unknown): ChunkLineUpConfirmInput {
   return { ...parsed, operationId, groupId, slotId, revision };
 }
 
+function elevatorId(value: unknown): "left" | "right" {
+  if (value === "left" || value === "right") return value;
+  throw new HttpsError("invalid-argument", "엘리베이터 정보가 올바르지 않습니다.");
+}
+
+function elevatorBoard(value: unknown): ChunkLineUpElevatorBoardInput {
+  const parsed = base(value);
+  if (!isRecord(value)) throw new HttpsError("invalid-argument", "엘리베이터 탑승 정보가 없습니다.");
+  const floor = typeof value.floor === "number" && Number.isInteger(value.floor) ? value.floor : -1;
+  if (floor < 0) throw new HttpsError("invalid-argument", "엘리베이터 층 정보가 올바르지 않습니다.");
+  return { ...parsed, elevatorId: elevatorId(value.elevatorId), floor };
+}
+
+function elevatorDestination(value: unknown): ChunkLineUpElevatorDestinationInput {
+  const parsed = base(value);
+  if (!isRecord(value)) throw new HttpsError("invalid-argument", "엘리베이터 행선지 정보가 없습니다.");
+  const destinationFloor = typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor)
+    ? value.destinationFloor
+    : -1;
+  if (destinationFloor < 0) throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
+  return { ...parsed, elevatorId: elevatorId(value.elevatorId), destinationFloor };
+}
+
 async function authorize(request: CallableRequest<unknown>, input: ChunkLineUpBaseInput): Promise<string> {
   return requireRoomCaller(request, input.roomId);
 }
@@ -54,7 +83,13 @@ export const confirmChunkLineUpSlot = onCall(options, async (request) => {
 });
 
 export const reserveChunkLineUpElevatorSeat = onCall(options, async (request) => {
-  const input = base(request.data);
+  const input = elevatorBoard(request.data);
   const uid = await authorize(request, input);
   return reserveChunkLineUpElevatorSeatService(uid, input);
+});
+
+export const setChunkLineUpElevatorDestination = onCall(options, async (request) => {
+  const input = elevatorDestination(request.data);
+  const uid = await authorize(request, input);
+  return setChunkLineUpElevatorDestinationService(uid, input);
 });

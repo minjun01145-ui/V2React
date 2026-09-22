@@ -17,22 +17,6 @@ export interface ChunkLineUpTarget {
   readonly text: string;
 }
 
-const ELEVATOR_BOTTOM_WAIT_MS = 1_800;
-const ELEVATOR_BOARDING_CLOSE_MS = 1_400;
-const ELEVATOR_TRAVEL_MS = 2_400;
-const ELEVATOR_TOP_WAIT_MS = 800;
-const ELEVATOR_CYCLE_MS = ELEVATOR_BOTTOM_WAIT_MS + ELEVATOR_TRAVEL_MS + ELEVATOR_TOP_WAIT_MS + ELEVATOR_TRAVEL_MS;
-
-export function chunkLineUpElevatorPhase(nowMs: number, epochMs: number): {
-  readonly cycle: number;
-  readonly boarding: boolean;
-} {
-  const relative = nowMs - epochMs;
-  const cycle = Math.floor(relative / ELEVATOR_CYCLE_MS);
-  const elapsed = ((relative % ELEVATOR_CYCLE_MS) + ELEVATOR_CYCLE_MS) % ELEVATOR_CYCLE_MS;
-  return { cycle, boarding: elapsed < ELEVATOR_BOARDING_CLOSE_MS };
-}
-
 function hash(value: string): number {
   let result = 2166136261;
   for (let index = 0; index < value.length; index += 1) {

@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import {
   buildInitialChunkLineUpBoard,
-  chunkLineUpElevatorPhase,
   chooseChunkLineUpReplacementSource,
   chooseChunkLineUpTarget,
   chunkLineUpGroupComplete,
@@ -11,6 +10,16 @@ import {
   openChunkLineUpTargets,
   publicChunkLineUpBoard,
 } from "../lib/chunk-line-up/model.js";
+import {
+  boardChunkLineUpElevator,
+  CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS,
+  CHUNK_LINE_UP_ELEVATOR_DOOR_MS,
+  CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS,
+  chooseChunkLineUpElevatorDestination,
+  chunkLineUpElevatorTravelMs,
+  createChunkLineUpElevatorState,
+  resolveChunkLineUpElevatorState,
+} from "../lib/chunk-line-up/elevatorModel.js";
 
 const sources = Array.from({ length: 9 }, (_, index) => {
   const slotCount = [3, 4, 5][index % 3];
@@ -132,8 +141,72 @@ assert(publicAssignment);
 assert.equal("targetGroupId" in publicAssignment, false, "student-visible assignments must not reveal target group ids");
 assert.equal("targetSlotId" in publicAssignment, false, "student-visible assignments must not reveal target slot ids");
 
-assert.deepEqual(chunkLineUpElevatorPhase(10_500, 10_000), { cycle: 0, boarding: true });
-assert.deepEqual(chunkLineUpElevatorPhase(11_500, 10_000), { cycle: 0, boarding: false });
-assert.deepEqual(chunkLineUpElevatorPhase(17_500, 10_000), { cycle: 1, boarding: true });
+const elevatorStart = 10_000;
+let elevators = createChunkLineUpElevatorState(5, elevatorStart);
+assert.equal(elevators.left.floor, 5);
+assert.equal(elevators.right.floor, 5);
+assert.equal(elevators.left.phase, "open");
+for (const playerId of ["p1", "p2", "p3"]) {
+  const boarded = boardChunkLineUpElevator(elevators, "left", playerId, 5, elevatorStart + 100);
+  assert.equal(boarded.accepted, true);
+  elevators = boarded.state;
+}
+assert.equal(boardChunkLineUpElevator(elevators, "left", "p4", 5, elevatorStart + 120).accepted, false,
+  "a shaft must enforce capacity three");
+assert.equal(boardChunkLineUpElevator(elevators, "right", "p1", 5, elevatorStart + 120).accepted, false,
+  "a player cannot occupy both elevator shafts");
+
+let selected = chooseChunkLineUpElevatorDestination(elevators, "left", "p1", 0, 5, elevatorStart + 200);
+assert.equal(selected.accepted, true);
+elevators = selected.state;
+selected = chooseChunkLineUpElevatorDestination(elevators, "left", "p2", 2, 5, elevatorStart + 210);
+elevators = selected.state;
+selected = chooseChunkLineUpElevatorDestination(elevators, "left", "p3", 1, 5, elevatorStart + 220);
+elevators = selected.state;
+assert.deepEqual(elevators.left.queue, [0, 2, 1], "destinations should be visited one stop at a time in selection order");
+assert.equal(chooseChunkLineUpElevatorDestination(elevators, "left", "p1", 0, 5, elevatorStart + 230).accepted, true,
+  "replaying the same destination should be idempotent");
+assert.equal(chooseChunkLineUpElevatorDestination(elevators, "left", "p1", 4, 5, elevatorStart + 230).accepted, false,
+  "a rider must not change an already selected destination");
+
+const firstArrivalOpenAt = elevatorStart + 220
+  + CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS
+  + CHUNK_LINE_UP_ELEVATOR_DOOR_MS
+  + chunkLineUpElevatorTravelMs(5, 0)
+  + CHUNK_LINE_UP_ELEVATOR_DOOR_MS;
+let resolvedElevators = resolveChunkLineUpElevatorState(elevators, firstArrivalOpenAt + 1);
+assert.equal(resolvedElevators.left.phase, "open");
+assert.equal(resolvedElevators.left.floor, 0);
+assert.deepEqual(resolvedElevators.left.seats.map((seat) => seat.playerId).sort(), ["p2", "p3"],
+  "the rider for the current stop should leave after the doors finish opening");
+assert.deepEqual(resolvedElevators.left.queue, [2, 1]);
+const intermediateBoard = boardChunkLineUpElevator(resolvedElevators, "left", "p4", 0, firstArrivalOpenAt + 50);
+assert.equal(intermediateBoard.accepted, true, "a free seat can be taken while doors are open at an intermediate stop");
+const stillOpenForNewRider = resolveChunkLineUpElevatorState(
+  intermediateBoard.state,
+  firstArrivalOpenAt + 50 + CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS + 100,
+);
+assert.equal(stillOpenForNewRider.left.phase, "open",
+  "a newly boarded rider must get destination-selection grace even when through-riders already have queued stops");
+
+const idleWithRider = boardChunkLineUpElevator(createChunkLineUpElevatorState(5, 30_000), "right", "idle", 5, 30_100);
+assert.equal(idleWithRider.accepted, true);
+const expiredIdle = resolveChunkLineUpElevatorState(idleWithRider.state, 30_100 + CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS + 1);
+assert.equal(expiredIdle.right.seats.length, 0, "a rider who never chooses a destination must not deadlock the shaft");
+
+const upperEmpty = {
+  ...createChunkLineUpElevatorState(5, 50_000),
+  left: {
+    ...createChunkLineUpElevatorState(5, 50_000).left,
+    floor: 1,
+    phaseStartedAtMs: 50_000,
+  },
+};
+const returning = resolveChunkLineUpElevatorState(
+  upperEmpty,
+  50_000 + CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS + CHUNK_LINE_UP_ELEVATOR_DOOR_MS + 1,
+);
+assert.equal(returning.left.phase, "moving");
+assert.equal(returning.left.targetFloor, 5, "an empty car away from the lobby should automatically return to the lobby");
 
 console.log("chunk line-up model tests passed");
