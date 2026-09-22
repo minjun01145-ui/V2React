@@ -98,6 +98,13 @@ service cloud.firestore {
         || (tenantId == "hana" && roomId.matches("^hana--.+$"));
     }
 
+    function isAdminForMissingRoomNamespace(roomId) {
+      return !exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
+        && isAdmin()
+        && validTenantId(adminTenantId())
+        && roomIdMatchesTenant(roomId, adminTenantId());
+    }
+
     function isTenantReader(tenantId) {
       return isAdminForTenant(tenantId)
         || (isRosterStudent() && authTenantId() == tenantId)
@@ -370,7 +377,7 @@ service cloud.firestore {
     }
 
     match /multiplayerSessions/{roomId} {
-      allow read: if isRoomStudent(roomId) || isRoomAdmin(roomId) || isDeletedTestRoomReader(roomId);
+      allow read: if isRoomStudent(roomId) || isRoomAdmin(roomId) || isAdminForMissingRoomNamespace(roomId) || isDeletedTestRoomReader(roomId);
       allow create: if validTenantId(tenantIdFrom(request.resource.data))
         && roomIdMatchesTenant(roomId, tenantIdFrom(request.resource.data))
         && request.resource.data.roomId == roomId
@@ -384,7 +391,7 @@ service cloud.firestore {
         // The lobby renders the room roster with a collection query. Every authenticated
         // student accepted for this room may read that room's player cards; writes remain
         // restricted to the caller's own UID below.
-        allow read: if isRoomAdmin(roomId) || isRoomStudent(roomId);
+        allow read: if isRoomAdmin(roomId) || isAdminForMissingRoomNamespace(roomId) || isRoomStudent(roomId);
         allow create: if isRoomStudent(roomId)
           && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
           && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status in ["waiting", "preparing", "playing"]
