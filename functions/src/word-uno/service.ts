@@ -11,11 +11,11 @@ import {
   drawWordUnoCardState,
   expireWordUnoGroupState,
   expireWordUnoTurnState,
+  groupWordUnoPlayers,
   playWordUnoCardState,
   waitingAssignment,
   WORD_UNO_ROUND_MS,
   WordUnoRuleError,
-  wordUnoGroupSizes,
 } from "./model.js";
 import type {
   WordUnoActionResult,
@@ -246,13 +246,10 @@ export async function ensureWordUnoRoundService(input: WordUnoBaseInput): Promis
     round.expectedPlayerIds.map((playerId) => round.roundRef.collection("participants").doc(playerId).get()),
   );
   const profiles = new Map(round.expectedPlayerIds.map((playerId, index) => [playerId, profile(playerId, participantDocs[index]?.data())]));
-  const sizes = wordUnoGroupSizes(round.expectedPlayerIds.length);
+  const grouping = groupWordUnoPlayers(round.expectedPlayerIds);
   const prepared: WordUnoGroupState[] = [];
-  let offset = 0;
   const now = Date.now();
-  for (const [index, size] of sizes.entries()) {
-    const memberIds = round.expectedPlayerIds.slice(offset, offset + size);
-    offset += size;
+  for (const [index, memberIds] of grouping.groups.entries()) {
     prepared.push(createWordUnoGroupState({
       groupId: `uno-${index + 1}`,
       groupLabel: `UNO ${index + 1}`,
@@ -263,7 +260,7 @@ export async function ensureWordUnoRoundService(input: WordUnoBaseInput): Promis
       now,
     }));
   }
-  const waitingPlayerIds = round.expectedPlayerIds.slice(offset);
+  const waitingPlayerIds = grouping.waitingPlayerIds;
 
   await db.runTransaction(async (tx) => {
     const stateRef = wordUnoStateRef(round.roundRef);

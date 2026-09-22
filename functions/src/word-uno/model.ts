@@ -43,6 +43,23 @@ export function wordUnoGroupSizes(count: number): number[] {
   return sizes;
 }
 
+export function groupWordUnoPlayers(
+  playerIds: readonly string[],
+  random: () => number = Math.random,
+): { readonly groups: string[][]; readonly waitingPlayerIds: string[] } {
+  const orderedPlayerIds = shuffled(playerIds, random);
+  const groups: string[][] = [];
+  let offset = 0;
+  for (const size of wordUnoGroupSizes(orderedPlayerIds.length)) {
+    groups.push(orderedPlayerIds.slice(offset, offset + size));
+    offset += size;
+  }
+  return {
+    groups,
+    waitingPlayerIds: orderedPlayerIds.slice(offset),
+  };
+}
+
 function cleaned(value: string): string {
   return value.trim();
 }

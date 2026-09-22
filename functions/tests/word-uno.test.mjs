@@ -12,6 +12,7 @@ import {
   drawWordUnoCardState,
   expireWordUnoGroupState,
   expireWordUnoTurnState,
+  groupWordUnoPlayers,
   isPlayableCard,
   playWordUnoCardState,
   waitingAssignment,
@@ -74,6 +75,18 @@ assert.deepEqual(wordUnoGroupSizes(9), [3, 3, 3]);
 assert.deepEqual(wordUnoGroupSizes(10), [3, 3, 4]);
 assert.deepEqual(wordUnoGroupSizes(11), [3, 4, 4]);
 assert.deepEqual(wordUnoGroupSizes(14), [3, 3, 4, 4]);
+
+const fivePlayerGrouping = groupWordUnoPlayers(["a", "b", "c", "d", "e"], noRandom);
+assert.deepEqual(fivePlayerGrouping.groups, [["b", "c", "d", "e"]]);
+assert.deepEqual(fivePlayerGrouping.waitingPlayerIds, ["a"]);
+const alternateFivePlayerGrouping = groupWordUnoPlayers(["a", "b", "c", "d", "e"], () => 0.999999);
+assert.deepEqual(alternateFivePlayerGrouping.groups, [["a", "b", "c", "d"]]);
+assert.deepEqual(alternateFivePlayerGrouping.waitingPlayerIds, ["e"]);
+
+const eightPlayerGrouping = groupWordUnoPlayers(["a", "b", "c", "d", "e", "f", "g", "h"], noRandom);
+assert.deepEqual(eightPlayerGrouping.groups.map((group) => group.length), [4, 4]);
+assert.equal(new Set(eightPlayerGrouping.groups.flat()).size, 8);
+assert.deepEqual(eightPlayerGrouping.waitingPlayerIds, []);
 
 const inputs = [
   { sourceText: "heavy", form2: "heavier", form3: "the heaviest", meaning: "무거운" },

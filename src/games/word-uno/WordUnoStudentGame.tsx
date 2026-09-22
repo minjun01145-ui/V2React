@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
+import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
+import { createGameAnnouncement } from "../../game-engine/effects/model.ts";
+import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
 import DeadlineCountdownBar from "../../game-engine/timed-turn/DeadlineCountdownBar.tsx";
 import { useDeadlineCountdown } from "../../game-engine/timed-turn/useDeadlineCountdown.ts";
 import { useWordUnoAssignment } from "../../multiplayer/word-uno/hooks.ts";
@@ -52,6 +55,21 @@ function CardFace({ card, showFamily = false }: { readonly card: WordUnoCard; re
   </>;
 }
 
+function WordUnoActionMotion({ motion }: {
+  readonly motion: { readonly id: number; readonly kind: "play"; readonly card: WordUnoCard }
+    | { readonly id: number; readonly kind: "draw" }
+    | null;
+}) {
+  if (!motion) return null;
+  return <div className={styles.actionMotionLayer} aria-hidden="true" key={motion.id}>
+    {motion.kind === "play"
+      ? <div className={styles.playedCardMotion} data-stage={motion.card.kind === "word" ? motion.card.stage : undefined} data-kind={motion.card.kind}>
+        <CardFace card={motion.card} />
+      </div>
+      : <div className={styles.drawnCardMotion}><span>WORD</span><strong>UNO</strong></div>}
+  </div>;
+}
+
 function SharedClock({ endsAtMs }: { readonly endsAtMs: number | null }) {
   const countdown = useDeadlineCountdown(endsAtMs, ROUND_DURATION_MS);
   const seconds = Math.ceil((countdown?.remainingMs ?? 0) / 1_000);
@@ -73,8 +91,16 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
   const [pendingWild, setPendingWild] = useState<string | null>(null);
   const [turnRetry, setTurnRetry] = useState(0);
   const [roundRetry, setRoundRetry] = useState(0);
+  const [actionMotion, setActionMotion] = useState<
+    { readonly id: number; readonly kind: "play"; readonly card: WordUnoCard }
+    | { readonly id: number; readonly kind: "draw" }
+    | null
+  >(null);
+  const motionSequenceRef = useRef(0);
   const turnExpiryKey = useRef("");
   const roundExpiryKey = useRef("");
+  const turnEffectKeyRef = useRef("");
+  const effects = useGameEffectEngine();
   const colorsSetting = session.gameConfig?.["word-uno-colors"];
   const colorsEnabled = colorsSetting !== "off" && colorsSetting !== false;
   const isMyTurn = state?.status === "active" && state.currentPlayerId === player.id;
@@ -117,6 +143,20 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
 
   const memberById = useMemo(() => new Map(state?.members.map((member) => [member.playerId, member]) ?? []), [state?.members]);
 
+  useEffect(() => {
+    if (!state || state.status !== "active" || !state.currentPlayerId) return;
+    const key = `${session.roundId}:${state.generation}:${state.revision}:${state.currentPlayerId}`;
+    if (turnEffectKeyRef.current === key) return;
+    turnEffectKeyRef.current = key;
+    const myTurn = state.currentPlayerId === player.id;
+    const nickname = memberById.get(state.currentPlayerId)?.nickname ?? "다른 친구";
+    effects.play(createGameAnnouncement({
+      headline: myTurn ? "내 차례!" : `${nickname}의 차례`,
+      metric: myTurn ? "카드를 내거나 한 장 뽑으세요" : "잠시 기다려 주세요",
+      durationMs: 900,
+    }));
+  }, [effects.play, memberById, player.id, session.roundId, state]);
+
   if (assignment.error) return <StatusPanel title="Word UNO 연결 오류" tone="error">{assignment.error.message}</StatusPanel>;
   if (joinedAfterRoundStart) return <StatusPanel title="다음 게임부터 참여" tone="waiting">이번 라운드의 조 편성은 이미 끝났습니다. 현재 조는 바꾸지 않고 다음 게임이 시작되면 참여합니다.</StatusPanel>;
   if (assignment.loading || !state) return <StatusPanel title="Word UNO 준비 중" tone="waiting">게임 조와 카드를 준비하고 있습니다.</StatusPanel>;
@@ -142,6 +182,8 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
 
   const play = async (cardId: string, wildStage?: WordUnoStage): Promise<void> => {
     if (busy || !isMyTurn) return;
+    const card = state.hand.find((item) => item.id === cardId);
+    if (!card) return;
     setBusy(true);
     setActionError("");
     try {
@@ -153,6 +195,8 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
         cardId,
         ...(wildStage ? { wildStage } : {}),
       });
+      motionSequenceRef.current += 1;
+      setActionMotion({ id: motionSequenceRef.current, kind: "play", card });
       setPendingWild(null);
     } catch (reason: unknown) {
       failAction(reason);
@@ -173,6 +217,8 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
     setActionError("");
     try {
       await drawWordUnoCard({ roomId, roundId: session.roundId, operationId: crypto.randomUUID(), revision: state.revision });
+      motionSequenceRef.current += 1;
+      setActionMotion({ id: motionSequenceRef.current, kind: "draw" });
     } catch (reason: unknown) {
       failAction(reason);
     } finally {
@@ -184,6 +230,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
   const self = memberById.get(player.id);
 
   return <div className={styles.shell} data-colors={colorsEnabled ? "on" : "off"}>
+    <GameEffectLayer effect={effects.activeEffect} className={styles.turnEffectLayer} />
     <div className={styles.gameHeader}>
       <div><span>{state.groupLabel ?? "Word UNO"}</span><strong>{isMyTurn ? "내 차례" : `${memberById.get(state.currentPlayerId ?? "")?.nickname ?? "다른 친구"} 차례`}</strong></div>
       <SharedClock endsAtMs={state.endsAtMs} />
@@ -195,6 +242,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
       : null}
 
     <div className={styles.unoTableScene} aria-label="Word UNO 게임 테이블">
+      <WordUnoActionMotion motion={actionMotion} />
       {opponents.map((member, index) => <div
         className={styles.opponentSeat}
         data-seat={opponentSeat(index, opponents.length)}
