@@ -218,6 +218,17 @@ const definitions = [
     loadTeacher: () => import("./meaning-dash/MeaningDashTeacherGame.tsx"),
   }),
   defineGame({
+    id: "chunk-line-up",
+    title: "Chunk Line-Up",
+    timing: "timed",
+    fixedTimedMode: "3-minutes",
+    handlesOwnTimedBoundary: true,
+    supportedSetTypes: ["reading-chunks"],
+    requiresStoredSet: true,
+    loadStudent: () => import("./chunk-line-up/ChunkLineUpStudentGame.tsx"),
+    loadTeacher: () => import("./chunk-line-up/ChunkLineUpTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "chunk-jump-race",
     title: "끊어읽기 점프 레이스",
     timing: "timed",

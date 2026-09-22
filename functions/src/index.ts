@@ -13,3 +13,4 @@ export { grantAcidRainItem } from "./acid-rain-items/callables.js";
 export { completeTypingPractice } from "./typing-practice/callables.js";
 export { generateLearningSet } from "./learning-set-generation/callables.js";
 export { ensureWordUnoRound, playWordUnoCard, drawWordUnoCard, expireWordUnoTurn, expireWordUnoRound } from "./word-uno/callables.js";
+export { ensureChunkLineUpRound, confirmChunkLineUpSlot, reserveChunkLineUpElevatorSeat } from "./chunk-line-up/callables.js";

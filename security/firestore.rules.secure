@@ -619,6 +619,35 @@ service cloud.firestore {
           allow read, write: if false;
         }
 
+        // Chunk Line-Up의 전체 보드는 게임 월드 렌더링을 위해 참가자에게 공개한다.
+        // 실제 슬롯 확정·점수·교체는 서버 callable만 변경할 수 있다.
+        match /chunkLineUpState/{documentId} {
+          allow read: if isRoomAdmin(roomId);
+          allow write: if false;
+        }
+
+        match /chunkLineUpBoard/{documentId} {
+          allow read: if isRoomAdmin(roomId) || (
+            isRoomStudent(roomId)
+              && request.auth.uid in get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.expectedPlayerIds
+              && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/players/$(request.auth.uid))
+          );
+          allow write: if false;
+        }
+
+        match /chunkLineUpElevator/{documentId} {
+          allow read: if isRoomAdmin(roomId) || (
+            isRoomStudent(roomId)
+              && request.auth.uid in get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.expectedPlayerIds
+              && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/players/$(request.auth.uid))
+          );
+          allow write: if false;
+        }
+
+        match /chunkLineUpOperations/{uid}/items/{operationId} {
+          allow read, write: if false;
+        }
+
         match /answers/{answerId} {
           allow read: if isRoomAdmin(roomId);
           allow create: if isRoomStudent(roomId)

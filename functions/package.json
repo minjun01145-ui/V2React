@@ -6,7 +6,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "npm run build && node tests/architecture.test.mjs && node tests/pin.test.mjs && node tests/ollama-provider.test.mjs && node tests/learning-set-generation.test.mjs && node tests/word-uno.test.mjs && node tests/ai-tutor.test.mjs && node tests/free-response.test.mjs && node tests/student-questions.test.mjs && node tests/cooperative-sentence.test.mjs && node tests/battle.test.mjs && node tests/items.test.mjs && node tests/acid-rain-items.test.mjs && node tests/typing-practice.test.mjs",
+    "test": "npm run build && node tests/architecture.test.mjs && node tests/pin.test.mjs && node tests/ollama-provider.test.mjs && node tests/learning-set-generation.test.mjs && node tests/word-uno.test.mjs && node tests/chunk-line-up.test.mjs && node tests/ai-tutor.test.mjs && node tests/free-response.test.mjs && node tests/student-questions.test.mjs && node tests/cooperative-sentence.test.mjs && node tests/battle.test.mjs && node tests/items.test.mjs && node tests/acid-rain-items.test.mjs && node tests/typing-practice.test.mjs",
     "deploy": "npm run build && firebase deploy --only functions"
   },
   "dependencies": {

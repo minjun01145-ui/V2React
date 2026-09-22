@@ -1,0 +1,307 @@
+.studentShell,
+.teacherShell {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 2px solid #294d5c;
+  border-radius: 14px;
+  background: #dff4f7;
+  box-shadow: 0 10px 28px rgba(15, 42, 67, .1);
+}
+
+.studentShell {
+  height: clamp(480px, calc(100dvh - 164px), 680px);
+}
+
+.teacherShell {
+  height: clamp(430px, calc(100dvh - 230px), 630px);
+}
+
+.canvasWrap,
+.canvasHost {
+  position: absolute;
+  inset: 0;
+  min-width: 0;
+  outline: none;
+}
+
+.canvasHost {
+  overflow: hidden;
+}
+
+.canvasHost canvas {
+  display: block;
+}
+
+.connectionError {
+  position: absolute;
+  z-index: 60;
+  top: 44px;
+  left: 50%;
+  max-width: 76%;
+  padding: 5px 9px;
+  transform: translateX(-50%);
+  border: 1px solid #b91c1c;
+  border-radius: 7px;
+  background: rgba(255,255,255,.94);
+  color: #991b1b;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.studentHud {
+  position: absolute;
+  z-index: 45;
+  top: 7px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.tokenHud,
+.scoreHud {
+  display: grid;
+  align-content: center;
+  min-height: 42px;
+  padding: 4px 8px;
+  border: 1px solid rgba(41,77,92,.2);
+  border-radius: 9px;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 2px 8px rgba(15,42,67,.08);
+  backdrop-filter: blur(4px);
+}
+
+.tokenHud {
+  min-width: 0;
+  max-width: min(52vw, 460px);
+}
+
+.tokenHud small,
+.scoreHud small {
+  color: #627d98;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.tokenHud strong {
+  overflow: hidden;
+  color: #8a3b00;
+  font-size: clamp(14px, 1.8vw, 20px);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scoreHud {
+  min-width: 54px;
+  text-align: center;
+}
+
+.scoreHud strong {
+  color: #17324d;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.studentHud > :last-child {
+  margin-left: auto;
+}
+
+.controlsHint {
+  position: absolute;
+  z-index: 43;
+  right: 8px;
+  bottom: 6px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.68);
+  color: #486581;
+  font-size: 9px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.wrongFeedback,
+.staleFeedback,
+.elevatorError,
+.expiredBadge {
+  position: absolute;
+  z-index: 50;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  box-shadow: 0 5px 14px rgba(15,42,67,.14);
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.elevatorError {
+  position: absolute;
+  z-index: 50;
+  top: 56px;
+  left: 8px;
+  transform: none;
+  padding: 4px 7px;
+  border: 1px solid rgba(185,28,28,.34);
+  border-radius: 7px;
+  background: rgba(255,255,255,.9);
+  color: #991b1b;
+  font-size: 9px;
+  font-weight: 900;
+  pointer-events: none;
+}
+
+.wrongFeedback,
+.staleFeedback {
+  bottom: 34px;
+  padding: 5px 10px;
+  font-size: 11px;
+  animation: feedbackPop 420ms ease-out both;
+}
+
+.wrongFeedback {
+  background: rgba(254,226,226,.94);
+  color: #991b1b;
+}
+
+.staleFeedback {
+  background: rgba(255,255,255,.94);
+  color: #475569;
+}
+
+.expiredBadge {
+  top: 10px;
+  right: 10px;
+  left: auto;
+  padding: 6px 11px;
+  transform: none;
+  background: rgba(15,23,42,.86);
+  color: white;
+  font-size: 12px;
+}
+
+.touchControls {
+  position: absolute;
+  z-index: 44;
+  left: 8px;
+  bottom: 7px;
+  display: none;
+  gap: 5px;
+}
+
+.touchControls button {
+  min-width: 42px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid rgba(41,77,92,.45);
+  border-radius: 8px;
+  background: rgba(255,255,255,.82);
+  color: #17324d;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.teacherHud {
+  position: absolute;
+  z-index: 45;
+  top: 7px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 4px 7px;
+  border: 1px solid rgba(41,77,92,.16);
+  border-radius: 9px;
+  background: rgba(255,255,255,.84);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+}
+
+.teacherHud > div {
+  display: grid;
+  min-width: 0;
+}
+
+.teacherHud strong {
+  color: #17324d;
+  font-size: 14px;
+}
+
+.teacherHud span {
+  color: #627d98;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.teacherHud > :last-child {
+  margin-left: auto;
+}
+
+.teacherRanking {
+  position: absolute;
+  z-index: 44;
+  right: 8px;
+  bottom: 7px;
+  display: flex;
+  max-width: calc(100% - 16px);
+  gap: 4px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.teacherRanking span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 3px 6px;
+  border-radius: 7px;
+  background: rgba(255,255,255,.76);
+  color: #334e68;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.teacherRanking b {
+  color: #9a6700;
+}
+
+.teacherRanking strong {
+  color: #17324d;
+}
+
+@keyframes feedbackPop {
+  0% { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.9); }
+  25% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.04); }
+  100% { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .touchControls { display: flex; }
+  .controlsHint { display: none; }
+}
+
+@media (max-height: 700px) {
+  .studentShell { height: calc(100dvh - 154px); min-height: 450px; }
+  .teacherShell { height: calc(100dvh - 210px); min-height: 400px; }
+  .tokenHud, .scoreHud { min-height: 36px; }
+}
+
+@media (max-width: 700px) {
+  .studentShell { min-height: 470px; }
+  .teacherShell { min-height: 420px; }
+  .teacherHud > span { display: none; }
+  .controlsHint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrongFeedback, .staleFeedback { animation: none; }
+}
