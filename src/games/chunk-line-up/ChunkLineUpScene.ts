@@ -86,7 +86,6 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private elevatorBody!: Phaser.Physics.Arcade.Body;
   private elevatorLabel!: Phaser.GameObjects.Text;
   private elevatorAdmittedIds = new Set<string>();
-  private elevatorBoarding = false;
   private lastElevatorReserveAt = Number.NEGATIVE_INFINITY;
   private burst: Burst | null = null;
   private spawnX = 0;
@@ -118,7 +117,12 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       this.body = this.player.body as Phaser.Physics.Arcade.Body;
       this.body.setCollideWorldBounds(true).setMaxVelocity(RUN_SPEED, 900).setDragX(1900);
       this.physics.add.collider(this.player, this.platforms);
-      this.physics.add.collider(this.player, this.elevator);
+      this.physics.add.collider(
+        this.player,
+        this.elevator,
+        undefined,
+        () => Boolean(this.options.localPlayer && this.elevatorAdmittedIds.has(this.options.localPlayer.id)),
+      );
       this.localActor = this.createActor(`${this.options.localPlayer.label} · 나`, true);
       const stop = (): void => {
         if (!this.body || !this.options.input) return;
@@ -207,7 +211,6 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const jumpVelocity = takeJump(this.jump, grounded, input.jumpQueued, time);
     input.jumpQueued = false;
     if (jumpVelocity !== null) body.setVelocityY(jumpVelocity);
-    this.limitElevatorEntry();
     this.options.publish(this.movement());
   }
 
@@ -306,23 +309,24 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const top = Math.max(HUD_SAFE_TOP + 38, 112);
     const bottom = Math.max(top + 80, height - FLOOR_HEIGHT - 44);
     const rowStep = groups.length > 1 ? (bottom - top) / (groups.length - 1) : 0;
-    const promptX = 126;
-    const promptWidth = Math.min(200, Math.max(132, width * 0.16));
     const slotsLeft = Math.max(330, width * 0.27);
     const slotsRight = width - 18;
+    const promptX = slotsLeft;
+    const promptWidth = Math.max(180, slotsRight - slotsLeft);
     const slotGap = Math.max(4, Math.min(8, width * 0.006));
 
     groups.forEach((group, groupIndex) => {
       const y = groups.length === 1 ? (top + bottom) / 2 : top + rowStep * groupIndex;
       const count = Math.max(1, group.slots.length);
       const slotWidth = Math.max(54, (slotsRight - slotsLeft - slotGap * (count - 1)) / count);
-      const prompt = this.add.text(promptX, y - 31, compact(group.prompt, 36), {
+      const promptText = compact(group.prompt.replaceAll("/", " ").replace(/\s+/g, " "), 72);
+      const prompt = this.add.text(promptX, y - 28, `뜻 · ${promptText}`, {
         fontFamily: "sans-serif",
-        fontSize: `${Math.round(Phaser.Math.Clamp(width / 88, 11, 15))}px`,
+        fontSize: `${Math.round(Phaser.Math.Clamp(width / 72, 13, 16))}px`,
         fontStyle: "bold",
-        color: "#163b52",
-        backgroundColor: "rgba(255,255,255,.76)",
-        padding: { x: 6, y: 3 },
+        color: "#123247",
+        backgroundColor: "rgba(255,255,255,.94)",
+        padding: { x: 8, y: 4 },
         wordWrap: { width: promptWidth, useAdvancedWrap: true },
       }).setOrigin(0, 1).setDepth(7);
       this.textNodes.push(prompt);
@@ -429,8 +433,8 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private localPlayerNearElevator(): boolean {
     return Boolean(
       this.body
-      && Math.abs(this.body.center.x - this.elevator.x) <= ELEVATOR_WIDTH / 2 - 4
-      && Math.abs(this.body.bottom - this.elevator.y) <= 28,
+      && Math.abs(this.body.center.x - this.elevator.x) <= ELEVATOR_WIDTH / 2 + PLAYER_WIDTH / 2 + 12
+      && Math.abs(this.body.bottom - this.elevator.y) <= 32,
     );
   }
 
@@ -444,7 +448,6 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const state = this.options.elevatorState();
     const admitted = state?.cycle === phase.cycle ? state.seats.slice(0, ELEVATOR_CAPACITY) : [];
     this.elevatorAdmittedIds = new Set(admitted);
-    this.elevatorBoarding = phase.boarding;
     const localId = this.options.localPlayer?.id;
     if (
       phase.boarding
@@ -478,16 +481,6 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     if (localRiding && this.body) {
       this.body.y += next.y - previousY;
     }
-  }
-
-  private limitElevatorEntry(): void {
-    if (!this.body || !this.options.localPlayer) return;
-    const close = Math.abs(this.body.center.x - this.elevator.x) <= ELEVATOR_WIDTH / 2
-      && Math.abs(this.body.bottom - this.elevator.y) <= 34;
-    if (!close || this.elevatorBoarding || this.elevatorAdmittedIds.has(this.options.localPlayer.id)) return;
-    const direction = this.body.center.x < this.elevator.x ? -1 : 1;
-    this.body.setVelocityX(direction * 150);
-    this.body.x += direction * 3;
   }
 
   private drawBurst(time: number): void {

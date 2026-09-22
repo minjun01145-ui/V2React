@@ -10,6 +10,7 @@ import {
   chooseChunkLineUpReplacementSource,
   chooseChunkLineUpTarget,
   chunkLineUpGroupComplete,
+  chunkLineUpSlotAcceptsToken,
   instantiateChunkLineUpGroup,
   instantiateChunkLineUpReplacement,
   openChunkLineUpTargets,
@@ -325,13 +326,7 @@ export async function confirmChunkLineUpSlotService(
     const board = state.board;
     if (Date.now() >= state.endsAtMs) return { accepted: false, revision: board.revision, reason: "expired" };
     const assignment = board.assignments[uid];
-    if (!assignment || assignment.targetGroupId !== input.groupId || assignment.targetSlotId !== input.slotId) {
-      return {
-        accepted: false,
-        revision: board.revision,
-        reason: input.revision === board.revision ? "wrong" : "stale",
-      };
-    }
+    if (!assignment) return { accepted: false, revision: board.revision, reason: "stale" };
 
     const groupIndex = board.groups.findIndex((group) => group.id === input.groupId);
     const group = board.groups[groupIndex];
@@ -339,9 +334,18 @@ export async function confirmChunkLineUpSlotService(
     const slotIndex = group.slots.findIndex((slot) => slot.id === input.slotId);
     const slot = group.slots[slotIndex];
     if (!slot || slot.fixed || slot.filledBy) return { accepted: false, revision: board.revision, reason: "stale" };
+    if (!chunkLineUpSlotAcceptsToken(slot, assignment.token)) {
+      return { accepted: false, revision: board.revision, reason: "wrong" };
+    }
 
     const assignments: Record<string, ChunkLineUpAssignment> = { ...board.assignments };
-    assignments[uid] = { ...assignment, score: assignment.score + 1, recentGroupId: group.id };
+    assignments[uid] = {
+      ...assignment,
+      score: assignment.score + 1,
+      recentGroupId: group.id,
+      targetGroupId: group.id,
+      targetSlotId: slot.id,
+    };
     const nextSlots = group.slots.map((current, index) => index === slotIndex
       ? { ...current, filledBy: uid, filledLabel: assignment.label }
       : current);

@@ -140,6 +140,10 @@ export function chunkLineUpGroupComplete(group: ChunkLineUpGroup): boolean {
   return group.slots.every((slot) => slot.fixed || Boolean(slot.filledBy));
 }
 
+export function chunkLineUpSlotAcceptsToken(slot: ChunkLineUpSlot, token: string): boolean {
+  return !slot.fixed && !slot.filledBy && slot.text === token;
+}
+
 export function chooseChunkLineUpReplacementSource(
   sources: readonly ChunkLineUpSourceGroup[],
   startIndex: number,

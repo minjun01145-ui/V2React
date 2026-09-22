@@ -5,6 +5,7 @@ import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.ts
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useChunkLineUpBoard, useChunkLineUpElevator } from "../../multiplayer/chunk-line-up/hooks.ts";
 import { confirmChunkLineUpSlot, reserveChunkLineUpElevatorSeat } from "../../multiplayer/chunk-line-up/repository.ts";
+import type { ChunkLineUpElevatorState } from "../../multiplayer/chunk-line-up/types.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import ChunkLineUpCanvas, { type ChunkLineUpController } from "./ChunkLineUpCanvas.tsx";
@@ -16,7 +17,8 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   const controllerRef = useRef<ChunkLineUpController | null>(null);
   const busyRef = useRef(false);
   const elevatorBusyRef = useRef(false);
-  const [feedback, setFeedback] = useState<"wrong" | "stale" | null>(null);
+  const [feedback, setFeedback] = useState<"wrong" | "stale" | "connection" | null>(null);
+  const [localElevatorState, setLocalElevatorState] = useState<ChunkLineUpElevatorState | null>(null);
   const clock = useTimedGameClock(session);
 
   if (!session.expectedPlayerIds.includes(player.id)) {
@@ -34,9 +36,12 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
     if (elevatorBusyRef.current || clock.expired || elevatorState.error) return;
     elevatorBusyRef.current = true;
     try {
-      await reserveChunkLineUpElevatorSeat(roomId, session.roundId);
+      const result = await reserveChunkLineUpElevatorSeat(roomId, session.roundId);
+      setLocalElevatorState({ cycle: result.cycle, seats: result.seats });
     } catch (reason: unknown) {
       console.error(reason);
+      setFeedback("connection");
+      window.setTimeout(() => setFeedback(null), 900);
     } finally {
       elevatorBusyRef.current = false;
     }
@@ -71,12 +76,20 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       }
     } catch (reason: unknown) {
       console.error(reason);
-      setFeedback("stale");
+      setFeedback("connection");
     } finally {
       busyRef.current = false;
       window.setTimeout(() => setFeedback(null), 650);
     }
   };
+
+  const remoteElevatorState = elevatorState.value;
+  const effectiveElevatorState = localElevatorState && (
+    !remoteElevatorState
+      || localElevatorState.cycle > remoteElevatorState.cycle
+      || (localElevatorState.cycle === remoteElevatorState.cycle
+        && localElevatorState.seats.length > remoteElevatorState.seats.length)
+  ) ? localElevatorState : remoteElevatorState;
 
   return <div className={styles.studentShell}>
     <ChunkLineUpCanvas
@@ -87,7 +100,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       playerId={player.id}
       label={label}
       board={board}
-      elevatorState={elevatorState.value}
+      elevatorState={effectiveElevatorState}
       startedAtMs={session.startedAtMs}
       onConfirm={(groupId, slotId) => void confirm(groupId, slotId)}
       onReserveElevator={() => void reserveElevator()}
@@ -99,7 +112,11 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
     </div>
     <div className={styles.controlsHint}>← → / A D 이동 · ↑ / W / Space 점프 · S / ↓ / Enter 슬롯 확정</div>
     {feedback ? <div className={feedback === "wrong" ? styles.wrongFeedback : styles.staleFeedback}>
-      {feedback === "wrong" ? "여긴 아니에요!" : "다른 친구가 먼저 채웠어요. 새 청크를 확인하세요."}
+      {feedback === "wrong"
+        ? "여긴 아니에요!"
+        : feedback === "connection"
+          ? "서버 연결 오류 · 잠시 후 다시 시도하세요."
+          : "게임판이 바뀌었어요. 새 청크를 확인하세요."}
     </div> : null}
     {elevatorState.error ? <div className={styles.elevatorError}>엘리베이터 연결 오류 · 발판 이용</div> : null}
     {clock.expired ? <div className={styles.expiredBadge}>시간 종료</div> : null}

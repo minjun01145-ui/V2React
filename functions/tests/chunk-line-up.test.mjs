@@ -5,6 +5,7 @@ import {
   chooseChunkLineUpReplacementSource,
   chooseChunkLineUpTarget,
   chunkLineUpGroupComplete,
+  chunkLineUpSlotAcceptsToken,
   instantiateChunkLineUpGroup,
   instantiateChunkLineUpReplacement,
   openChunkLineUpTargets,
@@ -107,6 +108,16 @@ const completed = {
 };
 assert.equal(chunkLineUpGroupComplete(completed), true);
 assert.equal(chunkLineUpGroupComplete(filled), false);
+
+const duplicateTokenGroup = instantiateChunkLineUpGroup({
+  id: "duplicate-token",
+  prompt: "그 고양이와 그 개",
+  slots: ["the", "cat", "and", "the", "dog"],
+}, 101);
+assert.equal(chunkLineUpSlotAcceptsToken(duplicateTokenGroup.slots[0], "the"), true);
+assert.equal(chunkLineUpSlotAcceptsToken(duplicateTokenGroup.slots[3], "the"), true,
+  "identical chunk text in another open slot must also be a valid placement");
+assert.equal(chunkLineUpSlotAcceptsToken(duplicateTokenGroup.slots[1], "the"), false);
 
 const replacement = instantiateChunkLineUpReplacement(sources[2], 100, 17, 20);
 assert.equal(openChunkLineUpTargets([replacement]).length, 3,
