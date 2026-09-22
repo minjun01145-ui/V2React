@@ -302,6 +302,13 @@ export async function updatePlayerAvatar(roomId: string, playerId: string, avata
   });
 }
 
+export async function updatePlayerNickname(roomId: string, playerId: string, nickname: string | null): Promise<void> {
+  const normalized = nickname?.trim() || null;
+  await updateDoc(playerRef(roomId, playerId), {
+    nickname: normalized,
+  });
+}
+
 export async function confirmRoundReady(roomId: string, roundId: string, playerId: string): Promise<void> {
   await setDoc(doc(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "readiness", playerId), {
     playerId,

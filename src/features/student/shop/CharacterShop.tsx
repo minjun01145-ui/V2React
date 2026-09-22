@@ -10,6 +10,7 @@ import { displayLabel } from "../../../multiplayer/types.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import CharacterPreview from "./CharacterPreview.tsx";
 import CharacterShopDialog from "./CharacterShopDialog.tsx";
+import NicknameChangeButton from "../profile/NicknameChangeButton.tsx";
 import styles from "./CharacterShop.module.css";
 
 interface Props {
@@ -66,7 +67,15 @@ export default function CharacterShop({ identity, roomId, nickname, initialAvata
         </div>
 
         <div className={styles.profileDetails}>
-          <h2 className={styles.profileTitle} id="student-profile-title" title={currentNickname}>{currentNickname}</h2>
+          <div className={styles.nameRow}>
+            <h2 className={styles.profileTitle} id="student-profile-title" title={currentNickname}>{currentNickname}</h2>
+            <NicknameChangeButton
+              roomId={roomId}
+              playerId={identity.uid}
+              displayName={identity.displayName}
+              nickname={nickname}
+            />
+          </div>
           {nickname ? <p className={styles.realName}>본명 {identity.displayName}</p> : null}
           <dl className={styles.equippedInfo}>
             <div>

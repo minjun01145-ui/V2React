@@ -1,0 +1,6 @@
+.button {
+  flex: none;
+  padding: .38rem .62rem;
+  font-size: .75rem;
+  white-space: nowrap;
+}
