@@ -9,6 +9,7 @@ import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import NicknamePrompt from "./NicknamePrompt.tsx";
 import TypingGameButton from "./TypingGameButton.tsx";
 import WaitingRoom from "./WaitingRoom.tsx";
+import type { NicknameChoice } from "./NicknamePrompt.tsx";
 
 interface LobbyProps {
   readonly roomId: string;
@@ -21,7 +22,7 @@ interface LobbyProps {
 interface EntryProps {
   readonly roomId: string;
   readonly player: null;
-  readonly onJoin: (nickname: string | null) => Promise<void>;
+  readonly onJoin: (choice: NicknameChoice) => Promise<void>;
   readonly defaultDisplayName: string;
   readonly selfStudentNumber: string;
   readonly onLeave: () => Promise<void>;
@@ -60,6 +61,7 @@ export default function StudentLobbyPage(props: Props) {
     return (
       <PageShell title="게임 대기실" roomId={roomId} actions={leaveButton}>
         <NicknamePrompt
+          roomId={roomId}
           defaultDisplayName={defaultDisplayName}
           onChooseNickname={onJoin}
         />
@@ -77,6 +79,7 @@ export default function StudentLobbyPage(props: Props) {
         selfStudentNumber={player.studentNumber}
         displayName={player.displayName}
         nickname={player.nickname}
+        nicknameGrade={player.nicknameGrade ?? null}
         avatar={player.avatar ?? null}
         uid={identity.uid}
       />

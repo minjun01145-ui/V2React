@@ -1,8 +1,9 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { createWaitingTypingConfig, parseWaitingTypingConfig } from "../../../games/typing/waitingTypingConfig.ts";
 import { typingDemoSet } from "../../../games/typing/demoSet.ts";
 import { usePlayers } from "../../../multiplayer/hooks.ts";
-import type { GameSession, PlayerAvatar } from "../../../multiplayer/types.ts";
+import { updatePlayerNickname } from "../../../multiplayer/repository.ts";
+import type { GameSession, NicknameGrade, PlayerAvatar } from "../../../multiplayer/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import Button from "../../../shared/ui/Button.tsx";
@@ -14,6 +15,7 @@ import StudentQuestionAuthoring from "../../../student-question-activity/Student
 import { useStudentQuestionSubmission } from "../../../student-question-activity/useStudentQuestionSubmission.ts";
 import { shouldShowStudentQuestionAuthoring } from "../../../student-question-activity/model.ts";
 import StudentWaitingDice from "../../../waiting-dice/StudentWaitingDice.tsx";
+import { pickRandomNickname } from "./randomNickname.ts";
 
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
@@ -25,12 +27,16 @@ interface Props {
   readonly selfStudentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
+  readonly nicknameGrade: NicknameGrade | null;
   readonly avatar: PlayerAvatar | null;
   readonly uid: string;
 }
 
-export default function WaitingRoom({ roomId, session, selfStudentNumber, displayName, nickname, avatar, uid }: Props) {
+export default function WaitingRoom({ roomId, session, selfStudentNumber, displayName, nickname, nicknameGrade, avatar, uid }: Props) {
   const { activePlayers } = usePlayers(roomId);
+  const resolvingDuplicateNickname = useRef(false);
+  const duplicateRetryTimer = useRef<number | null>(null);
+  const [duplicateRetry, setDuplicateRetry] = useState(0);
   const [typingOpen, setTypingOpen] = useState<"sentence" | "acid-rain" | null>(null);
   const [platformerOpen, setPlatformerOpen] = useState(false);
   const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
@@ -38,6 +44,32 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
   const activity = session.classroomActivity;
   const targeted = Boolean(activity?.expectedPlayerIds.includes(uid));
   const authoring = useStudentQuestionSubmission(roomId, targeted && activity ? activity.runId : null, uid);
+
+  useEffect(() => {
+    if (!nickname || !nicknameGrade || resolvingDuplicateNickname.current) return;
+    const sameNickname = activePlayers.filter((player) => player.nickname === nickname);
+    if (sameNickname.length < 2) return;
+    const keeperId = [...sameNickname]
+      .sort((a, b) => Number(Boolean(a.nicknameGrade)) - Number(Boolean(b.nicknameGrade)) || a.id.localeCompare(b.id))[0]?.id;
+    if (keeperId === uid) return;
+    const usedNicknames = new Set(activePlayers.flatMap((player) => player.nickname ? [player.nickname] : []));
+    const next = pickRandomNickname(usedNicknames);
+    resolvingDuplicateNickname.current = true;
+    void updatePlayerNickname(roomId, uid, next.nickname, next.grade)
+      .catch(console.error)
+      .finally(() => {
+        resolvingDuplicateNickname.current = false;
+        if (duplicateRetryTimer.current !== null) window.clearTimeout(duplicateRetryTimer.current);
+        duplicateRetryTimer.current = window.setTimeout(() => {
+          duplicateRetryTimer.current = null;
+          setDuplicateRetry((value) => value + 1);
+        }, 500);
+      });
+  }, [activePlayers, duplicateRetry, nickname, nicknameGrade, roomId, uid]);
+
+  useEffect(() => () => {
+    if (duplicateRetryTimer.current !== null) window.clearTimeout(duplicateRetryTimer.current);
+  }, []);
   if (targeted && activity?.phase === "active" && authoring.loading) return <StatusPanel title="질문 만들기 확인 중" tone="waiting">제출 상태를 불러오고 있습니다.</StatusPanel>;
   if (activity && shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)) return <StudentQuestionAuthoring roomId={roomId} playerId={uid} activity={activity} />;
   if (typingOpen && typingConfig) {
@@ -67,6 +99,7 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
           identity={{ uid, studentNumber: selfStudentNumber, displayName }}
           roomId={roomId}
           nickname={nickname}
+          nicknameGrade={nicknameGrade}
           initialAvatar={avatar}
         />
       </Card>

@@ -8,6 +8,7 @@ export interface Player {
   readonly studentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
+  readonly nicknameGrade?: NicknameGrade | null;
   readonly avatar?: PlayerAvatar | null;
   readonly state: SessionStatus;
   readonly joinedAtMs: number;
@@ -54,6 +55,16 @@ export interface JoinSessionInput {
   readonly studentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
+  readonly nicknameGrade: NicknameGrade | null;
+}
+
+export const NICKNAME_GRADES = ["C", "B", "A", "S"] as const;
+export type NicknameGrade = typeof NICKNAME_GRADES[number];
+
+export function parseNicknameGrade(value: unknown): NicknameGrade | null {
+  return typeof value === "string" && (NICKNAME_GRADES as readonly string[]).includes(value)
+    ? value as NicknameGrade
+    : null;
 }
 
 /** 대기실·게임에 표시할 이름. 임시 닉네임이 있으면 닉네임, 없으면 본명. */

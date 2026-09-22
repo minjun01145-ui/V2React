@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudentIdentity } from "../../../auth/types.ts";
+import type { NicknameGrade } from "../../../multiplayer/types.ts";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayer, usePlayerHeartbeat, useRoundParticipant, useSessionSubscription } from "../../../multiplayer/hooks.ts";
 import { confirmRoundReady, joinSession, leaveSession } from "../../../multiplayer/repository.ts";
@@ -20,6 +21,7 @@ interface UseStudentSessionOptions {
 
 export interface JoinWithNicknameOptions {
   readonly nickname: string | null;
+  readonly nicknameGrade: NicknameGrade | null;
 }
 
 interface UseStudentSessionResult {
@@ -66,7 +68,7 @@ export function useStudentSession({
   const { uid: playerId, studentNumber, displayName } = identity;
 
   const runJoin = useCallback(
-    async ({ nickname, roundId }: JoinWithNicknameOptions & { readonly roundId: string | null }): Promise<void> => {
+    async ({ nickname, nicknameGrade, roundId }: JoinWithNicknameOptions & { readonly roundId: string | null }): Promise<void> => {
       if (activeJoin.current) return;
       const resolvedNickname = nickname?.trim() ? nickname.trim() : null;
       const attempt = ++joinAttempt.current;
@@ -80,6 +82,7 @@ export function useStudentSession({
           studentNumber,
           displayName,
           nickname: resolvedNickname,
+          nicknameGrade: resolvedNickname ? nicknameGrade : null,
         });
       } catch (error: unknown) {
         if (activeJoin.current?.attempt !== attempt) return;
@@ -93,9 +96,9 @@ export function useStudentSession({
   );
 
   const joinWithNickname = useCallback(
-    async ({ nickname }: JoinWithNicknameOptions): Promise<void> => {
+    async ({ nickname, nicknameGrade }: JoinWithNicknameOptions): Promise<void> => {
       if (player || activeJoin.current) return;
-      await runJoin({ nickname, roundId: activeRoundId ?? null });
+      await runJoin({ nickname, nicknameGrade, roundId: activeRoundId ?? null });
     },
     [activeRoundId, player, runJoin],
   );
@@ -182,8 +185,8 @@ export function useStudentSession({
 
   useEffect(() => {
     if (participationDecision !== "ensure" || activeJoin.current || joinError || participantError) return;
-    void runJoin({ nickname: player?.nickname ?? null, roundId: activeRoundId ?? null }).catch(() => undefined);
-  }, [activeRoundId, joinError, participantError, participationDecision, player?.nickname, runJoin]);
+    void runJoin({ nickname: player?.nickname ?? null, nicknameGrade: player?.nicknameGrade ?? null, roundId: activeRoundId ?? null }).catch(() => undefined);
+  }, [activeRoundId, joinError, participantError, participationDecision, player?.nickname, player?.nicknameGrade, runJoin]);
 
   useEffect(() => {
     const waitingMembershipConfirmed = Boolean(session && session.status !== SESSION_STATUS.PLAYING && player);

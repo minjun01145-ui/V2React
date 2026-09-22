@@ -46,7 +46,10 @@ export default function PlayerCard({
         ) : null}
       </span>
       <span className={styles.meta}>
-        <span className={styles.nickname}>{displayLabel(player.displayName, player.nickname)}</span>
+        <span className={styles.nicknameRow}>
+          {player.nicknameGrade ? <span className={styles.gradeBadge} data-grade={player.nicknameGrade}>{player.nicknameGrade}</span> : null}
+          <span className={styles.nickname}>{displayLabel(player.displayName, player.nickname)}</span>
+        </span>
         {showStudentNumber ? <span className={styles.studentNumber}>{player.studentNumber}</span> : null}
         {isSelf ? <span className={styles.selfBadge}>나</span> : null}
         {onClick ? <span className={styles.actionHint}>{actionPending ? "처리 중…" : "클릭하여 강퇴"}</span> : null}

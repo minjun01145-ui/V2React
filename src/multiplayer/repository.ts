@@ -21,7 +21,7 @@ import { canStartSession, MULTIPLAYER_COLLECTION, ROUND_START_COUNTDOWN_MS, SESS
 import { deduplicatePlayers, selectActivePlayers } from "./presence.ts";
 import { participantIdentity, parseRoundParticipant } from "./round-participants/model.ts";
 import { roundParticipantRef } from "./round-participants/repository.ts";
-import { resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type Player, type PlayerAvatar, type StartSessionOptions } from "./types.ts";
+import { parseNicknameGrade, resolveSessionStartedAtMs, type GameSession, type JoinSessionInput, type NicknameGrade, type Player, type PlayerAvatar, type StartSessionOptions } from "./types.ts";
 import { parseLatestStudentQuestionResult, parseStudentQuestionActivity } from "../student-question-activity/codec.ts";
 import { currentTenantConfig } from "../tenant/config.ts";
 import { effectiveTenantId } from "../tenant/scope.ts";
@@ -115,6 +115,7 @@ function parsePlayer(snapshot: QueryDocumentSnapshot<DocumentData> | DocumentSna
     studentNumber,
     displayName,
     nickname: rawNickname ? rawNickname : null,
+    nicknameGrade: parseNicknameGrade(data.nicknameGrade),
     avatar: parsePlayerAvatar(data.avatar),
     state: parseStatus(data.state),
     joinedAtMs: numberValue(data.joinedAtMs),
@@ -185,7 +186,7 @@ export function subscribePlayer(roomId: string, playerId: string, onValue: (valu
   return onSnapshot(playerRef(roomId, playerId), (snapshot) => onValue(parsePlayer(snapshot)), onError);
 }
 
-export async function joinSession({ roomId, playerId, studentNumber, displayName, nickname }: JoinSessionInput): Promise<void> {
+export async function joinSession({ roomId, playerId, studentNumber, displayName, nickname, nicknameGrade }: JoinSessionInput): Promise<void> {
   const now = Date.now();
   const sRef = sessionRef(roomId);
   const pRef = playerRef(roomId, playerId);
@@ -210,12 +211,19 @@ export async function joinSession({ roomId, playerId, studentNumber, displayName
     const currentJoinedAt = isRecord(currentData) ? currentData.joinedAt : undefined;
     const currentJoinedAtMs = isRecord(currentData) ? numberOrNull(currentData.joinedAtMs) : null;
     const currentNickname = isRecord(currentData) && typeof currentData.nickname === "string" ? currentData.nickname.trim() : "";
+    const currentNicknameGrade = isRecord(currentData) ? parseNicknameGrade(currentData.nicknameGrade) : null;
     const resolvedNickname = nickname?.trim() || participant?.nickname || currentNickname || null;
+    const resolvedNicknameGrade = resolvedNickname
+      ? nickname?.trim()
+        ? nicknameGrade
+        : participant?.nicknameGrade ?? currentNicknameGrade
+      : null;
     tx.set(pRef, {
       playerId,
       studentNumber,
       displayName,
       nickname: resolvedNickname,
+      nicknameGrade: resolvedNicknameGrade,
       state: sessionStatus,
       joinedAt: currentJoinedAt ?? serverTimestamp(),
       joinedAtMs: currentJoinedAtMs ?? now,
@@ -228,6 +236,7 @@ export async function joinSession({ roomId, playerId, studentNumber, displayName
         studentNumber,
         displayName,
         nickname: resolvedNickname,
+        nicknameGrade: resolvedNicknameGrade,
         joinedAt: isRecord(participantData) && participantData.joinedAt !== undefined
           ? participantData.joinedAt
           : serverTimestamp(),
@@ -302,10 +311,16 @@ export async function updatePlayerAvatar(roomId: string, playerId: string, avata
   });
 }
 
-export async function updatePlayerNickname(roomId: string, playerId: string, nickname: string | null): Promise<void> {
+export async function updatePlayerNickname(
+  roomId: string,
+  playerId: string,
+  nickname: string | null,
+  nicknameGrade: NicknameGrade | null = null,
+): Promise<void> {
   const normalized = nickname?.trim() || null;
   await updateDoc(playerRef(roomId, playerId), {
     nickname: normalized,
+    nicknameGrade: normalized ? nicknameGrade : null,
   });
 }
 

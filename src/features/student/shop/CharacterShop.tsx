@@ -5,7 +5,7 @@ import { updatePlayerAvatar } from "../../../multiplayer/repository.ts";
 import { usePokemonCatchData } from "../../../student-data/pokemon-catch/usePokemonCatchData.ts";
 import { useStudentCosmetics } from "../../../student-data/cosmetics/useStudentCosmetics.ts";
 import type { EquippedPokemonAvatar } from "../../../student-data/cosmetics/types.ts";
-import type { PlayerAvatar } from "../../../multiplayer/types.ts";
+import type { NicknameGrade, PlayerAvatar } from "../../../multiplayer/types.ts";
 import { displayLabel } from "../../../multiplayer/types.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import CharacterPreview from "./CharacterPreview.tsx";
@@ -17,10 +17,11 @@ interface Props {
   readonly identity: Pick<StudentIdentity, "uid" | "studentNumber" | "displayName">;
   readonly roomId: string;
   readonly nickname: string | null;
+  readonly nicknameGrade: NicknameGrade | null;
   readonly initialAvatar: PlayerAvatar | null;
 }
 
-export default function CharacterShop({ identity, roomId, nickname, initialAvatar }: Props) {
+export default function CharacterShop({ identity, roomId, nickname, nicknameGrade, initialAvatar }: Props) {
   const [open, setOpen] = useState(false);
   const { cosmetics, loading, error, equipStudentCharacter, equipCapturedPokemon } = useStudentCosmetics(identity);
   const pokemonData = usePokemonCatchData(identity);
@@ -68,6 +69,7 @@ export default function CharacterShop({ identity, roomId, nickname, initialAvata
 
         <div className={styles.profileDetails}>
           <div className={styles.nameRow}>
+            {nicknameGrade ? <span className={styles.nicknameGrade} data-grade={nicknameGrade}>{nicknameGrade}</span> : null}
             <h2 className={styles.profileTitle} id="student-profile-title" title={currentNickname}>{currentNickname}</h2>
             <NicknameChangeButton
               roomId={roomId}

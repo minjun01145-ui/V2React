@@ -1,4 +1,4 @@
-import type { Player } from "../types.ts";
+import { parseNicknameGrade, type NicknameGrade, type Player } from "../types.ts";
 
 export interface RoundParticipant {
   readonly id: string;
@@ -6,6 +6,7 @@ export interface RoundParticipant {
   readonly studentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
+  readonly nicknameGrade?: NicknameGrade | null;
   readonly joinedAtMs: number;
 }
 
@@ -19,6 +20,7 @@ export function participantIdentity(player: Player): Omit<RoundParticipant, "id"
     studentNumber: player.studentNumber,
     displayName: player.displayName,
     nickname: player.nickname,
+    nicknameGrade: player.nicknameGrade ?? null,
   };
 }
 
@@ -28,8 +30,9 @@ export function parseRoundParticipant(id: string, value: unknown): RoundParticip
   const studentNumber = typeof value.studentNumber === "string" ? value.studentNumber.trim() : "";
   const displayName = typeof value.displayName === "string" ? value.displayName.trim() : "";
   const nickname = typeof value.nickname === "string" && value.nickname.trim() ? value.nickname.trim() : null;
+  const nicknameGrade = parseNicknameGrade(value.nicknameGrade);
   const joinedAtMs = typeof value.joinedAtMs === "number" && Number.isFinite(value.joinedAtMs) ? value.joinedAtMs : 0;
   return playerId === id && studentNumber && displayName
-    ? { id, playerId, studentNumber, displayName, nickname, joinedAtMs }
+    ? { id, playerId, studentNumber, displayName, nickname, nicknameGrade, joinedAtMs }
     : null;
 }

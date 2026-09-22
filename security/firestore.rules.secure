@@ -404,8 +404,11 @@ service cloud.firestore {
             || (request.resource.data.nickname is string
               && request.resource.data.nickname.size() >= 2
               && request.resource.data.nickname.size() <= 12))
+          && (!("nicknameGrade" in request.resource.data)
+            || request.resource.data.nicknameGrade == null
+            || (request.resource.data.nickname != null && request.resource.data.nicknameGrade in ["C", "B", "A", "S"]))
           && request.resource.data.keys().hasOnly([
-            "playerId", "studentNumber", "displayName", "nickname", "state",
+            "playerId", "studentNumber", "displayName", "nickname", "nicknameGrade", "state",
             "joinedAt", "joinedAtMs", "lastSeenAt", "lastSeenAtMs", "avatar"
           ])
           && (!("avatar" in request.resource.data) || validPlayerAvatar(request.resource.data.avatar));
@@ -420,11 +423,14 @@ service cloud.firestore {
             || (request.resource.data.nickname is string
               && request.resource.data.nickname.size() >= 2
               && request.resource.data.nickname.size() <= 12))
+          && (!("nicknameGrade" in request.resource.data)
+            || request.resource.data.nicknameGrade == null
+            || (request.resource.data.nickname != null && request.resource.data.nicknameGrade in ["C", "B", "A", "S"]))
           && (
             request.resource.data.state == resource.data.state
             || request.resource.data.state == get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status
           )
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs", "nickname", "avatar"])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state", "lastSeenAt", "lastSeenAtMs", "nickname", "nicknameGrade", "avatar"])
           && (!("avatar" in request.resource.data) || validPlayerAvatar(request.resource.data.avatar));
         allow delete: if isRoomAdmin(roomId) || (isRoomStudent(roomId) && request.auth.uid == uid);
       }
@@ -519,9 +525,12 @@ service cloud.firestore {
                 || (request.resource.data.nickname is string
                   && request.resource.data.nickname.size() >= 2
                   && request.resource.data.nickname.size() <= 12))
+              && (!("nicknameGrade" in request.resource.data)
+                || request.resource.data.nicknameGrade == null
+                || (request.resource.data.nickname != null && request.resource.data.nicknameGrade in ["C", "B", "A", "S"]))
               && request.resource.data.joinedAtMs is int
               && request.resource.data.keys().hasOnly([
-                "playerId", "studentNumber", "displayName", "nickname", "joinedAt", "joinedAtMs"
+                "playerId", "studentNumber", "displayName", "nickname", "nicknameGrade", "joinedAt", "joinedAtMs"
               ])
           );
           allow update: if isRoomAdmin(roomId) || (
@@ -538,7 +547,10 @@ service cloud.firestore {
                 || (request.resource.data.nickname is string
                   && request.resource.data.nickname.size() >= 2
                   && request.resource.data.nickname.size() <= 12))
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["nickname"])
+              && (!("nicknameGrade" in request.resource.data)
+                || request.resource.data.nicknameGrade == null
+                || (request.resource.data.nickname != null && request.resource.data.nicknameGrade in ["C", "B", "A", "S"]))
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["nickname", "nicknameGrade"])
           );
           allow delete: if isRoomAdmin(roomId);
         }
