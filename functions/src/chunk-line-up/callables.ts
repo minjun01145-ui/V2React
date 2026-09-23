@@ -13,7 +13,6 @@ import type {
   ChunkLineUpConfirmInput,
   ChunkLineUpElevatorBoardInput,
   ChunkLineUpElevatorDestinationInput,
-  ChunkLineUpElevatorRideInput,
 } from "./types.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public", timeoutSeconds: 120 } as const;
@@ -63,24 +62,20 @@ function elevatorDestination(value: unknown): ChunkLineUpElevatorDestinationInpu
   const destinationFloor = typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor)
     ? value.destinationFloor
     : -1;
+  const floor = value.floor === undefined
+    ? undefined
+    : typeof value.floor === "number" && Number.isInteger(value.floor) ? value.floor : -1;
   const destinationGroupId = typeof value.destinationGroupId === "string" ? value.destinationGroupId.trim() : "";
-  if (destinationFloor < 0 || !TOKEN_PATTERN.test(destinationGroupId)) {
+  if (destinationFloor < 0 || (floor !== undefined && floor < 0) || !TOKEN_PATTERN.test(destinationGroupId)) {
     throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
   }
-  return { ...parsed, elevatorId: elevatorId(value.elevatorId), destinationFloor, destinationGroupId };
-}
-
-function elevatorRide(value: unknown): ChunkLineUpElevatorRideInput {
-  const parsed = elevatorBoard(value);
-  if (!isRecord(value)) throw new HttpsError("invalid-argument", "엘리베이터 행선지 정보가 없습니다.");
-  const destinationFloor = typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor)
-    ? value.destinationFloor
-    : -1;
-  const destinationGroupId = typeof value.destinationGroupId === "string" ? value.destinationGroupId.trim() : "";
-  if (destinationFloor < 0 || !TOKEN_PATTERN.test(destinationGroupId)) {
-    throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
-  }
-  return { ...parsed, destinationFloor, destinationGroupId };
+  return {
+    ...parsed,
+    elevatorId: elevatorId(value.elevatorId),
+    ...(floor === undefined ? {} : { floor }),
+    destinationFloor,
+    destinationGroupId,
+  };
 }
 
 async function authorize(request: CallableRequest<unknown>, input: ChunkLineUpBaseInput): Promise<string> {
@@ -106,14 +101,18 @@ export const reserveChunkLineUpElevatorSeat = onCall(options, async (request) =>
   return reserveChunkLineUpElevatorSeatService(uid, input);
 });
 
-export const boardChunkLineUpElevatorRide = onCall(options, async (request) => {
-  const input = elevatorRide(request.data);
-  const uid = await authorize(request, input);
-  return boardChunkLineUpElevatorRideService(uid, input);
-});
-
 export const setChunkLineUpElevatorDestination = onCall(options, async (request) => {
   const input = elevatorDestination(request.data);
   const uid = await authorize(request, input);
+  if (input.floor !== undefined) {
+    return boardChunkLineUpElevatorRideService(uid, {
+      roomId: input.roomId,
+      roundId: input.roundId,
+      elevatorId: input.elevatorId,
+      floor: input.floor,
+      destinationFloor: input.destinationFloor,
+      destinationGroupId: input.destinationGroupId,
+    });
+  }
   return setChunkLineUpElevatorDestinationService(uid, input);
 });

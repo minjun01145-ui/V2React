@@ -211,7 +211,7 @@ export async function boardChunkLineUpElevatorRide(
   destinationFloor: number,
   destinationGroupId: string,
 ): Promise<ChunkLineUpElevatorResult> {
-  const response = await httpsCallable(functions, "boardChunkLineUpElevatorRide")({
+  const response = await httpsCallable(functions, "setChunkLineUpElevatorDestination")({
     roomId,
     roundId,
     elevatorId,
