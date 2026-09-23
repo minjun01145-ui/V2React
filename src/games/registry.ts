@@ -137,7 +137,7 @@ const definitions = [
     }],
     solo: {
       supported: true,
-      rulesVersion: "simple-quiz-v1",
+      rulesVersion: "simple-quiz-v2",
       leaderboardConfigKeys: ["choice-count", "timedGameMode"],
       loadStudent: () => import("./simple-quiz/SoloSimpleQuizStudentModule.tsx"),
     },

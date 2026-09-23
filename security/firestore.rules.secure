@@ -369,9 +369,13 @@ service cloud.firestore {
       allow read, create, update, delete: if tenantId != "minjun" && isAdminForTenant(tenantId);
     }
 
+    match /tenants/{tenantId}/soloActiveRuns/{studentKey} {
+      allow read, write: if false;
+    }
+
     // Solo runs and scoreboards live in a tenant-only namespace. Callable functions
-    // own run transitions, immutable results and best-record writes; clients only
-    // persist progress to their own active run.
+    // own run transitions, answer validation, authoritative progress and leaderboard
+    // writes; the client-writable progress document is only a reconnect cache.
     match /tenants/{tenantId}/soloRuns/{runId} {
       allow read: if validTenantId(tenantId)
         && isRosterStudent()
@@ -428,6 +432,14 @@ service cloud.firestore {
           && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.ownerUid == uid;
         allow write: if false;
       }
+
+      match /authoritativeProgress/{uid} {
+        allow read, write: if false;
+      }
+
+      match /answers/{answerId} {
+        allow read, write: if false;
+      }
     }
 
     match /tenants/{tenantId}/soloLeaderboards/{scopeId} {
@@ -435,7 +447,10 @@ service cloud.firestore {
       allow write: if false;
 
       match /records/{uid} {
-        allow read: if validTenantId(tenantId) && isRosterStudent() && authTenantId() == tenantId;
+        allow read: if validTenantId(tenantId)
+          && isRosterStudent()
+          && authTenantId() == tenantId
+          && resource.data.scoreSource == "simple-quiz-authoritative-v2";
         allow write: if false;
       }
     }

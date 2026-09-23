@@ -2,7 +2,7 @@ import type { CallableRequest } from "firebase-functions/v2/https";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "./firebase.js";
 import { isRecord } from "./validation.js";
-import { effectiveTenantId, PRIMARY_TENANT_ID, tenantStudentKey, type TenantId } from "./tenant.js";
+import { effectiveTenantId, PRIMARY_TENANT_ID, tenantAccountId, tenantStudentKey, type TenantId } from "./tenant.js";
 import { normalizePersonName } from "./validation.js";
 
 function isAnonymousProvider(token: unknown): boolean {
@@ -25,6 +25,7 @@ export async function requireRegularStudent(request: CallableRequest<unknown>): 
   readonly uid: string;
   readonly tenantId: TenantId;
   readonly studentNumber: string;
+  readonly studentAccountId: string;
   readonly displayName: string;
 }> {
   const uid = requireAnonymous(request);
@@ -50,7 +51,7 @@ export async function requireRegularStudent(request: CallableRequest<unknown>): 
     || normalizePersonName(rosterData.displayName) !== displayName) {
     throw new HttpsError("permission-denied", "학생 계정 정보를 확인할 수 없습니다.");
   }
-  return { uid, tenantId, studentNumber, displayName };
+  return { uid, tenantId, studentNumber, studentAccountId: tenantAccountId(tenantId, studentNumber), displayName };
 }
 
 export async function requireAdminTenant(

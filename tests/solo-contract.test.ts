@@ -4,13 +4,23 @@ import { applyComboScore } from "../src/game-engine/scoring/combo.ts";
 import { applyResultToProgress, createEmptyProgress } from "../src/game-engine/progress/index.ts";
 import { moveToNextQuestion } from "../src/game-engine/question-engine/progress.ts";
 import { getGame, listGames } from "../src/games/registry.ts";
+import { adaptSimpleQuizSet } from "../src/games/simple-quiz/adapter.ts";
 import { evaluateSimpleQuizAnswer, SIMPLE_QUIZ_COMBO_SCORING } from "../src/games/simple-quiz/model.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../src/learning-sets/types.ts";
 import { canEnterSolo } from "../src/features/student/solo/model.ts";
 import { canonicalizeLeaderboardScope, normalizeSoloGameConfig, sha256Hex } from "../src/solo/domain/config.ts";
 import { fingerprintLearningSet } from "../src/solo/domain/learningSetFingerprint.ts";
 import { soloRunProgressPath } from "../src/solo/domain/path.ts";
-import { canonicalizeSimpleQuizLeaderboardScope, fingerprintSimpleQuizSet, simpleQuizLeaderboardScopeId } from "../functions/src/solo/model.ts";
+import {
+  applySimpleQuizAnswer,
+  canonicalizeSimpleQuizLeaderboardScope,
+  emptySimpleQuizAuthoritativeState,
+  fingerprintSimpleQuizSet,
+  parseSimpleQuizAuthoritativeState,
+  simpleQuizLeaderboardScopeId,
+  simpleQuizQuestionOptions,
+  simpleQuizQuestionOrder,
+} from "../functions/src/solo/model.ts";
 
 const supportedSoloGames = listGames().filter((game) => game.solo.supported);
 assert.deepEqual(supportedSoloGames.map((game) => game.id), ["simple-quiz"]);
@@ -29,7 +39,7 @@ const baseScope = {
   setId: "set-a",
   setFingerprint: "a".repeat(64),
   gameConfig: defaultConfig,
-  rulesVersion: "simple-quiz-v1",
+  rulesVersion: "simple-quiz-v2",
 };
 const reorderedConfig = { timedGameMode: "3-minutes", "choice-count": "4", setId: "set-a" };
 assert.equal(
@@ -60,6 +70,39 @@ const originalFingerprint = await fingerprintLearningSet(sourceSet);
 assert.equal(originalFingerprint, fingerprintSimpleQuizSet(sourceSet.type, sourceSet.items));
 assert.equal(originalFingerprint, await fingerprintLearningSet({ ...sourceSet, name: "이름 변경" }), "표시 이름 변경은 gameplay revision을 바꾸지 않습니다.");
 assert.notEqual(originalFingerprint, await fingerprintLearningSet({ ...sourceSet, items: sourceSet.items.map((item, index) => index === 0 ? { ...item, meaning: "바뀐 뜻" } : item) }));
+
+const soloQuestionSet = adaptSimpleQuizSet(sourceSet, "run-order", 4);
+assert.deepEqual(
+  simpleQuizQuestionOrder(sourceSet.items, "run-order", sourceSet.id, 4),
+  soloQuestionSet.questions.map((question) => question.id),
+  "Functions가 검증하는 문항 순서는 기존 Simple Quiz 출제 순서와 같아야 합니다.",
+);
+for (const question of soloQuestionSet.questions) {
+  assert.deepEqual(
+    simpleQuizQuestionOptions(sourceSet.items, "run-order", sourceSet.id, 4, question.source.itemId),
+    question.options,
+    "Functions가 검증하는 선택지는 기존 Simple Quiz 보기와 같아야 합니다.",
+  );
+}
+let soloAuthoritative = emptySimpleQuizAuthoritativeState();
+let soloClientEngineProgress = createEmptyProgress<ReturnType<typeof evaluateSimpleQuizAnswer>["details"]>();
+for (const question of soloQuestionSet.questions.slice(0, 3)) {
+  const evaluated = evaluateSimpleQuizAnswer(question, { optionId: question.correctOptionId });
+  const combo = applyComboScore(soloClientEngineProgress.combo, evaluated.isCorrect, evaluated.scoreDelta, SIMPLE_QUIZ_COMBO_SCORING);
+  soloClientEngineProgress = applyResultToProgress(
+    { ...soloClientEngineProgress, combo: combo.combo },
+    question.id,
+    { ...evaluated, scoreDelta: combo.scoreDelta },
+  );
+  soloAuthoritative = applySimpleQuizAnswer(soloAuthoritative, question.id, question.correctOptionId, question.correctOptionId);
+}
+assert.deepEqual(
+  [soloAuthoritative.score, soloAuthoritative.correctCount, soloAuthoritative.attemptCount, soloAuthoritative.combo],
+  [soloClientEngineProgress.score, soloClientEngineProgress.correctCount, soloClientEngineProgress.attemptCount, soloClientEngineProgress.combo],
+  "정상 Simple Quiz 답의 server-authoritative 점수는 기존 UI/core 점수와 같아야 합니다.",
+);
+assert.equal(parseSimpleQuizAuthoritativeState({ score: 999999999, correctCount: 0, attemptCount: 0, combo: 0 }), null,
+  "임의의 client aggregate는 server-authoritative state로 승인될 수 없습니다.");
 
 assert.notEqual(soloRunProgressPath("minjun", "run-a", "uid-a"), soloRunProgressPath("hana", "run-a", "uid-a"));
 assert.match(soloRunProgressPath("minjun", "run-a", "uid-a"), /^tenants\/minjun\/soloRuns\//);

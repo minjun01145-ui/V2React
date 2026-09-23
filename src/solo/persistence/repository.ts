@@ -17,8 +17,9 @@ export async function startSoloRun(input: {
   readonly nickname: string | null;
 }): Promise<SoloRun> {
   if (!auth.currentUser) throw new Error("학생 로그인이 필요합니다.");
-  const call = httpsCallable<typeof input, SoloRun>(functions, "startSoloRun");
-  const response = await call(input);
+  const request = { ...input, startRequestId: globalThis.crypto.randomUUID() };
+  const call = httpsCallable<typeof request, SoloRun>(functions, "startSoloRun");
+  const response = await call(request);
   return response.data;
 }
 
@@ -31,6 +32,24 @@ export async function loadSoloRunProgress<TDetails>(run: SoloRun): Promise<GameP
 export async function persistSoloRunProgress<TDetails>(run: SoloRun, progress: GameProgress<TDetails>): Promise<void> {
   assertRunOwner(run);
   await setDoc(progressRef(run), { ...progress, updatedAt: serverTimestamp(), updatedAtMs: Date.now() });
+}
+
+export async function submitSoloRunAnswer<TDetails>(
+  run: SoloRun,
+  submission: {
+    readonly currentIndex: number;
+    readonly questionId: string;
+    readonly itemId: string;
+    readonly selectedOptionId: string;
+    readonly selectedOptionText: string;
+  },
+): Promise<GameProgress<TDetails>> {
+  assertRunOwner(run);
+  const input = { runId: run.runId, gameId: run.gameId, ...submission };
+  const call = httpsCallable<typeof input, GameProgress<TDetails>>(functions, "submitSoloAnswer");
+  const progress = (await call(input)).data;
+  await persistSoloRunProgress(run, progress);
+  return progress;
 }
 
 export async function finishSoloRun(run: SoloRun): Promise<SoloFinishResult> {

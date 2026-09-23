@@ -13,6 +13,7 @@ export function useSoloQuestionEngine<TQuestion extends BaseQuestion, TAnswer, T
   readonly disabled?: boolean;
   readonly comboScoring?: ComboScoringConfig;
   readonly advanceAfterAnyAnswer?: boolean;
+  readonly submitAnswer: (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => Promise<GameProgress<TDetails>>;
 }) {
   const scope = `${input.run.tenantId}:${input.run.runId}`;
   const [stored, setStored] = useState<{ readonly scope: string; readonly value: unknown; readonly loading: boolean; readonly error: Error | null }>(
@@ -34,7 +35,7 @@ export function useSoloQuestionEngine<TQuestion extends BaseQuestion, TAnswer, T
     await persistSoloRunProgress(input.run, progress);
     return progress;
   }, [input.run]);
-  const onSubmit = useCallback(async (submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => persist(submission.progress), [persist]);
+  const onSubmit = useCallback((submission: AnswerSubmission<TQuestion, TAnswer, TDetails>) => input.submitAnswer(submission), [input.submitAnswer]);
   const onProgress = useCallback(async (submission: ProgressSubmission<TDetails>) => persist(submission.progress), [persist]);
 
   const engine = useQuestionEngine({
