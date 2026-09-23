@@ -16,6 +16,7 @@ export { ensureWordUnoRound, playWordUnoCard, drawWordUnoCard, expireWordUnoTurn
 export {
   ensureChunkLineUpRound,
   confirmChunkLineUpSlot,
+  boardChunkLineUpElevatorRide,
   reserveChunkLineUpElevatorSeat,
   setChunkLineUpElevatorDestination,
 } from "./chunk-line-up/callables.js";

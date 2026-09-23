@@ -14,6 +14,7 @@ import type {
   ChunkLineUpElevatorRideInfo,
   ChunkLineUpElevatorState,
 } from "../../multiplayer/chunk-line-up/types.ts";
+import { createChunkLineUpElevatorState } from "./elevatorModel.ts";
 import {
   CHUNK_LINE_UP_CHANNEL_ID,
   CHUNK_LINE_UP_WORLD_HEIGHT,
@@ -25,6 +26,13 @@ import styles from "./ChunkLineUp.module.css";
 export interface ChunkLineUpController {
   readonly rejectSlot: () => void;
   readonly acceptSlot: (completedGroup: boolean) => void;
+  readonly predictElevatorRide: (
+    elevatorId: ChunkLineUpElevatorId,
+    floor: number,
+    destinationFloor: number,
+  ) => ChunkLineUpElevatorState | null;
+  readonly releaseElevatorApproach: () => void;
+  readonly dismissElevatorApproach: () => void;
 }
 
 interface CommonProps {
@@ -40,14 +48,14 @@ type Props = CommonProps & (
       readonly role: "student";
       readonly playerId: string;
       readonly label: string;
-      readonly onReserveElevator: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
+      readonly onElevatorApproach: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
       readonly onElevatorRideChange: (ride: ChunkLineUpElevatorRideInfo | null) => void;
     }
   | {
       readonly role: "teacher";
       readonly playerId?: never;
       readonly label?: never;
-      readonly onReserveElevator?: never;
+      readonly onElevatorApproach?: never;
       readonly onElevatorRideChange?: never;
     }
 );
@@ -65,19 +73,26 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   const boardRef = useRef(props.board);
   const elevatorRef = useRef(props.elevatorState);
   const confirmRef = useRef(props.onConfirm);
-  const reserveElevatorRef = useRef(props.role === "student" ? props.onReserveElevator : undefined);
+  const elevatorApproachRef = useRef(props.role === "student" ? props.onElevatorApproach : undefined);
   const elevatorRideChangeRef = useRef(props.role === "student" ? props.onElevatorRideChange : undefined);
   const serverOffsetRef = useRef(0);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
   boardRef.current = props.board;
   elevatorRef.current = props.elevatorState;
   confirmRef.current = props.onConfirm;
-  reserveElevatorRef.current = props.role === "student" ? props.onReserveElevator : undefined;
+  elevatorApproachRef.current = props.role === "student" ? props.onElevatorApproach : undefined;
   elevatorRideChangeRef.current = props.role === "student" ? props.onElevatorRideChange : undefined;
 
   useImperativeHandle(ref, () => ({
     rejectSlot: () => sceneRef.current?.showWrong(),
     acceptSlot: (completedGroup) => sceneRef.current?.showCorrect(completedGroup),
+    predictElevatorRide: (elevatorId, floor, destinationFloor) => {
+      const scene = sceneRef.current;
+      const current = elevatorRef.current ?? createChunkLineUpElevatorState(boardRef.current.groups.length, Date.now() + serverOffsetRef.current);
+      return scene?.predictElevatorRide(current, elevatorId, floor, destinationFloor) ?? null;
+    },
+    releaseElevatorApproach: () => sceneRef.current?.releaseElevatorApproach(),
+    dismissElevatorApproach: () => sceneRef.current?.dismissElevatorApproach(),
   }), []);
 
   useEffect(() => {
@@ -177,7 +192,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       onConfirm: (groupId, slotId) => confirmRef.current?.(groupId, slotId),
       elevatorState: () => elevatorRef.current,
       nowMs: () => Date.now() + serverOffsetRef.current,
-      onReserveElevator: (elevatorId, floor) => reserveElevatorRef.current?.(elevatorId, floor),
+      onElevatorApproach: (elevatorId, floor) => elevatorApproachRef.current?.(elevatorId, floor),
       onElevatorRideChange: (ride) => elevatorRideChangeRef.current?.(ride),
     });
     sceneRef.current = scene;
@@ -191,7 +206,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
         default: "arcade",
         arcade: { gravity: { x: 0, y: 1450 }, debug: false },
       },
-      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      scale: { mode: Phaser.Scale.RESIZE },
       render: { antialias: true, pixelArt: false },
       input: { keyboard: false },
       audio: { noAudio: true },

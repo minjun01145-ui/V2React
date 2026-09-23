@@ -203,6 +203,25 @@ export async function reserveChunkLineUpElevatorSeat(
   return elevatorResult(response.data);
 }
 
+export async function boardChunkLineUpElevatorRide(
+  roomId: string,
+  roundId: string,
+  elevatorId: ChunkLineUpElevatorId,
+  floor: number,
+  destinationFloor: number,
+  destinationGroupId: string,
+): Promise<ChunkLineUpElevatorResult> {
+  const response = await httpsCallable(functions, "boardChunkLineUpElevatorRide")({
+    roomId,
+    roundId,
+    elevatorId,
+    floor,
+    destinationFloor,
+    destinationGroupId,
+  });
+  return elevatorResult(response.data);
+}
+
 export async function setChunkLineUpElevatorDestination(
   roomId: string,
   roundId: string,

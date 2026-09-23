@@ -5,9 +5,8 @@ import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.ts
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useChunkLineUpBoard, useChunkLineUpElevator } from "../../multiplayer/chunk-line-up/hooks.ts";
 import {
+  boardChunkLineUpElevatorRide,
   confirmChunkLineUpSlot,
-  reserveChunkLineUpElevatorSeat,
-  setChunkLineUpElevatorDestination,
 } from "../../multiplayer/chunk-line-up/repository.ts";
 import type {
   ChunkLineUpElevatorId,
@@ -24,8 +23,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   const elevatorState = useChunkLineUpElevator(roomId, session.roundId);
   const controllerRef = useRef<ChunkLineUpController | null>(null);
   const busyRef = useRef(false);
-  const elevatorBusyRef = useRef(false);
-  const [feedback, setFeedback] = useState<"wrong" | "stale" | "connection" | null>(null);
+  const [feedback, setFeedback] = useState<"wrong" | "stale" | "connection" | "checking" | null>(null);
   const [localElevatorState, setLocalElevatorState] = useState<ChunkLineUpElevatorState | null>(null);
   const [elevatorRide, setElevatorRide] = useState<ChunkLineUpElevatorRideInfo | null>(null);
   const [destinationBusy, setDestinationBusy] = useState(false);
@@ -42,36 +40,34 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   if (!assignment) return <StatusPanel title="청크 배정 대기 중" tone="waiting">현재 청크를 배정하고 있습니다.</StatusPanel>;
   const label = displayLabel(player.displayName, player.nickname);
 
-  const reserveElevator = async (elevatorId: ChunkLineUpElevatorId, floor: number): Promise<void> => {
-    if (elevatorBusyRef.current || clock.expired || elevatorState.error) return;
-    elevatorBusyRef.current = true;
-    try {
-      const result = await reserveChunkLineUpElevatorSeat(roomId, session.roundId, elevatorId, floor);
-      setLocalElevatorState(result.state);
-    } catch (reason: unknown) {
-      console.error(reason);
-      setFeedback("connection");
-      window.setTimeout(() => setFeedback(null), 900);
-    } finally {
-      elevatorBusyRef.current = false;
-    }
-  };
-
   const chooseDestination = async (destinationFloor: number, destinationGroupId: string): Promise<void> => {
     if (!elevatorRide || destinationBusy || clock.expired) return;
     setDestinationBusy(true);
+    const ride = elevatorRide;
+    const predicted = controllerRef.current?.predictElevatorRide(ride.elevatorId, ride.currentFloor, destinationFloor);
+    if (predicted) setLocalElevatorState(predicted);
     try {
-      const result = await setChunkLineUpElevatorDestination(
+      const result = await boardChunkLineUpElevatorRide(
         roomId,
         session.roundId,
-        elevatorRide.elevatorId,
+        ride.elevatorId,
+        ride.currentFloor,
         destinationFloor,
         destinationGroupId,
       );
-      setLocalElevatorState(result.state);
-      if (!result.accepted) setFeedback("stale");
+      if (result.accepted) {
+        setLocalElevatorState(result.state);
+      } else {
+        setLocalElevatorState(null);
+        setElevatorRide(null);
+        controllerRef.current?.releaseElevatorApproach();
+        setFeedback("stale");
+      }
     } catch (reason: unknown) {
       console.error(reason);
+      setLocalElevatorState(null);
+      setElevatorRide(null);
+      controllerRef.current?.releaseElevatorApproach();
       setFeedback("connection");
     } finally {
       setDestinationBusy(false);
@@ -85,7 +81,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
     const own = current?.assignments[player.id];
     if (!current || !own) return;
     busyRef.current = true;
-    setFeedback(null);
+    setFeedback("checking");
     try {
       const result = await confirmChunkLineUpSlot({
         roomId,
@@ -96,6 +92,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
         slotId,
       });
       if (result.accepted) {
+        setFeedback(null);
         playCorrectChime();
         controllerRef.current?.acceptSlot(result.completedGroup);
         return;
@@ -117,6 +114,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
 
   const remoteElevatorState = elevatorState.value;
   const effectiveElevatorState = localElevatorState && (!remoteElevatorState || localElevatorState.revision > remoteElevatorState.revision)
+    || (destinationBusy && localElevatorState)
     ? localElevatorState
     : remoteElevatorState;
   const destinationChoices = board.groups
@@ -134,7 +132,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       board={board}
       elevatorState={effectiveElevatorState}
       onConfirm={(groupId, slotId) => void confirm(groupId, slotId)}
-      onReserveElevator={(elevatorId, floor) => void reserveElevator(elevatorId, floor)}
+      onElevatorApproach={(elevatorId, floor) => setElevatorRide({ elevatorId, currentFloor: floor, destinationFloor: null })}
       onElevatorRideChange={setElevatorRide}
     />
     <div className={styles.studentHud}>
@@ -154,10 +152,17 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
           onClick={() => void chooseDestination(choice.floor, choice.groupId)}
         >{choice.prompt.replaceAll("/", " ")}</button>)}
       </div>
+      <button type="button" className={styles.elevatorCancel} onClick={() => {
+        controllerRef.current?.dismissElevatorApproach();
+        setElevatorRide(null);
+      }}>닫기</button>
     </div> : null}
-    {feedback ? <div className={feedback === "wrong" ? styles.wrongFeedback : styles.staleFeedback}>
+    {destinationBusy ? <div className={styles.elevatorPending}>목적지 확인 중 · 잠시만 기다려 주세요</div> : null}
+    {feedback ? <div className={feedback === "wrong" ? styles.wrongFeedback : feedback === "checking" ? styles.checkingFeedback : styles.staleFeedback}>
       {feedback === "wrong"
         ? "여긴 아니에요!"
+        : feedback === "checking"
+          ? "슬롯 확인 중…"
         : feedback === "connection"
           ? "서버 연결 오류 · 잠시 후 다시 시도하세요."
           : "게임판이 바뀌었어요. 새 청크를 확인하세요."}

@@ -186,6 +186,28 @@ export function chooseChunkLineUpElevatorDestination(
   return { accepted: true, state: { ...state, [elevatorId]: nextCar } };
 }
 
+export function boardChunkLineUpElevatorRide(
+  input: ChunkLineUpElevatorState,
+  elevatorId: ChunkLineUpElevatorId,
+  playerId: string,
+  floor: number,
+  destinationFloor: number,
+  floorCount: number,
+  nowMs: number,
+): { readonly accepted: boolean; readonly state: ChunkLineUpElevatorState } {
+  const boarded = boardChunkLineUpElevator(input, elevatorId, playerId, floor, nowMs);
+  if (!boarded.accepted) return boarded;
+  const routed = chooseChunkLineUpElevatorDestination(
+    boarded.state,
+    elevatorId,
+    playerId,
+    destinationFloor,
+    floorCount,
+    nowMs,
+  );
+  return routed.accepted ? routed : { accepted: false, state: resolveChunkLineUpElevatorState(input, nowMs) };
+}
+
 export function otherChunkLineUpElevatorId(id: ChunkLineUpElevatorId): ChunkLineUpElevatorId {
   return otherElevator(id);
 }

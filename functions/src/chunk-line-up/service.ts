@@ -19,6 +19,7 @@ import {
 } from "./model.js";
 import {
   boardChunkLineUpElevator,
+  boardChunkLineUpElevatorRide,
   chooseChunkLineUpElevatorDestination,
   createChunkLineUpElevatorState,
   resolveChunkLineUpElevatorState,
@@ -34,6 +35,7 @@ import type {
   ChunkLineUpElevatorDestinationInput,
   ChunkLineUpElevatorId,
   ChunkLineUpElevatorResult,
+  ChunkLineUpElevatorRideInput,
   ChunkLineUpElevatorRider,
   ChunkLineUpElevatorState,
   ChunkLineUpGroup,
@@ -62,7 +64,7 @@ interface ValidRound {
   readonly setRef: DocumentReference;
 }
 
-async function validateRound(input: ChunkLineUpBaseInput): Promise<ValidRound> {
+async function validateRound(input: ChunkLineUpBaseInput, verifyReadingSet = true): Promise<ValidRound> {
   const sessionRef = db.collection("multiplayerSessions").doc(input.roomId);
   const session = await sessionRef.get();
   const data: unknown = session.exists ? session.data() : null;
@@ -92,10 +94,12 @@ async function validateRound(input: ChunkLineUpBaseInput): Promise<ValidRound> {
   }
   const tenantId = effectiveTenantId(data.tenantId);
   const setRef = tenantLearningSetsCollection(tenantId).doc(setId);
-  const metadata = await setRef.get();
-  const meta: unknown = metadata.exists ? metadata.data() : null;
-  if (!isRecord(meta) || !belongsToTenant(meta.tenantId, tenantId) || meta.type !== "reading-chunks") {
-    throw new HttpsError("failed-precondition", "Chunk Line-Up은 끊어읽기 세트만 사용할 수 있습니다.");
+  if (verifyReadingSet) {
+    const metadata = await setRef.get();
+    const meta: unknown = metadata.exists ? metadata.data() : null;
+    if (!isRecord(meta) || !belongsToTenant(meta.tenantId, tenantId) || meta.type !== "reading-chunks") {
+      throw new HttpsError("failed-precondition", "Chunk Line-Up은 끊어읽기 세트만 사용할 수 있습니다.");
+    }
   }
   return {
     roundRef: sessionRef.collection("rounds").doc(input.roundId),
@@ -345,11 +349,57 @@ export async function reserveChunkLineUpElevatorSeatService(
   });
 }
 
+export async function boardChunkLineUpElevatorRideService(
+  uid: string,
+  input: ChunkLineUpElevatorRideInput,
+): Promise<ChunkLineUpElevatorResult> {
+  const round = await validateRound(input);
+  if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
+  const sRef = stateRef(round.roundRef);
+  const ref = elevatorRef(round.roundRef);
+  return db.runTransaction(async (tx) => {
+    const [stateSnapshot, elevatorSnapshot] = await Promise.all([tx.get(sRef), tx.get(ref)]);
+    const gameState = parseServerState(stateSnapshot.exists ? stateSnapshot.data() : null);
+    if (!gameState) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
+    const floorCount = gameState.board.groups.length;
+    if (input.floor < 0 || input.floor > floorCount
+      || input.destinationFloor < 0 || input.destinationFloor >= floorCount) {
+      throw new HttpsError("invalid-argument", "엘리베이터 층 또는 행선지가 올바르지 않습니다.");
+    }
+    const now = Date.now();
+    const current = resolveChunkLineUpElevatorState(
+      parseElevatorState(elevatorSnapshot.exists ? elevatorSnapshot.data() : null)
+        ?? createChunkLineUpElevatorState(floorCount, now),
+      now,
+    );
+    if (!isChunkLineUpElevatorDestinationOpen(gameState.board, input.destinationFloor, input.destinationGroupId)) {
+      return { accepted: false, state: current };
+    }
+    const result = boardChunkLineUpElevatorRide(
+      current,
+      input.elevatorId,
+      uid,
+      input.floor,
+      input.destinationFloor,
+      floorCount,
+      now,
+    );
+    if (!result.accepted) return { accepted: false, state: current };
+    const nextState = { ...result.state, revision: current.revision + 1 };
+    tx.set(ref, {
+      ...nextState,
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedAtMs: now,
+    });
+    return { accepted: true, state: nextState };
+  });
+}
+
 export async function setChunkLineUpElevatorDestinationService(
   uid: string,
   input: ChunkLineUpElevatorDestinationInput,
 ): Promise<ChunkLineUpElevatorResult> {
-  const round = await validateRound(input);
+  const round = await validateRound(input, false);
   if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
   const sRef = stateRef(round.roundRef);
   const ref = elevatorRef(round.roundRef);
@@ -389,7 +439,7 @@ export async function confirmChunkLineUpSlotService(
   uid: string,
   input: ChunkLineUpConfirmInput,
 ): Promise<ChunkLineUpActionResult> {
-  const round = await validateRound(input);
+  const round = await validateRound(input, false);
   if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
   const sRef = stateRef(round.roundRef);
   const bRef = boardRef(round.roundRef);

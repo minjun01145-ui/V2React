@@ -13,6 +13,7 @@ import {
 } from "../lib/chunk-line-up/model.js";
 import {
   boardChunkLineUpElevator,
+  boardChunkLineUpElevatorRide,
   CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS,
   CHUNK_LINE_UP_ELEVATOR_DOOR_MS,
   CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS,
@@ -173,6 +174,27 @@ assert.equal(boardChunkLineUpElevator(elevators, "left", "p4", 5, elevatorStart 
   "a shaft must enforce capacity three");
 assert.equal(boardChunkLineUpElevator(elevators, "right", "p1", 5, elevatorStart + 120).accepted, false,
   "a player cannot occupy both elevator shafts");
+
+const immediateRide = boardChunkLineUpElevatorRide(
+  createChunkLineUpElevatorState(5, elevatorStart),
+  "right",
+  "quick-rider",
+  5,
+  2,
+  5,
+  elevatorStart + 150,
+);
+assert.equal(immediateRide.accepted, true, "boarding and choosing a destination should be one atomic elevator action");
+assert.equal(immediateRide.state.right.seats[0]?.playerId, "quick-rider");
+assert.equal(immediateRide.state.right.seats[0]?.destinationFloor, 2);
+assert.deepEqual(immediateRide.state.right.queue, [2]);
+
+let fullCar = createChunkLineUpElevatorState(5, elevatorStart);
+for (const playerId of ["full-1", "full-2", "full-3"]) {
+  fullCar = boardChunkLineUpElevator(fullCar, "left", playerId, 5, elevatorStart + 100).state;
+}
+assert.equal(boardChunkLineUpElevatorRide(fullCar, "left", "full-4", 5, 0, 5, elevatorStart + 150).accepted, false,
+  "combined boarding must reject a full elevator without adding a rider");
 
 let selected = chooseChunkLineUpElevatorDestination(elevators, "left", "p1", 0, 5, elevatorStart + 200);
 assert.equal(selected.accepted, true);

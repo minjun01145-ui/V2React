@@ -5,6 +5,7 @@ import {
   confirmChunkLineUpSlotService,
   ensureChunkLineUpRoundService,
   reserveChunkLineUpElevatorSeatService,
+  boardChunkLineUpElevatorRideService,
   setChunkLineUpElevatorDestinationService,
 } from "./service.js";
 import type {
@@ -12,6 +13,7 @@ import type {
   ChunkLineUpConfirmInput,
   ChunkLineUpElevatorBoardInput,
   ChunkLineUpElevatorDestinationInput,
+  ChunkLineUpElevatorRideInput,
 } from "./types.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public", timeoutSeconds: 120 } as const;
@@ -68,6 +70,19 @@ function elevatorDestination(value: unknown): ChunkLineUpElevatorDestinationInpu
   return { ...parsed, elevatorId: elevatorId(value.elevatorId), destinationFloor, destinationGroupId };
 }
 
+function elevatorRide(value: unknown): ChunkLineUpElevatorRideInput {
+  const parsed = elevatorBoard(value);
+  if (!isRecord(value)) throw new HttpsError("invalid-argument", "엘리베이터 행선지 정보가 없습니다.");
+  const destinationFloor = typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor)
+    ? value.destinationFloor
+    : -1;
+  const destinationGroupId = typeof value.destinationGroupId === "string" ? value.destinationGroupId.trim() : "";
+  if (destinationFloor < 0 || !TOKEN_PATTERN.test(destinationGroupId)) {
+    throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
+  }
+  return { ...parsed, destinationFloor, destinationGroupId };
+}
+
 async function authorize(request: CallableRequest<unknown>, input: ChunkLineUpBaseInput): Promise<string> {
   return requireRoomCaller(request, input.roomId);
 }
@@ -89,6 +104,12 @@ export const reserveChunkLineUpElevatorSeat = onCall(options, async (request) =>
   const input = elevatorBoard(request.data);
   const uid = await authorize(request, input);
   return reserveChunkLineUpElevatorSeatService(uid, input);
+});
+
+export const boardChunkLineUpElevatorRide = onCall(options, async (request) => {
+  const input = elevatorRide(request.data);
+  const uid = await authorize(request, input);
+  return boardChunkLineUpElevatorRideService(uid, input);
 });
 
 export const setChunkLineUpElevatorDestination = onCall(options, async (request) => {

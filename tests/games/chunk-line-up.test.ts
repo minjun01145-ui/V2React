@@ -9,14 +9,36 @@ import {
   chunkLineUpElevatorDoorOpenRatio,
   chunkLineUpElevatorFloorPosition,
   chunkLineUpElevatorTravelMs,
+  createChunkLineUpElevatorState,
+  predictChunkLineUpElevatorRide,
   resolveChunkLineUpElevatorCar,
 } from "../../src/games/chunk-line-up/elevatorModel.ts";
 import type { ChunkLineUpElevatorCarState } from "../../src/multiplayer/chunk-line-up/types.ts";
 
-assert.equal(CHUNK_LINE_UP_WORLD_WIDTH, 1_040, "all clients should share one canonical world width");
+assert.equal(CHUNK_LINE_UP_WORLD_WIDTH, 1_280, "all clients should share one canonical world width");
 assert.equal(CHUNK_LINE_UP_WORLD_HEIGHT, 604, "all clients should share one canonical world height");
 
 const epoch = 10_000;
+const optimisticRide = predictChunkLineUpElevatorRide(
+  createChunkLineUpElevatorState(5, epoch),
+  "left",
+  "p1",
+  5,
+  1,
+  5,
+  epoch + 100,
+);
+assert.equal(optimisticRide?.left.seats[0]?.destinationFloor, 1,
+  "a selected destination should start the local elevator ride without waiting for the server round trip");
+assert.equal(predictChunkLineUpElevatorRide(
+  createChunkLineUpElevatorState(5, epoch),
+  "left",
+  "p1",
+  5,
+  5,
+  5,
+  epoch + 100,
+), null, "the lobby floor itself is not a valid sentence destination");
 const car: ChunkLineUpElevatorCarState = {
   id: "left",
   phase: "open",

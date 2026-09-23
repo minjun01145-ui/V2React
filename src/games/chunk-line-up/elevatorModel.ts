@@ -12,6 +12,19 @@ export const CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS = 8_000;
 const TRAVEL_BASE_MS = 420;
 const TRAVEL_PER_FLOOR_MS = 520;
 
+export function createChunkLineUpElevatorState(floorCount: number, nowMs: number): ChunkLineUpElevatorState {
+  const car = (id: ChunkLineUpElevatorId): ChunkLineUpElevatorCarState => ({
+    id,
+    phase: "open",
+    floor: floorCount,
+    targetFloor: null,
+    phaseStartedAtMs: nowMs,
+    seats: [],
+    queue: [],
+  });
+  return { revision: 1, lobbyFloor: floorCount, left: car("left"), right: car("right") };
+}
+
 export function chunkLineUpElevatorTravelMs(fromFloor: number, toFloor: number): number {
   return TRAVEL_BASE_MS + Math.max(1, Math.abs(fromFloor - toFloor)) * TRAVEL_PER_FLOOR_MS;
 }
@@ -114,4 +127,37 @@ export function findChunkLineUpPlayerElevator(
     if (rider) return { elevatorId, car, rider };
   }
   return null;
+}
+
+export function predictChunkLineUpElevatorRide(
+  state: ChunkLineUpElevatorState,
+  elevatorId: ChunkLineUpElevatorId,
+  playerId: string,
+  floor: number,
+  destinationFloor: number,
+  floorCount: number,
+  nowMs: number,
+): ChunkLineUpElevatorState | null {
+  const current = resolveChunkLineUpElevatorState(state, nowMs);
+  const car = current[elevatorId];
+  const occupiedByPlayer = current.left.seats.some((seat) => seat.playerId === playerId)
+    || current.right.seats.some((seat) => seat.playerId === playerId);
+  if (occupiedByPlayer
+    || car.phase !== "open"
+    || car.floor !== floor
+    || car.seats.length >= CHUNK_LINE_UP_ELEVATOR_CAPACITY
+    || destinationFloor < 0
+    || destinationFloor >= floorCount
+    || destinationFloor === floor) return null;
+  const queue = car.queue.includes(destinationFloor) ? car.queue : [...car.queue, destinationFloor];
+  return {
+    ...current,
+    revision: state.revision + 1,
+    [elevatorId]: {
+      ...car,
+      phaseStartedAtMs: car.seats.some((seat) => seat.destinationFloor === null) ? car.phaseStartedAtMs : nowMs,
+      seats: [...car.seats, { playerId, destinationFloor }],
+      queue,
+    },
+  };
 }

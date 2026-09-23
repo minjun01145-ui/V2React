@@ -85,6 +85,13 @@ export interface ChunkLineUpElevatorDestinationInput extends ChunkLineUpBaseInpu
   readonly destinationGroupId: string;
 }
 
+export interface ChunkLineUpElevatorRideInput extends ChunkLineUpBaseInput {
+  readonly elevatorId: ChunkLineUpElevatorId;
+  readonly floor: number;
+  readonly destinationFloor: number;
+  readonly destinationGroupId: string;
+}
+
 export interface ChunkLineUpElevatorResult {
   readonly accepted: boolean;
   readonly state: ChunkLineUpElevatorState;

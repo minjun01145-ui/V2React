@@ -9,6 +9,7 @@ import type {
   ChunkLineUpElevatorState,
   ChunkLineUpSlot,
 } from "../../multiplayer/chunk-line-up/types.ts";
+import { predictChunkLineUpElevatorRide } from "./elevatorModel.ts";
 import {
   CHUNK_LINE_UP_ELEVATOR_CAPACITY,
   chunkLineUpElevatorDoorOpenRatio,
@@ -23,9 +24,9 @@ const PLAYER_HEIGHT = 48;
 const HUD_SAFE_TOP = 72;
 const FLOOR_HEIGHT = 28;
 const ELEVATOR_SHAFT_WIDTH = 90;
-const ELEVATOR_CABIN_WIDTH = 76;
+const ELEVATOR_CABIN_WIDTH = 84;
 const ELEVATOR_CABIN_HEIGHT = 56;
-const ELEVATOR_EDGE = 10;
+const ELEVATOR_EDGE = 0;
 const ELEVATOR_LANDING_WIDTH = 82;
 
 interface Actor {
@@ -34,6 +35,8 @@ interface Actor {
   readonly image: Phaser.GameObjects.Image;
   readonly name: Phaser.GameObjects.Text;
   readonly token: Phaser.GameObjects.Text;
+  readonly baseScaleX: number;
+  readonly baseScaleY: number;
 }
 
 interface SlotLayout {
@@ -63,7 +66,7 @@ export interface ChunkLineUpSceneOptions {
   readonly onConfirm: (groupId: string, slotId: string) => void;
   readonly elevatorState: () => ChunkLineUpElevatorState | null;
   readonly nowMs: () => number;
-  readonly onReserveElevator: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
+  readonly onElevatorApproach: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
   readonly onElevatorRideChange: (ride: ChunkLineUpElevatorRideInfo | null) => void;
 }
 
@@ -96,7 +99,8 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private elevatorFadedRiderIds = new Set<string>();
   private localRide: ChunkLineUpElevatorRideInfo | null = null;
   private localRideKey = "";
-  private lastElevatorReserveAt = new Map<ChunkLineUpElevatorId, number>();
+  private approachedElevator: { readonly id: ChunkLineUpElevatorId; readonly floor: number } | null = null;
+  private approachActive = false;
   private burst: Burst | null = null;
   private spawnX = 0;
 
@@ -118,10 +122,18 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.platforms = this.physics.add.staticGroup();
     this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height + 140, true, true, true, false);
     this.createElevatorLabels();
+    this.scale.on(Phaser.Scale.Events.RESIZE, () => {
+      this.physics.world.setBounds(0, 0, this.scale.width, this.scale.height + 140, true, true, true, false);
+      this.renderBoard(true);
+    });
 
     if (this.options.mode === "student" && this.options.input && this.options.localPlayer) {
       const initial = this.options.initialState ?? { x: this.scale.width / 2, y: 38, vx: 0, vy: 0 };
-      this.spawnX = Phaser.Math.Clamp(initial.x, 180, Math.max(181, this.scale.width - 60));
+      this.spawnX = Phaser.Math.Clamp(
+        initial.x,
+        ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + PLAYER_WIDTH / 2,
+        Math.max(ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + PLAYER_WIDTH / 2, this.scale.width - ELEVATOR_EDGE - ELEVATOR_SHAFT_WIDTH - PLAYER_WIDTH / 2),
+      );
       this.player = this.add.zone(this.spawnX, initial.y, PLAYER_WIDTH, PLAYER_HEIGHT);
       this.physics.add.existing(this.player);
       this.body = this.player.body as Phaser.Physics.Arcade.Body;
@@ -143,6 +155,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.ready = false;
+      this.scale.off(Phaser.Scale.Events.RESIZE);
       this.remotes.clear();
     });
     if (this.board) this.renderBoard(true);
@@ -208,6 +221,37 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.time.delayedCall(170, () => this.respawnFromTop());
   }
 
+  predictElevatorRide(
+    state: ChunkLineUpElevatorState,
+    elevatorId: ChunkLineUpElevatorId,
+    floor: number,
+    destinationFloor: number,
+  ): ChunkLineUpElevatorState | null {
+    const playerId = this.options.localPlayer?.id;
+    const floorCount = this.board?.groups.length ?? 0;
+    if (!playerId || floorCount < 1) return null;
+    return predictChunkLineUpElevatorRide(
+      resolveChunkLineUpElevatorState(state, this.options.nowMs()),
+      elevatorId,
+      playerId,
+      floor,
+      destinationFloor,
+      floorCount,
+      this.options.nowMs(),
+    );
+  }
+
+  releaseElevatorApproach(): void {
+    this.approachedElevator = null;
+    if (!this.approachActive) return;
+    this.approachActive = false;
+    this.options.onElevatorRideChange(null);
+  }
+
+  dismissElevatorApproach(): void {
+    this.approachActive = false;
+  }
+
   override update(time: number): void {
     const frames = this.options.samplePlayers();
     this.updateElevators();
@@ -267,17 +311,17 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const width = this.scale.width;
     const targetX = Phaser.Math.Clamp(
       this.spawnX + Phaser.Math.Between(-Math.round(width * 0.18), Math.round(width * 0.18)),
-      190,
-      Math.max(191, width - 50),
+      ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + PLAYER_WIDTH / 2,
+      Math.max(ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + PLAYER_WIDTH / 2, width - ELEVATOR_EDGE - ELEVATOR_SHAFT_WIDTH - PLAYER_WIDTH / 2),
     );
-    this.body.reset(targetX, 34);
+    this.body.reset(targetX - PLAYER_WIDTH / 2, 34 - PLAYER_HEIGHT / 2);
     this.jump = createJumpState();
     this.options.publish(this.movement());
   }
 
   private createActor(label: string, self: boolean): Actor {
     const shadow = this.add.ellipse(0, -2, 36, 9, 0x243b53, 0.16);
-    const image = this.add.image(0, 0, "chunk-line-up-runner").setOrigin(0.5, 1).setDisplaySize(50, 60);
+    const image = this.add.image(0, 0, "chunk-line-up-runner").setOrigin(0.5, 1).setDisplaySize(30, 38);
     if (!self) image.setTint(0xc9e8ff);
     const name = this.add.text(0, -61, compact(label, 14), {
       fontFamily: "sans-serif",
@@ -285,21 +329,23 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       color: self ? "#103b31" : "#24445e",
       backgroundColor: "rgba(255,255,255,.82)",
       padding: { x: 4, y: 2 },
-    }).setOrigin(0.5).setY(-68);
-    const token = this.add.text(0, -78, "", {
+    }).setOrigin(0.5).setY(-48);
+    const token = this.add.text(0, -60, "", {
       fontFamily: "sans-serif",
       fontSize: self ? "13px" : "10px",
       fontStyle: "bold",
       color: self ? "#5b2500" : "#334155",
       backgroundColor: self ? "rgba(254,243,199,.96)" : "rgba(255,255,255,.76)",
       padding: { x: self ? 6 : 4, y: 2 },
-    }).setOrigin(0.5).setY(-86);
+    }).setOrigin(0.5).setY(-67);
     return {
       container: this.add.container(0, 0, [shadow, image, name, token]).setDepth(self ? 22 : 18),
       shadow,
       image,
       name,
       token,
+      baseScaleX: image.scaleX,
+      baseScaleY: image.scaleY,
     };
   }
 
@@ -310,7 +356,10 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const bounce = Math.abs(Math.sin(stride));
     actor.image.setY(running ? -bounce * 6 : 0);
     actor.image.setRotation(running ? Math.sin(stride) * 0.15 : Phaser.Math.Clamp(state.vx / 3000, -0.1, 0.1));
-    actor.image.setScale(running ? 1 + Math.cos(stride) * 0.04 : 1, running ? 1 - bounce * 0.055 : 1);
+    actor.image.setScale(
+      actor.baseScaleX * (running ? 1 + Math.cos(stride) * 0.04 : 1),
+      actor.baseScaleY * (running ? 1 - bounce * 0.055 : 1),
+    );
     actor.shadow.setScale(running ? 0.76 + bounce * 0.24 : 1, 1);
     actor.container.setAlpha(riding ? 0.56 : 1);
     if (Math.abs(state.vx) > 5) actor.image.setFlipX(state.vx < 0);
@@ -365,16 +414,17 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const top = Math.max(HUD_SAFE_TOP + 38, 112);
     const bottom = Math.max(top + 80, height - FLOOR_HEIGHT - 44);
     const rowStep = groups.length > 1 ? (bottom - top) / (groups.length - 1) : 0;
-    const slotsLeft = Math.max(330, width * 0.27);
-    const slotsRight = width - (ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + ELEVATOR_LANDING_WIDTH);
+    const landingWidth = Math.min(ELEVATOR_LANDING_WIDTH, Math.max(40, width * 0.07));
+    const slotsRight = width - (ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + landingWidth);
+    const slotsLeft = Math.min(Math.max(140, width * 0.27), Math.max(72, slotsRight - 120));
     const promptX = slotsLeft;
-    const promptWidth = Math.max(180, slotsRight - slotsLeft);
+    const promptWidth = Math.max(120, slotsRight - slotsLeft);
     const slotGap = Math.max(4, Math.min(8, width * 0.006));
 
     groups.forEach((group, groupIndex) => {
       const y = groups.length === 1 ? (top + bottom) / 2 : top + rowStep * groupIndex;
       const count = Math.max(1, group.slots.length);
-      const slotWidth = Math.max(54, (slotsRight - slotsLeft - slotGap * (count - 1)) / count);
+      const slotWidth = Math.max(22, (slotsRight - slotsLeft - slotGap * (count - 1)) / count);
       const promptText = compact(group.prompt.replaceAll("/", " ").replace(/\s+/g, " "), 72);
       const prompt = this.add.text(promptX, y - 28, `뜻 · ${promptText}`, {
         fontFamily: "sans-serif",
@@ -417,7 +467,6 @@ export default class ChunkLineUpScene extends Phaser.Scene {
         this.textNodes.push(label);
       });
 
-      const landingWidth = ELEVATOR_LANDING_WIDTH;
       const leftLandingX = ELEVATOR_EDGE + ELEVATOR_SHAFT_WIDTH + landingWidth / 2 - 2;
       const rightLandingX = width - leftLandingX;
       this.terrain.fillStyle(0x668878, 1)
@@ -441,9 +490,11 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       for (let index = 0; index < stairCount; index += 1) {
         const ratio = stairCount === 1 ? 0 : index / (stairCount - 1);
         const y = Phaser.Math.Linear(stairBottom, stairTop, ratio);
-        const x = index % 2 === 0 ? 222 : 276;
-        const width = 74;
-        const zone = this.add.zone(x, y, width, 12);
+        const x = width < 800
+          ? width * (index % 2 === 0 ? 0.12 : 0.23)
+          : index % 2 === 0 ? 222 : 276;
+        const platformWidth = 74;
+        const zone = this.add.zone(x, y, platformWidth, 12);
         this.platforms.add(zone);
       }
     }
@@ -451,7 +502,9 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       const stairCount = Math.max(5, groups.length + 1);
       const ratio = stairCount === 1 ? 0 : index / (stairCount - 1);
       const y = Phaser.Math.Linear(floorY - 32, top + 28, ratio);
-      const x = index % 2 === 0 ? 185 : 239;
+      const x = width < 800
+        ? width * (index % 2 === 0 ? 0.07 : 0.18)
+        : index % 2 === 0 ? 185 : 239;
       this.terrain.fillStyle(0x769786, 1).fillRoundedRect(x, y, 74, 10, 4);
     }
     this.platforms.refresh();
@@ -578,33 +631,43 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       : "";
     if (rideKey !== this.localRideKey) {
       this.localRideKey = rideKey;
+      if (this.localRide) this.approachActive = false;
       this.options.onElevatorRideChange(this.localRide);
     }
 
     if (this.body && ride) {
       clearPlatformerInput(this.options.input!);
       const seatIndex = Math.max(0, ride.car.seats.findIndex((seat) => seat.playerId === localId));
-      const seatOffset = [-18, 0, 18][seatIndex] ?? 0;
+      const seatOffset = [-26, 0, 26][seatIndex] ?? 0;
       const platformY = this.elevatorPlatformY(chunkLineUpElevatorFloorPosition(ride.car, now));
-      this.body.reset(this.elevatorX(ride.elevatorId) + seatOffset, platformY - PLAYER_HEIGHT / 2);
+      this.body.reset(this.elevatorX(ride.elevatorId) + seatOffset - PLAYER_WIDTH / 2, platformY - PLAYER_HEIGHT);
     } else if (this.body && previousRide && !ride) {
       const car = state[previousRide.elevatorId];
       const exitDirection = previousRide.elevatorId === "left" ? 1 : -1;
       const exitX = this.elevatorX(previousRide.elevatorId)
         + exitDirection * (ELEVATOR_SHAFT_WIDTH / 2 + PLAYER_WIDTH + 8);
-      this.body.reset(exitX, this.floorTopY(car.floor) - PLAYER_HEIGHT / 2);
+      this.body.reset(exitX - PLAYER_WIDTH / 2, this.floorTopY(car.floor) - PLAYER_HEIGHT);
       this.body.setVelocityX(exitDirection * 90);
     }
 
     if (!localId || ride) return;
+    if (this.approachedElevator) {
+      const shaftX = this.elevatorX(this.approachedElevator.id);
+      if (Math.abs((this.body?.center.x ?? shaftX) - shaftX) <= ELEVATOR_SHAFT_WIDTH / 2 + PLAYER_WIDTH + 16) return;
+      this.approachedElevator = null;
+      if (this.approachActive) {
+        this.approachActive = false;
+        this.options.onElevatorRideChange(null);
+      }
+    }
     for (const id of ["left", "right"] as const) {
       const car = state[id];
       if (car.phase !== "open" || car.seats.length >= CHUNK_LINE_UP_ELEVATOR_CAPACITY) continue;
       if (!this.localPlayerNearElevator(id, car.floor)) continue;
-      const lastReserve = this.lastElevatorReserveAt.get(id) ?? Number.NEGATIVE_INFINITY;
-      if (now - lastReserve < 500) continue;
-      this.lastElevatorReserveAt.set(id, now);
-      this.options.onReserveElevator(id, car.floor);
+      this.approachedElevator = { id, floor: car.floor };
+      this.approachActive = true;
+      this.options.onElevatorApproach(id, car.floor);
+      break;
     }
   }
 
