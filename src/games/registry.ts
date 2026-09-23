@@ -135,6 +135,12 @@ const definitions = [
       defaultValue: "4",
       options: [2, 3, 4, 5].map((count) => ({ value: String(count), label: `${count}지선다` })),
     }],
+    solo: {
+      supported: true,
+      rulesVersion: "simple-quiz-v1",
+      leaderboardConfigKeys: ["choice-count", "timedGameMode"],
+      loadStudent: () => import("./simple-quiz/SoloSimpleQuizStudentModule.tsx"),
+    },
     loadStudent: () => import("./simple-quiz/SimpleQuizStudentModule.tsx"),
     loadTeacher: () => import("./simple-quiz/SimpleQuizTeacherModule.tsx"),
   }),

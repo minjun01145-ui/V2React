@@ -1,0 +1,178 @@
+import { useEffect, useState } from "react";
+import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
+import { createScoreCelebration } from "../../game-engine/effects/model.ts";
+import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
+import type { QuestionEngine } from "../../game-engine/question-engine/useQuestionEngine.ts";
+import type { MultipleChoiceAnswer, MultipleChoiceEvaluationDetails, MultipleChoiceQuestion } from "../../game-engine/question-engine/multiple-choice/index.ts";
+import { formatClock } from "../../game-engine/timed-game/clock.ts";
+import Button from "../../shared/ui/Button.tsx";
+import StatusPanel from "../../shared/StatusPanel.tsx";
+import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
+import { usePopup } from "../../shared/popup/index.ts";
+import { LearningCardButton, LearningCardSurface, type LearningCardTone } from "../../shared/ui/LearningCard.tsx";
+import type { LearningSetQuestionSource } from "../../learning-sets/multipleChoiceTypes.ts";
+import styles from "./SimpleQuiz.module.css";
+
+const OPTION_MARKERS = ["A", "B", "C", "D", "E"] as const;
+const OPTION_TONES: readonly LearningCardTone[] = ["indigo", "mint", "warm", "indigo", "mint"];
+
+export type SimpleQuizEngine = QuestionEngine<
+  MultipleChoiceQuestion<LearningSetQuestionSource>,
+  MultipleChoiceAnswer,
+  MultipleChoiceEvaluationDetails
+> & { readonly loading: boolean; readonly error: Error | null };
+
+export default function SimpleQuizPlay({
+  game,
+  clockExpired = false,
+  remainingMs = null,
+  onFinish,
+  onReturnToLobby,
+}: {
+  readonly game: SimpleQuizEngine;
+  readonly clockExpired?: boolean;
+  readonly remainingMs?: number | null;
+  readonly onFinish?: () => Promise<void>;
+  readonly onReturnToLobby?: () => Promise<void>;
+}) {
+  const effects = useGameEffectEngine();
+  const { showMessage } = usePopup();
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState("");
+  const [feedbackTone, setFeedbackTone] = useState<"correct" | "incorrect" | "">("");
+  const [pendingQuestionId, setPendingQuestionId] = useState<string | null>(null);
+  const [advanceRetry, setAdvanceRetry] = useState(0);
+  const [advanceFailed, setAdvanceFailed] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const question = game.currentQuestion;
+
+  useEffect(() => {
+    const result = game.progress.lastResult;
+    if (!pendingQuestionId || result?.itemId !== pendingQuestionId) return;
+    const timer = globalThis.setTimeout(() => {
+      void game.nextQuestion()
+        .then((advanced) => {
+          if (!advanced) return;
+          setSelectedOptionId(null);
+          setFeedback("");
+          setFeedbackTone("");
+          setAdvanceFailed(false);
+          setPendingQuestionId(null);
+        })
+        .catch(async (error: unknown) => {
+          console.error(error);
+          setAdvanceFailed(true);
+          await showMessage({ title: "다음 문제로 이동하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+        })
+        .finally(() => setSubmitting(false));
+    }, result.isCorrect ? 720 : 920);
+    return () => globalThis.clearTimeout(timer);
+  }, [advanceRetry, game.nextQuestion, game.progress.lastResult, pendingQuestionId, showMessage]);
+
+  useEffect(() => {
+    if (!pendingQuestionId || game.currentQuestion?.id === pendingQuestionId) return;
+    setPendingQuestionId(null);
+    setAdvanceFailed(false);
+    setSubmitting(false);
+  }, [game.currentQuestion?.id, pendingQuestionId]);
+
+  useEffect(() => {
+    if (!onFinish || finishing || exiting || submitting || game.loading || (!clockExpired && !game.isComplete)) return;
+    setFinishing(true);
+    void onFinish().catch(async (error: unknown) => {
+      console.error(error);
+      setFinishing(false);
+      await showMessage({ title: "결과를 저장하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+    });
+  }, [clockExpired, exiting, finishing, game.isComplete, game.loading, onFinish, showMessage, submitting]);
+
+  if (game.loading) return <StatusPanel title="심플퀴즈 연결 중">진행 상황을 저장할 준비를 하고 있습니다.</StatusPanel>;
+  if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
+  if (!question) return game.isComplete
+    ? <StatusPanel title="문제를 모두 풀었어요">결과를 정리하고 있습니다.</StatusPanel>
+    : <StatusPanel title="문제가 없습니다" tone="error">서로 다른 답을 가진 단어가 충분한지 확인해 주세요.</StatusPanel>;
+
+  const finish = async (): Promise<void> => {
+    if (!onFinish || finishing || exiting || submitting || pendingQuestionId) return;
+    setFinishing(true);
+    try {
+      await onFinish();
+    } catch (error: unknown) {
+      console.error(error);
+      setFinishing(false);
+      await showMessage({ title: "결과를 저장하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+    }
+  };
+
+  const returnToLobby = async (): Promise<void> => {
+    if (!onReturnToLobby || exiting) return;
+    setExiting(true);
+    try {
+      await onReturnToLobby();
+    } catch (error: unknown) {
+      console.error(error);
+      setExiting(false);
+      await showMessage({ title: "게임을 종료하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+    }
+  };
+
+  const chooseOption = async (optionId: string): Promise<void> => {
+    if (submitting || pendingQuestionId || clockExpired || finishing || exiting) return;
+    setSubmitting(true);
+    setSelectedOptionId(optionId);
+    try {
+      const result = await game.submitAnswer({ optionId });
+      if (!result) {
+        setSubmitting(false);
+        return;
+      }
+      const correctOption = question.options.find((option) => option.id === question.correctOptionId);
+      setFeedback(result.isCorrect ? "정답! 다음 문제가 곧 나옵니다." : `아쉬워요. 정답은 “${correctOption?.text ?? "-"}”입니다.`);
+      setFeedbackTone(result.isCorrect ? "correct" : "incorrect");
+      if (result.isCorrect) effects.play(createScoreCelebration({ scoreDelta: result.scoreDelta, combo: game.progress.combo + 1 }));
+      setPendingQuestionId(question.id);
+    } catch (error: unknown) {
+      console.error(error);
+      setSelectedOptionId(null);
+      setSubmitting(false);
+      await showMessage({ title: "정답을 제출하지 못했어요", message: toErrorMessage(error, "잠시 후 다시 선택해 주세요."), tone: "error", blurBackground: false });
+    }
+  };
+
+  return <section className={styles.game}>
+    <GameEffectLayer effect={effects.activeEffect} />
+    <header className={styles.topbar}>
+      <div><h1>심플퀴즈</h1>{remainingMs !== null ? <small className={styles.remaining}>남은 시간 {formatClock(remainingMs)}</small> : null}</div>
+      <div className={styles.headerActions}>
+        {onReturnToLobby ? <Button variant="ghost" disabled={finishing || exiting || submitting || Boolean(pendingQuestionId)} onClick={() => void returnToLobby()}>{exiting ? "종료 중…" : "대기실로 돌아가기"}</Button> : null}
+        {onFinish ? <Button variant="ghost" disabled={submitting || finishing || exiting || Boolean(pendingQuestionId)} onClick={() => void finish()}>{finishing ? "결과 저장 중…" : "퀴즈 마치기"}</Button> : null}
+      </div>
+      <div className={styles.stats}>
+        <div><small>문제</small><strong>{game.currentIndex + 1}<i>/{game.questionCount}</i></strong></div>
+        <div><small>콤보</small><strong>{game.progress.combo}</strong></div>
+        <div><small>점수</small><strong>{game.progress.score}</strong></div>
+      </div>
+    </header>
+
+    <LearningCardSurface className={styles.prompt} eyebrow="뜻" marker="?" tone="warm">{question.prompt}</LearningCardSurface>
+    <p className={styles.guide}>뜻에 맞는 단어를 빠르게 선택하세요.</p>
+    <section className={styles.options} aria-label={`${game.questionCount > 0 ? question.options.length : 0}개 선택지`}>
+      {question.options.map((option, index) => <LearningCardButton
+        className={styles.option}
+        eyebrow={`선택지 ${index + 1}`}
+        marker={OPTION_MARKERS[index] ?? String(index + 1)}
+        tone={OPTION_TONES[index] ?? "indigo"}
+        selected={selectedOptionId === option.id}
+        disabled={submitting || clockExpired || finishing || exiting}
+        onClick={() => void chooseOption(option.id)}
+        key={option.id}
+      >{option.text}</LearningCardButton>)}
+    </section>
+    <div className={styles.feedback} data-tone={feedbackTone} role="status" aria-live="polite">
+      {feedback || "선택하는 즉시 채점됩니다."}
+      {advanceFailed ? <button className={styles.retryButton} type="button" onClick={() => { setAdvanceFailed(false); setSubmitting(true); setAdvanceRetry((value) => value + 1); }}>다음 문제 다시 시도</button> : null}
+    </div>
+  </section>;
+}

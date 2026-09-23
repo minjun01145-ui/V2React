@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { ActiveGameSession, GameSession, Player } from "../../multiplayer/types.ts";
 import type { TimedGameMode } from "../timed-game/config.ts";
+import type { SoloCapability } from "../../solo/contracts.ts";
 
 export type TeacherGameModuleProps = {
   readonly role: "teacher";
@@ -56,13 +57,14 @@ export interface GameDefinition {
   readonly supportsFiniteQuizQuestions: boolean;
   readonly handlesOwnTimedBoundary: boolean;
   readonly fixedTimedMode: TimedGameMode | null;
+  readonly solo: SoloCapability;
   readonly presentQuizQuestion?: (item: GameQuizQuestionInput, config: Readonly<Record<string, string>>) => GameQuizQuestionPresentation;
   readonly prepareStudent?: (context: StudentGamePreparationContext) => Promise<(() => void) | void>;
   readonly loadStudent: () => Promise<{ default: StudentGameModuleComponent }>;
   readonly loadTeacher: () => Promise<{ default: TeacherGameModuleComponent }>;
 }
 
-export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions" | "handlesOwnTimedBoundary" | "fixedTimedMode"> & {
+export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions" | "handlesOwnTimedBoundary" | "fixedTimedMode" | "solo"> & {
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
   readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;
@@ -72,6 +74,7 @@ export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetIte
   readonly supportsFiniteQuizQuestions?: boolean;
   readonly handlesOwnTimedBoundary?: boolean;
   readonly fixedTimedMode?: TimedGameMode | null;
+  readonly solo?: SoloCapability;
 };
 
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -106,6 +109,12 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     if (!setting.options.some((option) => option.value === setting.defaultValue)) throw new Error(`Game ${definition.id} setting ${setting.key} has an invalid default value.`);
     settingKeys.add(setting.key);
   }
+  const solo = definition.solo ?? { supported: false as const };
+  if (solo.supported && (!solo.rulesVersion.trim()
+    || typeof solo.loadStudent !== "function"
+    || new Set(solo.leaderboardConfigKeys).size !== solo.leaderboardConfigKeys.length)) {
+    throw new Error(`Game ${definition.id} has an invalid Solo capability.`);
+  }
 
   return Object.freeze({
     ...definition,
@@ -119,6 +128,9 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
     supportsFiniteQuizQuestions: definition.supportsFiniteQuizQuestions ?? false,
     handlesOwnTimedBoundary: definition.handlesOwnTimedBoundary ?? false,
     fixedTimedMode: definition.fixedTimedMode ?? null,
+    solo: solo.supported
+      ? Object.freeze({ ...solo, leaderboardConfigKeys: Object.freeze([...solo.leaderboardConfigKeys]) })
+      : Object.freeze({ supported: false as const }),
     settings: Object.freeze(settings.map((setting) => Object.freeze({ ...setting, options: Object.freeze([...setting.options]) }))),
   });
 }

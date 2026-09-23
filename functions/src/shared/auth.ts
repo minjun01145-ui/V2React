@@ -2,7 +2,8 @@ import type { CallableRequest } from "firebase-functions/v2/https";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "./firebase.js";
 import { isRecord } from "./validation.js";
-import { effectiveTenantId, PRIMARY_TENANT_ID, type TenantId } from "./tenant.js";
+import { effectiveTenantId, PRIMARY_TENANT_ID, tenantStudentKey, type TenantId } from "./tenant.js";
+import { normalizePersonName } from "./validation.js";
 
 function isAnonymousProvider(token: unknown): boolean {
   if (!isRecord(token) || !isRecord(token.firebase)) return false;
@@ -18,6 +19,38 @@ export function requireAnonymous(request: CallableRequest<unknown>): string {
 
 export async function requireAdmin(request: CallableRequest<unknown>): Promise<string> {
   return (await requireAdminTenant(request)).uid;
+}
+
+export async function requireRegularStudent(request: CallableRequest<unknown>): Promise<{
+  readonly uid: string;
+  readonly tenantId: TenantId;
+  readonly studentNumber: string;
+  readonly displayName: string;
+}> {
+  const uid = requireAnonymous(request);
+  const token = request.auth?.token;
+  const studentNumber = typeof token?.studentNumber === "string" ? token.studentNumber : "";
+  const displayName = typeof token?.displayName === "string" ? normalizePersonName(token.displayName) : "";
+  if (token?.role !== "student" || !/^[0-9]{1,12}$/.test(studentNumber) || !displayName) {
+    throw new HttpsError("permission-denied", "학생 인증 정보를 확인할 수 없습니다.");
+  }
+  const tenantId = effectiveTenantId(token.tenantId);
+  const [profile, roster] = await Promise.all([
+    db.collection("studentProfiles").doc(uid).get(),
+    db.collection("studentRoster").doc(tenantStudentKey(tenantId, studentNumber)).get(),
+  ]);
+  const profileData: unknown = profile.exists ? profile.data() : null;
+  const rosterData: unknown = roster.exists ? roster.data() : null;
+  if (!isRecord(profileData)
+    || profileData.studentNumber !== studentNumber
+    || normalizePersonName(profileData.displayName) !== displayName
+    || effectiveTenantId(profileData.tenantId) !== tenantId
+    || !isRecord(rosterData)
+    || rosterData.active === false
+    || normalizePersonName(rosterData.displayName) !== displayName) {
+    throw new HttpsError("permission-denied", "학생 계정 정보를 확인할 수 없습니다.");
+  }
+  return { uid, tenantId, studentNumber, displayName };
 }
 
 export async function requireAdminTenant(

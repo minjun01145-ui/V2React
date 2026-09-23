@@ -76,6 +76,8 @@ export default function StudentLobbyPage(props: Props) {
       <WaitingRoom
         roomId={roomId}
         session={session}
+        player={player}
+        identity={identity}
         selfStudentNumber={player.studentNumber}
         displayName={player.displayName}
         nickname={player.nickname}

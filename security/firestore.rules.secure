@@ -369,6 +369,77 @@ service cloud.firestore {
       allow read, create, update, delete: if tenantId != "minjun" && isAdminForTenant(tenantId);
     }
 
+    // Solo runs and scoreboards live in a tenant-only namespace. Callable functions
+    // own run transitions, immutable results and best-record writes; clients only
+    // persist progress to their own active run.
+    match /tenants/{tenantId}/soloRuns/{runId} {
+      allow read: if validTenantId(tenantId)
+        && isRosterStudent()
+        && authTenantId() == tenantId
+        && resource.data.ownerUid == request.auth.uid
+        && resource.data.tenantId == tenantId;
+      allow create, update, delete: if false;
+
+      match /progress/{uid} {
+        allow read: if validTenantId(tenantId)
+          && isRosterStudent()
+          && authTenantId() == tenantId
+          && request.auth.uid == uid
+          && exists(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId))
+          && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.ownerUid == uid;
+        allow create, update: if validTenantId(tenantId)
+          && isRosterStudent()
+          && authTenantId() == tenantId
+          && request.auth.uid == uid
+          && exists(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId))
+          && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.ownerUid == uid
+          && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.status == "active"
+          && request.resource.data.keys().hasOnly([
+            "currentIndex", "score", "correctCount", "attemptCount", "combo",
+            "completedItemIds", "lastResult", "completedAtMs", "updatedAt", "updatedAtMs"
+          ])
+          && request.resource.data.currentIndex is int
+          && request.resource.data.currentIndex >= 0
+          && request.resource.data.currentIndex <= 10000
+          && request.resource.data.score is int
+          && request.resource.data.score >= 0
+          && request.resource.data.correctCount is int
+          && request.resource.data.correctCount >= 0
+          && request.resource.data.attemptCount is int
+          && request.resource.data.attemptCount >= request.resource.data.correctCount
+          && request.resource.data.combo is int
+          && request.resource.data.combo >= 0
+          && request.resource.data.combo <= request.resource.data.correctCount
+          && request.resource.data.completedItemIds is list
+          && request.resource.data.completedItemIds.size() <= 10000
+          && (request.resource.data.lastResult == null || request.resource.data.lastResult is map)
+          && (request.resource.data.completedAtMs == null || request.resource.data.completedAtMs is int)
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedAtMs is int;
+        allow delete: if false;
+      }
+
+      match /results/{uid} {
+        allow read: if validTenantId(tenantId)
+          && isRosterStudent()
+          && authTenantId() == tenantId
+          && request.auth.uid == uid
+          && exists(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId))
+          && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.ownerUid == uid;
+        allow write: if false;
+      }
+    }
+
+    match /tenants/{tenantId}/soloLeaderboards/{scopeId} {
+      allow read: if validTenantId(tenantId) && isRosterStudent() && authTenantId() == tenantId;
+      allow write: if false;
+
+      match /records/{uid} {
+        allow read: if validTenantId(tenantId) && isRosterStudent() && authTenantId() == tenantId;
+        allow write: if false;
+      }
+    }
+
     match /studentGameData/{accountId}/cosmetics/profile {
       allow read: if ownsStudentGameData(accountId) || isAdminForStudentAccount(accountId);
       allow create, update: if ownsStudentGameData(accountId)

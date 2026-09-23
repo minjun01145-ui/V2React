@@ -16,6 +16,10 @@ import { useStudentQuestionSubmission } from "../../../student-question-activity
 import { shouldShowStudentQuestionAuthoring } from "../../../student-question-activity/model.ts";
 import StudentWaitingDice from "../../../waiting-dice/StudentWaitingDice.tsx";
 import { pickRandomNickname } from "./randomNickname.ts";
+import StudentSoloExperience from "../solo/StudentSoloExperience.tsx";
+import type { StudentIdentity } from "../../../auth/types.ts";
+import type { Player } from "../../../multiplayer/types.ts";
+import { canEnterSolo } from "../solo/model.ts";
 
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
@@ -24,6 +28,8 @@ const LobbyPlatformer = lazy(() => import("../../../games/lobby-platformer/Lobby
 interface Props {
   readonly roomId: string;
   readonly session: GameSession;
+  readonly player: Player;
+  readonly identity: StudentIdentity;
   readonly selfStudentNumber: string;
   readonly displayName: string;
   readonly nickname: string | null;
@@ -32,7 +38,7 @@ interface Props {
   readonly uid: string;
 }
 
-export default function WaitingRoom({ roomId, session, selfStudentNumber, displayName, nickname, nicknameGrade, avatar, uid }: Props) {
+export default function WaitingRoom({ roomId, session, player, identity, selfStudentNumber, displayName, nickname, nicknameGrade, avatar, uid }: Props) {
   const { activePlayers } = usePlayers(roomId);
   const resolvingDuplicateNickname = useRef(false);
   const duplicateRetryTimer = useRef<number | null>(null);
@@ -40,10 +46,13 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
   const [duplicateRetry, setDuplicateRetry] = useState(0);
   const [typingOpen, setTypingOpen] = useState<"sentence" | "acid-rain" | null>(null);
   const [platformerOpen, setPlatformerOpen] = useState(false);
+  const [soloOpen, setSoloOpen] = useState(false);
   const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
   const typingConfig = savedTypingConfig ?? createWaitingTypingConfig(typingDemoSet.id);
   const activity = session.classroomActivity;
   const targeted = Boolean(activity?.expectedPlayerIds.includes(uid));
+  const requiredActivityActive = Boolean(activity?.phase === "active" && targeted);
+  const soloAllowed = canEnterSolo(session.status, requiredActivityActive);
   const authoring = useStudentQuestionSubmission(roomId, targeted && activity ? activity.runId : null, uid);
 
   useEffect(() => {
@@ -78,6 +87,7 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
   }, []);
   if (targeted && activity?.phase === "active" && authoring.loading) return <StatusPanel title="질문 만들기 확인 중" tone="waiting">제출 상태를 불러오고 있습니다.</StatusPanel>;
   if (activity && shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)) return <StudentQuestionAuthoring roomId={roomId} playerId={uid} activity={activity} />;
+  if (soloOpen && soloAllowed) return <StudentSoloExperience identity={identity} player={player} onReturnToLobby={() => setSoloOpen(false)} />;
   if (typingOpen && typingConfig) {
     return <Suspense fallback={<StatusPanel title="타자 연습 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
       {typingOpen === "sentence"
@@ -117,10 +127,12 @@ export default function WaitingRoom({ roomId, session, selfStudentNumber, displa
         <PlayerGrid players={activePlayers} selfStudentNumber={selfStudentNumber} />
       </Card>
       <div className={styles.actions}>
+        <Button onClick={() => setSoloOpen(true)} disabled={!soloAllowed}>혼자하기</Button>
         <TypingGameButton mode="sentence" onClick={() => setTypingOpen("sentence")} />
         <TypingGameButton mode="acid-rain" onClick={() => setTypingOpen("acid-rain")} />
         <Button variant="ghost" onClick={() => setPlatformerOpen(true)}>플랫포머 (테스트)</Button>
         {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
+        {!soloAllowed && requiredActivityActive ? <p className={styles.activityHint}>필수 질문 만들기 활동이 끝난 뒤 혼자하기를 시작할 수 있어요.</p> : null}
       </div>
     </div>
   );
