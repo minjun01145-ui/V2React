@@ -1,140 +1,14 @@
-
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
-import Button from "../../shared/ui/Button.tsx";
-import Card from "../../shared/ui/Card.tsx";
+import AiTutorPlayView from "./AiTutorPlayView.tsx";
 import { useAiTutorGame } from "./useAiTutorGame.ts";
 import { useAiTutorSet } from "./useAiTutorSet.ts";
-import styles from "./AiTutor.module.css";
 
-function AiTutorPlayArea({
-  roomId,
-  session,
-  player,
-  set,
-}: StudentGameModuleProps & {
+function AiTutorPlayArea(props: StudentGameModuleProps & {
   readonly set: NonNullable<ReturnType<typeof useAiTutorSet>["set"]>;
 }) {
-  const game = useAiTutorGame({ roomId, session, player, set });
-  const [message, setMessage] = useState("");
-  const answerRef = useRef<HTMLTextAreaElement>(null);
-  const answered = Boolean(game.progress.lastResult?.isCorrect);
-
-  useEffect(() => {
-    if (!game.busy && !answered && game.currentQuestion) answerRef.current?.focus();
-  }, [answered, game.busy, game.currentQuestion?.id]);
-
-  useEffect(() => {
-    if (!answered || game.busy) return;
-    const onNextKeyDown = (event: globalThis.KeyboardEvent): void => {
-      if (event.key !== "Enter" || event.shiftKey || event.isComposing) return;
-      event.preventDefault();
-      void game.goNext();
-    };
-    document.addEventListener("keydown", onNextKeyDown);
-    return () => document.removeEventListener("keydown", onNextKeyDown);
-  }, [answered, game.busy, game.goNext]);
-
-  if (game.loading) {
-    return <StatusPanel title="AI 문답 준비 중">진행 상황을 연결하고 있습니다.</StatusPanel>;
-  }
-  if (game.error && !game.currentQuestion) {
-    return <StatusPanel title="AI 문답 연결 오류" tone="error">{game.error.message}</StatusPanel>;
-  }
-  if (!game.currentQuestion) {
-    return <StatusPanel title="학습 완료">
-      모든 문제를 마쳤습니다. 총 {game.progress.score}점을 얻었어요!
-    </StatusPanel>;
-  }
-
-  const onSubmit = (event: FormEvent): void => {
-    event.preventDefault();
-    const submitted = message;
-    if (!submitted.trim()) return;
-    setMessage("");
-    void game.submit(submitted);
-  };
-
-  const onAnswerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-    event.preventDefault();
-    event.currentTarget.form?.requestSubmit();
-  };
-
-  return <main className={styles.game}>
-    <header className={styles.topbar}>
-      <div><h1>{game.title}</h1></div>
-      <div className={styles.metrics}>
-        <span>{game.progress.currentIndex + 1} / {game.totalCount}</span>
-        <strong>{game.progress.score}점</strong>
-      </div>
-    </header>
-
-    <Card className={styles.questionCard}>
-      <p className={styles.eyebrow}>{game.currentQuestion.promptLabel}</p>
-      {game.currentQuestion.author
-        ? <p className={styles.author}>
-            {game.currentQuestion.author.nickname || game.currentQuestion.author.displayName} 학생이 낸 질문입니다
-          </p>
-        : null}
-      <h2>{game.currentQuestion.prompt}</h2>
-      <p className={styles.guide}>
-        답을 입력하거나, 이 문제에 나온 모르는 단어·문법을 질문해도 됩니다.
-      </p>
-    </Card>
-
-    <form className={styles.answerForm} onSubmit={onSubmit}>
-      <label htmlFor="ai-tutor-answer">{game.currentQuestion.answerLabel}</label>
-      <textarea
-        ref={answerRef}
-        id="ai-tutor-answer"
-        rows={3}
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        onKeyDown={onAnswerKeyDown}
-        disabled={game.busy || answered}
-        maxLength={1000}
-        placeholder="답 또는 문제와 관련된 질문을 입력하세요"
-        autoFocus
-      />
-      <Button type="submit" disabled={game.busy || answered || !message.trim()}>
-        {game.busy ? "AI가 살펴보는 중…" : "답변 보내기"}
-      </Button>
-    </form>
-
-    {game.reply
-      ? <section className={styles.feedback} data-kind={game.reply.kind} role="status">
-          <strong>
-            {game.reply.kind === "correct"
-              ? "정답이에요!"
-              : game.reply.kind === "retry"
-                ? "조금만 더 생각해 볼까요?"
-                : game.reply.kind === "help"
-                  ? "문제 도움말"
-                  : "문제와 관련된 내용만"}
-          </strong>
-          <p>{game.reply.feedback}</p>
-          {game.reply.focus ? <p><b>확인할 부분:</b> {game.reply.focus}</p> : null}
-          {game.reply.hint ? <p><b>힌트:</b> {game.reply.hint}</p> : null}
-          {game.reply.isCorrect
-            ? <Button onClick={() => void game.goNext()} disabled={game.busy}>
-                다음 문제 (Enter)
-              </Button>
-            : null}
-        </section>
-      : answered
-        ? <section className={styles.feedback} data-kind="correct" role="status">
-            <strong>정답으로 인정된 문제예요.</strong>
-            <p>다음 문제로 계속 진행하세요.</p>
-            <Button onClick={() => void game.goNext()} disabled={game.busy}>
-              다음 문제 (Enter)
-            </Button>
-          </section>
-        : null}
-
-    {game.error ? <p className={styles.error} role="alert">{game.error.message}</p> : null}
-  </main>;
+  const game = useAiTutorGame({ roomId: props.roomId, session: props.session, player: props.player, set: props.set });
+  return <AiTutorPlayView game={game} />;
 }
 
 export default function AiTutorStudentGame(props: StudentGameModuleProps) {

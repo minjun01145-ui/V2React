@@ -24,6 +24,10 @@ function protectReferenceAnswer(reply: AiTutorReply, context: AiTutorRoundContex
 
 export async function evaluateAiTutorTurn(uid: string, turn: AiTutorTurnInput): Promise<AiTutorReply> {
   const context = await loadAiTutorRoundContext({ uid, roomId: turn.roomId, roundId: turn.roundId, itemId: turn.itemId, requestedDirection: turn.direction });
+  return evaluateAiTutorContext(context, turn);
+}
+
+export async function evaluateAiTutorContext(context: AiTutorRoundContext, turn: AiTutorTurnInput): Promise<AiTutorReply> {
   const messages = buildAiTutorMessages(context, turn);
   try {
     return protectReferenceAnswer(parseAiTutorReply((await generateAiReply(messages)).reply), context, turn.attemptNumber);

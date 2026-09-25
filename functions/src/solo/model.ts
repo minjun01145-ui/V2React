@@ -15,6 +15,29 @@ export interface SimpleQuizBestResult extends SimpleQuizProgressResult {
   readonly completedAtMs: number;
 }
 
+export interface SoloQuestionProgress {
+  readonly currentIndex: number;
+  readonly score: number;
+  readonly correctCount: number;
+  readonly attemptCount: number;
+  readonly combo: number;
+  readonly completedItemIds: readonly string[];
+  readonly lastResult: {
+    readonly itemId: string;
+    readonly isCorrect: boolean;
+    readonly scoreDelta: number;
+    readonly feedback: string;
+    readonly details: unknown;
+  } | null;
+  readonly completedAtMs: number | null;
+}
+
+export interface SoloQuestionAuthoritativeState {
+  readonly progress: SoloQuestionProgress;
+  readonly expectedQuestionIndex: number;
+  readonly attemptsByQuestionId: Readonly<Record<string, number>>;
+}
+
 export interface SimpleQuizAuthoritativeState extends SimpleQuizProgressResult {
   readonly answeredQuestionIds: readonly string[];
   readonly completedQuestionIds: readonly string[];
@@ -57,7 +80,11 @@ export function matchesSoloStartRequest(value: unknown, expected: {
   readonly gameConfig: Readonly<Record<string, string>>;
   readonly displayLabel: string;
 }): boolean {
-  if (!isRecord(value) || !isRecord(value.gameConfig)) return false;
+  if (!isRecord(value)) return false;
+  const actualConfig = value.gameConfig;
+  if (!isRecord(actualConfig)) return false;
+  const sameConfig = Object.keys(actualConfig).length === Object.keys(expected.gameConfig).length
+    && Object.entries(expected.gameConfig).every(([key, configValue]) => actualConfig[key] === configValue);
   return value.ownerUid === expected.ownerUid
     && value.studentAccountId === expected.studentAccountId
     && value.tenantId === expected.tenantId
@@ -66,10 +93,136 @@ export function matchesSoloStartRequest(value: unknown, expected: {
     && value.setFingerprint === expected.setFingerprint
     && value.leaderboardScopeId === expected.leaderboardScopeId
     && value.rulesVersion === expected.rulesVersion
-    && value.gameConfig.setId === expected.gameConfig.setId
-    && value.gameConfig["choice-count"] === expected.gameConfig["choice-count"]
-    && value.gameConfig.timedGameMode === expected.gameConfig.timedGameMode
+    && sameConfig
     && value.displayLabel === expected.displayLabel;
+}
+
+export function soloLeaderboardScopeId(input: {
+  readonly tenantId: string;
+  readonly gameId: string;
+  readonly setId: string;
+  readonly setFingerprint: string;
+  readonly gameConfig: Readonly<Record<string, string>>;
+  readonly rulesVersion: string;
+  readonly configKeys: readonly string[];
+}): string {
+  const gameplayConfig = Object.fromEntries(
+    [...input.configKeys].sort().map((key) => [key, input.gameConfig[key] ?? ""]),
+  );
+  const canonical = JSON.stringify({
+    tenantId: input.tenantId,
+    gameId: input.gameId,
+    setId: input.setId,
+    setFingerprint: input.setFingerprint,
+    gameConfig: gameplayConfig,
+    rulesVersion: input.rulesVersion,
+  });
+  return createHash("sha256").update(canonical).digest("hex");
+}
+
+export function emptySoloQuestionProgress(): SoloQuestionProgress {
+  return {
+    currentIndex: 0,
+    score: 0,
+    correctCount: 0,
+    attemptCount: 0,
+    combo: 0,
+    completedItemIds: [],
+    lastResult: null,
+    completedAtMs: null,
+  };
+}
+
+export function parseSoloQuestionAuthoritativeState(value: unknown): SoloQuestionAuthoritativeState | null {
+  if (!isRecord(value) || !isRecord(value.progress) || !isRecord(value.attemptsByQuestionId)) return null;
+  const rawProgress = value.progress;
+  const currentIndex = integer(rawProgress.currentIndex);
+  const score = integer(rawProgress.score);
+  const correctCount = integer(rawProgress.correctCount);
+  const attemptCount = integer(rawProgress.attemptCount);
+  const combo = integer(rawProgress.combo);
+  const progress = score !== null && correctCount !== null && attemptCount !== null && combo !== null
+    && correctCount <= attemptCount && combo <= correctCount
+    ? { score, correctCount, attemptCount, combo }
+    : null;
+  const completedItemIds = stringIds(rawProgress.completedItemIds);
+  const expectedQuestionIndex = integer(value.expectedQuestionIndex);
+  const attempts: Record<string, number> = {};
+  for (const [questionId, count] of Object.entries(value.attemptsByQuestionId)) {
+    if (!questionId || typeof count !== "number" || !Number.isSafeInteger(count) || count < 0 || count > 1000) return null;
+    attempts[questionId] = count;
+  }
+  let lastResult: SoloQuestionProgress["lastResult"] = null;
+  if (rawProgress.lastResult !== null) {
+    if (!isRecord(rawProgress.lastResult) || typeof rawProgress.lastResult.itemId !== "string"
+      || typeof rawProgress.lastResult.isCorrect !== "boolean" || typeof rawProgress.lastResult.scoreDelta !== "number"
+      || !Number.isSafeInteger(rawProgress.lastResult.scoreDelta) || rawProgress.lastResult.scoreDelta < 0
+      || typeof rawProgress.lastResult.feedback !== "string" || !completedItemIds) return null;
+    lastResult = {
+      itemId: rawProgress.lastResult.itemId,
+      isCorrect: rawProgress.lastResult.isCorrect,
+      scoreDelta: rawProgress.lastResult.scoreDelta,
+      feedback: rawProgress.lastResult.feedback.slice(0, 1000),
+      details: rawProgress.lastResult.details ?? null,
+    };
+  }
+  const completedAtMs = rawProgress.completedAtMs === null || rawProgress.completedAtMs === undefined
+    ? null
+    : integer(rawProgress.completedAtMs);
+  if (!progress || currentIndex === null || !completedItemIds || expectedQuestionIndex === null
+    || completedItemIds.length !== progress.correctCount || new Set(completedItemIds).size !== completedItemIds.length
+    || expectedQuestionIndex > 10000 || (rawProgress.completedAtMs != null && completedAtMs === null)) return null;
+  return {
+    progress: { ...progress, currentIndex, completedItemIds, lastResult, completedAtMs },
+    expectedQuestionIndex,
+    attemptsByQuestionId: attempts,
+  };
+}
+
+export function applySoloQuestionAnswer(state: SoloQuestionAuthoritativeState, input: {
+  readonly currentIndex: number;
+  readonly questionId: string;
+  readonly isCorrect: boolean;
+  readonly baseScore: number;
+  readonly trackCombo?: boolean;
+  readonly comboBonusPerStep?: number;
+  readonly comboMaximumBonus?: number;
+  readonly feedback: string;
+  readonly details: unknown;
+}): SoloQuestionAuthoritativeState {
+  if (input.currentIndex !== state.expectedQuestionIndex) throw new Error("Solo 문항 순서가 일치하지 않습니다.");
+  const previous = state.progress;
+  const combo = input.trackCombo === false ? previous.combo : input.isCorrect ? previous.combo + 1 : 0;
+  const bonus = input.isCorrect
+    ? Math.min(Math.max(combo - 1, 0) * (input.comboBonusPerStep ?? 0), input.comboMaximumBonus ?? 0)
+    : 0;
+  const scoreDelta = input.isCorrect ? input.baseScore + bonus : 0;
+  const completedItemIds = input.isCorrect ? [...previous.completedItemIds, input.questionId] : previous.completedItemIds;
+  const attemptsByQuestionId = {
+    ...state.attemptsByQuestionId,
+    [input.questionId]: (state.attemptsByQuestionId[input.questionId] ?? 0) + 1,
+  };
+  return {
+    expectedQuestionIndex: input.isCorrect ? state.expectedQuestionIndex + 1 : state.expectedQuestionIndex,
+    attemptsByQuestionId,
+    progress: {
+      ...previous,
+      currentIndex: input.currentIndex,
+      score: previous.score + scoreDelta,
+      correctCount: previous.correctCount + Number(input.isCorrect),
+      attemptCount: previous.attemptCount + 1,
+      combo,
+      completedItemIds,
+      lastResult: {
+        itemId: input.questionId,
+        isCorrect: input.isCorrect,
+        scoreDelta,
+        feedback: input.feedback,
+        details: input.details,
+      },
+      completedAtMs: null,
+    },
+  };
 }
 
 export function simpleQuizQuestionId(itemId: string): string {

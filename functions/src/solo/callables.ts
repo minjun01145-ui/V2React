@@ -1,5 +1,4 @@
-import { createHash } from "node:crypto";
-import { FieldValue, type DocumentReference } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { requireRegularStudent } from "../shared/auth.js";
 import { db } from "../shared/firebase.js";
@@ -14,55 +13,65 @@ import {
   isLeaderboardEligible,
   matchesSoloStartRequest,
   parseSimpleQuizAuthoritativeState,
-  parseSimpleQuizProgress,
   simpleQuizBestRecordId,
   simpleQuizProgressForClient,
   simpleQuizQuestionId,
   simpleQuizQuestionOptions,
   simpleQuizQuestionOrder,
   SIMPLE_QUIZ_RULES_VERSION,
-  simpleQuizLeaderboardScopeId,
+  soloLeaderboardScopeId,
   statusAfterStartingSoloRun,
   transitionSoloRunStatus,
   type SimpleQuizAuthoritativeState,
   type SimpleQuizBestResult,
   type SoloRunStatus,
 } from "./model.js";
+import { isSoloGameId, parseSoloGameConfig, soloGameRules, type SoloGameId } from "./registry.js";
+import { verifySoloLearningSet } from "./games/learningSet.js";
+import { submitSoloSentenceAnswer } from "./games/sentenceBuilder.js";
+import {
+  assertSoloRunIdentity as assertRunIdentity,
+  authoritativeProgress,
+  leaderboard,
+  parseSoloRunId as parseRunId,
+  scopeInput,
+  soloAnswer,
+  soloRunPointer,
+  soloRuns,
+  verifySoloScope as verifyScope,
+  emptySoloQuestionState,
+  validateSoloQuestionState,
+} from "./shared.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public" } as const;
-const GAME_ID = "simple-quiz";
-const CHOICE_COUNTS = new Set(["2", "3", "4", "5"]);
-const TIMED_MODES = new Set(["unlimited", "3-minutes", "5-minutes"]);
-const BEST_RECORD_VERSION = "simple-quiz-authoritative-v2";
+const GAME_ID = "simple-quiz" as const;
+const BEST_RECORD_VERSION = "solo-authoritative-v1";
+const LEGACY_BEST_RECORD_VERSION = "simple-quiz-authoritative-v2";
 
 type RegularStudent = Awaited<ReturnType<typeof requireRegularStudent>>;
 type SimpleQuizSetItem = { readonly id: string; readonly sourceText: string; readonly meaning: string };
-
-function soloRuns(tenantId: TenantId) {
-  return db.collection("tenants").doc(tenantId).collection("soloRuns");
-}
-
-function soloRunPointer(tenantId: TenantId, studentAccountId: string) {
-  return db.collection("tenants").doc(tenantId).collection("soloActiveRuns").doc(simpleQuizBestRecordId(studentAccountId));
-}
-
-function leaderboard(tenantId: TenantId, scopeId: string) {
-  return db.collection("tenants").doc(tenantId).collection("soloLeaderboards").doc(scopeId);
-}
-
-function authoritativeProgress(runRef: DocumentReference, uid: string) {
-  return runRef.collection("authoritativeProgress").doc(uid);
-}
-
-function soloAnswer(runRef: DocumentReference, questionId: string) {
-  const questionKey = createHash("sha256").update(questionId).digest("hex");
-  return runRef.collection("answers").doc(questionKey);
-}
+type SoloAnswerInput = {
+  readonly runId: string;
+  readonly gameId: typeof GAME_ID;
+  readonly questionId: string;
+  readonly itemId: string;
+  readonly currentIndex: number;
+  readonly selectedOptionId: string;
+  readonly selectedOptionText: string;
+} | {
+  readonly runId: string;
+  readonly gameId: "sentence-builder";
+  readonly questionId: string;
+  readonly itemId: string;
+  readonly currentIndex: number;
+  readonly attemptId: string;
+  readonly tokenIds: readonly string[];
+};
 
 function parseStartInput(value: unknown): {
   readonly startRequestId: string;
   readonly tenantId: TenantId;
-  readonly gameId: typeof GAME_ID;
+  readonly gameId: SoloGameId;
   readonly setId: string;
   readonly setFingerprint: string;
   readonly gameConfig: Readonly<Record<string, string>>;
@@ -77,34 +86,24 @@ function parseStartInput(value: unknown): {
   const config = value.gameConfig;
   const nickname = value.nickname === null || value.nickname === undefined ? null : typeof value.nickname === "string" ? value.nickname.trim() : "";
   if (!/^[A-Za-z0-9_-]{16,128}$/.test(startRequestId)
-    || gameId !== GAME_ID || !/^[A-Za-z0-9_-]{1,128}$/.test(setId) || !/^[a-f0-9]{64}$/.test(setFingerprint)
+    || !isSoloGameId(gameId) || !/^[A-Za-z0-9_-]{1,128}$/.test(setId) || !/^[a-f0-9]{64}$/.test(setFingerprint)
     || (nickname !== null && (nickname.length < 2 || nickname.length > 12))
-    || !isRecord(config) || config.setId !== setId
-    || typeof config["choice-count"] !== "string" || !CHOICE_COUNTS.has(config["choice-count"])
-    || typeof config.timedGameMode !== "string" || !TIMED_MODES.has(config.timedGameMode)
-    || Object.keys(config).some((key) => !["setId", "choice-count", "timedGameMode"].includes(key))) {
+    || !isRecord(config)) {
     throw new HttpsError("invalid-argument", "Solo 게임 설정이 올바르지 않습니다.");
   }
+  const gameConfig = parseSoloGameConfig(gameId, setId, config);
   return {
     startRequestId,
     tenantId,
     gameId,
     setId,
     setFingerprint,
-    gameConfig: { setId, "choice-count": config["choice-count"], timedGameMode: config.timedGameMode },
+    gameConfig,
     nickname,
   };
 }
 
-function parseAnswerInput(value: unknown): {
-  readonly runId: string;
-  readonly gameId: typeof GAME_ID;
-  readonly questionId: string;
-  readonly itemId: string;
-  readonly currentIndex: number;
-  readonly selectedOptionId: string;
-  readonly selectedOptionText: string;
-} {
+function parseAnswerInput(value: unknown): SoloAnswerInput {
   if (!isRecord(value)) throw new HttpsError("invalid-argument", "정답 제출이 올바르지 않습니다.");
   const runId = parseRunId(value.runId);
   const questionId = typeof value.questionId === "string" ? value.questionId : "";
@@ -112,11 +111,21 @@ function parseAnswerInput(value: unknown): {
   const currentIndex = value.currentIndex;
   const selectedOptionId = typeof value.selectedOptionId === "string" ? value.selectedOptionId : "";
   const selectedOptionText = typeof value.selectedOptionText === "string" ? value.selectedOptionText : "";
-  if (value.gameId !== GAME_ID || !itemId || itemId.length > 256
-    || questionId !== simpleQuizQuestionId(itemId)
+  const tokenIds = Array.isArray(value.tokenIds) && value.tokenIds.every((id) => typeof id === "string" && id.length <= 512)
+    ? value.tokenIds as string[]
+    : null;
+  const attemptId = typeof value.attemptId === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(value.attemptId) ? value.attemptId : "";
+  if ((value.gameId !== "simple-quiz" && value.gameId !== "sentence-builder") || !itemId || itemId.length > 256
+    || (value.gameId === "simple-quiz" && questionId !== simpleQuizQuestionId(itemId))
+    || (value.gameId === "sentence-builder" && questionId !== itemId)
     || typeof currentIndex !== "number" || !Number.isSafeInteger(currentIndex) || currentIndex < 0 || currentIndex > 10000
-    || !selectedOptionId || selectedOptionId.length > 512 || !selectedOptionText || selectedOptionText.length > 1000) {
+    || (value.gameId === "simple-quiz" && (!selectedOptionId || selectedOptionId.length > 512 || !selectedOptionText || selectedOptionText.length > 1000))
+    || (value.gameId === "sentence-builder" && (!attemptId || !tokenIds || tokenIds.length > 64 || tokenIds.length === 0))) {
     throw new HttpsError("invalid-argument", "정답 제출이 올바르지 않습니다.");
+  }
+  if (value.gameId === "sentence-builder") {
+    if (!attemptId || !tokenIds) throw new HttpsError("invalid-argument", "정답 제출이 올바르지 않습니다.");
+    return { runId, gameId: value.gameId, questionId, itemId, currentIndex, attemptId, tokenIds };
   }
   return { runId, gameId: GAME_ID, questionId, itemId, currentIndex, selectedOptionId, selectedOptionText };
 }
@@ -155,52 +164,6 @@ function parseVerifiedSimpleQuizSet(
   return items;
 }
 
-function scopeInput(run: Record<string, unknown>): {
-  readonly tenantId: string;
-  readonly gameId: string;
-  readonly setId: string;
-  readonly setFingerprint: string;
-  readonly gameConfig: Readonly<Record<string, string>>;
-  readonly rulesVersion: string;
-} {
-  if (run.gameId !== GAME_ID || typeof run.tenantId !== "string" || typeof run.setId !== "string"
-    || typeof run.setFingerprint !== "string" || typeof run.rulesVersion !== "string" || !isRecord(run.gameConfig)) {
-    throw new HttpsError("failed-precondition", "Solo run 설정이 올바르지 않습니다.");
-  }
-  const config = run.gameConfig;
-  if (config.setId !== run.setId || typeof config["choice-count"] !== "string" || !CHOICE_COUNTS.has(config["choice-count"])
-    || typeof config.timedGameMode !== "string" || !TIMED_MODES.has(config.timedGameMode)
-    || run.rulesVersion !== SIMPLE_QUIZ_RULES_VERSION) {
-    throw new HttpsError("failed-precondition", "Solo run 설정을 확인할 수 없습니다.");
-  }
-  return {
-    tenantId: run.tenantId,
-    gameId: GAME_ID,
-    setId: run.setId,
-    setFingerprint: run.setFingerprint,
-    gameConfig: { setId: run.setId, "choice-count": config["choice-count"], timedGameMode: config.timedGameMode },
-    rulesVersion: run.rulesVersion,
-  };
-}
-
-function verifyScope(run: Record<string, unknown>): string {
-  const scopeId = simpleQuizLeaderboardScopeId(scopeInput(run));
-  if (run.leaderboardScopeId !== scopeId) throw new HttpsError("failed-precondition", "Solo leaderboard 범위가 일치하지 않습니다.");
-  return scopeId;
-}
-
-function parseRunId(value: unknown): string {
-  if (typeof value !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(value)) throw new HttpsError("invalid-argument", "Solo run ID가 올바르지 않습니다.");
-  return value;
-}
-
-function assertRunIdentity(run: Record<string, unknown>, student: RegularStudent, gameId: string): void {
-  if (run.ownerUid !== student.uid || run.tenantId !== student.tenantId || run.gameId !== gameId) {
-    throw new HttpsError("permission-denied", "본인 Solo run만 이용할 수 있습니다.");
-  }
-  if (run.studentAccountId !== student.studentAccountId) throw new HttpsError("permission-denied", "Solo run의 학생 계정 정보가 일치하지 않습니다.");
-}
-
 function soloRunResponse(runId: string, run: Record<string, unknown>) {
   if ((run.status !== "active" && run.status !== "completed" && run.status !== "abandoned")
     || typeof run.ownerUid !== "string" || typeof run.tenantId !== "string" || typeof run.gameId !== "string"
@@ -229,13 +192,23 @@ function soloRunResponse(runId: string, run: Record<string, unknown>) {
 function parseClientResult(value: unknown): SimpleQuizBestResult | null {
   if (!isRecord(value) || typeof value.displayLabel !== "string" || !value.displayLabel.trim()
     || typeof value.completedAtMs !== "number" || !Number.isSafeInteger(value.completedAtMs)) return null;
-  const progress = parseSimpleQuizProgress(value);
-  return progress ? { ...progress, displayLabel: value.displayLabel, completedAtMs: value.completedAtMs } : null;
+  const score = safeInteger(value.score);
+  const correctCount = safeInteger(value.correctCount);
+  const attemptCount = safeInteger(value.attemptCount);
+  const combo = safeInteger(value.combo);
+  return score !== null && correctCount !== null && attemptCount !== null && combo !== null
+    && correctCount <= attemptCount && combo <= correctCount
+    ? { score, correctCount, attemptCount, combo, displayLabel: value.displayLabel, completedAtMs: value.completedAtMs }
+    : null;
 }
 
 function parseStoredBestRecord(value: unknown): SimpleQuizBestResult | null {
-  if (!isRecord(value) || value.scoreSource !== BEST_RECORD_VERSION) return null;
+  if (!isRecord(value) || (value.scoreSource !== BEST_RECORD_VERSION && value.scoreSource !== LEGACY_BEST_RECORD_VERSION)) return null;
   return parseClientResult(value);
+}
+
+function safeInteger(value: unknown): number | null {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= 1_000_000_000 ? value : null;
 }
 
 function soloStateFor(runId: string, student: RegularStudent, state: SimpleQuizAuthoritativeState | null) {
@@ -262,17 +235,18 @@ export const startSoloRun = onCall(options, async (request) => {
   const input = parseStartInput(request.data);
   if (input.tenantId !== student.tenantId) throw new HttpsError("permission-denied", "다른 테넌트의 Solo 데이터에 접근할 수 없습니다.");
 
-  const choiceCount = Number(input.gameConfig["choice-count"]);
+  const gameRules = soloGameRules(input.gameId);
+  const choiceCount = input.gameId === GAME_ID ? Number(input.gameConfig["choice-count"]) : 4;
   const startedAtMs = Date.now();
   const scope = {
     tenantId: student.tenantId,
-    gameId: GAME_ID,
+    gameId: input.gameId,
     setId: input.setId,
     setFingerprint: input.setFingerprint,
     gameConfig: input.gameConfig,
-    rulesVersion: SIMPLE_QUIZ_RULES_VERSION,
+    rulesVersion: gameRules.rulesVersion,
   };
-  const leaderboardScopeId = simpleQuizLeaderboardScopeId(scope);
+  const leaderboardScopeId = soloLeaderboardScopeId({ ...scope, configKeys: gameRules.leaderboardConfigKeys });
   const runs = soloRuns(student.tenantId);
   const runRef = runs.doc(input.startRequestId);
   const activeRef = soloRunPointer(student.tenantId, student.studentAccountId);
@@ -300,7 +274,7 @@ export const startSoloRun = onCall(options, async (request) => {
         setId: input.setId,
         setFingerprint: input.setFingerprint,
         leaderboardScopeId,
-        rulesVersion: SIMPLE_QUIZ_RULES_VERSION,
+        rulesVersion: gameRules.rulesVersion,
         gameConfig: input.gameConfig,
         displayLabel: input.nickname || student.displayName,
       })) {
@@ -309,14 +283,19 @@ export const startSoloRun = onCall(options, async (request) => {
       return soloRunResponse(runRef.id, existing);
     }
 
-    parseVerifiedSimpleQuizSet(
-      student.tenantId,
-      input.setId,
-      choiceCount,
-      input.setFingerprint,
-      metadata.exists ? metadata.data() : null,
-      content.exists ? content.data() : null,
-    );
+    const setInput = {
+      tenantId: student.tenantId,
+      gameId: input.gameId,
+      setId: input.setId,
+      setFingerprint: input.setFingerprint,
+      metadata: metadata.exists ? metadata.data() : null,
+      content: content.exists ? content.data() : null,
+    } as const;
+    if (input.gameId === GAME_ID) {
+      parseVerifiedSimpleQuizSet(student.tenantId, input.setId, choiceCount, input.setFingerprint, setInput.metadata, setInput.content);
+    } else {
+      verifySoloLearningSet(setInput);
+    }
 
     const previousData: unknown = previousRun?.exists ? previousRun.data() : null;
     if (previousRunRef && isRecord(previousData)) {
@@ -338,11 +317,11 @@ export const startSoloRun = onCall(options, async (request) => {
       ownerUid: student.uid,
       studentAccountId: student.studentAccountId,
       tenantId: student.tenantId,
-      gameId: GAME_ID,
+      gameId: input.gameId,
       setId: input.setId,
       setFingerprint: input.setFingerprint,
       gameConfig: input.gameConfig,
-      rulesVersion: SIMPLE_QUIZ_RULES_VERSION,
+      rulesVersion: gameRules.rulesVersion,
       leaderboardScopeId,
       status: "active" as const,
       startedAt: FieldValue.serverTimestamp(),
@@ -366,6 +345,8 @@ export const startSoloRun = onCall(options, async (request) => {
 export const submitSoloAnswer = onCall(options, async (request) => {
   const student = await requireRegularStudent(request);
   const input = parseAnswerInput(request.data);
+  if (input.gameId === "sentence-builder") return submitSoloSentenceAnswer(student, input);
+  if (input.gameId !== GAME_ID) throw new HttpsError("invalid-argument", "지원하지 않는 Solo 게임입니다.");
   const runRef = soloRuns(student.tenantId).doc(input.runId);
   const initial = await runRef.get();
   const initialData: unknown = initial.exists ? initial.data() : null;
@@ -475,7 +456,7 @@ export const finishSoloRun = onCall(options, async (request) => {
   if (!isRecord(request.data)) throw new HttpsError("invalid-argument", "결과 요청이 올바르지 않습니다.");
   const runId = parseRunId(request.data.runId);
   const gameId = request.data.gameId;
-  if (gameId !== GAME_ID) throw new HttpsError("invalid-argument", "지원하지 않는 Solo 게임입니다.");
+  if (!isSoloGameId(gameId)) throw new HttpsError("invalid-argument", "지원하지 않는 Solo 게임입니다.");
   const runRef = soloRuns(student.tenantId).doc(runId);
   const initial = await runRef.get();
   const initialData: unknown = initial.exists ? initial.data() : null;
@@ -511,14 +492,18 @@ export const finishSoloRun = onCall(options, async (request) => {
     }
 
     const rawState: unknown = progressSnapshot.exists ? progressSnapshot.data() : null;
-    const state = progressSnapshot.exists ? validateStoredState(rawState, runId, student) : emptySimpleQuizAuthoritativeState();
-    if (!state) throw new HttpsError("failed-precondition", "서버의 Solo 진행 상황을 확인할 수 없습니다.");
+    const metrics = gameId === GAME_ID
+      ? (progressSnapshot.exists ? validateStoredState(rawState, runId, student) : emptySimpleQuizAuthoritativeState())
+      : (progressSnapshot.exists
+        ? validateSoloQuestionState(rawState, runId, student, gameId)?.progress
+        : emptySoloQuestionState().progress);
+    if (!metrics) throw new HttpsError("failed-precondition", "서버의 Solo 진행 상황을 확인할 수 없습니다.");
     const displayLabel = typeof rawRun.displayLabel === "string" && rawRun.displayLabel.trim() ? rawRun.displayLabel.trim() : student.displayName;
     const result: SimpleQuizBestResult = {
-      score: state.score,
-      correctCount: state.correctCount,
-      attemptCount: state.attemptCount,
-      combo: state.combo,
+      score: metrics.score,
+      correctCount: metrics.correctCount,
+      attemptCount: metrics.attemptCount,
+      combo: metrics.combo,
       displayLabel,
       completedAtMs,
     };
@@ -571,7 +556,8 @@ export const abandonSoloRun = onCall(options, async (request) => {
     const [snapshot, activeSnapshot] = await Promise.all([tx.get(runRef), tx.get(activeRef)]);
     const raw: unknown = snapshot.exists ? snapshot.data() : null;
     if (!isRecord(raw)) throw new HttpsError("permission-denied", "본인 Solo run만 종료할 수 있습니다.");
-    assertRunIdentity(raw, student, GAME_ID);
+    if (!isSoloGameId(raw.gameId)) throw new HttpsError("failed-precondition", "Solo run 게임을 확인할 수 없습니다.");
+    assertRunIdentity(raw, student, raw.gameId);
     verifyScope(raw);
     if (raw.status === "active") {
       const nextStatus = transitionSoloRunStatus("active", "abandoned");

@@ -1,3 +1,5 @@
+.soloControls { width: min(100%, 920px); margin: 0 auto 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; color: #18343b; font-weight: 800; }
+.soloControls > div { display: flex; gap: 8px; }
 .gameShell {
   --ink: #18343b;
   --red: #f14a4f;

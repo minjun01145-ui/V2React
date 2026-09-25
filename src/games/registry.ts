@@ -30,6 +30,12 @@ const definitions = [
         { value: "meaning-to-source", label: "한국어 → 영어 (영작·단어)" },
       ],
     }],
+    solo: {
+      supported: true,
+      rulesVersion: "ai-tutor-v1",
+      leaderboardConfigKeys: ["direction", "timedGameMode"],
+      loadStudent: () => import("./ai-tutor/SoloAiTutorStudentModule.tsx"),
+    },
     loadStudent: () => import("./ai-tutor/AiTutorStudentGame.tsx"),
     loadTeacher: () => import("./ai-tutor/AiTutorTeacherGame.tsx"),
   }),
@@ -45,6 +51,12 @@ const definitions = [
       return preparation.default(context);
     },
     minimumSetItemCountByType: { vocabulary: 4, "reading-chunks": 1 },
+    solo: {
+      supported: true,
+      rulesVersion: "pokemon-catch-v1",
+      leaderboardConfigKeys: ["timedGameMode"],
+      loadStudent: () => import("./pokemon-catch/SoloPokemonCatchStudentModule.tsx"),
+    },
     loadStudent: () => import("./pokemon-catch/PokemonCatchStudentGame.tsx"),
     loadTeacher: () => import("./pokemon-catch/PokemonCatchTeacherGame.tsx"),
   }),
@@ -55,6 +67,12 @@ const definitions = [
     preloadPlayerProgress: true,
     supportsFiniteQuizQuestions: true,
     presentQuizQuestion: (item) => ({ prompt: item.meaning, answer: item.sourceText.replaceAll("/", " ") }),
+    solo: {
+      supported: true,
+      rulesVersion: "sentence-builder-v1",
+      leaderboardConfigKeys: ["timedGameMode"],
+      loadStudent: () => import("./sentence-builder/SoloSentenceBuilderStudentModule.tsx"),
+    },
     loadStudent: () => import("./sentence-builder/SentenceBuilderStudentGame.tsx"),
     loadTeacher: () => import("./sentence-builder/SentenceBuilderTeacherGame.tsx"),
   }),

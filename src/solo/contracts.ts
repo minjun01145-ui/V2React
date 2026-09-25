@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { RuntimeLearningSet } from "../learning-sets/types.ts";
 import type { TenantId } from "../tenant/scope.ts";
+import type { Player } from "../multiplayer/types.ts";
 
 export type SoloRunStatus = "active" | "completed" | "abandoned";
 
@@ -50,6 +51,7 @@ export interface SoloFinishResult {
 export interface SoloGameModuleProps {
   readonly run: SoloRun;
   readonly set: RuntimeLearningSet;
+  readonly player: Player;
   readonly onFinish: () => Promise<void>;
   readonly onExit: () => Promise<void>;
 }

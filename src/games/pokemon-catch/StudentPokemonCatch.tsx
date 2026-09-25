@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
+import type { SoloRun } from "../../solo/contracts.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import { POKEMON_ITEM, type PokemonItemId } from "../../student-data/pokemon-catch/types.ts";
@@ -14,6 +15,7 @@ import { EncounterStage } from "./components/EncounterStage.tsx";
 import { ItemBagDialog } from "./components/ItemBagDialog.tsx";
 import { QuizDialog } from "./components/QuizDialog.tsx";
 import { PokemonAiQuiz } from "./components/PokemonAiQuiz.tsx";
+import { SoloPokemonAiQuiz } from "./components/SoloPokemonAiQuiz.tsx";
 import { ANGER_TIME_BONUS_MS, ENCOUNTER_TIME_MS, SLEEP_CAPTURE_MULTIPLIER, itemDefinition, rewardItem } from "./itemRules.ts";
 import type { EncounterActionPhase, EncounterPhase, PokemonEncounter } from "./types.ts";
 import { useEncounterTimer } from "./useEncounterTimer.ts";
@@ -24,11 +26,12 @@ const wait = (milliseconds: number) => new Promise<void>((resolve) => globalThis
 const randomRoll = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 4_294_967_296;
 type ActivePanel = "quiz" | "items" | "collection" | null;
 
-export default function StudentPokemonCatch({ roomId, session, player, set }: {
+export default function StudentPokemonCatch({ roomId, session, player, set, soloRun }: {
   readonly roomId: string;
   readonly session: ActiveGameSession;
   readonly player: Player;
   readonly set: RuntimeLearningSet;
+  readonly soloRun?: SoloRun;
 }) {
   const studentData = usePokemonCatchData({ uid: player.id, studentNumber: player.studentNumber });
   const [encounterIndex, setEncounterIndex] = useState(0);
@@ -252,7 +255,9 @@ export default function StudentPokemonCatch({ roomId, session, player, set }: {
       onMore={continueQuiz}
       onStop={stopQuiz}
     >
-      <PokemonAiQuiz roomId={roomId} session={session} player={player} set={set} disabled={submitting || Boolean(reward)} advanceRequestId={advanceRequestId} onQuestionComplete={(completionId) => void awardQuizCompletion(completionId)} onAdvanced={finishQuizAdvance} />
+      {soloRun
+        ? <SoloPokemonAiQuiz run={soloRun} set={set} disabled={submitting || Boolean(reward)} advanceRequestId={advanceRequestId} onQuestionComplete={(completionId) => void awardQuizCompletion(completionId)} onAdvanced={finishQuizAdvance} />
+        : <PokemonAiQuiz roomId={roomId} session={session} player={player} set={set} disabled={submitting || Boolean(reward)} advanceRequestId={advanceRequestId} onQuestionComplete={(completionId) => void awardQuizCompletion(completionId)} onAdvanced={finishQuizAdvance} />}
     </QuizDialog> : null}
     {activePanel === "collection" ? <CollectionDialog captures={studentData.captures} onClose={() => setActivePanel(null)} /> : null}
     {pendingCapture ? <CaptureResultDialog pokemon={pendingCapture} saving={savingCapture} error={captureSaveError} onContinue={(nickname) => void confirmCapture(nickname)} /> : null}

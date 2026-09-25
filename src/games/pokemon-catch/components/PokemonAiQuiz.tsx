@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { submitAiTutorTurn } from "../../../ai-tutor-engine/repository.ts";
 import { aiTutorAnswerResult } from "../../../ai-tutor-engine/result.ts";
 import type { AiTutorDirection, AiTutorReply } from "../../../ai-tutor-engine/types.ts";
@@ -8,7 +8,7 @@ import type { RuntimeLearningSet } from "../../../learning-sets/types.ts";
 import { usePlayerGameProgress } from "../../../multiplayer/game-progress/hooks.ts";
 import { persistGameAttempt } from "../../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../../multiplayer/types.ts";
-import styles from "../PokemonCatch.module.css";
+import { PokemonAiQuizView } from "./PokemonAiQuizView.tsx";
 
 function randomIndex(length: number, previous = -1): number {
   if (length <= 1) return 0;
@@ -36,7 +36,6 @@ export function PokemonAiQuiz({ roomId, session, player, set, disabled = false, 
 }) {
   const [questionIndex, setQuestionIndex] = useState(() => randomIndex(set.items.length));
   const [direction, setDirection] = useState<AiTutorDirection>(() => randomDirection());
-  const [message, setMessage] = useState("");
   const [reply, setReply] = useState<AiTutorReply | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -60,7 +59,6 @@ export function PokemonAiQuiz({ roomId, session, player, set, disabled = false, 
     handledAdvanceRef.current = advanceRequestId;
     setQuestionIndex((current) => randomIndex(set.items.length, current));
     setDirection(randomDirection());
-    setMessage("");
     setReply(null);
     setError("");
     attemptRef.current = 0;
@@ -68,12 +66,8 @@ export function PokemonAiQuiz({ roomId, session, player, set, disabled = false, 
     onAdvanced();
   }, [advanceRequestId, onAdvanced, set.items.length]);
 
-  if (!question) return <p className={styles.quizFeedback}>출제할 학습 문제가 없습니다.</p>;
-
-  const submit = async (event: FormEvent): Promise<void> => {
-    event.preventDefault();
-    const answer = message.trim();
-    if (!answer || busy || disabled || reply?.isCorrect) return;
+  const submit = async (answer: string): Promise<void> => {
+    if (!question || busy || disabled || reply?.isCorrect || !answer.trim()) return;
     setBusy(true);
     setError("");
     try {
@@ -81,7 +75,7 @@ export function PokemonAiQuiz({ roomId, session, player, set, disabled = false, 
         roomId,
         roundId: session.roundId,
         itemId: question.id,
-        message: answer,
+        message: answer.trim(),
         attemptNumber: Math.min(attemptRef.current + 1, 20),
         previousFeedback: reply?.feedback ?? null,
         direction,
@@ -97,7 +91,7 @@ export function PokemonAiQuiz({ roomId, session, player, set, disabled = false, 
           player,
           attemptId: crypto.randomUUID(),
           item: { id: question.id, prompt: question.prompt },
-          answer,
+          answer: answer.trim(),
           result,
           previousProgress: progress,
           progress: nextProgress,
@@ -117,22 +111,13 @@ export function PokemonAiQuiz({ roomId, session, player, set, disabled = false, 
     }
   };
 
-  return <div className={styles.aiQuiz}>
-    <section className={styles.aiQuestion}>
-      <span>{question.promptLabel}</span>
-      <strong>{question.prompt}</strong>
-      <small>{question.answerLabel} · AI가 표현의 의미까지 살펴봅니다.</small>
-    </section>
-    <form onSubmit={(event) => void submit(event)}>
-      <textarea rows={3} value={message} onChange={(event) => setMessage(event.target.value)} disabled={busy || disabled || Boolean(reply?.isCorrect)} maxLength={1000} placeholder="답을 입력하세요" autoFocus />
-      <button type="submit" disabled={busy || disabled || !message.trim() || Boolean(reply?.isCorrect)}>{busy ? "AI가 채점하는 중…" : "답 확인하기"}</button>
-    </form>
-    {reply ? <div className={styles.aiReply} data-kind={reply.kind} role="status">
-      <strong>{reply.isCorrect ? "정답이에요!" : reply.kind === "retry" ? "조금 더 생각해 보세요" : reply.kind === "help" ? "AI 도움말" : "문제에 집중해 주세요"}</strong>
-      <p>{reply.feedback}</p>
-      {reply.focus ? <small>확인할 부분: {reply.focus}</small> : null}
-      {reply.hint ? <small>힌트: {reply.hint}</small> : null}
-    </div> : null}
-    {error ? <p className={styles.quizFeedback} role="alert">{error}</p> : null}
-  </div>;
+  return <PokemonAiQuizView
+    question={question}
+    questionKey={`${advanceRequestId}:${questionIndex}:${direction}`}
+    disabled={disabled || remoteProgress.loading}
+    busy={busy}
+    reply={reply}
+    error={error}
+    onSubmit={submit}
+  />;
 }

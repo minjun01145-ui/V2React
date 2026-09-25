@@ -5,6 +5,8 @@ import { db, auth, functions } from "../../firebase/firebaseClient.ts";
 import type { TenantId } from "../../tenant/scope.ts";
 import type { SoloFinishResult, SoloRun } from "../contracts.ts";
 import { soloRunProgressPath } from "../domain/path.ts";
+import type { AiTutorDirection, AiTutorReply } from "../../ai-tutor-engine/types.ts";
+import { parseAiTutorReply } from "../../ai-tutor-engine/validation.ts";
 
 const progressRef = (run: SoloRun) => doc(db, soloRunProgressPath(run.tenantId, run.runId, run.ownerUid));
 
@@ -50,6 +52,40 @@ export async function submitSoloRunAnswer<TDetails>(
   const progress = (await call(input)).data;
   await persistSoloRunProgress(run, progress);
   return progress;
+}
+
+export async function submitSoloSequenceAnswer<TDetails>(run: SoloRun, submission: {
+  readonly attemptId: string;
+  readonly currentIndex: number;
+  readonly questionId: string;
+  readonly itemId: string;
+  readonly tokenIds: readonly string[];
+}): Promise<GameProgress<TDetails>> {
+  assertRunOwner(run);
+  if (run.gameId !== "sentence-builder") throw new Error("문장 만들기 Solo run이 아닙니다.");
+  const input = { runId: run.runId, gameId: run.gameId, ...submission };
+  const call = httpsCallable<typeof input, GameProgress<TDetails>>(functions, "submitSoloAnswer");
+  const progress = (await call(input)).data;
+  await persistSoloRunProgress(run, progress);
+  return progress;
+}
+
+export async function submitSoloAiTutorTurn(run: SoloRun, input: {
+  readonly attemptId: string;
+  readonly questionId: string;
+  readonly itemId: string;
+  readonly currentIndex: number;
+  readonly direction?: AiTutorDirection;
+  readonly message: string;
+}): Promise<{ readonly reply: AiTutorReply; readonly progress: GameProgress }> {
+  assertRunOwner(run);
+  if (run.gameId !== "ai-tutor" && run.gameId !== "pokemon-catch") throw new Error("AI 문답을 사용할 수 없는 Solo run입니다.");
+  const request = { runId: run.runId, gameId: run.gameId, ...input };
+  const call = httpsCallable<typeof request, { readonly reply: unknown; readonly progress: GameProgress }>(functions, "submitSoloAiTutorTurn");
+  const response = (await call(request)).data;
+  const reply = parseAiTutorReply(response.reply);
+  await persistSoloRunProgress(run, response.progress);
+  return { reply, progress: response.progress };
 }
 
 export async function finishSoloRun(run: SoloRun): Promise<SoloFinishResult> {

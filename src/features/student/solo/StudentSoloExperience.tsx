@@ -101,7 +101,7 @@ export default function StudentSoloExperience({ identity, player, onReturnToLobb
   if (finishResult) return <SoloResults result={finishResult} onReturn={onReturnToLobby} />;
   if (run && learningSet) return <div className={styles.experience}>
     {error ? <StatusPanel title="Solo 저장 오류" tone="error">{error}</StatusPanel> : null}
-    <SoloGameHost run={run} set={learningSet} onFinish={finish} onExit={exit} />
+    <SoloGameHost run={run} set={learningSet} player={player} onFinish={finish} onExit={exit} />
   </div>;
   return <SoloSetup tenantId={identity.tenantId} onStart={start} onCancel={onReturnToLobby} />;
 }

@@ -8,7 +8,7 @@ import { evaluateSentenceSequence } from "./evaluator.ts";
 import { adaptReadingChunksSet } from "./readingChunksAdapter.ts";
 import type { SentenceAnswer, SentenceEvaluationDetails, SentenceQuestion } from "./types.ts";
 
-const SENTENCE_COMBO_SCORING = Object.freeze({ bonusPerStep: 20, maximumBonus: 100 });
+export const SENTENCE_COMBO_SCORING = Object.freeze({ bonusPerStep: 20, maximumBonus: 100 });
 
 export type SentenceBuilderEngine = QuestionEngine<SentenceQuestion, SentenceAnswer, SentenceEvaluationDetails> & {
   readonly setTitle: string;

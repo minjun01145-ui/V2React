@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, type LazyExoticComponent } from "react";
 import type { SoloGameModuleComponent } from "../contracts.ts";
 import type { SoloRun } from "../contracts.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
+import type { Player } from "../../multiplayer/types.ts";
 import { getGame } from "../../games/registry.ts";
 import GameErrorBoundary from "../../shared/errors/GameErrorBoundary.tsx";
 import StatusPanel from "../../shared/StatusPanel.tsx";
@@ -18,9 +19,10 @@ function componentFor(gameId: string): LazyExoticComponent<SoloGameModuleCompone
   return component;
 }
 
-export default function SoloGameHost({ run, set, onFinish, onExit }: {
+export default function SoloGameHost({ run, set, player, onFinish, onExit }: {
   readonly run: SoloRun;
   readonly set: RuntimeLearningSet;
+  readonly player: Player;
   readonly onFinish: () => Promise<void>;
   readonly onExit: () => Promise<void>;
 }) {
@@ -29,7 +31,7 @@ export default function SoloGameHost({ run, set, onFinish, onExit }: {
   if (!game.solo.supported || !Game) return <StatusPanel title="지원하지 않는 Solo 게임" tone="error">{game.title}은(는) 아직 혼자하기를 지원하지 않습니다.</StatusPanel>;
   return <GameErrorBoundary resetKey={`${run.runId}:${run.gameId}`}>
     <Suspense fallback={<StatusPanel title="게임 준비 중" tone="waiting">Solo 게임 화면을 불러오고 있습니다.</StatusPanel>}>
-      <Game run={run} set={set} onFinish={onFinish} onExit={onExit} />
+      <Game run={run} set={set} player={player} onFinish={onFinish} onExit={onExit} />
     </Suspense>
   </GameErrorBoundary>;
 }
