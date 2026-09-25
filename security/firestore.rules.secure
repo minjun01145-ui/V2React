@@ -462,6 +462,23 @@ service cloud.firestore {
       allow delete: if isAdminForStudentAccount(accountId);
     }
 
+    match /studentGameData/{accountId}/randomNicknames/{rollId} {
+      allow read: if ownsStudentGameData(accountId);
+      allow create: if ownsStudentGameData(accountId)
+        && rollId.matches("^.{1,64}:[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+        && request.resource.data.keys().hasOnly(["nickname", "nicknameGrade", "rollDay", "createdAt", "createdAtMs"])
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() >= 2
+        && request.resource.data.nickname.size() <= 12
+        && request.resource.data.nicknameGrade in ["C", "B", "A", "S"]
+        && request.resource.data.rollDay is string
+        && request.resource.data.rollDay.matches("^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
+        && rollId.matches("^.{1,64}:" + request.resource.data.rollDay + "$")
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdAtMs is int;
+      allow update, delete: if false;
+    }
+
     match /multiplayerSessions/{roomId} {
       allow read: if isRoomStudent(roomId) || isRoomAdmin(roomId) || isAdminForMissingRoomNamespace(roomId) || isDeletedTestRoomReader(roomId);
       allow create: if validTenantId(tenantIdFrom(request.resource.data))

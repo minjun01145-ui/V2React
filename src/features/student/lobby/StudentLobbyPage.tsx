@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { GameSession, Player } from "../../../multiplayer/types.ts";
 import type { StudentIdentity } from "../../../auth/types.ts";
+import { tenantAccountId } from "../../../tenant/scope.ts";
 import { usePlayers } from "../../../multiplayer/hooks.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
@@ -22,6 +23,7 @@ interface LobbyProps {
 interface EntryProps {
   readonly roomId: string;
   readonly player: null;
+  readonly identity: StudentIdentity;
   readonly onJoin: (choice: NicknameChoice) => Promise<void>;
   readonly defaultDisplayName: string;
   readonly selfStudentNumber: string;
@@ -57,11 +59,12 @@ export default function StudentLobbyPage(props: Props) {
         </PageShell>
       );
     }
-    const { roomId, onJoin, defaultDisplayName, selfStudentNumber } = props;
+    const { roomId, identity, onJoin, defaultDisplayName, selfStudentNumber } = props;
     return (
       <PageShell title="게임 대기실" roomId={roomId} actions={leaveButton}>
         <NicknamePrompt
           roomId={roomId}
+          accountId={tenantAccountId(identity.tenantId, identity.studentNumber)}
           defaultDisplayName={defaultDisplayName}
           onChooseNickname={onJoin}
         />

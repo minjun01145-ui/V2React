@@ -18,6 +18,8 @@ const FINAL_STROKES = Object.freeze([
   0, 1, 1, 2, 1, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 ]);
 const PUNCTUATION_OR_SYMBOL = /[\p{P}\p{S}]/u;
+const UNICODE_MARK = /\p{M}/u;
+const TYPING_GRAPHEME = /\P{M}\p{M}*|\p{M}+/gu;
 
 interface TypingComparisonUnit {
   readonly originalIndex: number;
@@ -85,16 +87,15 @@ function isIgnoredTypingCharacter(character: string, options: TypingComparisonOp
 function buildTypingComparisonUnits(text: unknown, options: TypingComparisonOptions): TypingComparisonUnit[] {
   const originalText = String(text ?? "");
   const units: TypingComparisonUnit[] = [];
-  let originalIndex = 0;
-  for (const character of originalText) {
+  for (const match of originalText.matchAll(TYPING_GRAPHEME)) {
+    const character = match[0];
     if (!isIgnoredTypingCharacter(character, options)) {
       units.push({
-        originalIndex,
+        originalIndex: match.index ?? 0,
         originalCharacter: character,
         comparisonCharacter: normalizeTypingCharacter(character, options),
       });
     }
-    originalIndex += character.length;
   }
   return units;
 }
@@ -144,6 +145,8 @@ export function countTypingStrokes(text: unknown): number {
         + (FINAL_STROKES[finalIndex] ?? 0);
     } else if (code >= 0x3131 && code <= 0x318e) {
       total += 1;
+    } else if (UNICODE_MARK.test(character)) {
+      continue;
     } else if (character !== "\n" && character !== "\r") {
       total += 1;
     }

@@ -26,6 +26,7 @@ export default function StudentPage({ roomId, identity, onChangeStudent }: Props
       <StudentLobbyPage
         roomId={roomId}
         player={null}
+        identity={identity}
         onJoin={(choice) => joinWithNickname(choice)}
         defaultDisplayName={identity.displayName}
         selfStudentNumber={identity.studentNumber}

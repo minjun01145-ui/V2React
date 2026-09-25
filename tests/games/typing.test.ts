@@ -40,6 +40,9 @@ assert.equal(countTypingStrokes("a\nb"), 2, "줄바꿈은 타수에서 제외해
 assert.equal(cleanTypingPrompt(" They make / old neighborhoods / bright. "), "They make old neighborhoods bright.");
 assert.equal(isTypingAnswerComplete("Hello", "hello", { ignoreCase: true }), true);
 assert.equal(isTypingAnswerComplete("Hello", "hello"), false);
+assert.equal(isTypingAnswerComplete("Favio Chávez", "Favio Cha\u0301vez", { ignoreCase: true }), true, "악센트 문자가 결합형 또는 조합형으로 입력되어도 같게 비교해야 합니다.");
+assert.equal(isTypingAnswerComplete("Favio Cha\u0301vez", "Favio Chávez", { ignoreCase: true }), true, "조합형 악센트도 반대 표기와 같게 비교해야 합니다.");
+assert.equal(countTypingStrokes("á"), countTypingStrokes("a\u0301"), "악센트의 Unicode 표기 방식만으로 타수가 달라지면 안 됩니다.");
 assert.equal(isTypingAnswerComplete("Hello, world!", "Hello world", { ignorePunctuation: true }), true);
 assert.equal(isTypingAnswerComplete("Hello, world!", "Helloworld", { ignorePunctuation: true }), false, "공백은 생략할 수 없어야 합니다.");
 assert.equal(isTypingAnswerComplete("★(dog)♥", "dog", { ignorePunctuation: true }), true, "별, 하트, 괄호 같은 특수문자는 입력하지 않아도 되어야 합니다.");

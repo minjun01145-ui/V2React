@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { usePlayers } from "../../../multiplayer/hooks.ts";
 import type { NicknameGrade } from "../../../multiplayer/types.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
+import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import {
   NICKNAME_MAX_LENGTH,
   normalizeNickname,
   validateNickname,
 } from "./nickname.ts";
 import { pickRandomNickname } from "./randomNickname.ts";
+import { claimDailyRandomNickname } from "../../../student-data/random-nickname/repository.ts";
+import { dailyRandomNicknameDay } from "../../../student-data/random-nickname/model.ts";
+import type { DailyRandomNickname } from "../../../student-data/random-nickname/model.ts";
 
 export interface NicknameChoice {
   readonly nickname: string;
@@ -16,11 +20,12 @@ export interface NicknameChoice {
 
 interface Props {
   readonly roomId: string;
+  readonly accountId: string;
   readonly defaultDisplayName: string;
   readonly onChooseNickname: (choice: NicknameChoice) => Promise<void>;
 }
 
-export default function NicknamePrompt({ roomId, defaultDisplayName, onChooseNickname }: Props) {
+export default function NicknamePrompt({ roomId, accountId, defaultDisplayName, onChooseNickname }: Props) {
   const popup = usePopup();
   const { activePlayers, loading: playersLoading } = usePlayers(roomId);
   const activePlayersRef = useRef(activePlayers);
@@ -55,16 +60,32 @@ export default function NicknamePrompt({ roomId, defaultDisplayName, onChooseNic
         ],
         validate: (values) => validateNickname(values.nickname),
       });
-      const choice: NicknameChoice = values
-        ? { nickname: normalizeNickname(values.nickname), nicknameGrade: null }
-        : (() => {
-            const usedNicknames = new Set(activePlayersRef.current.flatMap((player) => player.nickname ? [player.nickname] : []));
-            const randomNickname = pickRandomNickname(usedNicknames);
-            return { nickname: randomNickname.nickname, nicknameGrade: randomNickname.grade };
-          })();
-      if (!choice.nickname) return;
       setBusy(true);
       try {
+        let choice: NicknameChoice;
+        if (values) {
+          choice = { nickname: normalizeNickname(values.nickname), nicknameGrade: null };
+        } else {
+          const usedNicknames = new Set(activePlayersRef.current.flatMap((player) => player.nickname ? [player.nickname] : []));
+          const candidate = pickRandomNickname(usedNicknames);
+          let roll: DailyRandomNickname;
+          try {
+            roll = await claimDailyRandomNickname(accountId, roomId, dailyRandomNicknameDay(), candidate);
+          } catch (error: unknown) {
+            prompted.current = false;
+            await popup.showMessage({
+              title: "랜덤 닉네임을 저장하지 못했어요",
+              message: toErrorMessage(error, "잠시 후 다시 뽑아주세요."),
+              tone: "error",
+            });
+            return;
+          }
+          choice = { nickname: roll.nickname, nicknameGrade: roll.nicknameGrade };
+        }
+        if (!choice.nickname) {
+          prompted.current = false;
+          return;
+        }
         if (choice.nicknameGrade) {
           await popup.showMessage({
             title: `${choice.nicknameGrade}급 닉네임!`,
