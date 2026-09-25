@@ -29,7 +29,7 @@ import {
   type SoloRunStatus,
 } from "./model.js";
 
-const options = { region: "asia-northeast3", enforceAppCheck: false } as const;
+const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public" } as const;
 const GAME_ID = "simple-quiz";
 const CHOICE_COUNTS = new Set(["2", "3", "4", "5"]);
 const TIMED_MODES = new Set(["unlimited", "3-minutes", "5-minutes"]);
