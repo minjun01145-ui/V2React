@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { GameSession, Player } from "../../../multiplayer/types.ts";
 import type { StudentIdentity } from "../../../auth/types.ts";
-import { tenantAccountId } from "../../../tenant/scope.ts";
 import { usePlayers } from "../../../multiplayer/hooks.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import PageShell from "../../../shared/PageShell.tsx";
@@ -64,7 +63,8 @@ export default function StudentLobbyPage(props: Props) {
       <PageShell title="게임 대기실" roomId={roomId} actions={leaveButton}>
         <NicknamePrompt
           roomId={roomId}
-          accountId={tenantAccountId(identity.tenantId, identity.studentNumber)}
+          uid={identity.uid}
+          studentNumber={identity.studentNumber}
           defaultDisplayName={defaultDisplayName}
           onChooseNickname={onJoin}
         />

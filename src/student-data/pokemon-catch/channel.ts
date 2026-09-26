@@ -1,5 +1,3 @@
-import { auth } from "../../firebase/firebaseClient.ts";
-import { effectiveTenantId, tenantAccountId } from "../../tenant/scope.ts";
 import { ensurePokemonCatchData, subscribeCapturedPokemon, subscribePokemonInventory } from "./repository.ts";
 import { EMPTY_POKEMON_INVENTORY, type PokemonInventory, type StoredCapturedPokemon } from "./types.ts";
 
@@ -72,15 +70,6 @@ function ensureChannel(accountId: string): Channel {
     notify(channel);
   });
   return channel;
-}
-
-export async function pokemonCatchAccountId(uid: string, studentNumber: string): Promise<string> {
-  const user = auth.currentUser;
-  if (!user || user.uid !== uid) throw new Error("학생 계정 인증 정보를 확인하지 못했습니다.");
-  const token = await user.getIdTokenResult();
-  return token.claims.role === "test-student"
-    ? `test-${uid}`
-    : tenantAccountId(effectiveTenantId(token.claims.tenantId), studentNumber);
 }
 
 export function subscribeSharedPokemonCatchData(accountId: string, listener: Listener): () => void {

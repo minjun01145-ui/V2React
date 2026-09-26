@@ -20,12 +20,13 @@ export interface NicknameChoice {
 
 interface Props {
   readonly roomId: string;
-  readonly accountId: string;
+  readonly uid: string;
+  readonly studentNumber: string;
   readonly defaultDisplayName: string;
   readonly onChooseNickname: (choice: NicknameChoice) => Promise<void>;
 }
 
-export default function NicknamePrompt({ roomId, accountId, defaultDisplayName, onChooseNickname }: Props) {
+export default function NicknamePrompt({ roomId, uid, studentNumber, defaultDisplayName, onChooseNickname }: Props) {
   const popup = usePopup();
   const { activePlayers, loading: playersLoading } = usePlayers(roomId);
   const activePlayersRef = useRef(activePlayers);
@@ -70,7 +71,7 @@ export default function NicknamePrompt({ roomId, accountId, defaultDisplayName, 
           const candidate = pickRandomNickname(usedNicknames);
           let roll: DailyRandomNickname;
           try {
-            roll = await claimDailyRandomNickname(accountId, roomId, dailyRandomNicknameDay(), candidate);
+            roll = await claimDailyRandomNickname(uid, studentNumber, roomId, dailyRandomNicknameDay(), candidate);
           } catch (error: unknown) {
             prompted.current = false;
             await popup.showMessage({

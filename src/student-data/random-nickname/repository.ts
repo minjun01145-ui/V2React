@@ -1,15 +1,17 @@
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase/firebaseClient.ts";
+import { resolveStudentGameDataAccountId } from "../accountId.ts";
 import type { NicknameGrade } from "../../multiplayer/types.ts";
 import { dailyRandomNicknameDocumentId, parseDailyRandomNickname, resolveDailyRandomNickname, type DailyRandomNickname } from "./model.ts";
 
 export async function claimDailyRandomNickname(
-  accountId: string,
+  uid: string,
+  studentNumber: string,
   roomId: string,
   rollDay: string,
   candidate: { readonly nickname: string; readonly grade: NicknameGrade },
 ): Promise<DailyRandomNickname> {
-  if (!accountId) throw new Error("랜덤 닉네임 저장 경로가 올바르지 않습니다.");
+  const accountId = await resolveStudentGameDataAccountId(uid, studentNumber);
   const rollRef = doc(db, "studentGameData", accountId, "randomNicknames", dailyRandomNicknameDocumentId(roomId, rollDay));
   return runTransaction(db, async (transaction) => {
     const snapshot = await transaction.get(rollRef);

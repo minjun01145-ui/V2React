@@ -1,5 +1,6 @@
 import type { StudentGamePreparationContext } from "../../game-engine/contracts/gameDefinition.ts";
-import { pokemonCatchAccountId, warmPokemonCatchData } from "../../student-data/pokemon-catch/channel.ts";
+import { resolveStudentGameDataAccountId } from "../../student-data/accountId.ts";
+import { warmPokemonCatchData } from "../../student-data/pokemon-catch/channel.ts";
 import { encounterId } from "./encounterRules.ts";
 import { fetchPokemonEncounter } from "./pokeApi.ts";
 
@@ -14,7 +15,7 @@ function preloadImage(url: string): Promise<void> {
 
 export default async function preparePokemonCatchStudent({ session, player }: StudentGamePreparationContext): Promise<() => void> {
   if (!session.roundId) throw new Error("포켓몬 게임 라운드 정보가 없습니다.");
-  const accountId = await pokemonCatchAccountId(player.id, player.studentNumber);
+  const accountId = await resolveStudentGameDataAccountId(player.id, player.studentNumber);
   const dataRelease = await warmPokemonCatchData(accountId);
   try {
     const pokemon = await fetchPokemonEncounter(encounterId(`${session.roundId}:${player.id}:0`));

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { auth } from "../../firebase/firebaseClient.ts";
-import { effectiveTenantId, tenantAccountId } from "../../tenant/scope.ts";
+import { resolveStudentGameDataAccountId } from "../accountId.ts";
 import { equipCharacter, equipPokemon, subscribeStudentCosmetics } from "./repository.ts";
 import { EMPTY_STUDENT_COSMETICS, type EquippedPokemonAvatar, type StudentCosmetics } from "./types.ts";
 
@@ -19,17 +18,9 @@ export function useStudentCosmetics({ uid, studentNumber }: StudentAccount) {
     let active = true;
     setLoading(true);
     setError(null);
-    const user = auth.currentUser;
-    if (!user || user.uid !== uid) {
-      setError(new Error("학생 계정 인증 정보를 확인하지 못했습니다."));
-      setLoading(false);
-      return () => { active = false; };
-    }
-    void user.getIdTokenResult().then((token) => {
+    void resolveStudentGameDataAccountId(uid, studentNumber).then((resolvedAccountId) => {
       if (!active) return;
-      setAccountId(token.claims.role === "test-student"
-        ? `test-${uid}`
-        : tenantAccountId(effectiveTenantId(token.claims.tenantId), studentNumber));
+      setAccountId(resolvedAccountId);
     }).catch((reason: unknown) => {
       if (!active) return;
       setError(reason instanceof Error ? reason : new Error(String(reason)));

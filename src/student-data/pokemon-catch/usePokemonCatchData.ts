@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { addPokemonItem, consumePokemonItem, saveCapturedPokemon } from "./repository.ts";
-import { pokemonCatchAccountId, subscribeSharedPokemonCatchData } from "./channel.ts";
+import { resolveStudentGameDataAccountId } from "../accountId.ts";
+import { subscribeSharedPokemonCatchData } from "./channel.ts";
 import { EMPTY_POKEMON_INVENTORY, type PokemonInventory, type PokemonItemId, type StoredCapturedPokemon } from "./types.ts";
 
 export function usePokemonCatchData({ uid, studentNumber }: { readonly uid: string; readonly studentNumber: string }) {
@@ -17,7 +18,7 @@ export function usePokemonCatchData({ uid, studentNumber }: { readonly uid: stri
     setCaptures([]);
     setError(null);
     setLoading(true);
-    void pokemonCatchAccountId(uid, studentNumber).then((resolvedAccountId) => {
+    void resolveStudentGameDataAccountId(uid, studentNumber).then((resolvedAccountId) => {
       if (!active) return;
       setAccountId(resolvedAccountId);
     }).catch((reason: unknown) => {
