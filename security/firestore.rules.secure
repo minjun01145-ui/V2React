@@ -88,6 +88,17 @@ service cloud.firestore {
       ) || isTestStudentForRoom(roomId);
     }
 
+    function isSoloStudentForTenant(tenantId) {
+      return validTenantId(tenantId) && (
+        (isRosterStudent() && authTenantId() == tenantId)
+        || (signedIn()
+          && request.auth.token.role == "test-student"
+          && request.auth.token.testRoomId is string
+          && authTenantId() == tenantId
+          && isTestStudentForRoom(request.auth.token.testRoomId))
+      );
+    }
+
     function isRoomAdmin(roomId) {
       return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
         && isAdminForTenant(tenantIdFrom(get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data));
@@ -378,22 +389,19 @@ service cloud.firestore {
     // writes; the client-writable progress document is only a reconnect cache.
     match /tenants/{tenantId}/soloRuns/{runId} {
       allow read: if validTenantId(tenantId)
-        && isRosterStudent()
-        && authTenantId() == tenantId
+        && isSoloStudentForTenant(tenantId)
         && resource.data.ownerUid == request.auth.uid
         && resource.data.tenantId == tenantId;
       allow create, update, delete: if false;
 
       match /progress/{uid} {
         allow read: if validTenantId(tenantId)
-          && isRosterStudent()
-          && authTenantId() == tenantId
+          && isSoloStudentForTenant(tenantId)
           && request.auth.uid == uid
           && exists(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId))
           && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.ownerUid == uid;
         allow create, update: if validTenantId(tenantId)
-          && isRosterStudent()
-          && authTenantId() == tenantId
+          && isSoloStudentForTenant(tenantId)
           && request.auth.uid == uid
           && exists(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId))
           && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.ownerUid == uid
@@ -425,8 +433,7 @@ service cloud.firestore {
 
       match /results/{uid} {
         allow read: if validTenantId(tenantId)
-          && isRosterStudent()
-          && authTenantId() == tenantId
+          && isSoloStudentForTenant(tenantId)
           && request.auth.uid == uid
           && exists(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId))
           && get(/databases/$(database)/documents/tenants/$(tenantId)/soloRuns/$(runId)).data.ownerUid == uid;

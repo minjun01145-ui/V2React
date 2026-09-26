@@ -7,7 +7,6 @@ import { resolveAiTutorRoundContext } from "../../ai-tutor/roundContext.js";
 import { evaluateAiTutorContext } from "../../ai-tutor/service.js";
 import type { AiTutorDirection, AiTutorReply, AiTutorRoundContext, AiTutorTurnInput } from "../../ai-tutor/types.js";
 import { AiTutorValidationError, parseAiTutorReply } from "../../ai-tutor/validation.js";
-import { requireRegularStudent } from "../../shared/auth.js";
 import { db } from "../../shared/firebase.js";
 import { tenantLearningSetsCollection } from "../../shared/tenantData.js";
 import { isRecord } from "../../shared/validation.js";
@@ -27,6 +26,7 @@ import {
   type SoloStudent,
 } from "../shared.js";
 import { verifySoloLearningSet } from "./learningSet.js";
+import { requireSoloStudent } from "../auth.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public", timeoutSeconds: 120, maxInstances: 6, memory: "256MiB" } as const;
 
@@ -164,7 +164,7 @@ async function loadContext(student: SoloStudent, input: SoloAiTutorInput): Promi
 
 export const submitSoloAiTutorTurn = onCall(options, async (request) => {
   try {
-    const student = await requireRegularStudent(request);
+    const student = await requireSoloStudent(request);
     const input = parseInput(request.data);
     const loaded = await loadContext(student, input);
     if (loaded.duplicate) return loaded.duplicate;
