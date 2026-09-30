@@ -14,9 +14,12 @@ import type {
   ChunkLineUpElevatorRideInfo,
   ChunkLineUpElevatorState,
 } from "../../multiplayer/chunk-line-up/types.ts";
+import { hashString } from "../../game-engine/core/random.ts";
 import { createChunkLineUpElevatorState } from "./elevatorModel.ts";
+import { chunkLineUpSpawnState } from "./layout.ts";
 import {
   CHUNK_LINE_UP_CHANNEL_ID,
+  CHUNK_LINE_UP_GRAVITY,
   CHUNK_LINE_UP_WORLD_HEIGHT,
   CHUNK_LINE_UP_WORLD_WIDTH,
 } from "./model.ts";
@@ -59,6 +62,13 @@ type Props = CommonProps & (
       readonly onElevatorRideChange?: never;
     }
 );
+
+const TOUCH_ACTIONS = [
+  { action: "left", label: "왼쪽", text: "◀" },
+  { action: "right", label: "오른쪽", text: "▶" },
+  { action: "confirm", label: "확정 또는 내려가기", text: "▼ 확정" },
+  { action: "jump", label: "점프", text: "점프" },
+] as const;
 
 function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof Element
@@ -154,12 +164,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       (offsetMs) => { serverOffsetRef.current = offsetMs; },
       onError,
     );
-    const initialState: LiveMovementState = {
-      x: CHUNK_LINE_UP_WORLD_WIDTH * 0.62,
-      y: 34,
-      vx: 0,
-      vy: 0,
-    };
+    const initialState = chunkLineUpSpawnState(hashString(props.playerId ?? "teacher"));
 
     if (props.role === "student") {
       const live = createLiveMovementEngine(props.playerId, { sendHz: 10, onError });
@@ -201,11 +206,13 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       parent: host,
       width: CHUNK_LINE_UP_WORLD_WIDTH,
       height: CHUNK_LINE_UP_WORLD_HEIGHT,
-      backgroundColor: "#dff4f7",
+      backgroundColor: "#bfe4fb",
       physics: {
         default: "arcade",
-        arcade: { gravity: { x: 0, y: 1450 }, debug: false },
+        arcade: { gravity: { x: 0, y: CHUNK_LINE_UP_GRAVITY }, debug: false },
       },
+      // The canvas follows its container; the scene camera zooms the fixed
+      // world into it so every client shares the same coordinates.
       scale: { mode: Phaser.Scale.RESIZE },
       render: { antialias: true, pixelArt: false },
       input: { keyboard: false },
@@ -251,15 +258,16 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
     {connectionError ? <div className={styles.connectionError}>실시간 연결 오류: {connectionError.message}</div> : null}
     <div ref={hostRef} className={styles.canvasHost} onPointerDown={() => shellRef.current?.focus({ preventScroll: true })} />
     {props.role === "student" ? <div className={styles.touchControls} aria-label="Chunk Line-Up 조작">
-      {(["left", "right", "jump", "confirm"] as const).map((action) => <button
+      {TOUCH_ACTIONS.map(({ action, label, text }) => <button
         type="button"
         key={action}
-        aria-label={action}
+        aria-label={label}
+        className={action === "jump" || action === "confirm" ? styles.touchPrimary : undefined}
         onPointerDown={(event) => press(event, action)}
         onPointerUp={release}
         onPointerCancel={release}
         onLostPointerCapture={release}
-      >{action === "left" ? "←" : action === "right" ? "→" : action === "jump" ? "↑" : "확정"}</button>)}
+      >{text}</button>)}
     </div> : null}
   </div>;
 });

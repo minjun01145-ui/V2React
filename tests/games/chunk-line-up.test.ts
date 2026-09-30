@@ -1,8 +1,19 @@
 import assert from "node:assert/strict";
 import {
+  CHUNK_LINE_UP_GRAVITY,
   CHUNK_LINE_UP_WORLD_HEIGHT,
   CHUNK_LINE_UP_WORLD_WIDTH,
 } from "../../src/games/chunk-line-up/model.ts";
+import {
+  CHUNK_LINE_UP_GROUND_Y,
+  CHUNK_LINE_UP_WALK_LEFT,
+  CHUNK_LINE_UP_WALK_RIGHT,
+  chunkLineUpFloorGap,
+  chunkLineUpFloorY,
+  chunkLineUpShaftX,
+  chunkLineUpSlotRects,
+  chunkLineUpSpawnState,
+} from "../../src/games/chunk-line-up/layout.ts";
 import {
   CHUNK_LINE_UP_ELEVATOR_DOOR_MS,
   CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS,
@@ -17,6 +28,23 @@ import type { ChunkLineUpElevatorCarState } from "../../src/multiplayer/chunk-li
 
 assert.equal(CHUNK_LINE_UP_WORLD_WIDTH, 1_280, "all clients should share one canonical world width");
 assert.equal(CHUNK_LINE_UP_WORLD_HEIGHT, 604, "all clients should share one canonical world height");
+
+const singleJumpHeight = 550 ** 2 / (2 * CHUNK_LINE_UP_GRAVITY);
+for (let floorCount = 1; floorCount <= 5; floorCount += 1) {
+  assert(chunkLineUpFloorGap(floorCount) < singleJumpHeight - 4,
+    `every sentence floor should be reachable with one jump through the one-way floor above (${floorCount} floors)`);
+  assert.equal(chunkLineUpFloorY(floorCount, floorCount), CHUNK_LINE_UP_GROUND_Y, "the last floor index is the lobby ground");
+  assert(chunkLineUpFloorY(0, floorCount) >= 140, "the top floor should stay below the HUD");
+  for (let floor = 0; floor < floorCount; floor += 1) {
+    const slots = chunkLineUpSlotRects(7, floor, floorCount);
+    const last = slots.at(-1)!;
+    assert(slots[0]!.x >= CHUNK_LINE_UP_WALK_LEFT && last.x + last.width <= CHUNK_LINE_UP_WALK_RIGHT + 0.001,
+      "sentence slots should stay inside the walkable area between elevator shafts");
+  }
+}
+assert(chunkLineUpShaftX("left") < CHUNK_LINE_UP_WALK_LEFT && chunkLineUpShaftX("right") > CHUNK_LINE_UP_WALK_RIGHT);
+assert.deepEqual(chunkLineUpSpawnState(42), chunkLineUpSpawnState(42),
+  "a player's spawn point should not depend on the viewer's screen");
 
 const epoch = 10_000;
 const optimisticRide = predictChunkLineUpElevatorRide(

@@ -140,7 +140,9 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       <div className={styles.scoreHud}><small>점수</small><strong>{assignment.score}</strong></div>
       <TimedGameStatus session={session} compact />
     </div>
-    <div className={styles.controlsHint}>← → / A D 이동 · ↑ / W / Space 점프 · S / ↓ / Enter 슬롯 확정</div>
+    <div className={styles.controlsHint}>
+      <kbd>← →</kbd> 이동 <kbd>↑</kbd><kbd>Space</kbd> 점프(2단) <kbd>↓</kbd><kbd>S</kbd> 빈칸 확정 · 아래층으로 <kbd>R</kbd> 다시 시작
+    </div>
     {elevatorRide && elevatorRide.destinationFloor === null ? <div className={styles.elevatorDestination}>
       <strong>어디로 갈까요?</strong>
       <span>{elevatorRide.elevatorId === "left" ? "왼쪽" : "오른쪽"} 엘리베이터 · 문장 선택</span>

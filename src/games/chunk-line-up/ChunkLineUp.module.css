@@ -3,10 +3,10 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
-  border: 2px solid #294d5c;
-  border-radius: 14px;
-  background: #dff4f7;
-  box-shadow: 0 10px 28px rgba(15, 42, 67, .1);
+  border: 3px solid #1e3a5f;
+  border-radius: 18px;
+  background: linear-gradient(#7cc4f5, #dff3ff 78%, #c9a878 78%);
+  box-shadow: 0 14px 34px rgba(15, 42, 67, .18), inset 0 0 0 2px rgba(255,255,255,.35);
 }
 
 .studentShell {
@@ -66,45 +66,49 @@
 .scoreHud {
   display: grid;
   align-content: center;
-  min-height: 42px;
-  padding: 4px 8px;
-  border: 1px solid rgba(41,77,92,.2);
-  border-radius: 9px;
-  background: rgba(255,255,255,.86);
-  box-shadow: 0 2px 8px rgba(15,42,67,.08);
-  backdrop-filter: blur(4px);
+  gap: 2px;
+  min-height: 46px;
+  padding: 5px 12px;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 14px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 4px 0 rgba(30,58,95,.18), 0 8px 18px rgba(15,42,67,.12);
+  backdrop-filter: blur(6px);
 }
 
 .tokenHud {
   min-width: 0;
-  max-width: min(52vw, 460px);
+  max-width: min(56vw, 480px);
+  border-color: #fcd34d;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
 }
 
 .tokenHud small,
 .scoreHud small {
-  color: #627d98;
-  font-size: 8px;
+  color: #7b8794;
+  font-size: 10px;
   font-weight: 900;
   line-height: 1;
+  letter-spacing: .02em;
 }
 
 .tokenHud strong {
   overflow: hidden;
-  color: #8a3b00;
-  font-size: clamp(14px, 1.8vw, 20px);
+  color: #9a3412;
+  font-size: clamp(16px, 2vw, 22px);
   line-height: 1.15;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .scoreHud {
-  min-width: 54px;
+  min-width: 62px;
   text-align: center;
 }
 
 .scoreHud strong {
-  color: #17324d;
-  font-size: 19px;
+  color: #1e3a5f;
+  font-size: 22px;
   line-height: 1;
 }
 
@@ -115,15 +119,30 @@
 .controlsHint {
   position: absolute;
   z-index: 43;
-  right: 8px;
+  left: 50%;
   bottom: 6px;
-  padding: 3px 7px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  transform: translateX(-50%);
   border-radius: 999px;
-  background: rgba(255,255,255,.68);
-  color: #486581;
-  font-size: 9px;
+  background: rgba(15,23,42,.62);
+  color: #f1f5f9;
+  font-size: 11px;
   font-weight: 800;
+  white-space: nowrap;
   pointer-events: none;
+}
+
+.controlsHint kbd {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #f8fafc;
+  box-shadow: 0 2px 0 #94a3b8;
+  color: #1e293b;
+  font: inherit;
+  font-size: 10px;
 }
 
 .elevatorDestination {
@@ -275,23 +294,40 @@
 .touchControls {
   position: absolute;
   z-index: 44;
-  left: 8px;
-  bottom: 7px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
   display: none;
-  gap: 5px;
+  gap: 8px;
+  pointer-events: none;
 }
 
 .touchControls button {
-  min-width: 42px;
-  height: 34px;
-  padding: 0 8px;
-  border: 1px solid rgba(41,77,92,.45);
-  border-radius: 8px;
-  background: rgba(255,255,255,.82);
-  color: #17324d;
+  min-width: 58px;
+  height: 52px;
+  padding: 0 12px;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 16px;
+  background: rgba(30,58,95,.62);
+  box-shadow: 0 4px 0 rgba(15,23,42,.35);
+  color: white;
   font: inherit;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 900;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.touchControls button:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(15,23,42,.35);
+}
+
+.touchControls button:nth-child(3) { margin-left: auto; }
+
+.touchControls .touchPrimary {
+  background: rgba(234,88,12,.78);
 }
 
 .teacherHud {
