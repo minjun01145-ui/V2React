@@ -16,6 +16,8 @@ import type {
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import ChunkLineUpCanvas, { type ChunkLineUpController } from "./ChunkLineUpCanvas.tsx";
+import ChunkLineUpFloorGuide from "./ChunkLineUpFloorGuide.tsx";
+import { chunkLineUpFloorLabel } from "./layout.ts";
 import styles from "./ChunkLineUp.module.css";
 
 export default function ChunkLineUpStudentGame({ roomId, session, player }: StudentGameModuleProps) {
@@ -27,6 +29,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   const [localElevatorState, setLocalElevatorState] = useState<ChunkLineUpElevatorState | null>(null);
   const [elevatorRide, setElevatorRide] = useState<ChunkLineUpElevatorRideInfo | null>(null);
   const [destinationBusy, setDestinationBusy] = useState(false);
+  const [currentFloor, setCurrentFloor] = useState(-1);
   const clock = useTimedGameClock(session);
 
   if (!session.expectedPlayerIds.includes(player.id)) {
@@ -134,28 +137,30 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       onConfirm={(groupId, slotId) => void confirm(groupId, slotId)}
       onElevatorApproach={(elevatorId, floor) => setElevatorRide({ elevatorId, currentFloor: floor, destinationFloor: null })}
       onElevatorRideChange={setElevatorRide}
+      onFloorChange={setCurrentFloor}
     />
+    <ChunkLineUpFloorGuide board={board} currentFloor={currentFloor} />
     <div className={styles.studentHud}>
       <div className={styles.tokenHud}><small>내 청크</small><strong>{assignment.token}</strong></div>
       <div className={styles.scoreHud}><small>점수</small><strong>{assignment.score}</strong></div>
       <TimedGameStatus session={session} compact />
     </div>
     <div className={styles.controlsHint}>
-      <kbd>← →</kbd> 이동 <kbd>↑</kbd><kbd>Space</kbd> 점프(2단) <kbd>↓</kbd><kbd>S</kbd> 빈칸 확정 · 아래층으로 <kbd>R</kbd> 다시 시작
+      <kbd>← →</kbd> 이동 <kbd>↑</kbd><kbd>Space</kbd> 점프(2단) <kbd>↓</kbd><kbd>S</kbd> 놓기 · 엘리베이터 · 내려가기 <kbd>R</kbd> 로비로
     </div>
     {elevatorRide && elevatorRide.destinationFloor === null ? <div className={styles.elevatorDestination}>
-      <strong>어디로 갈까요?</strong>
-      <span>{elevatorRide.elevatorId === "left" ? "왼쪽" : "오른쪽"} 엘리베이터 · 문장 선택</span>
+      <strong>몇 층으로 갈까요?</strong>
+      <span>{elevatorRide.elevatorId === "left" ? "왼쪽" : "오른쪽"} 엘리베이터 · 빈칸이 남은 층</span>
       <div>
         {destinationChoices.map((choice) => <button
           key={choice.floor}
           type="button"
           disabled={destinationBusy}
           onClick={() => void chooseDestination(choice.floor, choice.groupId)}
-        >{choice.prompt.replaceAll("/", " ")}</button>)}
+        ><b>{chunkLineUpFloorLabel(choice.floor, board.groups.length)}</b> {choice.prompt.replaceAll("/", " ")}</button>)}
       </div>
       <button type="button" className={styles.elevatorCancel} onClick={() => {
-        controllerRef.current?.dismissElevatorApproach();
+        controllerRef.current?.releaseElevatorApproach();
         setElevatorRide(null);
       }}>닫기</button>
     </div> : null}

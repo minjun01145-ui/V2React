@@ -401,6 +401,118 @@
   color: #17324d;
 }
 
+.floorGuide {
+  position: absolute;
+  z-index: 44;
+  top: 62px;
+  right: 8px;
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+  width: min(270px, 42%);
+  max-height: calc(100% - 110px);
+  pointer-events: none;
+}
+
+.floorGuideToggle {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(15,23,42,.72);
+  color: white;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.floorGuide ol {
+  display: grid;
+  width: 100%;
+  gap: 4px;
+  margin: 0;
+  padding: 6px;
+  overflow-y: auto;
+  border-radius: 12px;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 6px 18px rgba(15,42,67,.16);
+  list-style: none;
+  backdrop-filter: blur(4px);
+}
+
+.floorGuide li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: rgba(241,245,249,.8);
+}
+
+.floorGuide li[data-current="true"] {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.floorGuide li > b {
+  flex: none;
+  min-width: 26px;
+  padding: 1px 4px;
+  border-radius: 5px;
+  background: #1e3a5f;
+  color: #facc15;
+  font-size: 11px;
+  text-align: center;
+}
+
+.floorGuide li > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.floorGuide li span {
+  overflow: hidden;
+  color: #1e293b;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.floorGuide li small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.floorGuide li i {
+  max-width: 100%;
+  padding: 0 4px;
+  overflow: hidden;
+  border-radius: 4px;
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.floorGuide li i[data-state="fixed"] { background: #fde68a; color: #5b3a00; }
+.floorGuide li i[data-state="filled"] { background: #bbf7d0; color: #065f46; }
+.floorGuide li i[data-state="empty"] { background: #e2e8f0; color: #64748b; }
+
+.elevatorDestination button b {
+  margin-right: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: #1e3a5f;
+  color: #facc15;
+}
+
 @keyframes feedbackPop {
   0% { opacity: 0; transform: translateX(-50%) translateY(6px) scale(.9); }
   25% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.04); }

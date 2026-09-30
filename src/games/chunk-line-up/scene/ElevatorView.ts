@@ -10,16 +10,20 @@ import {
   chunkLineUpElevatorFloorPosition,
 } from "../elevatorModel.ts";
 import {
-  CHUNK_LINE_UP_GROUND_Y,
+  CHUNK_LINE_UP_FLOOR_GAP,
   CHUNK_LINE_UP_SHAFT_WIDTH,
-  chunkLineUpFloorGap,
   chunkLineUpFloorY,
+  chunkLineUpGroundY,
   chunkLineUpShaftX,
 } from "../layout.ts";
 import { FONT_FAMILY, TEXT_RESOLUTION } from "./art.ts";
 
 export const ELEVATOR_CABIN_WIDTH = 76;
 const CABIN_HEIGHT = 58;
+
+function shaftTop(floorCount: number): number {
+  return chunkLineUpFloorY(0, floorCount) - CHUNK_LINE_UP_FLOOR_GAP * 0.45;
+}
 
 /** Pure rendering of the two server-driven elevator cars. */
 export class ElevatorView {
@@ -43,15 +47,16 @@ export class ElevatorView {
 
   drawShafts(floorCount: number): void {
     const graphics = this.shafts.clear();
-    const top = chunkLineUpFloorY(0, floorCount) - chunkLineUpFloorGap(floorCount) - 20;
+    const top = shaftTop(floorCount);
+    const groundY = chunkLineUpGroundY(floorCount);
     for (const id of ["left", "right"] as const) {
       const x = chunkLineUpShaftX(id) - CHUNK_LINE_UP_SHAFT_WIDTH / 2;
-      graphics.fillStyle(0x1e3a4c, 1).fillRoundedRect(x, top, CHUNK_LINE_UP_SHAFT_WIDTH, CHUNK_LINE_UP_GROUND_Y - top + 6, 10);
-      graphics.fillStyle(0x2d5670, 1).fillRect(x + 8, top + 8, CHUNK_LINE_UP_SHAFT_WIDTH - 16, CHUNK_LINE_UP_GROUND_Y - top - 8);
-      graphics.fillStyle(0x3f7391, 0.55).fillRect(x + 12, top + 8, 6, CHUNK_LINE_UP_GROUND_Y - top - 8);
+      graphics.fillStyle(0x1e3a4c, 1).fillRoundedRect(x, top, CHUNK_LINE_UP_SHAFT_WIDTH, groundY - top + 6, 10);
+      graphics.fillStyle(0x2d5670, 1).fillRect(x + 8, top + 8, CHUNK_LINE_UP_SHAFT_WIDTH - 16, groundY - top - 8);
+      graphics.fillStyle(0x3f7391, 0.55).fillRect(x + 12, top + 8, 6, groundY - top - 8);
       graphics.fillStyle(0x0f2533, 1)
-        .fillRect(x + 10, top + 8, 3, CHUNK_LINE_UP_GROUND_Y - top - 8)
-        .fillRect(x + CHUNK_LINE_UP_SHAFT_WIDTH - 13, top + 8, 3, CHUNK_LINE_UP_GROUND_Y - top - 8);
+        .fillRect(x + 10, top + 8, 3, groundY - top - 8)
+        .fillRect(x + CHUNK_LINE_UP_SHAFT_WIDTH - 13, top + 8, 3, groundY - top - 8);
       graphics.fillStyle(0xfacc15, 1).fillRoundedRect(x + 14, top - 10, CHUNK_LINE_UP_SHAFT_WIDTH - 28, 14, 5);
     }
   }
@@ -73,7 +78,7 @@ export class ElevatorView {
     const floorY = chunkLineUpFloorY(chunkLineUpElevatorFloorPosition(car, nowMs), floorCount);
     const top = floorY - CABIN_HEIGHT;
     const left = centerX - ELEVATOR_CABIN_WIDTH / 2;
-    const top0 = chunkLineUpFloorY(0, floorCount) - chunkLineUpFloorGap(floorCount) - 20;
+    const top0 = shaftTop(floorCount);
 
     // Cable.
     graphics.lineStyle(2, 0x0b1a24, 0.9).lineBetween(centerX, top0 + 4, centerX, top);

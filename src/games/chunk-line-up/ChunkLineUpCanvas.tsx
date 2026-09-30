@@ -20,7 +20,6 @@ import { chunkLineUpSpawnState } from "./layout.ts";
 import {
   CHUNK_LINE_UP_CHANNEL_ID,
   CHUNK_LINE_UP_GRAVITY,
-  CHUNK_LINE_UP_WORLD_HEIGHT,
   CHUNK_LINE_UP_WORLD_WIDTH,
 } from "./model.ts";
 import ChunkLineUpScene from "./ChunkLineUpScene.ts";
@@ -35,7 +34,6 @@ export interface ChunkLineUpController {
     destinationFloor: number,
   ) => ChunkLineUpElevatorState | null;
   readonly releaseElevatorApproach: () => void;
-  readonly dismissElevatorApproach: () => void;
 }
 
 interface CommonProps {
@@ -53,6 +51,7 @@ type Props = CommonProps & (
       readonly label: string;
       readonly onElevatorApproach: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
       readonly onElevatorRideChange: (ride: ChunkLineUpElevatorRideInfo | null) => void;
+      readonly onFloorChange: (floor: number) => void;
     }
   | {
       readonly role: "teacher";
@@ -60,13 +59,14 @@ type Props = CommonProps & (
       readonly label?: never;
       readonly onElevatorApproach?: never;
       readonly onElevatorRideChange?: never;
+      readonly onFloorChange?: never;
     }
 );
 
 const TOUCH_ACTIONS = [
   { action: "left", label: "왼쪽", text: "◀" },
   { action: "right", label: "오른쪽", text: "▶" },
-  { action: "confirm", label: "확정 또는 내려가기", text: "▼ 확정" },
+  { action: "confirm", label: "놓기, 엘리베이터, 내려가기", text: "▼" },
   { action: "jump", label: "점프", text: "점프" },
 ] as const;
 
@@ -85,6 +85,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   const confirmRef = useRef(props.onConfirm);
   const elevatorApproachRef = useRef(props.role === "student" ? props.onElevatorApproach : undefined);
   const elevatorRideChangeRef = useRef(props.role === "student" ? props.onElevatorRideChange : undefined);
+  const floorChangeRef = useRef(props.role === "student" ? props.onFloorChange : undefined);
   const serverOffsetRef = useRef(0);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
   boardRef.current = props.board;
@@ -92,6 +93,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   confirmRef.current = props.onConfirm;
   elevatorApproachRef.current = props.role === "student" ? props.onElevatorApproach : undefined;
   elevatorRideChangeRef.current = props.role === "student" ? props.onElevatorRideChange : undefined;
+  floorChangeRef.current = props.role === "student" ? props.onFloorChange : undefined;
 
   useImperativeHandle(ref, () => ({
     rejectSlot: () => sceneRef.current?.showWrong(),
@@ -102,7 +104,6 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       return scene?.predictElevatorRide(current, elevatorId, floor, destinationFloor) ?? null;
     },
     releaseElevatorApproach: () => sceneRef.current?.releaseElevatorApproach(),
-    dismissElevatorApproach: () => sceneRef.current?.dismissElevatorApproach(),
   }), []);
 
   useEffect(() => {
@@ -122,7 +123,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       }
       if (event.code === "Enter" || event.code === "KeyS" || event.code === "ArrowDown") {
         event.preventDefault();
-        if (!event.repeat) sceneRef.current?.confirmNearestSlot();
+        if (!event.repeat) sceneRef.current?.performDownAction();
         return;
       }
       const action = movementAction(event.code, event.key);
@@ -164,7 +165,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       (offsetMs) => { serverOffsetRef.current = offsetMs; },
       onError,
     );
-    const initialState = chunkLineUpSpawnState(hashString(props.playerId ?? "teacher"));
+    const initialState = chunkLineUpSpawnState(hashString(props.playerId ?? "teacher"), boardRef.current.groups.length);
 
     if (props.role === "student") {
       const live = createLiveMovementEngine(props.playerId, { sendHz: 10, onError });
@@ -199,13 +200,14 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       nowMs: () => Date.now() + serverOffsetRef.current,
       onElevatorApproach: (elevatorId, floor) => elevatorApproachRef.current?.(elevatorId, floor),
       onElevatorRideChange: (ride) => elevatorRideChangeRef.current?.(ride),
+      onFloorChange: (floor) => floorChangeRef.current?.(floor),
     });
     sceneRef.current = scene;
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: host,
       width: CHUNK_LINE_UP_WORLD_WIDTH,
-      height: CHUNK_LINE_UP_WORLD_HEIGHT,
+      height: 720,
       backgroundColor: "#bfe4fb",
       physics: {
         default: "arcade",
@@ -237,7 +239,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
     shellRef.current?.focus({ preventScroll: true });
     event.currentTarget.setPointerCapture(event.pointerId);
     if (action === "confirm") {
-      sceneRef.current?.confirmNearestSlot();
+      sceneRef.current?.performDownAction();
       return;
     }
     if (action === "jump") inputRef.current.jumpQueued = true;

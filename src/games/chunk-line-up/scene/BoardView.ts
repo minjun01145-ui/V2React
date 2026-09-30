@@ -3,7 +3,11 @@ import type { ChunkLineUpBoard, ChunkLineUpSlot } from "../../../multiplayer/chu
 import {
   CHUNK_LINE_UP_ROW_LEFT,
   CHUNK_LINE_UP_ROW_RIGHT,
+  CHUNK_LINE_UP_LANDING_WIDTH,
   CHUNK_LINE_UP_SLOT_HEIGHT,
+  CHUNK_LINE_UP_WALK_LEFT,
+  CHUNK_LINE_UP_WALK_RIGHT,
+  chunkLineUpFloorLabel,
   chunkLineUpLandingRect,
   chunkLineUpSlotRects,
   type ChunkLineUpRect,
@@ -72,7 +76,7 @@ export class BoardView {
       const before = previous?.groups[floor];
       if (before && before.id !== group.id) completedFloors.push(floor);
 
-      this.drawPrompt(group.prompt, rects[0]?.y ?? 0);
+      this.drawPrompt(group.prompt, chunkLineUpFloorLabel(floor, floorCount), rects[0]?.y ?? 0);
       group.slots.forEach((slot, index) => {
         const rect = rects[index];
         if (!rect) return;
@@ -170,14 +174,22 @@ export class BoardView {
   }
 
   /** The meaning sits on the shelf's front edge, directly under its chunk blocks. */
-  private drawPrompt(prompt: string, rowY: number): void {
+  private drawPrompt(prompt: string, floorLabel: string, rowY: number): void {
     const top = rowY + CHUNK_LINE_UP_SLOT_HEIGHT + 1;
     const width = CHUNK_LINE_UP_ROW_RIGHT - CHUNK_LINE_UP_ROW_LEFT;
     this.graphics.fillStyle(0x1e3a5f, 0.94).fillRoundedRect(CHUNK_LINE_UP_ROW_LEFT, top, width, PROMPT_HEIGHT, 5);
     this.graphics.fillStyle(0xfacc15, 1).fillRoundedRect(CHUNK_LINE_UP_ROW_LEFT + 4, top + 3, 34, PROMPT_HEIGHT - 6, 4);
-    const tag = this.scene.add.text(CHUNK_LINE_UP_ROW_LEFT + 21, top + PROMPT_HEIGHT / 2, "뜻", {
+    const tag = this.scene.add.text(CHUNK_LINE_UP_ROW_LEFT + 21, top + PROMPT_HEIGHT / 2, floorLabel, {
       fontFamily: FONT_FAMILY, fontSize: "11px", fontStyle: "bold", color: "#1e3a5f",
     }).setOrigin(0.5).setDepth(PLATFORM_DEPTH + 1).setResolution(TEXT_RESOLUTION);
+    // A big wall sign so players climbing past can tell which floor is which.
+    const sign = this.scene.add.text(CHUNK_LINE_UP_WALK_LEFT + CHUNK_LINE_UP_LANDING_WIDTH / 2, rowY - 62, floorLabel, {
+      fontFamily: FONT_FAMILY, fontSize: "30px", fontStyle: "900", color: "#1e3a5f",
+    }).setOrigin(0.5).setAlpha(0.28).setDepth(-8).setResolution(TEXT_RESOLUTION);
+    const signRight = this.scene.add.text(CHUNK_LINE_UP_WALK_RIGHT - CHUNK_LINE_UP_LANDING_WIDTH / 2, rowY - 62, floorLabel, {
+      fontFamily: FONT_FAMILY, fontSize: "30px", fontStyle: "900", color: "#1e3a5f",
+    }).setOrigin(0.5).setAlpha(0.28).setDepth(-8).setResolution(TEXT_RESOLUTION);
+    this.nodes.push(sign, signRight);
     const text = this.scene.add.text(
       CHUNK_LINE_UP_ROW_LEFT + width / 2,
       top + PROMPT_HEIGHT / 2,
