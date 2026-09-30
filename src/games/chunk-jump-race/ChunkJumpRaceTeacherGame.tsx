@@ -30,8 +30,8 @@ export default function ChunkJumpRaceTeacherGame({ roomId, session }: TeacherGam
     </main>
     <aside className={styles.ranking}>
       <h3>현재 순위</h3>
-      {standings.length === 0 ? <p>학생 위치를 기다리고 있습니다.</p> : standings.map((standing, index) => <div className={styles.rankRow} key={standing.playerId}>
-        <strong>{index + 1}</strong><span>{standing.label}</span><b>{standing.distance}</b>
+      {standings.length === 0 ? <p>학생 위치를 기다리고 있습니다.</p> : standings.map((standing, index) => <div className={styles.rankRow} data-rank={index < 3 ? index + 1 : undefined} key={standing.playerId}>
+        <strong>{index + 1}</strong><span>{standing.label}</span><b>{standing.distance}칸</b>
       </div>)}
     </aside>
   </div>;

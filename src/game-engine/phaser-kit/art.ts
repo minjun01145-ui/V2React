@@ -1,13 +1,15 @@
 import Phaser from "phaser";
-import { hashString } from "../../../game-engine/core/random.ts";
+import { hashString } from "../core/random.ts";
 
 export const FONT_FAMILY = "Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif";
 export const TEXT_RESOLUTION = 2;
+/** Phaser measures line height from this sample; Hangul must be in it or glyph bottoms get clipped. */
+export const TEXT_METRICS_SAMPLE = "|MÉqgy한글뛿";
 
 export const TEXTURE = {
-  dot: "cl-dot",
-  star: "cl-star",
-  cloud: "cl-cloud",
+  dot: "kit-dot",
+  star: "kit-star",
+  cloud: "kit-cloud",
 } as const;
 
 const PLAYER_COLORS = [
@@ -60,7 +62,7 @@ export function ensureSharedTextures(scene: Phaser.Scene): void {
 
 /** One rounded body texture per player colour; the face is drawn on top so it can look around. */
 export function ensureBodyTexture(scene: Phaser.Scene, color: number): string {
-  const key = `cl-body-${color.toString(16)}`;
+  const key = `kit-body-${color.toString(16)}`;
   generate(scene, key, 40, 44, (graphics) => {
     graphics.fillStyle(shade(color, -0.45), 1).fillRoundedRect(1, 3, 38, 40, 17);
     graphics.fillStyle(color, 1).fillRoundedRect(3, 1, 34, 38, 15);

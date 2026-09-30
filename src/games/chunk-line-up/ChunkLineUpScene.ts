@@ -34,11 +34,11 @@ import {
   chunkLineUpWorldHeight,
 } from "./layout.ts";
 import { CHUNK_LINE_UP_WORLD_WIDTH } from "./model.ts";
-import { ActorView } from "./scene/ActorView.ts";
-import { FONT_FAMILY, TEXT_RESOLUTION, ensureSharedTextures } from "./scene/art.ts";
+import { BlobActor, compactLabel, type BlobPose } from "../../game-engine/phaser-kit/BlobActor.ts";
+import { FONT_FAMILY, TEXT_RESOLUTION, ensureSharedTextures } from "../../game-engine/phaser-kit/art.ts";
 import { Backdrop } from "./scene/Backdrop.ts";
 import { BoardView, type SlotHit } from "./scene/BoardView.ts";
-import { Effects } from "./scene/Effects.ts";
+import { Effects } from "../../game-engine/phaser-kit/Effects.ts";
 import { ElevatorView } from "./scene/ElevatorView.ts";
 import { PropsView } from "./scene/PropsView.ts";
 
@@ -70,6 +70,27 @@ export interface ChunkLineUpSceneOptions {
   readonly onFloorChange?: (floor: number) => void;
 }
 
+/**
+ * One compact tag per character: floors are only a jump apart, so stacked
+ * name + chunk labels would cover the shelf above.
+ */
+function actorTag(label: string, token: string | undefined, self: boolean): string {
+  const chunk = compactLabel(token ?? "", self ? 26 : 14);
+  if (self) return `▼ ${chunk || "나"}`;
+  const name = compactLabel(label, 8);
+  return chunk ? `${name} · ${chunk}` : name;
+}
+
+function actorPose(state: LiveMovementState, insideElevator: boolean): BlobPose {
+  return {
+    x: state.x,
+    feetY: state.y + CHUNK_LINE_UP_PLAYER_HEIGHT / 2,
+    vx: state.vx,
+    vy: state.vy,
+    alpha: insideElevator ? 0.35 : 1,
+  };
+}
+
 type DownAction =
   | { readonly kind: "slot"; readonly hit: SlotHit }
   | { readonly kind: "elevator"; readonly id: ChunkLineUpElevatorId; readonly floor: number }
@@ -95,8 +116,8 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private actionHint!: Phaser.GameObjects.Text;
   private player: Phaser.GameObjects.Zone | null = null;
   private body: Phaser.Physics.Arcade.Body | null = null;
-  private localActor: ActorView | null = null;
-  private readonly remotes = new Map<string, ActorView>();
+  private localActor: BlobActor | null = null;
+  private readonly remotes = new Map<string, BlobActor>();
   private jump = createJumpState();
   private wasGrounded = false;
   private dropUntil = 0;
@@ -143,7 +164,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       this.physics.add.collider(this.player, this.boardPlatforms, undefined, landOn);
       this.physics.add.collider(this.player, this.props.steps, undefined, landOn);
       this.physics.add.collider(this.player, this.props.movers, undefined, landOn);
-      this.localActor = new ActorView(this, this.options.localPlayer.id, true);
+      this.localActor = new BlobActor(this, this.options.localPlayer.id, true);
       const stop = (): void => {
         if (!this.body || !this.options.input) return;
         clearPlatformerInput(this.options.input);
@@ -300,7 +321,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const changes = this.boardView.render(this.board);
     changes.filled.forEach((rect) => this.effects.slotFilled(rect));
     changes.completedFloors.forEach((floor) =>
-      this.effects.rowCompleted(CHUNK_LINE_UP_ROW_LEFT, CHUNK_LINE_UP_ROW_RIGHT, chunkLineUpFloorY(floor, floorCount)));
+      this.effects.celebrate(CHUNK_LINE_UP_ROW_LEFT, CHUNK_LINE_UP_ROW_RIGHT, chunkLineUpFloorY(floor, floorCount), "문장 완성!"));
   }
 
   /** The tower height follows the (per-round constant) number of sentences. */
@@ -431,8 +452,8 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private updateActors(time: number, delta: number, frames: readonly LiveRemoteFrame[]): void {
     const localId = this.options.localPlayer?.id;
     if (this.localActor && localId && this.body) {
-      this.localActor.setTag(this.options.localPlayer!.label, this.options.playerToken(localId));
-      const landed = this.localActor.update(this.movement(), time, delta, this.insideRiderIds.has(localId));
+      this.localActor.setTag(actorTag(this.options.localPlayer!.label, this.options.playerToken(localId), true));
+      const landed = this.localActor.update(actorPose(this.movement(), this.insideRiderIds.has(localId)), time, delta);
       if (landed) this.effects.landingDust(this.body.center.x, this.body.bottom);
     }
     const visible = new Set<string>();
@@ -443,11 +464,11 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       visible.add(frame.playerId);
       let actor = this.remotes.get(frame.playerId);
       if (!actor) {
-        actor = new ActorView(this, frame.playerId, false);
+        actor = new BlobActor(this, frame.playerId, false);
         this.remotes.set(frame.playerId, actor);
       }
-      actor.setTag(label, this.options.playerToken(frame.playerId));
-      actor.update(frame, time, delta, this.insideRiderIds.has(frame.playerId));
+      actor.setTag(actorTag(label, this.options.playerToken(frame.playerId), false));
+      actor.update(actorPose(frame, this.insideRiderIds.has(frame.playerId)), time, delta);
     }
     for (const [id, actor] of this.remotes) {
       if (visible.has(id)) continue;

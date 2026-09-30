@@ -183,11 +183,17 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     />
     <div className={styles.studentHud}>
       <span><small>거리</small><b>{distance}</b></span>
-      <span><small>순위</small><b>{ownRank}위</b></span>
+      <span className={ownRank <= 3 ? styles.podiumRank : undefined}><small>순위</small><b>{ownRank}위</b></span>
       <TimedGameStatus session={session} compact />
     </div>
     <div className={styles.skyQuestion} aria-label="다음 끊어읽기 조각 선택">
-      <strong className={styles.skyPrompt}>{step.currentChunks.join(" / ")}</strong>
+      <div className={styles.skyPrompt}>
+        <small>{step.sentence.meaning}</small>
+        <strong>
+          {step.currentChunks.map((chunk, index) => <span key={`${index}:${chunk}`}>{chunk}</span>)}
+          <em aria-hidden="true">?</em>
+        </strong>
+      </div>
       <div className={styles.skyChoices}>
         {choices.map((choice) => <button
           type="button"

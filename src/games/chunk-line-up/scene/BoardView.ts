@@ -12,7 +12,7 @@ import {
   chunkLineUpSlotRects,
   type ChunkLineUpRect,
 } from "../layout.ts";
-import { FONT_FAMILY, TEXT_RESOLUTION } from "./art.ts";
+import { FONT_FAMILY, TEXT_RESOLUTION } from "../../../game-engine/phaser-kit/art.ts";
 
 export interface SlotHit {
   readonly groupId: string;

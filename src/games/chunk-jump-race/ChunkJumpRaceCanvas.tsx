@@ -3,7 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "re
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
 import { createLiveMovementEngine, createLiveMovementObserver } from "../../live-world/client.ts";
 import { CHUNK_JUMP_CHANNEL_ID } from "./model.ts";
-import ChunkJumpRaceScene, { chunkJumpDistanceFromX, chunkJumpLandedState } from "./ChunkJumpRaceScene.ts";
+import ChunkJumpRaceScene, { CHUNK_JUMP_VIEW_HEIGHT, chunkJumpDistanceFromX, chunkJumpLandedState } from "./ChunkJumpRaceScene.ts";
 import styles from "./ChunkJumpRace.module.css";
 
 export interface ChunkJumpStanding {
@@ -98,22 +98,19 @@ const ChunkJumpRaceCanvas = forwardRef<ChunkJumpRaceController, Props>(function 
       onSettled: (kind, distance) => settledRef.current?.(kind, distance),
     });
     sceneRef.current = scene;
+    // The canvas renders at its real size; the scene zooms a fixed-height view into it.
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: host,
-      width: host.clientHeight > 0 ? Math.round(420 * host.clientWidth / host.clientHeight) : 960,
-      height: 420,
-      backgroundColor: "#dff6ff",
-      scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+      width: host.clientWidth || 960,
+      height: host.clientHeight || CHUNK_JUMP_VIEW_HEIGHT,
+      backgroundColor: "#bfe4fb",
+      scale: { mode: Phaser.Scale.RESIZE },
       render: { antialias: true, pixelArt: false },
       input: { keyboard: false },
       audio: { noAudio: true },
       scene,
     });
-    const resize = new ResizeObserver(() => {
-      if (game.isBooted && host.clientHeight > 0) game.scale.resize(Math.round(420 * host.clientWidth / host.clientHeight), 420);
-    });
-    resize.observe(host);
 
     const rankingTimer = window.setInterval(() => {
       const localState = props.role === "student" ? scene.getLocalState() : null;
@@ -127,7 +124,6 @@ const ChunkJumpRaceCanvas = forwardRef<ChunkJumpRaceController, Props>(function 
     return () => {
       active = false;
       window.clearInterval(rankingTimer);
-      resize.disconnect();
       sceneRef.current = null;
       game.destroy(true);
       void closeLive();

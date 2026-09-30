@@ -7,7 +7,7 @@ import {
   chunkLineUpFloorY,
   chunkLineUpGroundY,
 } from "../layout.ts";
-import { TEXTURE } from "./art.ts";
+import { TEXTURE } from "../../../game-engine/phaser-kit/art.ts";
 
 // The camera may show more than the world on odd aspect ratios, so the sky and
 // ground are painted well past the world edges instead of leaving bare bars.

@@ -1,6 +1,12 @@
 import Phaser from "phaser";
-import type { ChunkLineUpRect } from "../layout.ts";
 import { FONT_FAMILY, TEXT_RESOLUTION, TEXTURE } from "./art.ts";
+
+interface Rect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
 
 const CONFETTI = [0xf87171, 0xfbbf24, 0x34d399, 0x60a5fa, 0xc084fc, 0xf472b6];
 
@@ -73,7 +79,7 @@ export class Effects {
     this.floatText(x, y - 40, "✕", "#dc2626");
   }
 
-  slotFilled(rect: ChunkLineUpRect): void {
+  slotFilled(rect: Rect): void {
     this.stars.explode(8, rect.x + rect.width / 2, rect.y + rect.height / 2);
     const glow = this.scene.add.rectangle(rect.x + rect.width / 2, rect.y + rect.height / 2, rect.width, rect.height, 0xffffff, 0.8)
       .setDepth(9);
@@ -88,12 +94,12 @@ export class Effects {
     });
   }
 
-  rowCompleted(left: number, right: number, y: number): void {
-    for (let x = left; x <= right; x += (right - left) / 8) this.confetti.explode(8, x, y);
-    this.floatText((left + right) / 2, y - 30, "문장 완성!", "#b45309", 26);
+  celebrate(left: number, right: number, y: number, message: string): void {
+    for (let x = left; x <= right; x += Math.max(1, (right - left) / 8)) this.confetti.explode(8, x, y);
+    this.floatText((left + right) / 2, y - 30, message, "#b45309", 26);
   }
 
-  private floatText(x: number, y: number, value: string, color: string, size = 20): void {
+  floatText(x: number, y: number, value: string, color: string, size = 20): void {
     const text = this.scene.add.text(x, y, value, {
       fontFamily: FONT_FAMILY,
       fontSize: `${size}px`,

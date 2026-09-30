@@ -16,7 +16,7 @@ import {
   chunkLineUpGroundY,
   chunkLineUpShaftX,
 } from "../layout.ts";
-import { FONT_FAMILY, TEXT_RESOLUTION } from "./art.ts";
+import { FONT_FAMILY, TEXT_RESOLUTION } from "../../../game-engine/phaser-kit/art.ts";
 
 export const ELEVATOR_CABIN_WIDTH = 76;
 const CABIN_HEIGHT = 58;
