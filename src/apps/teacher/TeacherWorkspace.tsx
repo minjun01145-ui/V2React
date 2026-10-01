@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { getRoomIdFromLocation } from "../../app/location.ts";
 import { signOutAdmin } from "../../auth/teacherAuth.ts";
 import TeacherAiPage from "../../features/teacher/ai/TeacherAiPage.tsx";
-import TeacherDashboardPage from "../../features/teacher/dashboard/TeacherDashboardPage.tsx";
 import TeacherLobbyPage from "../../features/teacher/lobby/TeacherLobbyPage.tsx";
 import TeacherQuizGamePage from "../../features/teacher/quiz-game/TeacherQuizGamePage.tsx";
 import TeacherSetsPage from "../../features/teacher/sets/TeacherSetsPage.tsx";
@@ -17,7 +16,7 @@ import { getTeacherView, TEACHER_VIEW, type TeacherView } from "./teacherRoute.t
 export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantConfig }) {
   const [view, setView] = useState<TeacherView>(getTeacherView);
   const roomId = getRoomIdFromLocation();
-  const activeView = tenant.id !== PRIMARY_TENANT_ID && view === TEACHER_VIEW.AI ? TEACHER_VIEW.DASHBOARD : view;
+  const activeView = tenant.id !== PRIMARY_TENANT_ID && view === TEACHER_VIEW.AI ? TEACHER_VIEW.LOBBY : view;
 
   useEffect(() => {
     const handleHashChange = (): void => setView(getTeacherView());
@@ -35,7 +34,6 @@ export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantCo
       {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
       {activeView === TEACHER_VIEW.TEST_TOOL ? <TeacherTestToolPage roomId={roomId} tenant={tenant} /> : null}
       {activeView === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
-      {activeView === TEACHER_VIEW.DASHBOARD ? <TeacherDashboardPage roomId={roomId} showAiAdmin={tenant.id === PRIMARY_TENANT_ID} /> : null}
     </>
   );
 }
