@@ -44,6 +44,7 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
       </div></div>
     </header>
 
+    <div className={styles.body}>
     <section className={styles.progress} aria-label={`진행률 ${progressPercent}%`}>
       <div style={{ width: `${progressPercent}%` }} />
     </section>
@@ -73,6 +74,7 @@ export default function MatchingStudentGame({ roomId, session, player, set }: {
       })}
     </section>
 
+    </div>
     <div className={styles.feedback} data-tone={game.feedbackTone} role="status" aria-live="polite">
       {game.feedback || "카드 두 장을 골라 짝을 찾아보세요."}
     </div>
