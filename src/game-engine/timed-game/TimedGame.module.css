@@ -7,7 +7,7 @@
 .clock[data-expired="true"] .clockTrack i { background: #dc2626; }
 .clock[data-compact="true"] { min-width: 104px; padding: .5rem .7rem; }
 .clock[data-compact="true"] > strong { font-size: 1.2rem; }
-.timedBoundary { display:grid; gap:.75rem; }
+.timedBoundary { height:100%; min-height:0; display:grid; }
 .globalClock { position:fixed; z-index:50; top:.75rem; right:max(.75rem, calc((100vw - 1040px) / 2)); display:flex; justify-content:flex-end; pointer-events:none; }
 .globalClock .clock { backdrop-filter:blur(10px); background:rgba(238,242,255,.94); }
 .gameOver { display: grid; min-height: min(600px, calc(100dvh - 3rem)); place-content: center; justify-items: center; padding: 2rem; border: 1px solid #ddd6fe; border-radius: 1.5rem; background: radial-gradient(circle at 50% 30%, #fff 0 15%, transparent 42%), linear-gradient(145deg, #f5f3ff, #ecfeff); text-align: center; }
