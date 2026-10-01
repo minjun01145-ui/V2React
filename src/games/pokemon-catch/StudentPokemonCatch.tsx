@@ -20,7 +20,7 @@ import { ANGER_TIME_BONUS_MS, ENCOUNTER_TIME_MS, SLEEP_CAPTURE_MULTIPLIER, itemD
 import type { EncounterActionPhase, EncounterPhase, PokemonEncounter } from "./types.ts";
 import { useEncounterTimer } from "./useEncounterTimer.ts";
 import { useWildPokemonEncounter } from "./useWildPokemonEncounter.ts";
-import styles from "./PokemonCatch.module.css";
+import styles from "./StudentPokemonCatch.module.css";
 
 const wait = (milliseconds: number) => new Promise<void>((resolve) => globalThis.setTimeout(resolve, milliseconds));
 const randomRoll = () => crypto.getRandomValues(new Uint32Array(1))[0]! / 4_294_967_296;
@@ -239,11 +239,15 @@ export default function StudentPokemonCatch({ roomId, session, player, set, solo
   } as const;
 
   return <div className={styles.gameShell}>
+    <div className={styles.body}>
     <EncounterStage encounter={encounter} encounterStatus={encounterStatus} phase={phase} asleep={asleep} secondsRemaining={secondsRemaining} timerMaximum={timerMaximum} remainingMs={timer.remainingMs} shakeCount={shakeCount} captureForecasts={[
       { label: "포켓볼", percent: captureChancePercent(ballChances[POKEMON_ITEM.POKE_BALL]) },
       { label: "슈퍼볼", percent: captureChancePercent(ballChances[POKEMON_ITEM.GREAT_BALL]) },
     ]} loadError={loadError} onReload={reload} />
+    </div>
+    <div className={styles.footer}>
     <CommandPanel actionMessage={actionMessage} hasQuestion={set.items.length > 0} submitting={submitting} phase={phase} usingItem={usingItem} captureCount={studentData.captures.length} onOpenQuiz={() => { setActivePanel("quiz"); setQuizFeedback(""); setReward(null); }} onOpenItems={() => setActivePanel("items")} onOpenCollection={() => setActivePanel("collection")} />
+    </div>
     {activePanel === "items" ? <ItemBagDialog inventory={studentData.inventory} usingItem={usingItem} phase={phase} asleep={asleep} ballChances={ballChances} onClose={() => setActivePanel(null)} onUseItem={useItem} /> : null}
     {activePanel === "quiz" ? <QuizDialog
       title="AI 영어 문답"

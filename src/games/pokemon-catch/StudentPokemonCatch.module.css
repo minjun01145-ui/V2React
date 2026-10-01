@@ -1,0 +1,6 @@
+.gameShell { composes: root from "../../game-engine/stage/GameLayout.module.css"; --ink: #18343b; --red: #f14a4f; --yellow: #ffd758; width: 100%; max-width: 1280px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); color: var(--ink); background: var(--color-surface); gap: 0; }
+.body { composes: body from "../../game-engine/stage/GameLayout.module.css"; grid-row: 2; }
+.gameShell .body > * { height: 100%; min-height: 0; }
+.footer { composes: footer from "../../game-engine/stage/GameLayout.module.css"; grid-row: 3; }
+.loadingPage { display: grid; place-content: center; min-height: 0; font-weight: 600; }
+@media (max-width: 767px) { .gameShell { height: auto; } .body { min-height: 390px; } }
