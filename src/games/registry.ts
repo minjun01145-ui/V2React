@@ -260,6 +260,16 @@ const definitions = [
     handlesOwnTimedBoundary: true,
     supportedSetTypes: ["reading-chunks"],
     requiresStoredSet: true,
+    settings: [{
+      kind: "select",
+      key: "chunk-jump-meaning",
+      label: "문장 뜻 표시",
+      defaultValue: "off",
+      options: [
+        { value: "off", label: "끄기" },
+        { value: "on", label: "켜기" },
+      ],
+    }],
     loadStudent: () => import("./chunk-jump-race/ChunkJumpRaceStudentGame.tsx"),
     loadTeacher: () => import("./chunk-jump-race/ChunkJumpRaceTeacherGame.tsx"),
   }),

@@ -3,6 +3,7 @@ import {
   advanceChunkJumpCursor,
   buildChunkJumpCourse,
   chunkJumpChoices,
+  chunkJumpShowsMeaning,
   chunkJumpStep,
   initialChunkJumpCursor,
 } from "../../src/games/chunk-jump-race/model.ts";
@@ -52,5 +53,11 @@ for (let count = 1; count <= 30; count += 1) {
 }
 assert.deepEqual(orderCrowd(["c", "me", "a"], "me"), ["me", "a", "c"],
   "the local player takes the first tag slot; others keep a stable order");
+
+// The meaning is shown only when the teacher turns the lobby option on.
+assert.equal(chunkJumpShowsMeaning(null), false);
+assert.equal(chunkJumpShowsMeaning({}), false, "off by default");
+assert.equal(chunkJumpShowsMeaning({ "chunk-jump-meaning": "off" }), false);
+assert.equal(chunkJumpShowsMeaning({ "chunk-jump-meaning": "on" }), true);
 
 console.log("chunk jump race model test passed");

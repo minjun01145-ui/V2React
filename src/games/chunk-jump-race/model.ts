@@ -4,6 +4,12 @@ import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 
 export const CHUNK_JUMP_CHANNEL_ID = "chunk-jump-race";
 export const CHUNK_JUMP_RESPAWN_PENALTY = 5;
+/** Teacher lobby option (see games/registry.ts): show the sentence meaning while building it. */
+export const CHUNK_JUMP_MEANING_SETTING = "chunk-jump-meaning";
+
+export function chunkJumpShowsMeaning(gameConfig: Readonly<Record<string, unknown>> | null | undefined): boolean {
+  return gameConfig?.[CHUNK_JUMP_MEANING_SETTING] === "on";
+}
 
 export interface ChunkJumpSentence {
   readonly id: string;

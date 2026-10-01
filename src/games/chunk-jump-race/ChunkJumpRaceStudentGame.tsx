@@ -16,6 +16,7 @@ import {
   buildChunkJumpCourse,
   CHUNK_JUMP_RESPAWN_PENALTY,
   chunkJumpChoices,
+  chunkJumpShowsMeaning,
   chunkJumpStep,
   initialChunkJumpCursor,
   type ChunkJumpCursor,
@@ -111,6 +112,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     [course, cursor, distance, playerId, roundId],
   );
   const ownRank = Math.max(1, standings.findIndex((standing) => standing.playerId === playerId) + 1);
+  const showMeaning = chunkJumpShowsMeaning(session.gameConfig);
   const expired = clock.expired;
 
   useEffect(() => () => {
@@ -191,7 +193,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     </div>
     <div className={styles.skyQuestion} aria-label="다음 끊어읽기 조각 선택">
       <div className={styles.skyPrompt}>
-        <small>{step.sentence.meaning}</small>
+        {showMeaning ? <p className={styles.skyMeaning}><b>뜻</b>{step.sentence.meaning}</p> : null}
         <strong>
           {step.currentChunks.map((chunk, index) => <span key={`${index}:${chunk}`}>{chunk}</span>)}
           <em aria-hidden="true">?</em>
