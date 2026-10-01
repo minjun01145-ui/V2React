@@ -20,7 +20,7 @@ import Card from "../../shared/ui/Card.tsx";
 import { LearningCardSurface } from "../../shared/ui/LearningCard.tsx";
 import PartnerReveal from "./PartnerReveal.tsx";
 import { useCooperativeSentenceSet } from "./useCooperativeSentenceSet.ts";
-import styles from "./CooperativeSentence.module.css";
+import styles from "./CooperativeSentenceStudentGame.module.css";
 
 function Hearts({ count }: { readonly count: number }) { return <span className={styles.hearts} aria-label={`남은 하트 ${count}개`}>{[0, 1].map((index) => <i key={index} data-alive={index < count}>♥</i>)}</span>; }
 
@@ -139,17 +139,21 @@ export default function CooperativeSentenceStudentGame({ roomId, session, player
 
   return <div className={styles.shell} data-my-turn={state.isMyTurn} data-hard-mode={state.hardMode}>
     <GameEffectLayer effect={effects.activeEffect} />
+    <header className={styles.hud}>
     <div className={styles.teamBar}><div><span>당신은</span><strong>{state.teamName} 조입니다!</strong></div><Hearts count={state.hearts} /><div><span>진행</span><strong>{state.currentQuestionIndex + 1} / {state.questionCount}</strong></div></div>
     <TimedGameStatus session={session} compact />
     {state.hardMode && state.isMyTurn && state.turnDeadlineAtMs !== null ? <DeadlineCountdownBar deadlineAtMs={state.turnDeadlineAtMs} durationMs={5_000} label="문장 제한시간" /> : null}
+    </header>
+    <div className={styles.body}>
     <div className={styles.turnBanner} data-turn={state.isMyTurn}>{state.isMyTurn ? "당신의 차례입니다!" : "팀원이 문제를 풀고 있습니다…"}</div>
     <LearningCardSurface className={styles.prompt} eyebrow="문장 뜻" marker="커플" tone="warm">{question.prompt}</LearningCardSurface>
-    <Card className={`${!state.isMyTurn ? styles.locked : ""} ${state.isMyTurn ? styles.activeTurnCard : ""}`}>
+    <Card className={`${styles.workspace} ${!state.isMyTurn ? styles.locked : ""} ${state.isMyTurn ? styles.activeTurnCard : ""}`}>
       <p className={styles.label}>우리 조의 문장 <span>{state.isMyTurn ? "마지막 조각을 놓으면 자동 채점됩니다." : "조원의 정답을 기다려 주세요."}</span></p>
-      <div className={styles.answerZone}>{selectedTokens.length === 0 ? <span className={styles.placeholder}>{state.isMyTurn ? "아래 조각을 클릭" : "현재 문항을 함께 보고 있어요"}</span> : selectedTokens.map((token, index) => <button type="button" key={token.id} className={`${styles.token} ${styles.selected}`} onClick={() => setSelectedIds((current) => current.filter((id) => id !== token.id))} disabled={!state.isMyTurn || submitting}><span>{index + 1}</span>{token.text}</button>)}</div>
-      <div className={styles.tokenBank}>{unusedTokens.map((token) => <button type="button" className={styles.token} key={token.id} onClick={() => select(token.id)} disabled={!state.isMyTurn || submitting || turnCountdown?.expired}>{token.text}</button>)}</div>
+      <div className={styles.answerZone}>{selectedTokens.length === 0 ? <span className={styles.placeholder}>{state.isMyTurn ? "아래 조각을 클릭" : "현재 문항을 함께 보고 있어요"}</span> : selectedTokens.map((token, index) => <Button variant="ghost" type="button" key={token.id} className={`${styles.token} ${styles.selected}`} onClick={() => setSelectedIds((current) => current.filter((id) => id !== token.id))} disabled={!state.isMyTurn || submitting}><span>{index + 1}</span>{token.text}</Button>)}</div>
+      <div className={styles.tokenBank}>{unusedTokens.map((token) => <Button variant="ghost" type="button" className={styles.token} key={token.id} onClick={() => select(token.id)} disabled={!state.isMyTurn || submitting || turnCountdown?.expired}>{token.text}</Button>)}</div>
       {feedback ? <div className={feedback.correct ? styles.correct : styles.incorrect}>{feedback.text}</div> : null}
       <Button variant="ghost" onClick={() => setSelectedIds([])} disabled={!state.isMyTurn || submitting || selectedIds.length === 0}>다시 선택</Button>
     </Card>
+    </div>
   </div>;
 }
