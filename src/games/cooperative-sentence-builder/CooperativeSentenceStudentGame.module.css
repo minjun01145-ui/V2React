@@ -31,3 +31,5 @@
 .complete h1, .complete h2, .complete p { margin: 0; }
 .partners { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
 @media (max-width: 767px) { .shell { height: auto; } .body { overflow: visible; } .workspace { grid-template-rows: auto auto auto auto; } .answerZone, .tokenBank { min-height: 72px; } }
+
+.prompt { --text-game-card: var(--text-game-prompt); }

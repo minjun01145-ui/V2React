@@ -1,0 +1,6 @@
+.layout { composes: root from "../../game-engine/stage/GameLayout.module.css"; width: 100%; max-width: 1280px; margin: 0 auto; }
+.soloControls { composes: hud from "../../game-engine/stage/GameLayout.module.css"; color: var(--color-text); font-weight: 600; }
+.soloControls > div { display: flex; gap: 8px; }
+.body { composes: body from "../../game-engine/stage/GameLayout.module.css"; grid-row: 2; }
+.body > * { min-height: 0; min-width: 0; }
+@media (max-width: 767px) { .layout { height: auto; } .soloControls { flex-wrap: wrap; } .body { overflow: visible; } }

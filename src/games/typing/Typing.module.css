@@ -13,7 +13,7 @@
 .typingCard { composes: body from "../../game-engine/stage/GameLayout.module.css"; grid-row: 2; width: 100%; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 8px; }
 .cardHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--color-muted); font-size: var(--text-sm); }
 .cardHeader p { margin: 0; text-align: right; }
-.target { min-height: 0; overflow: auto; margin: 0; display: grid; align-content: center; color: var(--color-muted); text-align: center; font-size: var(--text-game-prompt); font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.target { min-height: 0; overflow: auto; margin: 0; display: block; align-content: center; color: var(--color-muted); text-align: center; font-size: var(--text-game-prompt); font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
 .target span { color: var(--color-primary); }
 .target b { color: inherit; font: inherit; }
 .target b[data-error="true"] { color: var(--color-danger); text-decoration: underline wavy; text-underline-offset: .28em; }
@@ -32,3 +32,5 @@
 .ranking th, .ranking td { padding: 8px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
 @media (max-width: 767px) { .game { height: auto; } .typingCard { overflow: visible; grid-template-rows: auto auto auto auto; } .target { min-height: 100px; } .topbar { flex-wrap: wrap; } }
 @media (max-width: 640px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .feedback { flex-wrap: wrap; } }
+
+.hud { justify-content: stretch; }

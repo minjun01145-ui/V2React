@@ -6,7 +6,7 @@ import { formatClock } from "../../game-engine/timed-game/clock.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import Button from "../../shared/ui/Button.tsx";
 import StudentPokemonCatch from "./StudentPokemonCatch.tsx";
-import styles from "./PokemonCatch.module.css";
+import styles from "./SoloPokemonCatchStudentModule.module.css";
 
 export default function SoloPokemonCatchStudentModule({ run, set, player, onFinish, onExit }: SoloGameModuleProps) {
   const clock = useTimedGameClock({ gameConfig: run.gameConfig, roundId: run.runId, startedAtMs: run.startedAtMs });
@@ -62,7 +62,7 @@ export default function SoloPokemonCatchStudentModule({ run, set, player, onFini
     {finishError ? <><p role="alert">{finishError}</p><Button onClick={() => void finish()} disabled={finishing}>{finishing ? "결과 저장 중…" : "결과 저장 다시 시도"}</Button><Button variant="ghost" onClick={() => void exit()} disabled={exiting}>{exiting ? "종료 중…" : "대기실로 돌아가기"}</Button></> : "포켓몬 잡기 결과를 정리하고 있습니다."}
   </StatusPanel>;
 
-  return <div>
+  return <div className={styles.layout}>
     <header className={styles.soloControls}>
       <span>{clock.remainingMs === null ? "혼자하기" : `남은 시간 ${formatClock(clock.remainingMs)}`}</span>
       <div>
@@ -70,7 +70,9 @@ export default function SoloPokemonCatchStudentModule({ run, set, player, onFini
         <Button variant="ghost" onClick={() => void finish()}>게임 마치기</Button>
       </div>
     </header>
+    <div className={styles.body}>
     {finishError ? <StatusPanel title="결과 저장 오류" tone="error">{finishError}</StatusPanel> : null}
     <StudentPokemonCatch roomId={run.runId} session={session} player={player} set={set} soloRun={run} />
+    </div>
   </div>;
 }

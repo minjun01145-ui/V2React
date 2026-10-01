@@ -261,7 +261,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
 
       <div className={styles.tableCenter}>
         <div className={styles.feltTable}>
-          <button
+          <Button variant="quiet"
             type="button"
             className={styles.drawPileButton}
             onClick={() => void draw()}
@@ -269,7 +269,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
             aria-label="카드 한 장 뽑기"
           >
             <span>WORD</span><strong>UNO</strong><small>한 장 뽑기</small>
-          </button>
+          </Button>
           <div className={styles.discardArea}>
             <span>PLAY</span>
             {state.topCard
@@ -301,7 +301,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
     <section className={styles.handSection} aria-label="내 카드">
       <div className={styles.handHeading}><div><span>내 카드</span><strong>{state.hand.length}장</strong></div><span className={styles.handHint}>낼 카드가 없으면 테이블의 덱을 눌러 뽑으세요.</span></div>
       <div className={styles.hand} key={shakeRevision} data-shake={Boolean(actionError)}>
-        {state.hand.map((card) => <button
+        {state.hand.map((card) => <Button variant="quiet"
           type="button"
           className={styles.handCard}
           data-stage={card.kind === "word" ? card.stage : undefined}
@@ -309,7 +309,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
           key={card.id}
           onClick={() => chooseCard(card)}
           disabled={!isMyTurn || busy || turnCountdown?.expired}
-        ><CardFace card={card} /></button>)}
+        ><CardFace card={card} /></Button>)}
       </div>
     </section>
   </div>;

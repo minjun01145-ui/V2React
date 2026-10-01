@@ -93,3 +93,7 @@
 .card { grid-template-rows: auto auto auto minmax(0, 1fr) auto; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-pop); }
 .ranking { min-height: 0; overflow: auto; }
 .mine strong { font-size: var(--text-xl); font-weight: 800; }
+
+.mine { grid-row: 3; }
+.ranking { grid-row: 4; }
+.note { grid-row: 5; }

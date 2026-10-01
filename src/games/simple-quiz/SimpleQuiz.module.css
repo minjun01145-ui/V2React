@@ -21,3 +21,8 @@
 @media (max-width: 767px) { .game { height: auto; } .topbar { flex-wrap: wrap; } .body { overflow: visible; } .options { grid-auto-rows: minmax(80px, auto); } }
 @media (max-width: 390px) { .options { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .feedback { animation: none; } }
+
+.prompt { --text-game-card: var(--text-game-prompt); }
+
+.options { grid-auto-rows: minmax(min-content, 1fr); overflow: auto; }
+.option { overflow: auto; }

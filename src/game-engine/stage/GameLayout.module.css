@@ -1,4 +1,7 @@
-.root { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--game-gap); }
-.hud { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; font-size: var(--text-game-hud); }
-.body { min-height: 0; display: grid; overflow: hidden; }
-.footer { min-height: 0; }
+/* Each game's own layout rules take precedence regardless of chunk load order. */
+@layer game-layout {
+  .root { height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--game-gap); }
+  .hud { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; font-size: var(--text-game-hud); }
+  .body { min-height: 0; display: grid; overflow: hidden; }
+  .footer { min-height: 0; }
+}

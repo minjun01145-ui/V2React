@@ -69,7 +69,7 @@
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 .item { overflow: hidden; border: 1px solid var(--color-border); border-radius: 1rem; background: var(--color-surface); transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease; }
 .item:hover { transform: translateY(-2px); border-color: var(--color-border-strong); box-shadow: var(--shadow-card); }
-.equipped { border-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-soft); }
+.equipped { border-color: var(--color-primary); box-shadow: var(--shadow-card); }
 .stage { position: relative; display: grid; min-height: 10rem; place-items: center; background: var(--color-surface); }
 .stage::after { position: absolute; right: 18%; bottom: 1rem; left: 18%; height: .65rem; border-radius: 50%; background: var(--color-text); content: ""; filter: blur(3px); }
 .stage > :not(.badge) { z-index: 1; }

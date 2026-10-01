@@ -19,3 +19,5 @@
 .embedded .topbar { display: none; }
 .actions { composes: footer from "../../game-engine/stage/GameLayout.module.css"; }
 @media (max-width: 767px) { .game { height: auto; } .topbar { flex-wrap: wrap; } .body { overflow: visible; } .workspace { grid-template-rows: auto auto auto auto; } .answerZone, .tokenBank { min-height: 72px; } }
+
+.prompt { --text-game-card: var(--text-game-prompt); }

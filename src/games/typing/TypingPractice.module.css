@@ -43,14 +43,6 @@
 .inputArea input:focus { border-color:var(--color-primary); box-shadow: var(--shadow-card); }
 .inputArea input[aria-invalid="true"] { border-color:var(--color-danger); }
 .inputArea small { color:var(--color-primary); font-size:.68rem; font-weight: 700; }
-.itemSlots { position:relative; z-index:3; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:.5rem; max-width:760px; margin:.65rem auto 0; }
-.itemSlots button { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:.4rem; min-width:0; padding:.55rem .65rem; border:1px solid var(--color-primary); border-radius:.85rem; color:var(--color-primary-text); background:var(--color-surface); font:800 .76rem/1.2 inherit; cursor:pointer; box-shadow: var(--shadow-card); }
-.itemSlots button:not(:disabled):hover { border-color:var(--color-primary); transform:translateY(-1px); }
-.itemSlots button:disabled { color:var(--color-primary); background:var(--color-surface); cursor:not-allowed; opacity:.72; }
-.itemSlots kbd { display:grid; width:1.45rem; height:1.45rem; place-items:center; border-radius:.4rem; color:var(--color-surface); background:var(--color-primary); font:900 .72rem/1 inherit; }
-.itemSlots button:disabled kbd { background:var(--color-muted); }
-.itemSlots span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.itemSlots b { display:grid; min-width:1.35rem; height:1.35rem; place-items:center; border-radius:999px; color:var(--color-surface); background:var(--color-danger); }
 .overlay { position:absolute; inset:0; z-index:10; display:grid; place-items:center; padding:1rem; background:var(--color-primary); backdrop-filter:blur(7px); }
 .resultCard { width:min(420px,100%); padding:1.6rem; border:1px solid var(--color-border); border-radius:1.4rem; background:var(--color-surface); text-align:center; box-shadow: var(--shadow-card); }
 .resultCard h2 { margin:.35rem 0; color:var(--color-primary-text); font-size: var(--text-game-card); }
@@ -58,7 +50,7 @@
 .resultCard div { display:flex; flex-wrap:wrap; justify-content:center; gap:.55rem; }
 @keyframes fall { to { transform: translateY(calc(100cqh - 1.3rem)); } }
 @keyframes hit-pop { 0% { opacity:1; scale:.86; } 48% { opacity:1; scale:1.06; } 100% { opacity:0; scale:1.16; } }
-@media (max-width:760px) { .game { padding:.65rem; border-radius:1rem; } .playArea { grid-template-columns:1fr; } .speedPanel { grid-template-columns:repeat(2,1fr); order:2; } .speedPanel p { grid-column:1/-1; } .sky { height:46dvh; min-height:310px; } .drop span,.hitEffect span { max-width:180px; } .itemSlots { grid-template-columns:repeat(2,minmax(0,1fr)); } @keyframes fall { to { transform: translateY(calc(100cqh - 1.3rem)); } } }
+@media (max-width:760px) { .game { padding:.65rem; border-radius:1rem; } .playArea { grid-template-columns:1fr; } .speedPanel { grid-template-columns:repeat(2,1fr); order:2; } .speedPanel p { grid-column:1/-1; } .sky { height:46dvh; min-height:310px; } .drop span,.hitEffect span { max-width:180px; } @keyframes fall { to { transform: translateY(calc(100cqh - 1.3rem)); } } }
 @media (prefers-reduced-motion:reduce) { .ground i { transition:none; } .hitEffect span { animation-duration:.12s; } }
 
 .game { composes: root from "../../game-engine/stage/GameLayout.module.css"; width: 100%; max-width: 1280px; margin: 0 auto; padding: 0; border-radius: var(--radius-lg); background: var(--color-bg); box-shadow: none; }

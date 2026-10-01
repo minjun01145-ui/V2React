@@ -4,7 +4,7 @@
 .card[data-tone="mint"] { --learning-card-accent: var(--color-success); }
 .card[data-tone="warm"] { --learning-card-accent: var(--color-warning); }
 button.card { cursor: pointer; transition: transform .16s ease, border-color .16s ease, opacity .28s ease; }
-button.card:hover:not(:disabled) { border-color: var(--color-border-strong); transform: translateY(-2px); }
+button.card:hover:not(:disabled):not([data-selected="true"]):not([data-exiting="true"]) { border-color: var(--color-border-strong); transform: translateY(-2px); }
 button.card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .card[data-selected="true"] { border-color: var(--color-primary); background: var(--color-primary-soft); transform: none; }
 .card[data-exiting="true"] { opacity: 0; transform: scale(.8); pointer-events: none; }
