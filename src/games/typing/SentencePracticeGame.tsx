@@ -9,7 +9,7 @@ import { useSentencePractice } from "./useSentencePractice.ts";
 import { savePracticeCompletion, type PracticeCompletion } from "../../student-data/typing-practice/repository.ts";
 import type { WaitingTypingConfig } from "./waitingTypingConfig.ts";
 import type { TypingQuestionSet } from "./types.ts";
-import styles from "./Typing.module.css";
+import styles from "./SentencePracticeGame.module.css";
 
 interface Props {
   readonly roomId: string;
@@ -57,6 +57,7 @@ function SentencePracticeBoard({ roomId, nickname, config, onExit, set }: Props 
   const result = saved?.result;
   return <main className={styles.game}>
     <header className={styles.topbar}><h1>영어 단문 연습</h1><Button variant="ghost" onClick={onExit}>대기실로</Button></header>
+    <div className={styles.body}>
     {game.completedAt !== null ? <Card className={styles.typingCard}>
       {showRanking && saved ? <>
         <h2>{Number(saved.month.slice(5))}월의 영어 단문연습 순위</h2>
@@ -99,5 +100,6 @@ function SentencePracticeBoard({ roomId, nickname, config, onExit, set }: Props 
         </ol>
       </Card>
     </>}
+    </div>
   </main>;
 }

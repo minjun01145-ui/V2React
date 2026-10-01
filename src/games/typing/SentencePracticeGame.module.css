@@ -32,3 +32,10 @@
 .ranking th, .ranking td { padding: 8px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
 @media (max-width: 767px) { .game { height: auto; } .typingCard { overflow: visible; grid-template-rows: auto auto auto auto; } .target { min-height: 100px; } .topbar { flex-wrap: wrap; } }
 @media (max-width: 640px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .feedback { flex-wrap: wrap; } }
+
+.topbar { composes: hud from "../../game-engine/stage/GameLayout.module.css"; }
+.body { composes: body from "../../game-engine/stage/GameLayout.module.css"; grid-row: 2; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+.typingCard { grid-row: auto; grid-template-rows: auto minmax(0, 1fr) auto auto auto minmax(0, 1fr); }
+.typingCard > p:not(.target) { margin: 0; font-size: var(--text-sm); }
+.body > .typingCard:only-child { grid-row: 1 / -1; display: flex; flex-direction: column; justify-content: center; overflow: auto; }
+@media (max-width: 767px) { .body { overflow: visible; } .typingCard { grid-template-rows: auto auto auto auto auto auto; } }

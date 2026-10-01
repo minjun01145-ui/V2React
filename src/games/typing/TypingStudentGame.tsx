@@ -24,6 +24,7 @@ function TypingPlayArea({ roomId, session, player, set }: StudentGameModuleProps
   const onChange = (event: ChangeEvent<HTMLTextAreaElement>): void => game.updateInput(event.target.value);
 
   return <main className={styles.game}>
+    <div className={styles.hud}>
     <header className={styles.topbar}>
       <div><h1>{game.setTitle}</h1></div>
       <div className={styles.score}><small>완료</small><strong>{game.progress.correctCount}</strong></div>
@@ -36,6 +37,7 @@ function TypingPlayArea({ roomId, session, player, set }: StudentGameModuleProps
       <div><small>정확도</small><strong>{game.accuracy}</strong><span>%</span></div>
     </section>
 
+    </div>
     <Card className={styles.typingCard}>
       <div className={styles.cardHeader}>
         <span>{game.currentIndex + 1} / {game.questionCount}</span>
