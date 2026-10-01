@@ -33,7 +33,7 @@ import {
   parseBattleGameConfig,
   resolveBattleQuestionSide,
 } from "./config.ts";
-import styles from "./OneOnOneBattle.module.css";
+import styles from "./OneOnOneBattleStudentGame.module.css";
 
 function Hearts({ count }: { readonly count: number }) {
   return <span className={styles.hearts} aria-label={`남은 하트 ${count}개`}>
@@ -428,6 +428,7 @@ export default function OneOnOneBattleStudentGame({
   return <div className={styles.shell}>
     <GameEffectLayer effect={effects.activeEffect} />
 
+    <header className={styles.hud}>
     <div className={styles.topbar}>
       <div>
         <strong>승리 {state.kills} · 패배 {state.deaths}</strong>
@@ -449,6 +450,8 @@ export default function OneOnOneBattleStudentGame({
         />
       : null}
 
+    </header>
+    <div className={styles.body}>
     <div className={styles.banner} data-role={state.role}>{banner}</div>
 
     <GameItemSlots
@@ -561,6 +564,7 @@ export default function OneOnOneBattleStudentGame({
         </Card>
       : null}
 
+    </div>
     {inkBlocked
       ? <div className={styles.inkOverlay} role="status" aria-live="assertive">
           <div>
