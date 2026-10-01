@@ -279,6 +279,7 @@ export function TypingPracticeBoard({
   return <main className={styles.game} onClick={() => inputRef.current?.focus()}>
     <GameEffectLayer effect={effects.activeEffect} />
 
+    <div className={styles.hud}>
     <header className={styles.header}>
       <div><h1>{set.name}</h1></div>
       {onExit
@@ -308,6 +309,7 @@ export function TypingPracticeBoard({
       </div>
     </section>
 
+    </div>
     <div className={styles.playArea}>
       <aside className={styles.speedPanel} aria-label="타자속도">
         <div>
@@ -374,6 +376,7 @@ export function TypingPracticeBoard({
       </section>
     </div>
 
+    <div className={styles.footer}>
     <label className={styles.inputArea}>
       <span>떨어지는 영어를 입력하세요</span>
       <input
@@ -414,6 +417,7 @@ export function TypingPracticeBoard({
       ]}
     />
 
+    </div>
     {overlayOpen
       ? <div className={styles.overlay} role="dialog" aria-modal="true">
           <div className={styles.resultCard}>
