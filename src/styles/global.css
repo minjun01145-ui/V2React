@@ -7,4 +7,6 @@
 }
 body {
   background: var(--color-bg);
+  font-size: var(--text-md);
+  line-height: 1.5;
 }
