@@ -1,9 +1,14 @@
-.runtime { display: grid; gap: 1rem; }
-.runtime > header { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .25rem .8rem; align-items: center; padding: .8rem 1rem; border-radius: .85rem; color: white; background: linear-gradient(135deg, #4338ca, #7c3aed); }
-.runtime > header span { overflow: hidden; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
-.runtime > header strong { grid-row: 1 / 3; grid-column: 2; font-size: 1.2rem; }
-.runtime > header small { opacity: .82; }
-.answers { display: grid; gap: .5rem; }
-.answers > div { display: grid; grid-template-columns: 1.8rem minmax(0, 1fr); gap: .25rem .6rem; padding: .65rem; border-radius: .65rem; background: var(--color-surface-muted); }
+.runtime { composes: root from "../../../game-engine/stage/GameLayout.module.css"; width: 100%; max-width: 1280px; margin: 0 auto; }
+.hud { composes: hud from "../../../game-engine/stage/GameLayout.module.css"; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-primary-text); background: var(--color-primary-soft); }
+.hud span { overflow: hidden; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.hud strong { grid-row: 1 / 3; grid-column: 2; font-size: var(--text-xl); font-weight: 800; }
+.hud small { color: var(--color-muted); }
+.body { composes: body from "../../../game-engine/stage/GameLayout.module.css"; grid-row: 2; }
+.body > * { min-height: 0; min-width: 0; }
+.results { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.results h2 { font-size: var(--text-game-prompt); margin: 0 0 8px; }
+.answers { min-height: 0; overflow: auto; display: grid; gap: 8px; }
+.answers > div { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 8px; padding: 8px; border-radius: var(--radius-sm); background: var(--color-surface-muted); overflow-wrap: anywhere; }
 .answers b { grid-row: 1 / 3; color: var(--color-primary); }
 .answers span { color: var(--color-muted); }
+@media (max-width: 767px) { .runtime { height: auto; } .body { overflow: visible; } }
