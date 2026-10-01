@@ -53,6 +53,7 @@ export interface GameQuizQuestionPresentation {
 export interface GameDefinition {
   readonly id: string;
   readonly title: string;
+  readonly cover?: string;
   readonly category: GameCategory;
   readonly supportedSetTypes: readonly string[];
   readonly timing: GameTiming;
@@ -72,6 +73,7 @@ export interface GameDefinition {
 }
 
 export type GameDefinitionInput = Omit<GameDefinition, "timing" | "minimumSetItemCount" | "minimumSetItemCountByType" | "requiresStoredSet" | "settings" | "preloadPlayerProgress" | "supportsFiniteQuizQuestions" | "handlesOwnTimedBoundary" | "fixedTimedMode" | "solo"> & {
+  readonly cover?: string;
   readonly timing?: GameTiming;
   readonly minimumSetItemCount?: number;
   readonly minimumSetItemCountByType?: Readonly<Record<string, number>>;

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200">
+  <rect x="0" y="0" width="320" height="200" fill="#1f1f24" />
+  <g fill="#000000" opacity="0.15" transform="translate(0 6)">
+    <rect x="125" y="58" width="70" height="104" rx="12" transform="rotate(-24 160 162)" />
+    <rect x="125" y="58" width="70" height="104" rx="12" transform="rotate(-8 160 162)" />
+    <rect x="125" y="58" width="70" height="104" rx="12" transform="rotate(8 160 162)" />
+    <rect x="125" y="58" width="70" height="104" rx="12" transform="rotate(24 160 162)" />
+  </g>
+  <g transform="rotate(-24 160 162)">
+    <rect x="125" y="58" width="70" height="104" rx="12" fill="#e5484d" stroke="#ffffff" stroke-width="6" />
+    <ellipse cx="160" cy="110" rx="20" ry="34" transform="rotate(25 160 110)" fill="#ffffff" />
+  </g>
+  <g transform="rotate(-8 160 162)">
+    <rect x="125" y="58" width="70" height="104" rx="12" fill="#f5c84b" stroke="#ffffff" stroke-width="6" />
+    <ellipse cx="160" cy="110" rx="20" ry="34" transform="rotate(25 160 110)" fill="#ffffff" />
+  </g>
+  <g transform="rotate(8 160 162)">
+    <rect x="125" y="58" width="70" height="104" rx="12" fill="#30a46c" stroke="#ffffff" stroke-width="6" />
+    <ellipse cx="160" cy="110" rx="20" ry="34" transform="rotate(25 160 110)" fill="#ffffff" />
+  </g>
+  <g transform="rotate(24 160 162)">
+    <rect x="125" y="58" width="70" height="104" rx="12" fill="#3e7bfa" stroke="#ffffff" stroke-width="6" />
+    <ellipse cx="160" cy="110" rx="20" ry="34" transform="rotate(25 160 110)" fill="#ffffff" />
+  </g>
+</svg>
