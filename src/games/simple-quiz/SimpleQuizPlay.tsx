@@ -156,6 +156,7 @@ export default function SimpleQuizPlay({
       </div>
     </header>
 
+    <div className={styles.body}>
     <LearningCardSurface className={styles.prompt} eyebrow="뜻" marker="?" tone="warm">{question.prompt}</LearningCardSurface>
     <p className={styles.guide}>뜻에 맞는 단어를 빠르게 선택하세요.</p>
     <section className={styles.options} aria-label={`${game.questionCount > 0 ? question.options.length : 0}개 선택지`}>
@@ -170,9 +171,10 @@ export default function SimpleQuizPlay({
         key={option.id}
       >{option.text}</LearningCardButton>)}
     </section>
+    </div>
     <div className={styles.feedback} data-tone={feedbackTone} role="status" aria-live="polite">
       {feedback || "선택하는 즉시 채점됩니다."}
-      {advanceFailed ? <button className={styles.retryButton} type="button" onClick={() => { setAdvanceFailed(false); setSubmitting(true); setAdvanceRetry((value) => value + 1); }}>다음 문제 다시 시도</button> : null}
+      {advanceFailed ? <Button variant="ghost" size="sm" type="button" onClick={() => { setAdvanceFailed(false); setSubmitting(true); setAdvanceRetry((value) => value + 1); }}>다음 문제 다시 시도</Button> : null}
     </div>
   </section>;
 }
