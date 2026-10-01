@@ -197,14 +197,16 @@ export default function SentenceBuilderPlay({
         <div className={styles.comboChip}>{engine.progress.combo} COMBO</div><div className={styles.scoreChip}>{engine.progress.score}점</div>
       </div>
     </div>
+    <div className={styles.body}>
     <LearningCardSurface className={styles.prompt} eyebrow="문장 뜻" marker="문장" tone="warm">{question.prompt}</LearningCardSurface>
-    <Card>
+    <Card className={styles.workspace}>
       <p className={styles.label}>내 문장 <span>마지막 조각을 놓으면 자동으로 채점됩니다.</span></p>
-      <div className={styles.answerZone} aria-label="선택한 문장 조각">{selectedTokens.length === 0 ? <span className={styles.placeholder}>아래 조각을 클릭</span> : selectedTokens.map((token, index) => <button key={token.id} type="button" className={`${styles.token} ${styles.selected}`} onClick={() => removeToken(token.id)}><span>{index + 1}</span>{token.text}</button>)}</div>
+      <div className={styles.answerZone} aria-label="선택한 문장 조각">{selectedTokens.length === 0 ? <span className={styles.placeholder}>아래 조각을 클릭</span> : selectedTokens.map((token, index) => <Button variant="ghost" key={token.id} type="button" className={`${styles.token} ${styles.selected}`} onClick={() => removeToken(token.id)}><span>{index + 1}</span>{token.text}</Button>)}</div>
       <div className={styles.tokenBank} aria-label="사용 가능한 문장 조각">{unusedTokens.map((token) => <button key={token.id} type="button" className={styles.token} onClick={() => selectToken(token.id)} disabled={isDisabled || submitting || lastResult?.isCorrect}>{token.text}</button>)}</div>
       {lastResult ? <div className={`${styles.feedback} ${lastResult.isCorrect ? styles.correct : styles.incorrect}`} role="status">{lastResult.feedback}</div> : null}
       {finishError ? <div className={styles.feedback} role="alert">{finishError}</div> : null}
       <div className={styles.actions}>{lastResult?.isCorrect && !onQuestionComplete ? <Button onClick={() => void goNext()} disabled={isDisabled || submitting}>다음 문제</Button> : null}<Button variant="ghost" onClick={() => setSelectedTokenIds([])} disabled={isDisabled || submitting || selectedTokenIds.length === 0 || lastResult?.isCorrect}>다시 선택</Button></div>
     </Card>
+    </div>
   </div>;
 }
