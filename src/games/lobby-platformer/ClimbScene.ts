@@ -5,7 +5,7 @@ import { BlobActor, compactLabel } from "../../game-engine/phaser-kit/BlobActor.
 import { Effects } from "../../game-engine/phaser-kit/Effects.ts";
 import { BUFF_EFFECT, type ActiveBuff, type ItemClaim } from "../../game-engine/platformer-party/buffs.ts";
 import { PowerUpLayer } from "../../game-engine/platformer-party/PowerUpLayer.ts";
-import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, choosePunchTarget, encodePunch, punchKnockback } from "../../game-engine/platformer-party/punch.ts";
+import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, PUNCH_KNOCKBACK_MAX_SPEED, PUNCH_KNOCKBACK_MS, choosePunchTarget, encodePunch, punchKnockback } from "../../game-engine/platformer-party/punch.ts";
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
 import type { LiveEvent } from "../../live-world/events.ts";
 import {
@@ -85,7 +85,7 @@ export default class ClimbScene extends Phaser.Scene {
     this.effects = new Effects(this);
     this.powerUps = new PowerUpLayer(this, this.effects, {
       source: {
-        itemsAt: (nowMs) => climbItemsAt(this.options.seed, nowMs, this.floor),
+        itemsAt: (nowMs) => climbItemsAt(this.options.seed, nowMs, this.focusFloor()),
         kindOf: (id) => climbItemKindOf(this.options.seed, id),
       },
       localPlayerId: this.options.localPlayer.id,
@@ -147,7 +147,10 @@ export default class ClimbScene extends Phaser.Scene {
     );
     const powered = this.powerUps?.has("punch") ?? false;
     this.options.publishEvent(PUNCH_EVENT, target?.playerId ?? "", encodePunch(facing, powered));
-    if (target) this.effects.punchHit(target.x, target.y - 6, powered);
+    if (target) {
+      this.effects.punchHit(target.x, target.y - 6, powered);
+      this.remotes.get(target.playerId)?.recoil(this.time.now, facing);
+    }
   }
 
   receiveEvent(event: LiveEvent): void {
@@ -157,14 +160,17 @@ export default class ClimbScene extends Phaser.Scene {
     if (event.target === this.options.localPlayer.id) {
       const knockback = punchKnockback(event.value);
       this.body.setVelocity(knockback.vx, knockback.vy);
-      this.knockedUntil = this.time.now + 280;
-      this.actor.flash(0xffffff);
+      this.knockedUntil = this.time.now + PUNCH_KNOCKBACK_MS;
+      // Lift the speed cap now: physics steps before our next update and would clamp the hit.
+      this.body.setMaxVelocity(PUNCH_KNOCKBACK_MAX_SPEED, 1_100);
+      this.actor.recoil(this.time.now, event.value);
       this.effects.punchHit(this.body.center.x, this.body.center.y - 6, powered);
       this.cameras.main.shake(90, powered ? 0.008 : 0.004);
       return;
     }
     const victim = this.lastFrames.find((frame) => frame.playerId === event.target);
     if (victim) this.effects.punchHit(victim.x, victim.y - 6, powered);
+    this.remotes.get(event.target)?.recoil(this.time.now, event.value);
   }
 
   receiveClaim(claim: ItemClaim): void {
@@ -175,7 +181,9 @@ export default class ClimbScene extends Phaser.Scene {
 
   override update(time: number, delta: number): void {
     const now = this.options.nowMs();
-    this.course.update(this.floor, now, delta);
+    // Build the tower around where the player *is*, not the last floor they stood on:
+    // otherwise a long fall outruns the window and drops through empty sky to the ground.
+    this.course.update(this.focusFloor(), now, delta);
     this.updateLocalPlayer(time, delta);
     this.lastFrames = this.options.samplePlayers();
     this.updateActors(time, delta);
@@ -186,6 +194,11 @@ export default class ClimbScene extends Phaser.Scene {
       this.nextStandingsAt = time + 500;
       this.reportStandings();
     }
+  }
+
+  /** Floor at the player's current height (airborne or not). */
+  private focusFloor(): number {
+    return this.body ? climbFloorAt(this.body.bottom) : this.floor;
   }
 
   private fitCamera(): void {
@@ -231,8 +244,10 @@ export default class ClimbScene extends Phaser.Scene {
     const grounded = body.blocked.down;
     const knocked = time < this.knockedUntil;
     const speedBoost = this.powerUps?.has("speed") ? BUFF_EFFECT.speed.runMultiplier : 1;
-    body.setMaxVelocity(knocked ? RUN_SPEED * 2 : RUN_SPEED * speedBoost, 1_100);
-    body.setAccelerationX((Number(right) - Number(left)) * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION) * speedBoost);
+    body.setMaxVelocity(knocked ? PUNCH_KNOCKBACK_MAX_SPEED : RUN_SPEED * speedBoost, 1_100);
+    // A knocked player flies freely for a moment; steering would cancel the hit.
+    const steer = knocked ? 0 : Number(right) - Number(left);
+    body.setAccelerationX(steer * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION) * speedBoost);
     if (grounded && !knocked && ((right && body.velocity.x < 0) || (left && body.velocity.x > 0))) body.setVelocityX(body.velocity.x * 0.5);
     body.setDragX(grounded && !knocked && !left && !right ? GROUND_DRAG : AIR_DRAG);
     if (grounded) body.x += this.course.carrySpeedAt(body.center.x, body.bottom) * (delta / 1_000);

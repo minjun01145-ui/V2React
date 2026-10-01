@@ -1,12 +1,18 @@
 /**
- * Just-for-fun punches: no score or energy, only a small knockback. The
- * attacker picks the target; the victim's own client applies the knockback
- * (each client owns its physics), so the payload only says direction and power.
+ * Just-for-fun punches: no score or energy, only a knockback. The attacker
+ * picks the target; the victim's own client applies the knockback (each client
+ * owns its physics), so the payload only says direction and power.
  */
 
 export const PUNCH_EVENT = "punch";
 export const PUNCH_COOLDOWN_MS = 380;
-const REACH = 64;
+/**
+ * How long a knocked player flies uncontrolled: input is ignored, drag is
+ * light and the speed cap is lifted, so the hit reads as a clear "whoosh".
+ */
+export const PUNCH_KNOCKBACK_MS = 420;
+export const PUNCH_KNOCKBACK_MAX_SPEED = 1_000;
+const REACH = 72;
 const VERTICAL_REACH = 34;
 
 export interface PunchCandidate {
@@ -39,8 +45,9 @@ export function encodePunch(facing: number, powered: boolean): number {
   return (facing < 0 ? -1 : 1) * (powered ? 2 : 1);
 }
 
+/** Launch velocity for a hit: roughly 150 px back for a normal punch, about twice that when powered. */
 export function punchKnockback(value: number): { readonly vx: number; readonly vy: number } {
   const direction = value < 0 ? -1 : 1;
   const powered = Math.abs(value) >= 2;
-  return { vx: direction * (powered ? 520 : 240), vy: powered ? -320 : -170 };
+  return { vx: direction * (powered ? 900 : 560), vy: powered ? -440 : -320 };
 }

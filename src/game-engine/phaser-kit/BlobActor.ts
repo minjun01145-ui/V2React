@@ -5,6 +5,7 @@ const BODY_WIDTH = 34;
 const BODY_HEIGHT = 38;
 const LANDING_SPEED = 260;
 const PUNCH_MS = 200;
+const RECOIL_MS = 320;
 export const BLOB_TAG_Y = -54;
 
 export interface BlobPose {
@@ -38,6 +39,8 @@ export class BlobActor {
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private readonly fist: Phaser.GameObjects.Arc;
   private punchStartedAt = -Infinity;
+  private recoilStartedAt = -Infinity;
+  private recoilDirection = 1;
   private stride = 0;
   private facing = 1;
   private squashUntil = 0;
@@ -90,6 +93,16 @@ export class BlobActor {
     return this.facing;
   }
 
+  /**
+   * Instant "got hit" reaction, pushed in `direction`. Remote positions arrive a
+   * few hundred ms late, so this shows the hit on the attacker's screen at once.
+   */
+  recoil(time: number, direction: number): void {
+    this.recoilStartedAt = time;
+    this.recoilDirection = direction < 0 ? -1 : 1;
+    this.flash(0xffffff);
+  }
+
   /** Quick jab in `direction` (−1 left, 1 right). */
   punch(time: number, direction: number): void {
     this.punchStartedAt = time;
@@ -107,7 +120,11 @@ export class BlobActor {
 
   /** Returns true on the frame the character lands hard, so the scene can kick up dust. */
   update(pose: BlobPose, time: number, delta: number): boolean {
-    this.container.setPosition(Math.round(pose.x), Math.round(pose.feetY));
+    // A short jolt backwards (returns to 0) plus a lean; the real knockback follows via positions.
+    const recoilAge = (time - this.recoilStartedAt) / RECOIL_MS;
+    const recoil = recoilAge >= 0 && recoilAge < 1 ? Math.sin(Math.PI * recoilAge) : 0;
+    const recoilLean = recoilAge >= 0 && recoilAge < 1 ? this.recoilDirection * 0.55 * (1 - recoilAge) : 0;
+    this.container.setPosition(Math.round(pose.x + this.recoilDirection * recoil * 22), Math.round(pose.feetY - recoil * 10));
     this.container.setAlpha(pose.alpha ?? 1);
 
     const grounded = Math.abs(pose.vy) < 30;
@@ -142,7 +159,7 @@ export class BlobActor {
     this.scaleY += (targetY - this.scaleY) * blend;
     this.body.setDisplaySize(BODY_WIDTH * this.scaleX, BODY_HEIGHT * this.scaleY);
     this.body.setY(-4 - (running ? Math.abs(swing) * 3 : 0));
-    this.body.setRotation(Phaser.Math.Clamp(pose.vx / 2600, -0.12, 0.12));
+    this.body.setRotation(Phaser.Math.Clamp(pose.vx / 2600, -0.12, 0.12) + recoilLean);
 
     const [leftFoot, rightFoot] = this.feet;
     if (running) {

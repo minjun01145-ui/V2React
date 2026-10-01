@@ -45,7 +45,7 @@ import { PowerUpLayer } from "../../game-engine/platformer-party/PowerUpLayer.ts
 import type { PartyItemSource } from "../../game-engine/platformer-party/PowerUpTracker.ts";
 import { BUFF_EFFECT, type ActiveBuff, type ItemClaim } from "../../game-engine/platformer-party/buffs.ts";
 import { chunkLineUpItemKind, chunkLineUpItemsAt } from "./items.ts";
-import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, choosePunchTarget, encodePunch, punchKnockback } from "../../game-engine/platformer-party/punch.ts";
+import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, PUNCH_KNOCKBACK_MAX_SPEED, PUNCH_KNOCKBACK_MS, choosePunchTarget, encodePunch, punchKnockback } from "../../game-engine/platformer-party/punch.ts";
 import type { LiveEvent } from "../../live-world/events.ts";
 
 const RUN_SPEED = 300;
@@ -264,7 +264,10 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     );
     const powered = this.powerUps?.has("punch") ?? false;
     this.options.publishEvent?.(PUNCH_EVENT, target?.playerId ?? "", encodePunch(facing, powered));
-    if (target) this.effects.punchHit(target.x, target.y - 6, powered);
+    if (target) {
+      this.effects.punchHit(target.x, target.y - 6, powered);
+      this.remotes.get(target.playerId)?.recoil(this.time.now, facing);
+    }
   }
 
   receiveEvent(event: LiveEvent): void {
@@ -279,6 +282,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     }
     const victim = this.lastFrames.find((frame) => frame.playerId === event.target);
     if (victim) this.effects.punchHit(victim.x, victim.y - 6, powered);
+    this.remotes.get(event.target)?.recoil(this.time.now, event.value);
   }
 
   receiveClaim(claim: ItemClaim): void {
@@ -292,8 +296,10 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     if (!body || this.localRide) return;
     const knockback = punchKnockback(value);
     body.setVelocity(knockback.vx, knockback.vy);
-    this.knockedUntil = this.time.now + 280;
-    this.localActor?.flash(0xffffff);
+    this.knockedUntil = this.time.now + PUNCH_KNOCKBACK_MS;
+    // Lift the speed cap now: physics steps before our next update and would clamp the hit.
+    body.setMaxVelocity(PUNCH_KNOCKBACK_MAX_SPEED, 1_000);
+    this.localActor?.recoil(this.time.now, value);
     this.effects.punchHit(body.center.x, body.center.y - 6, Math.abs(value) >= 2);
     this.cameras.main.shake(90, Math.abs(value) >= 2 ? 0.008 : 0.004);
   }
@@ -494,8 +500,10 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const fallSpeed = body.velocity.y;
     const knocked = time < this.knockedUntil;
     const speedBoost = this.powerUps?.has("speed") ? BUFF_EFFECT.speed.runMultiplier : 1;
-    body.setMaxVelocity(knocked ? RUN_SPEED * 2 : RUN_SPEED * speedBoost, 1_000);
-    body.setAccelerationX((Number(right) - Number(left)) * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION) * speedBoost);
+    body.setMaxVelocity(knocked ? PUNCH_KNOCKBACK_MAX_SPEED : RUN_SPEED * speedBoost, 1_000);
+    // A knocked player flies freely for a moment; steering would cancel the hit.
+    const steer = knocked ? 0 : Number(right) - Number(left);
+    body.setAccelerationX(steer * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION) * speedBoost);
     // Turning around should feel immediate rather than skating.
     if (grounded && !knocked && ((right && body.velocity.x < 0) || (left && body.velocity.x > 0))) body.setVelocityX(body.velocity.x * 0.5);
     body.setDragX(grounded && !knocked && !left && !right ? GROUND_DRAG : AIR_DRAG);
