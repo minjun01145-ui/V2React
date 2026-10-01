@@ -47,6 +47,8 @@ interface CommonProps {
   readonly board: ChunkLineUpBoard;
   readonly elevatorState: ChunkLineUpElevatorState | null;
   readonly onConfirm?: (groupId: string, slotId: string) => void;
+  /** Time is up: keep showing the world but stop the player. */
+  readonly frozen?: boolean;
 }
 
 type Props = CommonProps & (
@@ -74,7 +76,7 @@ const TOUCH_ACTIONS = [
   { action: "left", label: "왼쪽", text: "◀" },
   { action: "right", label: "오른쪽", text: "▶" },
   { action: "punch", label: "펀치", text: "✊" },
-  { action: "confirm", label: "놓기, 엘리베이터, 내려가기", text: "▼" },
+  { action: "confirm", label: "놓기, 엘리베이터 부르기", text: "▼" },
   { action: "jump", label: "점프", text: "점프" },
 ] as const;
 
@@ -100,6 +102,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   const floorChangeRef = useRef(props.role === "student" ? props.onFloorChange : undefined);
   const buffsChangeRef = useRef(props.role === "student" ? props.onBuffsChange : undefined);
   const serverOffsetRef = useRef(0);
+  const frozenRef = useRef(props.frozen === true);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
   boardRef.current = props.board;
   elevatorRef.current = props.elevatorState;
@@ -108,6 +111,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   elevatorRideChangeRef.current = props.role === "student" ? props.onElevatorRideChange : undefined;
   floorChangeRef.current = props.role === "student" ? props.onFloorChange : undefined;
   buffsChangeRef.current = props.role === "student" ? props.onBuffsChange : undefined;
+  frozenRef.current = props.frozen === true;
 
   useImperativeHandle(ref, () => ({
     rejectSlot: () => sceneRef.current?.showWrong(),
@@ -216,6 +220,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       publishEvent: (kind, target, value) => events.publish(kind, target, value),
       claimItem: (id) => claims.claim(id),
       onBuffsChange: (buffs) => buffsChangeRef.current?.(buffs),
+      frozen: () => frozenRef.current,
       ...(props.role === "student" ? {
         input: inputRef.current,
         localPlayer: { id: props.playerId, label: props.label },

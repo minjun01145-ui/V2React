@@ -5,102 +5,83 @@ import type {
   ChunkLineUpElevatorState,
 } from "../../multiplayer/chunk-line-up/types.ts";
 
+/**
+ * Client mirror of functions/src/chunk-line-up/elevatorModel.ts (keep the two
+ * in sync): destination-dispatch cars resolved from a stored state and the
+ * shared clock, so the client animates exactly what the server decided.
+ */
+
 export const CHUNK_LINE_UP_ELEVATOR_CAPACITY = 3;
-export const CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS = 1_250;
+export const CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS = 1_500;
 export const CHUNK_LINE_UP_ELEVATOR_DOOR_MS = 360;
-export const CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS = 8_000;
 const PREDICTION_HOLD_MS = 10_000;
 const TRAVEL_BASE_MS = 420;
 const TRAVEL_PER_FLOOR_MS = 520;
-
-export function createChunkLineUpElevatorState(floorCount: number, nowMs: number): ChunkLineUpElevatorState {
-  const car = (id: ChunkLineUpElevatorId): ChunkLineUpElevatorCarState => ({
-    id,
-    phase: "open",
-    floor: floorCount,
-    targetFloor: null,
-    phaseStartedAtMs: nowMs,
-    seats: [],
-    queue: [],
-  });
-  return { revision: 1, lobbyFloor: floorCount, left: car("left"), right: car("right") };
-}
 
 export function chunkLineUpElevatorTravelMs(fromFloor: number, toFloor: number): number {
   return TRAVEL_BASE_MS + Math.max(1, Math.abs(fromFloor - toFloor)) * TRAVEL_PER_FLOOR_MS;
 }
 
-function referencedQueue(seats: readonly ChunkLineUpElevatorRider[], queue: readonly number[]): number[] {
-  const destinations = new Set(seats.flatMap((seat) => seat.destinationFloor === null ? [] : [seat.destinationFloor]));
-  return queue.filter((floor) => destinations.has(floor));
+export function createChunkLineUpElevatorState(floorCount: number, nowMs: number): ChunkLineUpElevatorState {
+  const car = (id: ChunkLineUpElevatorId): ChunkLineUpElevatorCarState => ({
+    id, phase: "open", floor: floorCount, targetFloor: null, direction: 0, phaseStartedAtMs: nowMs, seats: [],
+  });
+  return { revision: 1, lobbyFloor: floorCount, left: car("left"), right: car("right") };
 }
 
-function phaseDuration(car: ChunkLineUpElevatorCarState, lobbyFloor: number): number | null {
-  if (car.phase === "open") {
-    if (car.seats.some((seat) => seat.destinationFloor === null)) return CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS;
-    if (car.queue.length > 0) return CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS;
-    if (car.seats.length === 0 && car.floor !== lobbyFloor) return CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS;
-    return null;
-  }
+export function chunkLineUpElevatorStops(car: ChunkLineUpElevatorCarState): number[] {
+  return [...new Set(car.seats.map((seat) => seat.boarded ? seat.destinationFloor : seat.originFloor))];
+}
+
+function nextStop(car: ChunkLineUpElevatorCarState): { readonly floor: number; readonly direction: -1 | 1 } | null {
+  const stops = chunkLineUpElevatorStops(car).filter((floor) => floor !== car.floor);
+  if (stops.length === 0) return null;
+  const ahead = car.direction === 0 ? [] : stops.filter((floor) => Math.sign(floor - car.floor) === car.direction);
+  const pool = ahead.length > 0 ? ahead : stops;
+  const floor = pool.reduce((best, candidate) => Math.abs(candidate - car.floor) < Math.abs(best - car.floor) ? candidate : best);
+  return { floor, direction: floor < car.floor ? -1 : 1 };
+}
+
+function exchangeRiders(car: ChunkLineUpElevatorCarState): ChunkLineUpElevatorRider[] {
+  return car.seats
+    .filter((seat) => !(seat.boarded && seat.destinationFloor === car.floor))
+    .map((seat) => !seat.boarded && seat.originFloor === car.floor ? { ...seat, boarded: true } : seat);
+}
+
+function phaseDuration(car: ChunkLineUpElevatorCarState): number | null {
+  if (car.phase === "open") return chunkLineUpElevatorStops(car).some((floor) => floor !== car.floor) ? CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS : null;
   if (car.phase === "closing" || car.phase === "opening") return CHUNK_LINE_UP_ELEVATOR_DOOR_MS;
-  if (car.targetFloor === null) return 0;
-  return chunkLineUpElevatorTravelMs(car.floor, car.targetFloor);
+  return car.targetFloor === null ? 0 : chunkLineUpElevatorTravelMs(car.floor, car.targetFloor);
 }
 
-function advanceCar(car: ChunkLineUpElevatorCarState, transitionAtMs: number, lobbyFloor: number): ChunkLineUpElevatorCarState {
+function advanceCar(car: ChunkLineUpElevatorCarState, at: number): ChunkLineUpElevatorCarState {
   if (car.phase === "open") {
-    const seats = car.seats.filter((seat) => seat.destinationFloor !== null);
-    const queue = referencedQueue(seats, car.queue);
-    const targetFloor = queue[0] ?? (seats.length === 0 && car.floor !== lobbyFloor ? lobbyFloor : null);
-    if (targetFloor === null) return { ...car, seats: [], queue: [], phaseStartedAtMs: transitionAtMs };
-    return { ...car, phase: "closing", targetFloor, seats, queue, phaseStartedAtMs: transitionAtMs };
+    const stop = nextStop(car);
+    if (!stop) return { ...car, direction: 0, phaseStartedAtMs: at };
+    return { ...car, phase: "closing", targetFloor: stop.floor, direction: stop.direction, phaseStartedAtMs: at };
   }
-  if (car.phase === "closing") return { ...car, phase: "moving", phaseStartedAtMs: transitionAtMs };
-  if (car.phase === "moving") {
-    const arrivedFloor = car.targetFloor ?? car.floor;
-    return {
-      ...car,
-      phase: "opening",
-      floor: arrivedFloor,
-      phaseStartedAtMs: transitionAtMs,
-    };
-  }
-  const arrivedFloor = car.targetFloor ?? car.floor;
-  const seats = car.seats.filter((seat) => seat.destinationFloor !== arrivedFloor);
-  const queue = referencedQueue(seats, car.queue.filter((floor) => floor !== arrivedFloor));
-  return {
-    ...car,
-    phase: "open",
-    targetFloor: null,
-    phaseStartedAtMs: transitionAtMs,
-    seats,
-    queue,
-  };
+  if (car.phase === "closing") return { ...car, phase: "moving", phaseStartedAtMs: at };
+  if (car.phase === "moving") return { ...car, phase: "opening", floor: car.targetFloor ?? car.floor, phaseStartedAtMs: at };
+  const arrived = { ...car, phase: "open" as const, targetFloor: null, phaseStartedAtMs: at };
+  return { ...arrived, seats: exchangeRiders(arrived) };
 }
 
-export function resolveChunkLineUpElevatorCar(
-  input: ChunkLineUpElevatorCarState,
-  nowMs: number,
-  lobbyFloor: number,
-): ChunkLineUpElevatorCarState {
-  let car: ChunkLineUpElevatorCarState = { ...input, seats: [...input.seats], queue: [...input.queue] };
-  for (let step = 0; step < 24; step += 1) {
-    const duration = phaseDuration(car, lobbyFloor);
+export function resolveChunkLineUpElevatorCar(input: ChunkLineUpElevatorCarState, nowMs: number): ChunkLineUpElevatorCarState {
+  let car: ChunkLineUpElevatorCarState = { ...input, seats: [...input.seats] };
+  for (let step = 0; step < 48; step += 1) {
+    const duration = phaseDuration(car);
     if (duration === null || nowMs < car.phaseStartedAtMs + duration) break;
-    car = advanceCar(car, car.phaseStartedAtMs + duration, lobbyFloor);
+    car = advanceCar(car, car.phaseStartedAtMs + duration);
   }
   return car;
 }
 
-export function resolveChunkLineUpElevatorState(
-  input: ChunkLineUpElevatorState,
-  nowMs: number,
-): ChunkLineUpElevatorState {
+export function resolveChunkLineUpElevatorState(input: ChunkLineUpElevatorState, nowMs: number): ChunkLineUpElevatorState {
   return {
     revision: input.revision,
     lobbyFloor: input.lobbyFloor,
-    left: resolveChunkLineUpElevatorCar(input.left, nowMs, input.lobbyFloor),
-    right: resolveChunkLineUpElevatorCar(input.right, nowMs, input.lobbyFloor),
+    left: resolveChunkLineUpElevatorCar(input.left, nowMs),
+    right: resolveChunkLineUpElevatorCar(input.right, nowMs),
   };
 }
 
@@ -118,18 +99,26 @@ export function chunkLineUpElevatorDoorOpenRatio(car: ChunkLineUpElevatorCarStat
   return car.phase === "opening" ? ratio : 1 - ratio;
 }
 
+/** The player's booking (waiting or riding), with its seat index in the car. */
 export function findChunkLineUpPlayerElevator(
   state: ChunkLineUpElevatorState,
   playerId: string,
-): { readonly elevatorId: ChunkLineUpElevatorId; readonly car: ChunkLineUpElevatorCarState; readonly rider: ChunkLineUpElevatorRider } | null {
+): { readonly elevatorId: ChunkLineUpElevatorId; readonly car: ChunkLineUpElevatorCarState; readonly rider: ChunkLineUpElevatorRider; readonly seatIndex: number } | null {
   for (const elevatorId of ["left", "right"] as const) {
     const car = state[elevatorId];
-    const rider = car.seats.find((seat) => seat.playerId === playerId);
-    if (rider) return { elevatorId, car, rider };
+    const seatIndex = car.seats.findIndex((seat) => seat.playerId === playerId);
+    const rider = car.seats[seatIndex];
+    if (rider) return { elevatorId, car, rider, seatIndex };
   }
   return null;
 }
 
+/**
+ * Optimistic booking shown while the server call is in flight. A car the
+ * player steps into keeps its doors open until the server's state (with its
+ * own departure time) replaces this, so a slow reply cannot re-seat a player
+ * who already got off.
+ */
 export function predictChunkLineUpElevatorRide(
   state: ChunkLineUpElevatorState,
   elevatorId: ChunkLineUpElevatorId,
@@ -141,28 +130,19 @@ export function predictChunkLineUpElevatorRide(
 ): ChunkLineUpElevatorState | null {
   const current = resolveChunkLineUpElevatorState(state, nowMs);
   const car = current[elevatorId];
-  const occupiedByPlayer = current.left.seats.some((seat) => seat.playerId === playerId)
-    || current.right.seats.some((seat) => seat.playerId === playerId);
-  if (occupiedByPlayer
-    || car.phase !== "open"
-    || car.floor !== floor
+  if (findChunkLineUpPlayerElevator(current, playerId)
     || car.seats.length >= CHUNK_LINE_UP_ELEVATOR_CAPACITY
-    || destinationFloor < 0
-    || destinationFloor >= floorCount
+    || floor < 0 || floor > floorCount
+    || destinationFloor < 0 || destinationFloor >= floorCount
     || destinationFloor === floor) return null;
-  const queue = car.queue.includes(destinationFloor) ? car.queue : [...car.queue, destinationFloor];
+  const here = car.phase === "open" && car.floor === floor;
   return {
     ...current,
     revision: state.revision + 1,
     [elevatorId]: {
       ...car,
-      // The player is shown inside at once, but the doors stay open until the
-      // server's state (with its own departure time) replaces this prediction.
-      // Departing locally first let a slow server reply seat the player again
-      // after they had already got off at the destination.
-      phaseStartedAtMs: nowMs + PREDICTION_HOLD_MS,
-      seats: [...car.seats, { playerId, destinationFloor }],
-      queue,
+      seats: [...car.seats, { playerId, originFloor: floor, destinationFloor, boarded: here }],
+      phaseStartedAtMs: car.phase === "open" ? nowMs + PREDICTION_HOLD_MS : car.phaseStartedAtMs,
     },
   };
 }

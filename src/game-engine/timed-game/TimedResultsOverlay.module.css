@@ -1,0 +1,91 @@
+.overlay {
+  position: absolute;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(3px);
+  animation: fadeIn 260ms ease-out both;
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+  width: min(440px, 100%);
+  max-height: 100%;
+  padding: 20px 22px;
+  overflow-y: auto;
+  border: 4px solid #fcd34d;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 10px 0 rgba(30, 58, 95, .25), 0 24px 60px rgba(15, 23, 42, .35);
+  text-align: center;
+  animation: popIn 420ms cubic-bezier(.2, .9, .25, 1.2) both;
+}
+
+.kicker { margin: 0; color: #dc2626; font-size: 15px; font-weight: 950; }
+.card h1 { margin: 0; color: #1e3a5f; font-size: clamp(20px, 3vw, 26px); }
+
+.mine {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  color: #92400e;
+  font-weight: 900;
+}
+
+.mine strong { color: #b45309; font-size: 44px; line-height: 1; }
+.mine strong small { font-size: 18px; }
+
+.ranking {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.ranking li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  font-weight: 800;
+}
+
+.ranking li[data-self="true"] { outline: 3px solid #f59e0b; background: #fffbeb; }
+.ranking li b {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: #cbd5e1;
+  color: #1e293b;
+  font-size: 13px;
+}
+.ranking li[data-rank="1"] b { background: #f59e0b; color: #fff; }
+.ranking li[data-rank="2"] b { background: #94a3b8; color: #fff; }
+.ranking li[data-rank="3"] b { background: #c2773d; color: #fff; }
+.ranking li span { overflow: hidden; color: #1e293b; text-overflow: ellipsis; white-space: nowrap; }
+.ranking li em { color: #1e3a5f; font-style: normal; font-weight: 950; }
+.selfRow { margin-top: 6px; }
+
+.note { margin: 0; color: #64748b; font-size: 12px; font-weight: 800; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .card { animation: none; }
+}

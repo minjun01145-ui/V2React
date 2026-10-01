@@ -10,6 +10,7 @@
 .studentShell .canvasWrap { height: 100%; }
 
 .teacherShell {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 240px;
   gap: 14px;

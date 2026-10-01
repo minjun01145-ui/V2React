@@ -3,8 +3,8 @@ import type { PlatformerInput } from "../../game-engine/platformer/movement.ts";
 import { clearPlatformerInput, createJumpState, takeJump } from "../../game-engine/platformer/movement.ts";
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
 import type {
+  ChunkLineUpAssignment,
   ChunkLineUpBoard,
-  ChunkLineUpElevatorCarState,
   ChunkLineUpElevatorId,
   ChunkLineUpElevatorRideInfo,
   ChunkLineUpElevatorState,
@@ -19,19 +19,19 @@ import {
 import {
   CHUNK_LINE_UP_FLOOR_GAP,
   CHUNK_LINE_UP_JUMP_PAD_VELOCITY,
-  CHUNK_LINE_UP_LANDING_WIDTH,
   CHUNK_LINE_UP_PLAYER_HEIGHT,
   CHUNK_LINE_UP_PLAYER_WIDTH,
   CHUNK_LINE_UP_ROW_LEFT,
   CHUNK_LINE_UP_ROW_RIGHT,
-  CHUNK_LINE_UP_SHAFT_WIDTH,
   CHUNK_LINE_UP_WALK_LEFT,
   CHUNK_LINE_UP_WALK_RIGHT,
   chunkLineUpFloorAt,
   chunkLineUpFloorY,
   chunkLineUpGroundY,
   chunkLineUpShaftX,
+  chunkLineUpSlotRects,
   chunkLineUpWorldHeight,
+  type ChunkLineUpRect,
 } from "./layout.ts";
 import { CHUNK_LINE_UP_WORLD_WIDTH } from "./model.ts";
 import { BlobActor, compactLabel, type BlobPose } from "../../game-engine/phaser-kit/BlobActor.ts";
@@ -53,10 +53,12 @@ const GROUND_ACCELERATION = 2_600;
 const AIR_ACCELERATION = 1_700;
 const GROUND_DRAG = 2_800;
 const AIR_DRAG = 700;
-const DROP_THROUGH_MS = 240;
 const SEAT_OFFSETS = [-22, 0, 22] as const;
 const MIN_STUDENT_ZOOM = 0.62;
 const EXIT_GUARD_MS = 8_000;
+/** How far from a floor's open end the elevator door zone reaches, and where riders step out. */
+const DOOR_REACH = 70;
+const EXIT_OFFSET = 100;
 /** Students see roughly this many floors at once; the camera follows them up the tower. */
 const STUDENT_VISIBLE_FLOORS = 2.5;
 
@@ -80,25 +82,31 @@ export interface ChunkLineUpSceneOptions {
   readonly publishEvent?: (kind: string, target: string, value: number) => void;
   readonly claimItem?: (id: string) => Promise<boolean>;
   readonly onBuffsChange?: (buffs: readonly ActiveBuff[]) => void;
+  /** True once time is up: the player can no longer move or act. */
+  readonly frozen?: () => boolean;
 }
 
 /**
  * One compact tag per character: floors are only a jump apart, so stacked
  * name + chunk labels would cover the shelf above.
  */
-function actorTag(label: string, token: string | undefined, self: boolean): string {
-  const chunk = compactLabel(token ?? "", self ? 26 : 14);
-  if (self) return `▼ ${chunk || "나"}`;
+function actorTag(label: string, assignment: ChunkLineUpAssignment | undefined, self: boolean): string {
+  const chunk = compactLabel(assignment?.token ?? "", self ? 26 : 14);
+  const attached = Boolean(assignment?.attachedGroupId);
+  if (self) return chunk ? `▼ ${chunk}` : attached ? "✓ 문장 완성 기다리는 중" : "카드 기다리는 중";
   const name = compactLabel(label, 8);
-  return chunk ? `${name} · ${chunk}` : name;
+  return chunk ? `${name} · ${chunk}` : attached ? `${name} · ✓` : name;
 }
-
-function actorPose(state: LiveMovementState, insideElevator: boolean): BlobPose {
+function actorPose(
+  state: LiveMovementState,
+  insideElevator: boolean,
+  cabinSeat: { readonly x: number; readonly feetY: number } | undefined,
+): BlobPose {
   return {
-    x: state.x,
-    feetY: state.y + CHUNK_LINE_UP_PLAYER_HEIGHT / 2,
-    vx: state.vx,
-    vy: state.vy,
+    x: cabinSeat?.x ?? state.x,
+    feetY: cabinSeat?.feetY ?? state.y + CHUNK_LINE_UP_PLAYER_HEIGHT / 2,
+    vx: cabinSeat ? 0 : state.vx,
+    vy: cabinSeat ? 0 : state.vy,
     alpha: insideElevator ? 0.35 : 1,
   };
 }
@@ -106,7 +114,6 @@ function actorPose(state: LiveMovementState, insideElevator: boolean): BlobPose 
 type DownAction =
   | { readonly kind: "slot"; readonly hit: SlotHit }
   | { readonly kind: "elevator"; readonly id: ChunkLineUpElevatorId; readonly floor: number }
-  | { readonly kind: "drop" }
   | null;
 
 /**
@@ -132,9 +139,12 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private readonly remotes = new Map<string, BlobActor>();
   private jump = createJumpState();
   private wasGrounded = false;
-  private dropUntil = 0;
   private elevatorState: ChunkLineUpElevatorState | null = null;
   private insideRiderIds = new Set<string>();
+  private ridingIds = new Set<string>();
+  private cabinSeats = new Map<string, { readonly x: number; readonly feetY: number }>();
+  /** The slot the local player filled and waits on until that sentence is complete. */
+  private pinnedSlot: ChunkLineUpRect | null = null;
   private localRide: ChunkLineUpElevatorRideInfo | null = null;
   private localRideKey = "";
   private requestedElevator: { readonly id: ChunkLineUpElevatorId; readonly floor: number } | null = null;
@@ -222,20 +232,18 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   }
 
   /**
-   * The single "down" action, resolved by where the player stands: confirm an
-   * empty slot, open the elevator menu at an open door, or drop through a floor.
+   * The single "down" action, resolved by where the player stands: place the
+   * card on the empty slot underfoot, or call the elevator at its door.
+   * (Going down is done by walking off a floor's open end.)
    */
   performDownAction(): void {
     const action = this.downAction();
     if (!action || !this.body) return;
     if (action.kind === "slot") {
       this.options.onConfirm(action.hit.groupId, action.hit.slot.id);
-    } else if (action.kind === "elevator") {
+    } else {
       this.requestedElevator = { id: action.id, floor: action.floor };
       this.options.onElevatorApproach(action.id, action.floor);
-    } else {
-      this.dropUntil = this.time.now + DROP_THROUGH_MS;
-      this.body.setVelocityY(60);
     }
   }
 
@@ -254,13 +262,13 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const body = this.body;
     const actor = this.localActor;
     const localId = this.options.localPlayer?.id;
-    if (!body || !actor || !localId || this.localRide || this.time.now < this.punchReadyAt) return;
+    if (!body || !actor || !localId || this.riding() || this.frozen() || this.time.now < this.punchReadyAt) return;
     this.punchReadyAt = this.time.now + PUNCH_COOLDOWN_MS;
     const facing = actor.facingDirection;
     actor.punch(this.time.now, facing);
     const target = choosePunchTarget(
       { x: body.center.x, y: body.center.y, facing },
-      this.lastFrames.filter((frame) => frame.playerId !== localId && !this.insideRiderIds.has(frame.playerId)),
+      this.lastFrames.filter((frame) => frame.playerId !== localId && !this.ridingIds.has(frame.playerId)),
     );
     const powered = this.powerUps?.has("punch") ?? false;
     this.options.publishEvent?.(PUNCH_EVENT, target?.playerId ?? "", encodePunch(facing, powered));
@@ -293,7 +301,8 @@ export default class ChunkLineUpScene extends Phaser.Scene {
 
   private takePunch(value: number): void {
     const body = this.body;
-    if (!body || this.localRide) return;
+    // Riders and players pinned to their placed card cannot be knocked away.
+    if (!body || this.riding() || this.pinnedSlot) return;
     const knockback = punchKnockback(value);
     body.setVelocity(knockback.vx, knockback.vy);
     this.knockedUntil = this.time.now + PUNCH_KNOCKBACK_MS;
@@ -344,12 +353,22 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     if (this.body && this.options.input) this.updateLocalPlayer(time, delta);
     this.lastFrames = this.options.samplePlayers();
     this.updateActors(time, delta, this.lastFrames);
-    this.powerUps?.update(time, this.body && !this.localRide ? { x: this.body.center.x, y: this.body.center.y } : null);
-    const action = this.localRide ? null : this.downAction();
+    this.powerUps?.update(time, this.body && !this.riding() && !this.frozen() ? { x: this.body.center.x, y: this.body.center.y } : null);
+    const action = this.riding() ? null : this.downAction();
     this.boardView.drawFocus(action?.kind === "slot" ? action.hit : null, time);
     this.updateActionHint(action);
     this.backdrop.update(delta);
     if (this.body) this.followLocalPlayer(delta);
+  }
+
+  /** Sitting in a cabin (a booking that is still waiting for pickup does not count). */
+  private riding(): boolean {
+    return this.localRide?.boarded === true;
+  }
+
+  /** Time is up: the world keeps rendering but the player can no longer act. */
+  private frozen(): boolean {
+    return this.options.frozen?.() ?? false;
   }
 
   /** The tower's item schedule for the shared power-up layer. */
@@ -414,9 +433,23 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const floorCount = this.board.groups.length;
     if (floorCount !== this.floorCount) this.applyFloorCount(floorCount);
     const changes = this.boardView.render(this.board);
+    this.pinnedSlot = this.ownPinnedSlot(this.board);
     changes.filled.forEach((rect) => this.effects.slotFilled(rect));
     changes.completedFloors.forEach((floor) =>
       this.effects.celebrate(CHUNK_LINE_UP_ROW_LEFT, CHUNK_LINE_UP_ROW_RIGHT, chunkLineUpFloorY(floor, floorCount), "문장 완성!"));
+  }
+
+  /** After placing a card the player stays on that slot until the sentence is complete. */
+  private ownPinnedSlot(board: ChunkLineUpBoard): ChunkLineUpRect | null {
+    const localId = this.options.localPlayer?.id;
+    const attachedGroupId = localId ? board.assignments[localId]?.attachedGroupId : null;
+    if (!localId || !attachedGroupId) return null;
+    const floor = board.groups.findIndex((group) => group.id === attachedGroupId);
+    const group = board.groups[floor];
+    const slotIndex = group ? group.slots.findIndex((slot) => slot.filledBy === localId) : -1;
+    return group && slotIndex >= 0
+      ? chunkLineUpSlotRects(group.slots.length, floor, board.groups.length)[slotIndex] ?? null
+      : null;
   }
 
   /** The tower height follows the (per-round constant) number of sentences. */
@@ -451,7 +484,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
 
   private canLandOn(platform: unknown): boolean {
     const body = this.body;
-    if (!body || this.time.now < this.dropUntil || body.velocity.y < 0) return false;
+    if (!body || body.velocity.y < 0) return false;
     const platformBody = (platform as Phaser.GameObjects.Zone).body as { readonly top: number } | null;
     if (!platformBody) return false;
     // Only land when the feet were above the surface last step; never pop up from inside.
@@ -460,21 +493,22 @@ export default class ChunkLineUpScene extends Phaser.Scene {
 
   private downAction(): DownAction {
     const body = this.body;
-    if (!body || !body.blocked.down || !this.board) return null;
+    if (!body || !body.blocked.down || !this.board || this.frozen() || this.pinnedSlot) return null;
+    const localId = this.options.localPlayer?.id;
+    const carrying = Boolean(localId && this.options.playerToken(localId));
     const hit = this.boardView.slotAt(body.center.x, body.bottom);
-    if (hit && !hit.slot.fixed && !hit.slot.filledBy) return { kind: "slot", hit };
-    const door = this.openDoorAtFeet();
-    if (door) return { kind: "elevator", ...door };
-    if (body.bottom < chunkLineUpGroundY(this.floorCount) - 4) return { kind: "drop" };
-    return null;
+    if (carrying && hit && !hit.slot.fixed && !hit.slot.filledBy) return { kind: "slot", hit };
+    if (this.localRide) return null;
+    const door = this.doorAtFeet();
+    return door ? { kind: "elevator", ...door } : null;
   }
 
   private updateActionHint(action: DownAction): void {
-    if (!this.body || !action || action.kind === "drop") {
+    if (!this.body || !action) {
       this.actionHint.setVisible(false);
       return;
     }
-    const text = action.kind === "slot" ? "↓ 여기에 놓기" : "↓ 엘리베이터 타기";
+    const text = action.kind === "slot" ? "↓ 여기에 놓기" : "↓ 엘리베이터 부르기";
     if (this.actionHint.text !== text) this.actionHint.setText(text);
     this.actionHint.setPosition(Math.round(this.body.center.x), Math.round(this.body.top - 42)).setVisible(true);
   }
@@ -483,9 +517,22 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const body = this.body;
     const input = this.options.input;
     if (!body || !input) return;
-    if (this.localRide) {
+    if (this.riding()) {
       clearPlatformerInput(input);
       body.setAccelerationX(0).setVelocity(0, 0);
+      this.options.publish(this.movement());
+      return;
+    }
+    // Time is up, or the player placed a card and waits on that sentence: no control.
+    const pinned = this.pinnedSlot;
+    if (pinned || this.frozen()) {
+      clearPlatformerInput(input);
+      body.setAccelerationX(0).setDragX(GROUND_DRAG);
+      if (pinned && body.blocked.down) {
+        const slotCenter = pinned.x + pinned.width / 2;
+        if (Math.abs(body.center.x - slotCenter) > 2) body.reset(slotCenter, pinned.y - CHUNK_LINE_UP_PLAYER_HEIGHT / 2);
+        body.setVelocityX(0);
+      }
       this.options.publish(this.movement());
       return;
     }
@@ -553,9 +600,9 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private updateActors(time: number, delta: number, frames: readonly LiveRemoteFrame[]): void {
     const localId = this.options.localPlayer?.id;
     if (this.localActor && localId && this.body) {
-      this.localActor.setTag(actorTag(this.options.localPlayer!.label, this.options.playerToken(localId), true));
+      this.localActor.setTag(actorTag(this.options.localPlayer!.label, this.board?.assignments[localId], true));
       const movement = this.movement();
-      const landed = this.localActor.update(actorPose(movement, this.insideRiderIds.has(localId)), time, delta);
+      const landed = this.localActor.update(actorPose(movement, this.insideRiderIds.has(localId), this.cabinSeats.get(localId)), time, delta);
       if (landed) this.effects.landingDust(this.body.center.x, this.body.bottom);
       this.powerUps?.trail(localId, movement.x, this.body.bottom, movement.vx, time);
     }
@@ -570,8 +617,8 @@ export default class ChunkLineUpScene extends Phaser.Scene {
         actor = new BlobActor(this, frame.playerId, false);
         this.remotes.set(frame.playerId, actor);
       }
-      actor.setTag(actorTag(label, this.options.playerToken(frame.playerId), false));
-      actor.update(actorPose(frame, this.insideRiderIds.has(frame.playerId)), time, delta);
+      actor.setTag(actorTag(label, this.board?.assignments[frame.playerId], false));
+      actor.update(actorPose(frame, this.insideRiderIds.has(frame.playerId), this.cabinSeats.get(frame.playerId)), time, delta);
       this.powerUps?.trail(frame.playerId, frame.x, frame.y + CHUNK_LINE_UP_PLAYER_HEIGHT / 2, frame.vx, time);
     }
     for (const [id, actor] of this.remotes) {
@@ -581,21 +628,25 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     }
   }
 
-  private atLanding(id: ChunkLineUpElevatorId, floor: number): boolean {
-    if (!this.body || !this.body.blocked.down) return false;
-    const xDistance = Math.abs(this.body.center.x - chunkLineUpShaftX(id));
-    const yDistance = Math.abs(this.body.bottom - chunkLineUpFloorY(floor, this.floorCount));
-    return xDistance <= CHUNK_LINE_UP_SHAFT_WIDTH / 2 + CHUNK_LINE_UP_LANDING_WIDTH && yDistance <= 8;
+  /** Floor whose elevator door zone (the open end of that floor nearest the shaft) the player stands in. */
+  private doorFloor(id: ChunkLineUpElevatorId): number | null {
+    const body = this.body;
+    if (!body || !body.blocked.down) return null;
+    const floor = chunkLineUpFloorAt(body.bottom, this.floorCount);
+    if (Math.abs(body.bottom - chunkLineUpFloorY(floor, this.floorCount)) > 8) return null;
+    const x = body.center.x;
+    const inZone = id === "left" ? x <= CHUNK_LINE_UP_ROW_LEFT + DOOR_REACH : x >= CHUNK_LINE_UP_ROW_RIGHT - DOOR_REACH;
+    return inZone ? floor : null;
   }
 
-  /** An open car with a free seat whose door the player is standing at. */
-  private openDoorAtFeet(): { readonly id: ChunkLineUpElevatorId; readonly floor: number } | null {
+  /** A car with a free seat whose door the player stands at; it need not be here (calling brings it). */
+  private doorAtFeet(): { readonly id: ChunkLineUpElevatorId; readonly floor: number } | null {
     const state = this.elevatorState;
     if (!state || this.floorCount < 1) return null;
     for (const id of ["left", "right"] as const) {
-      const car: ChunkLineUpElevatorCarState = state[id];
-      if (car.phase !== "open" || car.seats.length >= CHUNK_LINE_UP_ELEVATOR_CAPACITY) continue;
-      if (this.atLanding(id, car.floor)) return { id, floor: car.floor };
+      if (state[id].seats.length >= CHUNK_LINE_UP_ELEVATOR_CAPACITY) continue;
+      const floor = this.doorFloor(id);
+      if (floor !== null) return { id, floor };
     }
     return null;
   }
@@ -605,12 +656,23 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const state = raw ? resolveChunkLineUpElevatorState(raw, now) : null;
     this.elevatorState = state;
     this.elevatorView.draw(state, this.floorCount, now);
+    this.cabinSeats = new Map();
+    this.ridingIds = new Set();
+    this.insideRiderIds = new Set();
     if (!state || this.floorCount < 1) return;
 
-    this.insideRiderIds = new Set([
-      ...(state.left.phase === "open" ? [] : state.left.seats.map((seat) => seat.playerId)),
-      ...(state.right.phase === "open" ? [] : state.right.seats.map((seat) => seat.playerId)),
-    ]);
+    // Everyone on board is drawn in their cabin seat from the shared elevator
+    // state; their own (delayed) position updates would trail below the car.
+    for (const id of ["left", "right"] as const) {
+      const car = state[id];
+      const cabinFloorY = chunkLineUpFloorY(chunkLineUpElevatorFloorPosition(car, now), this.floorCount);
+      car.seats.forEach((seat, index) => {
+        if (!seat.boarded) return;
+        this.cabinSeats.set(seat.playerId, { x: chunkLineUpShaftX(id) + (SEAT_OFFSETS[index] ?? 0), feetY: cabinFloorY - 5 });
+        this.ridingIds.add(seat.playerId);
+        if (car.phase !== "open") this.insideRiderIds.add(seat.playerId);
+      });
+    }
     const localId = this.options.localPlayer?.id;
     if (!localId || !this.body) return;
 
@@ -624,11 +686,12 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     }
     this.localRide = ride ? {
       elevatorId: ride.elevatorId,
-      currentFloor: ride.car.floor,
+      currentFloor: ride.rider.boarded ? ride.car.floor : ride.rider.originFloor,
       destinationFloor: ride.rider.destinationFloor,
+      boarded: ride.rider.boarded,
     } : null;
     const rideKey = this.localRide
-      ? `${this.localRide.elevatorId}:${this.localRide.currentFloor}:${this.localRide.destinationFloor ?? "?"}`
+      ? [this.localRide.elevatorId, this.localRide.currentFloor, this.localRide.destinationFloor ?? "?", this.localRide.boarded].join(":")
       : "";
     if (rideKey !== this.localRideKey) {
       this.localRideKey = rideKey;
@@ -638,41 +701,31 @@ export default class ChunkLineUpScene extends Phaser.Scene {
 
     // The cabin sits outside the walkable world bounds, so physics (and the
     // bounds clamp that Body.reset applies) is paused while riding.
-    this.body.enable = !ride;
-    this.body.setCollideWorldBounds(!ride);
-    if (ride) {
+    const boarded = ride?.rider.boarded === true;
+    this.body.enable = !boarded;
+    this.body.setCollideWorldBounds(!boarded);
+    const seat = this.cabinSeats.get(localId);
+    if (boarded && seat) {
       clearPlatformerInput(this.options.input!);
-      const seatIndex = Math.max(0, ride.car.seats.findIndex((seat) => seat.playerId === localId));
-      const floorY = chunkLineUpFloorY(chunkLineUpElevatorFloorPosition(ride.car, now), this.floorCount);
-      this.body.reset(
-        chunkLineUpShaftX(ride.elevatorId) + (SEAT_OFFSETS[seatIndex] ?? 0),
-        floorY - CHUNK_LINE_UP_PLAYER_HEIGHT / 2 - 5,
-      );
-      this.reportFloor(chunkLineUpFloorAt(floorY, this.floorCount));
+      this.body.reset(seat.x, seat.feetY - CHUNK_LINE_UP_PLAYER_HEIGHT / 2);
+      this.reportFloor(chunkLineUpFloorAt(seat.feetY + 5, this.floorCount));
       return;
     }
-    if (previousRide) {
-      // Step out onto the landing on the building side of the shaft.
-      const car = state[previousRide.elevatorId];
-      const direction = previousRide.elevatorId === "left" ? 1 : -1;
-      // Just past the door zone, so ↓ right after arriving means "drop", not "board again".
-      const exitX = chunkLineUpShaftX(previousRide.elevatorId)
-        + direction * (CHUNK_LINE_UP_SHAFT_WIDTH / 2 + CHUNK_LINE_UP_LANDING_WIDTH + 24);
-      const exitFloor = previousRide.destinationFloor ?? car.floor;
+    if (previousRide?.boarded && !ride) {
+      // Step out onto the floor, just past the door zone so ↓ does not call the car straight back.
+      const exitFloor = previousRide.destinationFloor ?? state[previousRide.elevatorId].floor;
+      const left = previousRide.elevatorId === "left";
+      const exitX = left ? CHUNK_LINE_UP_ROW_LEFT + EXIT_OFFSET : CHUNK_LINE_UP_ROW_RIGHT - EXIT_OFFSET;
       this.body.reset(exitX, chunkLineUpFloorY(exitFloor, this.floorCount) - CHUNK_LINE_UP_PLAYER_HEIGHT / 2);
-      this.body.setVelocityX(direction * 200);
+      this.body.setVelocityX(left ? 120 : -120);
       this.lastExit = { elevatorId: previousRide.elevatorId, floor: exitFloor, until: this.time.now + EXIT_GUARD_MS };
       return;
     }
 
-    // Close the destination menu if the player walks away or the car leaves.
+    // Close the destination menu if the player walks away from the door.
     const requested = this.requestedElevator;
-    if (requested) {
-      const car = state[requested.id];
-      if (!this.atLanding(requested.id, requested.floor) || car.phase !== "open" || car.floor !== requested.floor) {
-        this.requestedElevator = null;
-        this.options.onElevatorRideChange(null);
-      }
+    if (requested && this.doorFloor(requested.id) !== requested.floor) {
+      this.requestedElevator = null;
+      this.options.onElevatorRideChange(null);
     }
-  }
-}
+  }}

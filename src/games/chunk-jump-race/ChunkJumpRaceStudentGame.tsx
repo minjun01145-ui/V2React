@@ -6,6 +6,7 @@ import { playCorrectChime } from "../../game-engine/effects/sound.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
 import { FullscreenToggle, ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
+import { TimedResultsOverlay } from "../../game-engine/timed-game/TimedResultsOverlay.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
@@ -214,5 +215,11 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
       <strong>죽었습니다!</strong>
       <span>{CHUNK_JUMP_RESPAWN_PENALTY}칸 아래에서 리스폰됩니다.</span>
     </div> : null}
+    {expired ? <TimedResultsOverlay
+      title="끊어읽기 점프 레이스 결과"
+      unit="칸"
+      entries={standings.map((standing) => ({ id: standing.playerId, label: standing.label, value: standing.distance }))}
+      selfId={playerId}
+    /> : null}
   </div></ImmersiveStage>;
 }

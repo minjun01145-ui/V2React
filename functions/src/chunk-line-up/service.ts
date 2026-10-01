@@ -6,21 +6,14 @@ import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { isRecord } from "../shared/validation.js";
 import {
   buildInitialChunkLineUpBoard,
-  chooseChunkLineUpReplacementSource,
-  chooseChunkLineUpTarget,
-  chunkLineUpGroupComplete,
   isChunkLineUpElevatorDestinationOpen,
-  chunkLineUpSlotAcceptsToken,
-  instantiateChunkLineUpGroup,
-  instantiateChunkLineUpReplacement,
-  openChunkLineUpTargets,
+  placeChunkLineUpCard,
   publicChunkLineUpBoard,
   type ChunkLineUpPlayerProfile,
 } from "./model.js";
 import {
-  boardChunkLineUpElevator,
   boardChunkLineUpElevatorRide,
-  chooseChunkLineUpElevatorDestination,
+  CHUNK_LINE_UP_ELEVATOR_CAPACITY,
   createChunkLineUpElevatorState,
   resolveChunkLineUpElevatorState,
 } from "./elevatorModel.js";
@@ -32,7 +25,6 @@ import type {
   ChunkLineUpConfirmInput,
   ChunkLineUpElevatorBoardInput,
   ChunkLineUpElevatorCarState,
-  ChunkLineUpElevatorDestinationInput,
   ChunkLineUpElevatorId,
   ChunkLineUpElevatorResult,
   ChunkLineUpElevatorRideInput,
@@ -184,10 +176,15 @@ function parseAssignment(value: unknown): ChunkLineUpAssignment | null {
   const token = text(value.token);
   const targetGroupId = text(value.targetGroupId);
   const targetSlotId = text(value.targetSlotId);
+  const attachedGroupId = text(value.attachedGroupId) || null;
   const recentGroupId = value.recentGroupId === null ? null : text(value.recentGroupId);
   const score = integer(value.score);
-  return playerId && label && token && targetGroupId && targetSlotId && score >= 0
-    ? { playerId, label, token, targetGroupId, targetSlotId, score, recentGroupId: recentGroupId || null }
+  // A card needs its target; an attached or waiting player holds no card.
+  const consistent = token
+    ? Boolean(targetGroupId && targetSlotId) && attachedGroupId === null
+    : !targetGroupId && !targetSlotId;
+  return playerId && label && consistent && score >= 0
+    ? { playerId, label, token, targetGroupId, targetSlotId, attachedGroupId, score, recentGroupId: recentGroupId || null }
     : null;
 }
 
@@ -284,69 +281,56 @@ function resultFromOperation(value: unknown): ChunkLineUpActionResult | null {
     : null;
 }
 
-function assignmentTargetOpen(assignment: ChunkLineUpAssignment, groups: readonly ChunkLineUpGroup[]): boolean {
-  return groups.some((group) => group.id === assignment.targetGroupId
-    && group.slots.some((slot) => slot.id === assignment.targetSlotId && !slot.fixed && !slot.filledBy));
-}
-
 function parseElevatorState(value: unknown): ChunkLineUpElevatorState | null {
   if (!isRecord(value)) return null;
   const revision = integer(value.revision);
   const lobbyFloor = integer(value.lobbyFloor);
   const parseRider = (raw: unknown): ChunkLineUpElevatorRider | null => {
-    if (!isRecord(raw)) return null;
+    if (!isRecord(raw) || typeof raw.boarded !== "boolean") return null;
     const playerId = text(raw.playerId);
-    const destinationFloor = raw.destinationFloor === null ? null : integer(raw.destinationFloor);
-    return playerId && (destinationFloor === null || destinationFloor >= 0)
-      ? { playerId, destinationFloor }
+    const originFloor = typeof raw.originFloor === "number" && Number.isInteger(raw.originFloor) ? raw.originFloor : -1;
+    const destinationFloor = typeof raw.destinationFloor === "number" && Number.isInteger(raw.destinationFloor) ? raw.destinationFloor : -1;
+    return playerId && originFloor >= 0 && destinationFloor >= 0
+      ? { playerId, originFloor, destinationFloor, boarded: raw.boarded }
       : null;
   };
   const parseCar = (raw: unknown, id: ChunkLineUpElevatorId): ChunkLineUpElevatorCarState | null => {
-    if (!isRecord(raw) || raw.id !== id || !Array.isArray(raw.seats) || !Array.isArray(raw.queue)) return null;
+    if (!isRecord(raw) || raw.id !== id || !Array.isArray(raw.seats)) return null;
     const phase = raw.phase;
     if (phase !== "open" && phase !== "closing" && phase !== "moving" && phase !== "opening") return null;
+    const direction = raw.direction === -1 || raw.direction === 1 ? raw.direction : 0;
     const floor = integer(raw.floor);
     const targetFloor = raw.targetFloor === null ? null : integer(raw.targetFloor);
     const phaseStartedAtMs = integer(raw.phaseStartedAtMs);
     const seats = raw.seats.map(parseRider).filter((seat): seat is ChunkLineUpElevatorRider => seat !== null);
-    const queue = raw.queue.map(integer);
-    if (floor < 0 || phaseStartedAtMs <= 0 || seats.length !== raw.seats.length || seats.length > 3
+    if (floor < 0 || phaseStartedAtMs <= 0 || seats.length !== raw.seats.length || seats.length > CHUNK_LINE_UP_ELEVATOR_CAPACITY
       || new Set(seats.map((seat) => seat.playerId)).size !== seats.length
-      || queue.some((item) => item < 0) || new Set(queue).size !== queue.length
       || (targetFloor !== null && targetFloor < 0)) return null;
-    return { id, phase, floor, targetFloor, phaseStartedAtMs, seats, queue };
+    return { id, phase, floor, targetFloor, direction, phaseStartedAtMs, seats };
   };
   const left = parseCar(value.left, "left");
   const right = parseCar(value.right, "right");
   return revision >= 1 && lobbyFloor >= 1 && left && right ? { revision, lobbyFloor, left, right } : null;
 }
 
+/**
+ * Seat-only reservations were replaced by booking a ride with a destination.
+ * The callable stays deployed for old tabs and simply declines.
+ */
 export async function reserveChunkLineUpElevatorSeatService(
   uid: string,
   input: ChunkLineUpElevatorBoardInput,
 ): Promise<ChunkLineUpElevatorResult> {
-  const round = await validateRound(input);
+  const round = await validateRound(input, false);
   if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
   const stateSnapshot = await stateRef(round.roundRef).get();
   const gameState = parseServerState(stateSnapshot.exists ? stateSnapshot.data() : null);
   if (!gameState) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
-  const floorCount = gameState.board.groups.length;
-  if (input.floor < 0 || input.floor > floorCount) throw new HttpsError("invalid-argument", "엘리베이터 층 정보가 올바르지 않습니다.");
-  const ref = elevatorRef(round.roundRef);
-  return db.runTransaction(async (tx) => {
-    const snapshot = await tx.get(ref);
-    const now = Date.now();
-    const current = parseElevatorState(snapshot.exists ? snapshot.data() : null)
-      ?? createChunkLineUpElevatorState(floorCount, now);
-    const result = boardChunkLineUpElevator(current, input.elevatorId, uid, input.floor, now);
-    const nextState = { ...result.state, revision: current.revision + 1 };
-    tx.set(ref, {
-      ...nextState,
-      updatedAt: FieldValue.serverTimestamp(),
-      updatedAtMs: now,
-    });
-    return { accepted: result.accepted, state: nextState };
-  });
+  const snapshot = await elevatorRef(round.roundRef).get();
+  const now = Date.now();
+  const current = parseElevatorState(snapshot.exists ? snapshot.data() : null)
+    ?? createChunkLineUpElevatorState(gameState.board.groups.length, now);
+  return { accepted: false, state: resolveChunkLineUpElevatorState(current, now) };
 }
 
 export async function boardChunkLineUpElevatorRideService(
@@ -394,47 +378,6 @@ export async function boardChunkLineUpElevatorRideService(
     return { accepted: true, state: nextState };
   });
 }
-
-export async function setChunkLineUpElevatorDestinationService(
-  uid: string,
-  input: ChunkLineUpElevatorDestinationInput,
-): Promise<ChunkLineUpElevatorResult> {
-  const round = await validateRound(input, false);
-  if (!round.expectedPlayerIds.includes(uid)) throw new HttpsError("permission-denied", "현재 라운드 참가자가 아닙니다.");
-  const sRef = stateRef(round.roundRef);
-  const ref = elevatorRef(round.roundRef);
-  return db.runTransaction(async (tx) => {
-    const [stateSnapshot, snapshot] = await Promise.all([tx.get(sRef), tx.get(ref)]);
-    const gameState = parseServerState(stateSnapshot.exists ? stateSnapshot.data() : null);
-    if (!gameState) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
-    const floorCount = gameState.board.groups.length;
-    if (input.destinationFloor >= floorCount) throw new HttpsError("invalid-argument", "엘리베이터 행선지가 올바르지 않습니다.");
-    const now = Date.now();
-    const current = resolveChunkLineUpElevatorState(
-      parseElevatorState(snapshot.exists ? snapshot.data() : null) ?? createChunkLineUpElevatorState(floorCount, now),
-      now,
-    );
-    if (!isChunkLineUpElevatorDestinationOpen(gameState.board, input.destinationFloor, input.destinationGroupId)) {
-      return { accepted: false, state: current };
-    }
-    const result = chooseChunkLineUpElevatorDestination(
-      current,
-      input.elevatorId,
-      uid,
-      input.destinationFloor,
-      floorCount,
-      now,
-    );
-    const nextState = { ...result.state, revision: current.revision + 1 };
-    tx.set(ref, {
-      ...nextState,
-      updatedAt: FieldValue.serverTimestamp(),
-      updatedAtMs: now,
-    });
-    return { accepted: result.accepted, state: nextState };
-  });
-}
-
 export async function confirmChunkLineUpSlotService(
   uid: string,
   input: ChunkLineUpConfirmInput,
@@ -455,105 +398,17 @@ export async function confirmChunkLineUpSlotService(
     if (!state) throw new HttpsError("failed-precondition", "Chunk Line-Up 상태를 찾을 수 없습니다.");
     const board = state.board;
     if (Date.now() >= state.endsAtMs) return { accepted: false, revision: board.revision, reason: "expired" };
-    const assignment = board.assignments[uid];
-    if (!assignment) return { accepted: false, revision: board.revision, reason: "stale" };
-
-    const groupIndex = board.groups.findIndex((group) => group.id === input.groupId);
-    const group = board.groups[groupIndex];
-    if (!group) return { accepted: false, revision: board.revision, reason: "stale" };
-    const slotIndex = group.slots.findIndex((slot) => slot.id === input.slotId);
-    const slot = group.slots[slotIndex];
-    if (!slot || slot.fixed || slot.filledBy) return { accepted: false, revision: board.revision, reason: "stale" };
-    if (!chunkLineUpSlotAcceptsToken(slot, assignment.token)) {
-      return { accepted: false, revision: board.revision, reason: "wrong" };
-    }
-
-    const assignments: Record<string, ChunkLineUpAssignment> = { ...board.assignments };
-    assignments[uid] = {
-      ...assignment,
-      score: assignment.score + 1,
-      recentGroupId: group.id,
-      targetGroupId: group.id,
-      targetSlotId: slot.id,
-    };
-    const nextSlots = group.slots.map((current, index) => index === slotIndex
-      ? { ...current, filledBy: uid, filledLabel: assignment.label }
-      : current);
-    let completedGroup = false;
-    let completedGroupCount = board.completedGroupCount;
-    let groups = board.groups.map((current, index) => index === groupIndex ? { ...group, slots: nextSlots } : current);
-    let nextState = state;
-    const updatedGroup = groups[groupIndex];
-
-    if (updatedGroup && chunkLineUpGroupComplete(updatedGroup)) {
-      completedGroup = true;
-      completedGroupCount += 1;
-      const contributors = new Set(updatedGroup.slots.flatMap((current) => current.filledBy ? [current.filledBy] : []));
-      for (const contributor of contributors) {
-        const current = assignments[contributor];
-        if (current) assignments[contributor] = { ...current, score: current.score + 1 };
-      }
-      const otherGroups = groups.filter((_current, index) => index !== groupIndex);
-      const sourceSelection = chooseChunkLineUpReplacementSource(
-        state.sourceGroups,
-        state.nextSourceIndex,
-        new Set(otherGroups.map((current) => current.sourceId)),
-        updatedGroup.sourceId,
-      );
-      if (!sourceSelection) throw new HttpsError("failed-precondition", "다음 Chunk Line-Up 문장을 찾을 수 없습니다.");
-      const otherOpenSlotCount = openChunkLineUpTargets(otherGroups).length;
-      const replacement = instantiateChunkLineUpReplacement(
-        sourceSelection.source,
-        state.nextGroupSequence,
-        otherOpenSlotCount,
-        round.expectedPlayerIds.length,
-      );
-      groups = groups.map((current, index) => index === groupIndex ? replacement : current);
-      nextState = {
-        ...state,
-        nextSourceIndex: sourceSelection.nextSourceIndex,
-        nextGroupSequence: state.nextGroupSequence + 1,
-      };
-    }
-
-    const openTargets = openChunkLineUpTargets(groups);
-    if (openTargets.length === 0) throw new HttpsError("failed-precondition", "배정할 Chunk Line-Up 슬롯이 없습니다.");
-    const invalidPlayerIds = Object.values(assignments)
-      .filter((current) => !assignmentTargetOpen(current, groups))
-      .map((current) => current.playerId)
-      .sort();
-    for (const playerId of invalidPlayerIds) {
-      const current = assignments[playerId];
-      if (!current) continue;
-      const target = chooseChunkLineUpTarget(
-        groups,
-        assignments,
-        playerId,
-        current.recentGroupId,
-        `${input.roundId}:${board.revision + 1}:${playerId}`,
-      );
-      if (!target) continue;
-      assignments[playerId] = {
-        ...current,
-        token: target.text,
-        targetGroupId: target.groupId,
-        targetSlotId: target.slotId,
-      };
-    }
-
-    const nextBoard: ChunkLineUpBoard = {
-      revision: board.revision + 1,
-      groups,
-      assignments,
-      completedGroupCount,
-    };
-    const now = Date.now();
+    const placement = placeChunkLineUpCard(state, uid, input.groupId, input.slotId, input.roundId);
+    if (placement.kind !== "placed") return { accepted: false, revision: board.revision, reason: placement.kind };
+    const nextBoard: ChunkLineUpBoard = placement.state.board;
+    const nextState: ChunkLineUpServerState = { ...state, ...placement.state };
+    const completedGroup = placement.completedGroup;    const now = Date.now();
     persistBoard(tx, bRef, nextBoard, now);
     persistState(tx, sRef, round.setId, { ...nextState, board: nextBoard }, now);
     const result: ChunkLineUpActionResult = {
       accepted: true,
       revision: nextBoard.revision,
-      score: assignments[uid]?.score ?? assignment.score + 1,
+      score: placement.score,
       completedGroup,
     };
     tx.set(opRef, { ...result, createdAt: FieldValue.serverTimestamp(), createdAtMs: now });

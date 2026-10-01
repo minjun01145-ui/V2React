@@ -3,6 +3,7 @@ import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDef
 import { playCorrectChime } from "../../game-engine/effects/sound.ts";
 import { FullscreenToggle, ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
+import { TimedResultsOverlay } from "../../game-engine/timed-game/TimedResultsOverlay.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useChunkLineUpBoard, useChunkLineUpElevator } from "../../multiplayer/chunk-line-up/hooks.ts";
 import {
@@ -21,6 +22,7 @@ import BuffHud from "../../game-engine/platformer-party/BuffHud.tsx";
 import ChunkLineUpFloorGuide from "./ChunkLineUpFloorGuide.tsx";
 import type { ActiveBuff } from "../../game-engine/platformer-party/buffs.ts";
 import { chunkLineUpFloorLabel } from "./layout.ts";
+import { chunkLineUpRanking } from "./model.ts";
 import styles from "./ChunkLineUp.module.css";
 
 export default function ChunkLineUpStudentGame({ roomId, session, player }: StudentGameModuleProps) {
@@ -47,6 +49,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   const assignment = board.assignments[player.id];
   if (!assignment) return <StatusPanel title="청크 배정 대기 중" tone="waiting">현재 청크를 배정하고 있습니다.</StatusPanel>;
   const label = displayLabel(player.displayName, player.nickname);
+  const cardState = assignment.token ? "carrying" : assignment.attachedGroupId ? "attached" : "waiting";
 
   const chooseDestination = async (destinationFloor: number, destinationGroupId: string): Promise<void> => {
     if (!elevatorRide || destinationBusy || clock.expired) return;
@@ -141,21 +144,29 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       board={board}
       elevatorState={effectiveElevatorState}
       onConfirm={(groupId, slotId) => void confirm(groupId, slotId)}
-      onElevatorApproach={(elevatorId, floor) => setElevatorRide({ elevatorId, currentFloor: floor, destinationFloor: null })}
+      onElevatorApproach={(elevatorId, floor) => setElevatorRide({ elevatorId, currentFloor: floor, destinationFloor: null, boarded: false })}
       onElevatorRideChange={setElevatorRide}
       onFloorChange={setCurrentFloor}
       onBuffsChange={setBuffs}
+      frozen={clock.expired}
     />
     <BuffHud buffs={buffs} />
     <ChunkLineUpFloorGuide board={board} currentFloor={currentFloor} />
     <div className={styles.studentHud}>
-      <div className={styles.tokenHud}><small>내 청크</small><strong>{assignment.token}</strong></div>
+      <div className={styles.tokenHud} data-state={cardState}>
+        <small>{cardState === "carrying" ? "내 청크" : cardState === "attached" ? "놓기 성공!" : "카드 대기"}</small>
+        <strong>{cardState === "carrying"
+          ? assignment.token
+          : cardState === "attached"
+            ? "문장이 완성되면 새 카드!"
+            : "친구들이 문장을 완성하면 받아요"}</strong>
+      </div>
       <div className={styles.scoreHud}><small>점수</small><strong>{assignment.score}</strong></div>
       <TimedGameStatus session={session} compact />
       <FullscreenToggle target={shellRef} className={styles.fullscreenButton} />
     </div>
     <div className={styles.controlsHint}>
-      <kbd>← →</kbd> 이동 <kbd>↑</kbd> 점프(2단) <kbd>Space</kbd> 펀치 <kbd>↓</kbd> 놓기 · 엘리베이터 · 내려가기 <kbd>R</kbd> 로비로
+      <kbd>← →</kbd> 이동 <kbd>↑</kbd> 점프(2단) <kbd>Space</kbd> 펀치 <kbd>↓</kbd> 놓기 · 엘리베이터 부르기 <kbd>R</kbd> 로비로
     </div>
     {elevatorRide && elevatorRide.destinationFloor === null ? <div className={styles.elevatorDestination}>
       <strong>몇 층으로 갈까요?</strong>
@@ -174,6 +185,11 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       }}>닫기</button>
     </div> : null}
     {destinationBusy ? <div className={styles.elevatorPending}>목적지 확인 중 · 잠시만 기다려 주세요</div> : null}
+    {!destinationBusy && elevatorRide && elevatorRide.destinationFloor !== null && !elevatorRide.boarded
+      ? <div className={styles.elevatorPending}>
+        엘리베이터가 오고 있어요 · 문 앞에서 기다리세요 → {chunkLineUpFloorLabel(elevatorRide.destinationFloor, board.groups.length)}
+      </div>
+      : null}
     {feedback ? <div className={feedback === "wrong" ? styles.wrongFeedback : feedback === "checking" ? styles.checkingFeedback : styles.staleFeedback}>
       {feedback === "wrong"
         ? "여긴 아니에요!"
@@ -186,6 +202,11 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
           : "게임판이 바뀌었어요. 새 청크를 확인하세요."}
     </div> : null}
     {elevatorState.error ? <div className={styles.elevatorError}>엘리베이터 연결 오류 · 발판 이용</div> : null}
-    {clock.expired ? <div className={styles.expiredBadge}>시간 종료</div> : null}
+    {clock.expired ? <TimedResultsOverlay
+      title="Chunk Line-Up 결과"
+      unit="점"
+      entries={chunkLineUpRanking(board).map((entry) => ({ id: entry.playerId, label: entry.label, value: entry.score }))}
+      selfId={player.id}
+    /> : null}
   </div></ImmersiveStage>;
 }

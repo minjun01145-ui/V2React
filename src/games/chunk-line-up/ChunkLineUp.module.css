@@ -559,3 +559,9 @@
 }
 
 .teacherShell:fullscreen { height: 100%; border: 0; border-radius: 0; }
+
+/* Card states: placed and waiting on the sentence (green), no card yet (gray). */
+.tokenHud[data-state="attached"] { border-color: #86efac; background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+.tokenHud[data-state="attached"] strong { color: #15803d; font-size: clamp(13px, 1.5vw, 16px); }
+.tokenHud[data-state="waiting"] { border-color: #cbd5e1; background: #f8fafc; }
+.tokenHud[data-state="waiting"] strong { color: #475569; font-size: clamp(13px, 1.5vw, 16px); }

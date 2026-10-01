@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from "react";
 import type { TeacherGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import { FullscreenToggle } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
+import { TimedResultsOverlay } from "../../game-engine/timed-game/TimedResultsOverlay.tsx";
+import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
@@ -14,6 +16,7 @@ export default function ChunkJumpRaceTeacherGame({ roomId, session }: TeacherGam
   const participants = useRoundParticipants(roomId, session.roundId);
   const [standings, setStandings] = useState<readonly ChunkJumpStanding[]>([]);
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const clock = useTimedGameClock(session);
   const expectedIds = useMemo(() => new Set(session.expectedPlayerIds), [session.expectedPlayerIds]);
   const labels = useMemo(() => new Map(participants.value
     .filter((participant) => expectedIds.has(participant.playerId))
@@ -37,5 +40,11 @@ export default function ChunkJumpRaceTeacherGame({ roomId, session }: TeacherGam
         <strong>{index + 1}</strong><span>{standing.label}</span><b>{standing.distance}칸</b>
       </div>)}
     </aside>
+    {clock.expired ? <TimedResultsOverlay
+      title="점프 레이스 최종 순위"
+      unit="칸"
+      entries={standings.map((standing) => ({ id: standing.playerId, label: standing.label, value: standing.distance }))}
+      note="게임을 끝내면 학생들이 대기실로 돌아갑니다."
+    /> : null}
   </div>;
 }

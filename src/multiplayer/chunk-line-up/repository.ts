@@ -57,9 +57,10 @@ function assignment(value: unknown): ChunkLineUpAssignment | null {
   const playerId = text(value.playerId);
   const label = text(value.label);
   const token = text(value.token);
+  const attachedGroupId = text(value.attachedGroupId) || null;
   const score = integer(value.score);
-  return playerId && label && token && score >= 0
-    ? { playerId, label, token, score }
+  return playerId && label && score >= 0 && !(token && attachedGroupId)
+    ? { playerId, label, token, attachedGroupId, score }
     : null;
 }
 
@@ -96,33 +97,28 @@ function actionResult(value: unknown): ChunkLineUpActionResult {
 }
 
 function elevatorRider(value: unknown): ChunkLineUpElevatorRider | null {
-  if (!isRecord(value)) return null;
+  if (!isRecord(value) || typeof value.boarded !== "boolean") return null;
   const playerId = text(value.playerId);
-  const destinationFloor = value.destinationFloor === null
-    ? null
-    : typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor)
-      ? value.destinationFloor
-      : -1;
-  return playerId && (destinationFloor === null || destinationFloor >= 0)
-    ? { playerId, destinationFloor }
+  const originFloor = typeof value.originFloor === "number" && Number.isInteger(value.originFloor) ? value.originFloor : -1;
+  const destinationFloor = typeof value.destinationFloor === "number" && Number.isInteger(value.destinationFloor) ? value.destinationFloor : -1;
+  return playerId && originFloor >= 0 && destinationFloor >= 0
+    ? { playerId, originFloor, destinationFloor, boarded: value.boarded }
     : null;
 }
 
 function elevatorCar(value: unknown, id: ChunkLineUpElevatorId): ChunkLineUpElevatorCarState | null {
-  if (!isRecord(value) || value.id !== id || !Array.isArray(value.seats) || !Array.isArray(value.queue)) return null;
+  if (!isRecord(value) || value.id !== id || !Array.isArray(value.seats)) return null;
   if (value.phase !== "open" && value.phase !== "closing" && value.phase !== "moving" && value.phase !== "opening") return null;
+  const direction = value.direction === -1 || value.direction === 1 ? value.direction : 0;
   const floor = integer(value.floor);
   const targetFloor = value.targetFloor === null ? null : integer(value.targetFloor);
   const phaseStartedAtMs = integer(value.phaseStartedAtMs);
   const seats = value.seats.map(elevatorRider).filter((seat): seat is ChunkLineUpElevatorRider => seat !== null);
-  const queue = value.queue.map(integer);
   if (floor < 0 || phaseStartedAtMs <= 0 || seats.length !== value.seats.length || seats.length > 3
     || new Set(seats.map((seat) => seat.playerId)).size !== seats.length
-    || queue.some((item) => item < 0) || new Set(queue).size !== queue.length
     || (targetFloor !== null && targetFloor < 0)) return null;
-  return { id, phase: value.phase, floor, targetFloor, phaseStartedAtMs, seats, queue };
+  return { id, phase: value.phase, floor, targetFloor, direction, phaseStartedAtMs, seats };
 }
-
 function elevatorState(value: unknown): ChunkLineUpElevatorState | null {
   if (!isRecord(value)) return null;
   const revision = integer(value.revision);
@@ -193,16 +189,6 @@ export async function confirmChunkLineUpSlot(input: ConfirmChunkLineUpSlotInput)
   return actionResult(response.data);
 }
 
-export async function reserveChunkLineUpElevatorSeat(
-  roomId: string,
-  roundId: string,
-  elevatorId: ChunkLineUpElevatorId,
-  floor: number,
-): Promise<ChunkLineUpElevatorResult> {
-  const response = await httpsCallable(functions, "reserveChunkLineUpElevatorSeat")({ roomId, roundId, elevatorId, floor });
-  return elevatorResult(response.data);
-}
-
 export async function boardChunkLineUpElevatorRide(
   roomId: string,
   roundId: string,
@@ -216,23 +202,6 @@ export async function boardChunkLineUpElevatorRide(
     roundId,
     elevatorId,
     floor,
-    destinationFloor,
-    destinationGroupId,
-  });
-  return elevatorResult(response.data);
-}
-
-export async function setChunkLineUpElevatorDestination(
-  roomId: string,
-  roundId: string,
-  elevatorId: ChunkLineUpElevatorId,
-  destinationFloor: number,
-  destinationGroupId: string,
-): Promise<ChunkLineUpElevatorResult> {
-  const response = await httpsCallable(functions, "setChunkLineUpElevatorDestination")({
-    roomId,
-    roundId,
-    elevatorId,
     destinationFloor,
     destinationGroupId,
   });

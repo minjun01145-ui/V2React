@@ -6,6 +6,19 @@ import type {
   ChunkLineUpSourceGroup,
 } from "./types.js";
 
+/**
+ * Card rules.
+ *
+ * Every open slot is held by exactly one card, so nobody else can fill "your"
+ * slot and every sentence can always be finished. Placing a card attaches the
+ * player to that sentence until it is complete; then everyone who built it gets
+ * a card for the replacement sentence. Players without a card (more players than
+ * open slots) wait and are dealt in on the next completion.
+ */
+
+export const CHUNK_LINE_UP_MAX_GROUPS = 6;
+const PLAYERS_PER_GROUP = 3;
+
 export interface ChunkLineUpPlayerProfile {
   readonly playerId: string;
   readonly label: string;
@@ -46,25 +59,67 @@ export function instantiateChunkLineUpGroup(
     prompt: source.prompt,
     slots: source.slots.map((text, index): ChunkLineUpSlot => {
       const id = `${groupId}:slot:${index}`;
-      const fixed = fixedSlotIds.has(id);
-      return {
-        id,
-        text,
-        fixed,
-        filledBy: null,
-        filledLabel: null,
-      };
+      return { id, text, fixed: fixedSlotIds.has(id), filledBy: null, filledLabel: null };
     }),
   };
 }
 
-function initialGroupSources(
-  sources: readonly ChunkLineUpSourceGroup[],
-  playerCount: number,
-): { readonly sources: ChunkLineUpSourceGroup[]; readonly nextSourceIndex: number } {
-  if (sources.length === 0) throw new Error("Chunk Line-Up requires at least one source group.");
-  const groupCount = Math.min(sources.length, Math.max(1, Math.min(5, Math.ceil(playerCount / 4))));
-  return { sources: sources.slice(0, groupCount), nextSourceIndex: groupCount };
+export function chunkLineUpGroupCount(sourceCount: number, playerCount: number): number {
+  return Math.min(sourceCount, Math.max(1, Math.min(CHUNK_LINE_UP_MAX_GROUPS, Math.ceil(playerCount / PLAYERS_PER_GROUP))));
+}
+
+function carrying(assignment: ChunkLineUpAssignment): boolean {
+  return assignment.token !== "" && assignment.attachedGroupId === null;
+}
+
+function withCard(assignment: ChunkLineUpAssignment, target: ChunkLineUpTarget | null): ChunkLineUpAssignment {
+  return {
+    ...assignment,
+    token: target?.text ?? "",
+    targetGroupId: target?.groupId ?? "",
+    targetSlotId: target?.slotId ?? "",
+    attachedGroupId: null,
+  };
+}
+
+export function openChunkLineUpTargets(groups: readonly ChunkLineUpGroup[]): ChunkLineUpTarget[] {
+  return groups.flatMap((group) => group.slots.flatMap((slot) =>
+    !slot.fixed && !slot.filledBy ? [{ groupId: group.id, slotId: slot.id, text: slot.text }] : [],
+  ));
+}
+
+/**
+ * Restores the one-card-per-open-slot invariant: cards pointing at slots that
+ * are no longer open are dropped, then card-less (waiting) players are dealt
+ * the open slots nobody holds. Cards that are still valid are never changed.
+ */
+export function dealChunkLineUpCards(
+  groups: readonly ChunkLineUpGroup[],
+  assignments: Readonly<Record<string, ChunkLineUpAssignment>>,
+  seed: string,
+  priorityPlayerIds: readonly string[] = [],
+): Record<string, ChunkLineUpAssignment> {
+  const open = openChunkLineUpTargets(groups);
+  const openIds = new Set(open.map((target) => target.slotId));
+  const next: Record<string, ChunkLineUpAssignment> = {};
+  const held = new Set<string>();
+  for (const [playerId, assignment] of Object.entries(assignments)) {
+    const valid = carrying(assignment) && openIds.has(assignment.targetSlotId) && !held.has(assignment.targetSlotId);
+    if (valid) held.add(assignment.targetSlotId);
+    next[playerId] = valid || assignment.attachedGroupId !== null ? assignment : withCard(assignment, null);
+  }
+  const unheld = shuffled(open.filter((target) => !held.has(target.slotId)), `${seed}:targets`);
+  const waiting = Object.values(next).filter((assignment) => !carrying(assignment) && assignment.attachedGroupId === null);
+  const priority = new Set(priorityPlayerIds);
+  const ordered = [
+    ...shuffled(waiting.filter((assignment) => priority.has(assignment.playerId)), `${seed}:priority`),
+    ...shuffled(waiting.filter((assignment) => !priority.has(assignment.playerId)), `${seed}:waiting`),
+  ];
+  ordered.forEach((assignment, index) => {
+    const target = unheld[index];
+    if (target) next[assignment.playerId] = withCard(assignment, target);
+  });
+  return next;
 }
 
 export function buildInitialChunkLineUpBoard(
@@ -78,46 +133,38 @@ export function buildInitialChunkLineUpBoard(
   readonly nextGroupSequence: number;
 } {
   if (players.length === 0) throw new Error("Chunk Line-Up requires at least one player.");
+  if (sourceGroups.length === 0) throw new Error("Chunk Line-Up requires at least one source group.");
   const orderedSources = shuffled(sourceGroups, `${seed}:sources`);
-  const selected = initialGroupSources(orderedSources, players.length);
-  const provisional = selected.sources.map((source, index) => instantiateChunkLineUpGroup(source, index + 1));
+  const groupCount = chunkLineUpGroupCount(orderedSources.length, players.length);
+  const selected = orderedSources.slice(0, groupCount);
+  const provisional = selected.map((source, index) => instantiateChunkLineUpGroup(source, index + 1));
   const totalSlots = provisional.reduce((sum, group) => sum + group.slots.length, 0);
+  // Only overflow slots start fixed, so there is one open slot (one card) per player.
+  // The first chunk of each sentence always stays open, so no sentence starts complete.
   const fixedCount = Math.max(0, totalSlots - players.length);
   const fixedCandidates = provisional.flatMap((group) => group.slots.slice(1).map((slot) => slot.id));
   const fixedIds = new Set(shuffled(fixedCandidates, `${seed}:fixed`).slice(0, fixedCount));
-  const groups = selected.sources.map((source, index) => instantiateChunkLineUpGroup(source, index + 1, fixedIds));
-  const targets = shuffled(openChunkLineUpTargets(groups), `${seed}:targets`);
-  const orderedPlayers = shuffled(players, `${seed}:players`);
-  if (targets.length === 0) throw new Error("Chunk Line-Up requires at least one playable target.");
+  const groups = selected.map((source, index) => instantiateChunkLineUpGroup(source, index + 1, fixedIds));
 
-  const assignments: Record<string, ChunkLineUpAssignment> = {};
-  orderedPlayers.forEach((player, index) => {
-    const target = targets[index % targets.length];
-    if (!target) return;
-    assignments[player.playerId] = {
+  const blank: Record<string, ChunkLineUpAssignment> = {};
+  for (const player of players) {
+    blank[player.playerId] = {
       playerId: player.playerId,
       label: player.label,
-      token: target.text,
-      targetGroupId: target.groupId,
-      targetSlotId: target.slotId,
+      token: "",
+      targetGroupId: "",
+      targetSlotId: "",
+      attachedGroupId: null,
       score: 0,
       recentGroupId: null,
     };
-  });
+  }
   return {
-    board: { revision: 1, groups, assignments, completedGroupCount: 0 },
+    board: { revision: 1, groups, assignments: dealChunkLineUpCards(groups, blank, seed), completedGroupCount: 0 },
     orderedSourceGroups: orderedSources,
-    nextSourceIndex: selected.nextSourceIndex,
+    nextSourceIndex: groupCount,
     nextGroupSequence: groups.length + 1,
   };
-}
-
-export function openChunkLineUpTargets(groups: readonly ChunkLineUpGroup[]): ChunkLineUpTarget[] {
-  return groups.flatMap((group) => group.slots.flatMap((slot) =>
-    !slot.fixed && !slot.filledBy
-      ? [{ groupId: group.id, slotId: slot.id, text: slot.text }]
-      : [],
-  ));
 }
 
 export function isChunkLineUpElevatorDestinationOpen(
@@ -134,7 +181,7 @@ export function chunkLineUpGroupComplete(group: ChunkLineUpGroup): boolean {
 }
 
 export function chunkLineUpSlotAcceptsToken(slot: ChunkLineUpSlot, token: string): boolean {
-  return !slot.fixed && !slot.filledBy && slot.text === token;
+  return token !== "" && !slot.fixed && !slot.filledBy && slot.text === token;
 }
 
 export function chooseChunkLineUpReplacementSource(
@@ -155,18 +202,113 @@ export function chooseChunkLineUpReplacementSource(
   return completedFallback;
 }
 
+/** A replacement sentence with exactly `openCount` open slots (at least one, at most all). */
 export function instantiateChunkLineUpReplacement(
   source: ChunkLineUpSourceGroup,
   sequence: number,
-  otherOpenSlotCount: number,
-  playerCount: number,
+  openCount: number,
+  seed: string,
 ): ChunkLineUpGroup {
-  const desiredOpenCount = Math.max(1, Math.min(source.slots.length, playerCount - otherOpenSlotCount));
+  const open = Math.max(1, Math.min(source.slots.length, openCount));
   const provisional = instantiateChunkLineUpGroup(source, sequence);
-  const fixedIds = new Set(
-    provisional.slots.slice(1, 1 + Math.max(0, source.slots.length - desiredOpenCount)).map((slot) => slot.id),
-  );
+  const fixedIds = new Set(shuffled(provisional.slots.map((slot) => slot.id), `${seed}:replacement-fixed`)
+    .slice(0, source.slots.length - open));
   return instantiateChunkLineUpGroup(source, sequence, fixedIds);
+}
+
+export interface ChunkLineUpPlacementState {
+  readonly board: ChunkLineUpBoard;
+  readonly sourceGroups: readonly ChunkLineUpSourceGroup[];
+  readonly nextSourceIndex: number;
+  readonly nextGroupSequence: number;
+}
+
+export type ChunkLineUpPlacement =
+  | { readonly kind: "wrong" | "stale" }
+  | {
+      readonly kind: "placed";
+      readonly state: ChunkLineUpPlacementState;
+      readonly score: number;
+      readonly completedGroup: boolean;
+    };
+
+/** Applies one card placement; pure so the transaction in service.ts stays thin. */
+export function placeChunkLineUpCard(
+  current: ChunkLineUpPlacementState,
+  playerId: string,
+  groupId: string,
+  slotId: string,
+  seed: string,
+): ChunkLineUpPlacement {
+  const board = current.board;
+  const assignment = board.assignments[playerId];
+  if (!assignment || !carrying(assignment)) return { kind: "stale" };
+  const groupIndex = board.groups.findIndex((group) => group.id === groupId);
+  const group = board.groups[groupIndex];
+  const slotIndex = group ? group.slots.findIndex((slot) => slot.id === slotId) : -1;
+  const slot = group?.slots[slotIndex];
+  if (!group || !slot || slot.fixed || slot.filledBy) return { kind: "stale" };
+  if (!chunkLineUpSlotAcceptsToken(slot, assignment.token)) return { kind: "wrong" };
+
+  const assignments: Record<string, ChunkLineUpAssignment> = {
+    ...board.assignments,
+    [playerId]: {
+      ...withCard(assignment, null),
+      attachedGroupId: group.id,
+      score: assignment.score + 1,
+      recentGroupId: group.id,
+    },
+  };
+  const filledGroup: ChunkLineUpGroup = {
+    ...group,
+    slots: group.slots.map((item, index) => index === slotIndex ? { ...item, filledBy: playerId, filledLabel: assignment.label } : item),
+  };
+  let groups = board.groups.map((item, index) => index === groupIndex ? filledGroup : item);
+  let nextState: Omit<ChunkLineUpPlacementState, "board"> = current;
+  let completedGroup = false;
+  let freed: string[] = [];
+
+  if (chunkLineUpGroupComplete(filledGroup)) {
+    completedGroup = true;
+    freed = Object.values(assignments).filter((item) => item.attachedGroupId === group.id).map((item) => item.playerId);
+    for (const id of freed) {
+      const builder = assignments[id];
+      if (builder) assignments[id] = { ...builder, attachedGroupId: null, score: builder.score + 1 };
+    }
+    const waitingCount = Object.values(assignments).filter((item) => !carrying(item) && item.attachedGroupId === null).length;
+    const otherGroups = groups.filter((_item, index) => index !== groupIndex);
+    const selection = chooseChunkLineUpReplacementSource(
+      current.sourceGroups,
+      current.nextSourceIndex,
+      new Set(otherGroups.map((item) => item.sourceId)),
+      group.sourceId,
+    );
+    if (!selection) return { kind: "stale" };
+    const replacement = instantiateChunkLineUpReplacement(selection.source, current.nextGroupSequence, waitingCount, `${seed}:${current.nextGroupSequence}`);
+    groups = groups.map((item, index) => index === groupIndex ? replacement : item);
+    nextState = {
+      sourceGroups: current.sourceGroups,
+      nextSourceIndex: selection.nextSourceIndex,
+      nextGroupSequence: current.nextGroupSequence + 1,
+    };
+  }
+
+  // The builders of a finished sentence are dealt in first.
+  const dealt = dealChunkLineUpCards(groups, assignments, `${seed}:${board.revision + 1}`, freed);
+  return {
+    kind: "placed",
+    completedGroup,
+    score: dealt[playerId]?.score ?? assignment.score + 1,
+    state: {
+      ...nextState,
+      board: {
+        revision: board.revision + 1,
+        groups,
+        assignments: dealt,
+        completedGroupCount: board.completedGroupCount + (completedGroup ? 1 : 0),
+      },
+    },
+  };
 }
 
 export function publicChunkLineUpBoard(board: ChunkLineUpBoard) {
@@ -185,30 +327,10 @@ export function publicChunkLineUpBoard(board: ChunkLineUpBoard) {
         playerId: assignment.playerId,
         label: assignment.label,
         token: assignment.token,
+        attachedGroupId: assignment.attachedGroupId,
         score: assignment.score,
       },
     ])),
     completedGroupCount: board.completedGroupCount,
   };
-}
-
-export function chooseChunkLineUpTarget(
-  groups: readonly ChunkLineUpGroup[],
-  assignments: Readonly<Record<string, ChunkLineUpAssignment>>,
-  playerId: string,
-  recentGroupId: string | null,
-  seed: string,
-): ChunkLineUpTarget | null {
-  const targets = openChunkLineUpTargets(groups);
-  if (targets.length === 0) return null;
-  const counts = new Map<string, number>();
-  for (const assignment of Object.values(assignments)) {
-    if (assignment.playerId === playerId) continue;
-    counts.set(assignment.targetSlotId, (counts.get(assignment.targetSlotId) ?? 0) + 1);
-  }
-  const preferred = recentGroupId ? targets.filter((target) => target.groupId !== recentGroupId) : targets;
-  const pool = preferred.length > 0 ? preferred : targets;
-  const minimum = Math.min(...pool.map((target) => counts.get(target.slotId) ?? 0));
-  const leastUsed = pool.filter((target) => (counts.get(target.slotId) ?? 0) === minimum);
-  return shuffled(leastUsed, seed)[0] ?? null;
 }

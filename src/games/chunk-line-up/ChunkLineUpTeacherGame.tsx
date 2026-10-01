@@ -2,6 +2,8 @@ import { useMemo, useRef } from "react";
 import type { TeacherGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import { FullscreenToggle } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
+import { TimedResultsOverlay } from "../../game-engine/timed-game/TimedResultsOverlay.tsx";
+import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useChunkLineUpBoard, useChunkLineUpElevator } from "../../multiplayer/chunk-line-up/hooks.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import ChunkLineUpCanvas from "./ChunkLineUpCanvas.tsx";
@@ -12,6 +14,7 @@ export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameM
   const boardState = useChunkLineUpBoard(roomId, session.roundId, true);
   const elevatorState = useChunkLineUpElevator(roomId, session.roundId);
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const clock = useTimedGameClock(session);
   const ranking = useMemo(
     () => boardState.value ? chunkLineUpRanking(boardState.value) : [],
     [boardState.value],
@@ -36,11 +39,17 @@ export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameM
       board={board}
       elevatorState={elevatorState.value}
     />
-    {elevatorState.error ? <div className={styles.elevatorError}>엘리베이터 연결 오류 · 발판 경로는 정상 이용 가능</div> : null}
+    {elevatorState.error ? <div className={styles.elevatorError}>엘리베이터 연결 오류 · 계단 경로는 정상 이용 가능</div> : null}
     <div className={styles.teacherRanking}>
       {ranking.slice(0, 8).map((entry, index) => <span key={entry.playerId}>
         <b>{index + 1}</b>{entry.label}<strong>{entry.score}</strong>
       </span>)}
     </div>
+    {clock.expired ? <TimedResultsOverlay
+      title="Chunk Line-Up 최종 순위"
+      note="게임을 끝내면 학생들이 대기실로 돌아갑니다."
+      unit="점"
+      entries={ranking.map((entry) => ({ id: entry.playerId, label: entry.label, value: entry.score }))}
+    /> : null}
   </div>;
 }

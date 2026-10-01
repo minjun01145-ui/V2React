@@ -2,28 +2,26 @@ import assert from "node:assert/strict";
 import {
   buildInitialChunkLineUpBoard,
   chooseChunkLineUpReplacementSource,
-  chooseChunkLineUpTarget,
   chunkLineUpGroupComplete,
   chunkLineUpSlotAcceptsToken,
   isChunkLineUpElevatorDestinationOpen,
   instantiateChunkLineUpGroup,
   instantiateChunkLineUpReplacement,
   openChunkLineUpTargets,
+  placeChunkLineUpCard,
   publicChunkLineUpBoard,
 } from "../lib/chunk-line-up/model.js";
 import {
-  boardChunkLineUpElevator,
   boardChunkLineUpElevatorRide,
-  CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS,
   CHUNK_LINE_UP_ELEVATOR_DOOR_MS,
   CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS,
-  chooseChunkLineUpElevatorDestination,
+  chunkLineUpElevatorFloorPosition,
   chunkLineUpElevatorTravelMs,
   createChunkLineUpElevatorState,
   resolveChunkLineUpElevatorState,
 } from "../lib/chunk-line-up/elevatorModel.js";
 
-const sources = Array.from({ length: 9 }, (_, index) => {
+const sources = Array.from({ length: 12 }, (_, index) => {
   const slotCount = [3, 4, 5][index % 3];
   return {
     id: `sentence-${index + 1}`,
@@ -31,222 +29,180 @@ const sources = Array.from({ length: 9 }, (_, index) => {
     slots: Array.from({ length: slotCount }, (_unused, slotIndex) => `chunk-${index + 1}-${slotIndex + 1}`),
   };
 });
-const players = Array.from({ length: 20 }, (_, index) => ({
-  playerId: `player-${index + 1}`,
+const makePlayers = (count, prefix = "player") => Array.from({ length: count }, (_, index) => ({
+  playerId: `${prefix}-${index + 1}`,
   label: `학생 ${index + 1}`,
 }));
 
+/** One card per open slot, never two cards for the same slot, attached players hold no card. */
+function assertCardInvariant(board, message) {
+  const open = new Set(openChunkLineUpTargets(board.groups).map((target) => target.slotId));
+  const carrying = Object.values(board.assignments).filter((item) => item.token !== "");
+  const held = carrying.map((item) => item.targetSlotId);
+  assert.equal(new Set(held).size, held.length, `${message}: two cards point at one slot`);
+  for (const slotId of held) assert(open.has(slotId), `${message}: a card points at a closed slot`);
+  const waiting = Object.values(board.assignments).filter((item) => item.token === "" && item.attachedGroupId === null);
+  if (waiting.length > 0) assert.equal(held.length, open.size, `${message}: a card-less player waits while a slot is free`);
+  for (const item of Object.values(board.assignments)) {
+    if (item.attachedGroupId) assert.equal(item.token, "", `${message}: attached players hold no card`);
+  }
+}
+
+// --- Dealing -----------------------------------------------------------------
+
+const players = makePlayers(20);
 const initial = buildInitialChunkLineUpBoard(sources, players, "round-20");
 const board = initial.board;
-const allSlots = board.groups.flatMap((group) => group.slots);
-const fixedSlots = allSlots.filter((slot) => slot.fixed);
-const openTargets = openChunkLineUpTargets(board.groups);
-assert.equal(board.groups.length, 5, "a normal class should stay within five visible sentence rows");
-assert(openTargets.length <= players.length, "visible targets may be shared instead of adding extra sentence rows");
-assert.equal(fixedSlots.length, Math.max(0, allSlots.length - players.length), "only overflow slots should start fixed");
-assert.equal(Object.keys(board.assignments).length, players.length);
-assert.equal(new Set(Object.values(board.assignments).map((assignment) => assignment.targetSlotId)).size, openTargets.length,
-  "initial assignments should spread across all visible targets before sharing them");
-for (const group of board.groups) {
-  assert(group.slots.some((slot) => !slot.fixed), "every active group should leave at least one playable slot");
-}
-const activeSourceIds = new Set(board.groups.map((group) => group.sourceId));
-const nextSource = initial.orderedSourceGroups[initial.nextSourceIndex % initial.orderedSourceGroups.length];
-assert(nextSource);
-assert.equal(activeSourceIds.has(nextSource.id), false,
-  "replacement rotation must continue through the same shuffled source order used for the initial board");
+assert.equal(board.groups.length, 6, "20 students get six sentences (one per three students, at most six)");
+assert.equal(openChunkLineUpTargets(board.groups).length, players.length, "one open slot per student");
+assertCardInvariant(board, "initial board");
+assert(Object.values(board.assignments).every((item) => item.token !== ""), "every student starts with a card");
+for (const group of board.groups) assert(group.slots.some((slot) => !slot.fixed), "no sentence starts complete");
 
-const shortSources = Array.from({ length: 8 }, (_, index) => ({
-  id: `short-${index + 1}`,
-  prompt: `짧은 뜻 ${index + 1}`,
-  slots: [`short-${index + 1}-1`, `short-${index + 1}-2`],
-}));
-const largeClass = Array.from({ length: 25 }, (_, index) => ({
-  playerId: `large-${index + 1}`,
-  label: `대형반 ${index + 1}`,
-}));
-const compact = buildInitialChunkLineUpBoard(shortSources, largeClass, "compact-25").board;
-assert.equal(compact.groups.length, 5, "25 students with short sentences must not create more than five rows");
-assert.equal(Object.keys(compact.assignments).length, largeClass.length, "every student still receives a chunk");
-const assignmentCounts = new Map();
-for (const assignment of Object.values(compact.assignments)) {
-  assignmentCounts.set(assignment.targetSlotId, (assignmentCounts.get(assignment.targetSlotId) ?? 0) + 1);
+const crowd = buildInitialChunkLineUpBoard(sources.slice(0, 2), makePlayers(12, "crowd"), "crowd").board;
+assertCardInvariant(crowd, "more students than slots");
+assert(Object.values(crowd.assignments).some((item) => item.token === ""), "extra students wait for a card");
+
+// --- Placing -----------------------------------------------------------------
+
+const state0 = { board, sourceGroups: initial.orderedSourceGroups, nextSourceIndex: initial.nextSourceIndex, nextGroupSequence: initial.nextGroupSequence };
+const [firstId, firstCard] = Object.entries(board.assignments)[0];
+const wrongSlot = openChunkLineUpTargets(board.groups).find((target) => target.text !== firstCard.token);
+assert.equal(placeChunkLineUpCard(state0, firstId, wrongSlot.groupId, wrongSlot.slotId, "r").kind, "wrong");
+const placed = placeChunkLineUpCard(state0, firstId, firstCard.targetGroupId, firstCard.targetSlotId, "r");
+assert.equal(placed.kind, "placed");
+const placedBoard = placed.state.board;
+assert.equal(placedBoard.assignments[firstId].attachedGroupId, firstCard.targetGroupId, "the placer stays on that sentence");
+assert.equal(placedBoard.assignments[firstId].token, "", "and holds no new card until it is finished");
+for (const [id, card] of Object.entries(board.assignments)) {
+  if (id !== firstId) assert.deepEqual(placedBoard.assignments[id], card, "nobody else's card changes when someone places");
 }
-const counts = [...assignmentCounts.values()];
-assert(Math.max(...counts) - Math.min(...counts) <= 1, "shared initial targets should be distributed evenly");
+assert.equal(placeChunkLineUpCard(placed.state, firstId, wrongSlot.groupId, wrongSlot.slotId, "r").kind, "stale",
+  "an attached student cannot place again");
+assertCardInvariant(placedBoard, "after one placement");
+
+// Play until many sentences complete: the invariant must hold and the game never stalls.
+for (const playerCount of [3, 7, 20, 30]) {
+  let state = { ...state0, ...(() => {
+    const built = buildInitialChunkLineUpBoard(sources, makePlayers(playerCount, `sim${playerCount}`), `sim-${playerCount}`);
+    return { board: built.board, sourceGroups: built.orderedSourceGroups, nextSourceIndex: built.nextSourceIndex, nextGroupSequence: built.nextGroupSequence };
+  })() };
+  let completions = 0;
+  for (let move = 0; move < 400; move += 1) {
+    const mover = Object.values(state.board.assignments).find((item) => item.token !== "");
+    assert(mover, `${playerCount} players: someone must always hold a card (no deadlock)`);
+    const result = placeChunkLineUpCard(state, mover.playerId, mover.targetGroupId, mover.targetSlotId, `sim-${move}`);
+    assert.equal(result.kind, "placed");
+    if (result.completedGroup) {
+      completions += 1;
+      const builders = Object.values(state.board.assignments)
+        .filter((item) => item.attachedGroupId === mover.targetGroupId || item.playerId === mover.playerId);
+      for (const builder of builders) {
+        assert.equal(result.state.board.assignments[builder.playerId].attachedGroupId, null, "finishing frees every builder");
+      }
+    }
+    state = result.state;
+    assertCardInvariant(state.board, `${playerCount} players, move ${move}`);
+  }
+  assert(completions > 10, `${playerCount} players should finish many sentences`);
+}
+
+// --- Sources and replacements ------------------------------------------------
 
 const rotationSources = ["s4", "s3", "s5", "s2", "s0", "s1"].map((id) => ({ id, prompt: id, slots: [`${id}-1`, `${id}-2`] }));
-const firstRotation = chooseChunkLineUpReplacementSource(
-  rotationSources,
-  5,
-  new Set(["s4", "s3", "s2", "s0"]),
-  "s5",
-);
+const firstRotation = chooseChunkLineUpReplacementSource(rotationSources, 5, new Set(["s4", "s3", "s2", "s0"]), "s5");
 assert.equal(firstRotation?.source.id, "s1", "replacement should use the next inactive source in shuffled order");
-const secondRotation = chooseChunkLineUpReplacementSource(
-  rotationSources,
-  firstRotation?.nextSourceIndex ?? 0,
-  new Set(["s4", "s1", "s2", "s0"]),
-  "s3",
-);
-assert.equal(secondRotation?.source.id, "s5", "replacement must skip sources still visible and avoid immediately repeating the completed source when possible");
-const onlySafeReuse = chooseChunkLineUpReplacementSource(
-  rotationSources.slice(0, 5),
-  5,
-  new Set(["s4", "s5", "s2", "s0"]),
-  "s3",
-);
+const onlySafeReuse = chooseChunkLineUpReplacementSource(rotationSources.slice(0, 5), 5, new Set(["s4", "s5", "s2", "s0"]), "s3");
 assert.equal(onlySafeReuse?.source.id, "s3", "the completed source may be reused when every other source is still visible");
 
-const first = Object.values(board.assignments)[0];
-assert(first);
-const alternate = chooseChunkLineUpTarget(
-  board.groups,
-  board.assignments,
-  first.playerId,
-  first.targetGroupId,
-  "avoid-recent",
-);
-assert(alternate);
-if (board.groups.length > 1) assert.notEqual(alternate.groupId, first.targetGroupId, "reassignment should avoid the recent group when possible");
+assert.equal(openChunkLineUpTargets([instantiateChunkLineUpReplacement(sources[2], 100, 3, "x")]).length, 3,
+  "a replacement opens exactly as many slots as players are dealt in");
+assert.equal(openChunkLineUpTargets([instantiateChunkLineUpReplacement(sources[0], 101, 9, "x")]).length, 3,
+  "but never more than the sentence has");
 
 const filled = instantiateChunkLineUpGroup(sources[0], 99);
-const completed = {
-  ...filled,
-  slots: filled.slots.map((slot, index) => index === 0
-    ? { ...slot, fixed: true }
-    : { ...slot, filledBy: `p-${index}`, filledLabel: `학생 ${index}` }),
-};
-assert.equal(chunkLineUpGroupComplete(completed), true);
+assert.equal(chunkLineUpGroupComplete({ ...filled, slots: filled.slots.map((slot) => ({ ...slot, filledBy: "p" })) }), true);
 assert.equal(chunkLineUpGroupComplete(filled), false);
 
-const duplicateTokenGroup = instantiateChunkLineUpGroup({
-  id: "duplicate-token",
-  prompt: "그 고양이와 그 개",
-  slots: ["the", "cat", "and", "the", "dog"],
-}, 101);
-assert.equal(chunkLineUpSlotAcceptsToken(duplicateTokenGroup.slots[0], "the"), true);
+const duplicateTokenGroup = instantiateChunkLineUpGroup({ id: "dup", prompt: "그 고양이와 그 개", slots: ["the", "cat", "and", "the", "dog"] }, 102);
 assert.equal(chunkLineUpSlotAcceptsToken(duplicateTokenGroup.slots[3], "the"), true,
   "identical chunk text in another open slot must also be a valid placement");
 assert.equal(chunkLineUpSlotAcceptsToken(duplicateTokenGroup.slots[1], "the"), false);
 
-const replacement = instantiateChunkLineUpReplacement(sources[2], 100, 17, 20);
-assert.equal(openChunkLineUpTargets([replacement]).length, 3,
-  "replacement groups should retain fixed overflow slots when only three new open targets are needed");
+// --- Public board ------------------------------------------------------------
 
-const publicBoard = publicChunkLineUpBoard(board);
-const firstOpenGroupIndex = board.groups.findIndex((group) => group.slots.some((slot) => !slot.fixed && !slot.filledBy));
-const firstOpenGroup = board.groups[firstOpenGroupIndex];
-assert(firstOpenGroup);
-assert.equal(isChunkLineUpElevatorDestinationOpen(board, firstOpenGroupIndex, firstOpenGroup.id), true,
-  "an open sentence can be selected as an elevator destination");
-assert.equal(isChunkLineUpElevatorDestinationOpen(board, firstOpenGroupIndex, "replaced-sentence"), false,
-  "a stale sentence selection must not redirect to a replacement group on the same floor");
-const closedDestinationBoard = {
-  ...board,
-  groups: board.groups.map((group, index) => index === firstOpenGroupIndex
-    ? { ...group, slots: group.slots.map((slot) => ({ ...slot, fixed: true })) }
-    : group),
-};
-assert.equal(isChunkLineUpElevatorDestinationOpen(closedDestinationBoard, firstOpenGroupIndex, firstOpenGroup.id), false,
-  "a sentence with no open matching slots is no longer a valid destination");
-assert.equal(isChunkLineUpElevatorDestinationOpen(board, 99, firstOpenGroup.id), false,
-  "a nonexistent sentence floor must not be accepted");
+const publicBoard = publicChunkLineUpBoard(placedBoard);
 const firstOpen = publicBoard.groups.flatMap((group) => group.slots).find((slot) => !slot.fixed && !slot.filledBy);
-assert(firstOpen);
 assert.equal(firstOpen.text, "", "student-visible board must hide unresolved slot answers");
-const publicAssignment = Object.values(publicBoard.assignments)[0];
-assert(publicAssignment);
-assert.equal("targetGroupId" in publicAssignment, false, "student-visible assignments must not reveal target group ids");
-assert.equal("targetSlotId" in publicAssignment, false, "student-visible assignments must not reveal target slot ids");
+const publicAssignment = publicBoard.assignments[firstId];
+assert.equal("targetSlotId" in publicAssignment, false, "student-visible assignments must not reveal target slots");
+assert.equal(publicAssignment.attachedGroupId, firstCard.targetGroupId, "students can see they are attached");
+const openFloor = board.groups.findIndex((group) => group.slots.some((slot) => !slot.fixed && !slot.filledBy));
+assert.equal(isChunkLineUpElevatorDestinationOpen(board, openFloor, board.groups[openFloor].id), true);
+assert.equal(isChunkLineUpElevatorDestinationOpen(board, openFloor, "replaced-sentence"), false);
 
-const elevatorStart = 10_000;
-let elevators = createChunkLineUpElevatorState(5, elevatorStart);
-assert.equal(elevators.left.floor, 5);
-assert.equal(elevators.right.floor, 5);
-assert.equal(elevators.left.phase, "open");
-for (const playerId of ["p1", "p2", "p3"]) {
-  const boarded = boardChunkLineUpElevator(elevators, "left", playerId, 5, elevatorStart + 100);
-  assert.equal(boarded.accepted, true);
-  elevators = boarded.state;
+// --- Elevators ---------------------------------------------------------------
+
+const T = 10_000;
+const LOBBY = 5;
+const travel = (from, to) => CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS + CHUNK_LINE_UP_ELEVATOR_DOOR_MS
+  + chunkLineUpElevatorTravelMs(from, to) + CHUNK_LINE_UP_ELEVATOR_DOOR_MS;
+
+// Boarding at the lobby: in at once, off at the destination, then the car idles there.
+let lift = boardChunkLineUpElevatorRide(createChunkLineUpElevatorState(LOBBY, T), "left", "a", LOBBY, 2, LOBBY, T + 100);
+assert.equal(lift.accepted, true);
+assert.equal(lift.state.left.seats[0].boarded, true, "a car open at the caller's floor takes them in immediately");
+let at = resolveChunkLineUpElevatorState(lift.state, T + 100 + travel(LOBBY, 2) + 1);
+assert.equal(at.left.floor, 2);
+assert.equal(at.left.seats.length, 0, "the rider gets off at their floor");
+const idleLater = resolveChunkLineUpElevatorState(lift.state, T + 60_000);
+assert.equal(idleLater.left.phase, "open");
+assert.equal(idleLater.left.floor, 2, "an empty car waits where it is with the doors open");
+
+// Calling from an upper floor: the car comes, picks up, then delivers.
+lift = boardChunkLineUpElevatorRide(createChunkLineUpElevatorState(LOBBY, T), "right", "caller", 3, 0, LOBBY, T + 100);
+assert.equal(lift.state.right.seats[0].boarded, false, "the caller waits at their floor");
+at = resolveChunkLineUpElevatorState(lift.state, T + 100 + travel(LOBBY, 3) + 1);
+assert.equal(at.right.floor, 3);
+assert.equal(at.right.seats[0].boarded, true, "the car picks the caller up at their floor");
+at = resolveChunkLineUpElevatorState(lift.state, T + 100 + travel(LOBBY, 3) + travel(3, 0) + 1);
+assert.equal(at.right.floor, 0);
+assert.equal(at.right.seats.length, 0, "and drops them at the destination");
+
+// Capacity and double booking.
+let full = createChunkLineUpElevatorState(LOBBY, T);
+for (const [id, destination] of [["x", 1], ["y", 3], ["z", 2]]) {
+  full = boardChunkLineUpElevatorRide(full, "left", id, LOBBY, destination, LOBBY, T + 100).state;
 }
-assert.equal(boardChunkLineUpElevator(elevators, "left", "p4", 5, elevatorStart + 120).accepted, false,
-  "a shaft must enforce capacity three");
-assert.equal(boardChunkLineUpElevator(elevators, "right", "p1", 5, elevatorStart + 120).accepted, false,
-  "a player cannot occupy both elevator shafts");
+assert.equal(boardChunkLineUpElevatorRide(full, "left", "w", LOBBY, 0, LOBBY, T + 120).accepted, false, "three riders at most");
+assert.equal(boardChunkLineUpElevatorRide(full, "right", "x", LOBBY, 0, LOBBY, T + 120).accepted, false, "one booking per player");
+assert.equal(boardChunkLineUpElevatorRide(full, "left", "x", LOBBY, 1, LOBBY, T + 120).accepted, true, "replaying a booking is idempotent");
 
-const immediateRide = boardChunkLineUpElevatorRide(
-  createChunkLineUpElevatorState(5, elevatorStart),
-  "right",
-  "quick-rider",
-  5,
-  2,
-  5,
-  elevatorStart + 150,
-);
-assert.equal(immediateRide.accepted, true, "boarding and choosing a destination should be one atomic elevator action");
-assert.equal(immediateRide.state.right.seats[0]?.playerId, "quick-rider");
-assert.equal(immediateRide.state.right.seats[0]?.destinationFloor, 2);
-assert.deepEqual(immediateRide.state.right.queue, [2]);
-
-let fullCar = createChunkLineUpElevatorState(5, elevatorStart);
-for (const playerId of ["full-1", "full-2", "full-3"]) {
-  fullCar = boardChunkLineUpElevator(fullCar, "left", playerId, 5, elevatorStart + 100).state;
+// Sweep order: from the lobby going up it stops at 3, then 2, then 1 (nearest first in one direction).
+const stopsVisited = [];
+let previousFloor = LOBBY;
+for (let time = T + 100; time < T + 30_000; time += 50) {
+  const car = resolveChunkLineUpElevatorState(full, time).left;
+  if (car.phase === "open" && car.floor !== previousFloor) {
+    stopsVisited.push(car.floor);
+    previousFloor = car.floor;
+  }
 }
-assert.equal(boardChunkLineUpElevatorRide(fullCar, "left", "full-4", 5, 0, 5, elevatorStart + 150).accepted, false,
-  "combined boarding must reject a full elevator without adding a rider");
+assert.deepEqual(stopsVisited, [3, 2, 1], "riders are dropped off in sweep order");
 
-let selected = chooseChunkLineUpElevatorDestination(elevators, "left", "p1", 0, 5, elevatorStart + 200);
-assert.equal(selected.accepted, true);
-elevators = selected.state;
-selected = chooseChunkLineUpElevatorDestination(elevators, "left", "p2", 2, 5, elevatorStart + 210);
-elevators = selected.state;
-selected = chooseChunkLineUpElevatorDestination(elevators, "left", "p3", 1, 5, elevatorStart + 220);
-elevators = selected.state;
-assert.deepEqual(elevators.left.queue, [0, 2, 1], "destinations should be visited one stop at a time in selection order");
-assert.equal(chooseChunkLineUpElevatorDestination(elevators, "left", "p1", 0, 5, elevatorStart + 230).accepted, true,
-  "replaying the same destination should be idempotent");
-assert.equal(chooseChunkLineUpElevatorDestination(elevators, "left", "p1", 4, 5, elevatorStart + 230).accepted, false,
-  "a rider must not change an already selected destination");
-
-const firstArrivalOpenAt = elevatorStart + 220
-  + CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS
-  + CHUNK_LINE_UP_ELEVATOR_DOOR_MS
-  + chunkLineUpElevatorTravelMs(5, 0)
-  + CHUNK_LINE_UP_ELEVATOR_DOOR_MS;
-let resolvedElevators = resolveChunkLineUpElevatorState(elevators, firstArrivalOpenAt + 1);
-assert.equal(resolvedElevators.left.phase, "open");
-assert.equal(resolvedElevators.left.floor, 0);
-assert.deepEqual(resolvedElevators.left.seats.map((seat) => seat.playerId).sort(), ["p2", "p3"],
-  "the rider for the current stop should leave after the doors finish opening");
-assert.deepEqual(resolvedElevators.left.queue, [2, 1]);
-const intermediateBoard = boardChunkLineUpElevator(resolvedElevators, "left", "p4", 0, firstArrivalOpenAt + 50);
-assert.equal(intermediateBoard.accepted, true, "a free seat can be taken while doors are open at an intermediate stop");
-const stillOpenForNewRider = resolveChunkLineUpElevatorState(
-  intermediateBoard.state,
-  firstArrivalOpenAt + 50 + CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS + 100,
-);
-assert.equal(stillOpenForNewRider.left.phase, "open",
-  "a newly boarded rider must get destination-selection grace even when through-riders already have queued stops");
-
-const idleWithRider = boardChunkLineUpElevator(createChunkLineUpElevatorState(5, 30_000), "right", "idle", 5, 30_100);
-assert.equal(idleWithRider.accepted, true);
-const expiredIdle = resolveChunkLineUpElevatorState(idleWithRider.state, 30_100 + CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS + 1);
-assert.equal(expiredIdle.right.seats.length, 0, "a rider who never chooses a destination must not deadlock the shaft");
-
-const upperEmpty = {
-  ...createChunkLineUpElevatorState(5, 50_000),
-  left: {
-    ...createChunkLineUpElevatorState(5, 50_000).left,
-    floor: 1,
-    phaseStartedAtMs: 50_000,
-  },
-};
-const returning = resolveChunkLineUpElevatorState(
-  upperEmpty,
-  50_000 + CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS + CHUNK_LINE_UP_ELEVATOR_DOOR_MS + 1,
-);
-assert.equal(returning.left.phase, "moving");
-assert.equal(returning.left.targetFloor, 5, "an empty car away from the lobby should automatically return to the lobby");
+// A car about to pass a caller's floor stops for them on the way.
+let passing = boardChunkLineUpElevatorRide(createChunkLineUpElevatorState(LOBBY, T), "left", "rider", LOBBY, 0, LOBBY, T).state;
+const departAt = T + CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS + CHUNK_LINE_UP_ELEVATOR_DOOR_MS;
+const midway = departAt + 200;
+assert(chunkLineUpElevatorFloorPosition(resolveChunkLineUpElevatorState(passing, midway).left, midway) > 4);
+passing = boardChunkLineUpElevatorRide(passing, "left", "hitchhiker", 2, 0, LOBBY, midway).state;
+const continued = resolveChunkLineUpElevatorState(passing, midway + 1);
+assert.equal(continued.left.targetFloor, 2, "it retargets to the caller's floor");
+assert(Math.abs(chunkLineUpElevatorFloorPosition(continued.left, midway + 1)
+  - chunkLineUpElevatorFloorPosition(resolveChunkLineUpElevatorState({ ...passing, left: { ...passing.left } }, midway).left, midway)) < 0.05,
+  "without jumping");
+const later = resolveChunkLineUpElevatorState(passing, midway + 20_000).left;
+assert.equal(later.floor, 0);
+assert.equal(later.seats.length, 0, "both riders reach floor 0");
 
 console.log("chunk line-up model tests passed");

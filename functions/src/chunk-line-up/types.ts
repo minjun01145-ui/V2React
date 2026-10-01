@@ -19,12 +19,19 @@ export interface ChunkLineUpGroup {
   readonly slots: readonly ChunkLineUpSlot[];
 }
 
+/**
+ * A player is in exactly one state:
+ * - carrying: token/targetGroupId/targetSlotId set (a card for one open slot),
+ * - attached: placed a card and waits on that sentence (attachedGroupId set),
+ * - waiting: no card yet (more players than open slots); gets one on the next completion.
+ */
 export interface ChunkLineUpAssignment {
   readonly playerId: string;
   readonly label: string;
   readonly token: string;
   readonly targetGroupId: string;
   readonly targetSlotId: string;
+  readonly attachedGroupId: string | null;
   readonly score: number;
   readonly recentGroupId: string | null;
 }
@@ -52,9 +59,12 @@ export interface ChunkLineUpBaseInput {
 export type ChunkLineUpElevatorId = "left" | "right";
 export type ChunkLineUpElevatorPhase = "open" | "closing" | "moving" | "opening";
 
+/** A reservation: picked up at originFloor (boarded), dropped at destinationFloor. */
 export interface ChunkLineUpElevatorRider {
   readonly playerId: string;
-  readonly destinationFloor: number | null;
+  readonly originFloor: number;
+  readonly destinationFloor: number;
+  readonly boarded: boolean;
 }
 
 export interface ChunkLineUpElevatorCarState {
@@ -62,9 +72,10 @@ export interface ChunkLineUpElevatorCarState {
   readonly phase: ChunkLineUpElevatorPhase;
   readonly floor: number;
   readonly targetFloor: number | null;
+  /** -1 towards floor 0 (up the tower), 1 towards the lobby, 0 idle. */
+  readonly direction: -1 | 0 | 1;
   readonly phaseStartedAtMs: number;
   readonly seats: readonly ChunkLineUpElevatorRider[];
-  readonly queue: readonly number[];
 }
 
 export interface ChunkLineUpElevatorState {

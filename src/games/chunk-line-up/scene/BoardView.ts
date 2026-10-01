@@ -10,7 +10,6 @@ import {
   chunkLineUpFloorLabel,
   chunkLineUpFloorY,
   chunkLineUpGroundY,
-  chunkLineUpLandingRect,
   chunkLineUpSlotRects,
   type ChunkLineUpRect,
 } from "../layout.ts";
@@ -97,12 +96,8 @@ export class BoardView {
           if (before?.id === group.id && slot.filledBy && !before.slots[index]?.filledBy) filled.push(rect);
           if (rebuildPhysics) this.addPlatform(rect.x, rect.y, rect.width);
         });
-
-        for (const id of ["left", "right"] as const) {
-          const landing = chunkLineUpLandingRect(id, floor, floorCount);
-          this.drawLanding(landing);
-          if (rebuildPhysics) this.addPlatform(landing.x, landing.y, landing.width);
-        }
+        // No landings beside the shafts: a floor's open ends are how players go down,
+        // and the elevator door zone sits at those ends.
       });
     });
     this.platforms.refresh();
@@ -210,13 +205,5 @@ export class BoardView {
       { fontFamily: FONT_FAMILY, fontSize: "13px", fontStyle: "bold", color: "#f8fafc" },
     ).setOrigin(0.5).setDepth(PLATFORM_DEPTH + 1).setResolution(TEXT_RESOLUTION);
     this.nodes.push(tag, text);
-  }
-
-  private drawLanding(rect: ChunkLineUpRect): void {
-    const graphics = this.graphics;
-    graphics.fillStyle(0x475569, 1).fillRoundedRect(rect.x, rect.y + 3, rect.width, rect.height, 4);
-    graphics.fillStyle(0x94a3b8, 1).fillRoundedRect(rect.x, rect.y, rect.width, rect.height - 3, 4);
-    graphics.fillStyle(0xfacc15, 1);
-    for (let x = rect.x + 4; x < rect.x + rect.width - 6; x += 12) graphics.fillRect(x, rect.y + 2, 6, 3);
   }
 }

@@ -17,6 +17,7 @@ export interface ChunkLineUpRect {
 export const CHUNK_LINE_UP_PLAYER_WIDTH = 26;
 export const CHUNK_LINE_UP_PLAYER_HEIGHT = 44;
 export const CHUNK_LINE_UP_SHAFT_WIDTH = 88;
+/** Open gap between each shaft and the floors: walking off a floor's end here is how players go down. */
 export const CHUNK_LINE_UP_LANDING_WIDTH = 64;
 export const CHUNK_LINE_UP_SLOT_HEIGHT = 27;
 /** Taller than a double jump, so floors are climbed via props or the elevator. */
@@ -70,10 +71,6 @@ export function chunkLineUpShaftX(id: ChunkLineUpElevatorId): number {
   return id === "left" ? center : CHUNK_LINE_UP_WORLD_WIDTH - center;
 }
 
-export function chunkLineUpLandingRect(id: ChunkLineUpElevatorId, floor: number, floorCount: number): ChunkLineUpRect {
-  const x = id === "left" ? CHUNK_LINE_UP_WALK_LEFT : CHUNK_LINE_UP_WALK_RIGHT - CHUNK_LINE_UP_LANDING_WIDTH;
-  return { x, y: chunkLineUpFloorY(floor, floorCount), width: CHUNK_LINE_UP_LANDING_WIDTH, height: 12 };
-}
 
 export function chunkLineUpSlotRects(slotCount: number, floor: number, floorCount: number): ChunkLineUpRect[] {
   const count = Math.max(1, slotCount);

@@ -6,7 +6,6 @@ import {
   ensureChunkLineUpRoundService,
   reserveChunkLineUpElevatorSeatService,
   boardChunkLineUpElevatorRideService,
-  setChunkLineUpElevatorDestinationService,
 } from "./service.js";
 import type {
   ChunkLineUpBaseInput,
@@ -104,15 +103,14 @@ export const reserveChunkLineUpElevatorSeat = onCall(options, async (request) =>
 export const setChunkLineUpElevatorDestination = onCall(options, async (request) => {
   const input = elevatorDestination(request.data);
   const uid = await authorize(request, input);
-  if (input.floor !== undefined) {
-    return boardChunkLineUpElevatorRideService(uid, {
-      roomId: input.roomId,
-      roundId: input.roundId,
-      elevatorId: input.elevatorId,
-      floor: input.floor,
-      destinationFloor: input.destinationFloor,
-      destinationGroupId: input.destinationGroupId,
-    });
-  }
-  return setChunkLineUpElevatorDestinationService(uid, input);
+  // Booking always names the floor the player calls from (the car may be elsewhere).
+  if (input.floor === undefined) throw new HttpsError("invalid-argument", "엘리베이터를 부른 층 정보가 없습니다.");
+  return boardChunkLineUpElevatorRideService(uid, {
+    roomId: input.roomId,
+    roundId: input.roundId,
+    elevatorId: input.elevatorId,
+    floor: input.floor,
+    destinationFloor: input.destinationFloor,
+    destinationGroupId: input.destinationGroupId,
+  });
 });
