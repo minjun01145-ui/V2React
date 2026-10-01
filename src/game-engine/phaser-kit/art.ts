@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { hashString } from "../core/random.ts";
+import { bakeSprite } from "./BakedLayer.ts";
 
 export const FONT_FAMILY = "Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif";
 export const TEXT_RESOLUTION = 2;
@@ -30,19 +31,11 @@ export function shade(color: number, amount: number): number {
   return (channel(16) << 16) | (channel(8) << 8) | channel(0);
 }
 
-function generate(scene: Phaser.Scene, key: string, width: number, height: number, draw: (graphics: Phaser.GameObjects.Graphics) => void): void {
-  if (scene.textures.exists(key)) return;
-  const graphics = scene.make.graphics({ x: 0, y: 0 }, false);
-  draw(graphics);
-  graphics.generateTexture(key, width, height);
-  graphics.destroy();
-}
-
 export function ensureSharedTextures(scene: Phaser.Scene): void {
-  generate(scene, TEXTURE.dot, 8, 8, (graphics) => {
+  bakeSprite(scene, TEXTURE.dot, 8, 8, (graphics) => {
     graphics.fillStyle(0xffffff, 1).fillCircle(4, 4, 4);
   });
-  generate(scene, TEXTURE.star, 18, 18, (graphics) => {
+  bakeSprite(scene, TEXTURE.star, 18, 18, (graphics) => {
     const points: Phaser.Math.Vector2[] = [];
     for (let index = 0; index < 10; index += 1) {
       const angle = -Math.PI / 2 + index * Math.PI / 5;
@@ -51,7 +44,7 @@ export function ensureSharedTextures(scene: Phaser.Scene): void {
     }
     graphics.fillStyle(0xffffff, 1).fillPoints(points, true);
   });
-  generate(scene, TEXTURE.cloud, 180, 70, (graphics) => {
+  bakeSprite(scene, TEXTURE.cloud, 180, 70, (graphics) => {
     graphics.fillStyle(0xffffff, 1);
     graphics.fillEllipse(52, 44, 80, 40);
     graphics.fillEllipse(92, 32, 88, 56);
@@ -62,12 +55,10 @@ export function ensureSharedTextures(scene: Phaser.Scene): void {
 
 /** One rounded body texture per player colour; the face is drawn on top so it can look around. */
 export function ensureBodyTexture(scene: Phaser.Scene, color: number): string {
-  const key = `kit-body-${color.toString(16)}`;
-  generate(scene, key, 40, 44, (graphics) => {
+  return bakeSprite(scene, `kit-body-${color.toString(16)}`, 40, 44, (graphics) => {
     graphics.fillStyle(shade(color, -0.45), 1).fillRoundedRect(1, 3, 38, 40, 17);
     graphics.fillStyle(color, 1).fillRoundedRect(3, 1, 34, 38, 15);
     graphics.fillStyle(shade(color, 0.35), 1).fillEllipse(20, 30, 20, 12);
     graphics.fillStyle(0xffffff, 0.45).fillEllipse(12, 10, 10, 6);
   });
-  return key;
 }

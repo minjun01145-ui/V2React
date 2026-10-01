@@ -17,6 +17,8 @@ export class Effects {
   private readonly stars: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly confetti: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly sparks: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly trail: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly impact: Phaser.GameObjects.Particles.ParticleEmitter;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -59,6 +61,39 @@ export class Effects {
       tint: [0xef4444, 0xf97316],
       lifespan: 380,
     }).setDepth(30);
+    this.trail = scene.add.particles(0, 0, TEXTURE.star, {
+      emitting: false,
+      speed: { min: 10, max: 40 },
+      angle: { min: 240, max: 300 },
+      scale: { start: 0.6, end: 0 },
+      rotate: { min: -90, max: 90 },
+      tint: [0xfde047, 0xfef9c3, 0xfbbf24],
+      lifespan: 520,
+      gravityY: -30,
+    }).setDepth(17);
+    this.impact = scene.add.particles(0, 0, TEXTURE.dot, {
+      emitting: false,
+      speed: { min: 120, max: 260 },
+      angle: { min: 0, max: 360 },
+      scale: { start: 1.1, end: 0 },
+      tint: [0xffffff, 0xfde047, 0xfb923c],
+      lifespan: 260,
+    }).setDepth(31);
+  }
+
+  /** A little star hopping off a boosted runner's feet; call every few frames while moving. */
+  sparkle(x: number, y: number): void {
+    this.trail.explode(1, x + Phaser.Math.Between(-8, 8), y - Phaser.Math.Between(0, 10));
+  }
+
+  punchHit(x: number, y: number, powered: boolean): void {
+    this.impact.explode(powered ? 16 : 9, x, y);
+    this.floatText(x, y - 20, powered ? "쾅!" : "퍽!", powered ? "#dc2626" : "#ea580c", powered ? 24 : 18);
+  }
+
+  pickup(x: number, y: number): void {
+    this.stars.explode(12, x, y);
+    this.impact.explode(8, x, y);
   }
 
   landingDust(x: number, y: number): void {

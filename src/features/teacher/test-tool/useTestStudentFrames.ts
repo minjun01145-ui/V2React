@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createTestStudentBootstrapMessage,
+  createTestStudentVisibilityMessage,
   parseTestStudentToParentMessage,
 } from "../../../classroom-test/protocol.ts";
 import type { MultiplayerTestSession, TestStudentClientState } from "../../../classroom-test/types.ts";
@@ -15,9 +16,20 @@ function initialStates(session: MultiplayerTestSession): TestStudentClientState[
   return session.students.map((student) => ({ slot: student.slot, status: "loading", message: "학생 앱을 불러오는 중입니다." }));
 }
 
-export function useTestStudentFrames(session: MultiplayerTestSession): TestStudentFrames {
+function postVisibility(frame: HTMLIFrameElement, visible: boolean): void {
+  frame.contentWindow?.postMessage(createTestStudentVisibilityMessage(visible), window.location.origin);
+}
+
+export function useTestStudentFrames(session: MultiplayerTestSession, activeSlot: number): TestStudentFrames {
   const [states, setStates] = useState<readonly TestStudentClientState[]>(() => initialStates(session));
   const frames = useRef(new Map<number, HTMLIFrameElement>());
+  const activeSlotRef = useRef(activeSlot);
+  activeSlotRef.current = activeSlot;
+
+  // Hidden frames stay connected but pause their game rendering (one browser runs several students).
+  useEffect(() => {
+    for (const [slot, frame] of frames.current) postVisibility(frame, slot === activeSlot);
+  }, [activeSlot]);
 
   useEffect(() => {
     setStates(initialStates(session));
@@ -35,6 +47,7 @@ export function useTestStudentFrames(session: MultiplayerTestSession): TestStude
           ? { ...item, status: "connecting", message: "임시 인증 정보를 전달했습니다." }
           : item));
         frame.contentWindow.postMessage(createTestStudentBootstrapMessage(session.runId, session.roomId, student), window.location.origin);
+        postVisibility(frame, message.slot === activeSlotRef.current);
         return;
       }
 

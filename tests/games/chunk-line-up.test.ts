@@ -32,6 +32,9 @@ import {
   resolveChunkLineUpElevatorCar,
 } from "../../src/games/chunk-line-up/elevatorModel.ts";
 import type { ChunkLineUpElevatorCarState } from "../../src/multiplayer/chunk-line-up/types.ts";
+import { choosePunchTarget, encodePunch, punchKnockback } from "../../src/games/chunk-line-up/punch.ts";
+import { BUFF_DURATION_MS, ITEMS_PER_SLOT, chunkLineUpItemKind, chunkLineUpItemsAt } from "../../src/games/chunk-line-up/items.ts";
+import { ChunkLineUpPowerUps } from "../../src/games/chunk-line-up/powerUps.ts";
 
 assert.equal(CHUNK_LINE_UP_WORLD_WIDTH, 1_280, "all clients should share one canonical world width");
 assert.deepEqual(chunkLineUpProps(4), chunkLineUpProps(4), "every client must build the identical climbing course");
@@ -122,5 +125,36 @@ assert(Math.abs(chunkLineUpElevatorFloorPosition(halfway, movingAt + travel / 2)
 const opening = resolveChunkLineUpElevatorCar(car, movingAt + travel + 1, 5);
 assert.equal(opening.phase, "opening");
 assert(chunkLineUpElevatorDoorOpenRatio(opening, movingAt + travel + CHUNK_LINE_UP_ELEVATOR_DOOR_MS / 2) > 0.45);
+
+// Punch: hits the closest player in front on the same level, never someone behind or a floor away.
+const attacker = { x: 500, y: 300, facing: 1 };
+assert.equal(choosePunchTarget(attacker, [
+  { playerId: "behind", x: 470, y: 300 },
+  { playerId: "far", x: 600, y: 300 },
+  { playerId: "upstairs", x: 530, y: 70 },
+  { playerId: "near", x: 540, y: 305 },
+  { playerId: "nearer", x: 520, y: 300 },
+])?.playerId, "nearer");
+assert.equal(choosePunchTarget({ ...attacker, facing: -1 }, [{ playerId: "front", x: 540, y: 300 }]), null);
+assert(Math.sign(punchKnockback(encodePunch(-1, false)).vx) === -1, "knockback pushes in the punch direction");
+assert(Math.abs(punchKnockback(encodePunch(1, true)).vx) > Math.abs(punchKnockback(encodePunch(1, false)).vx),
+  "the punch item makes knockback stronger");
+
+// Items: every client derives the same spawns; claims hide them and grant 30s buffs.
+const itemNow = 1_790_000_000_000;
+const items = chunkLineUpItemsAt("round-1", 4, itemNow);
+assert.deepEqual(items, chunkLineUpItemsAt("round-1", 4, itemNow), "item spawns are deterministic across clients");
+assert(items.length >= ITEMS_PER_SLOT && new Set(items.map((item) => item.id)).size === items.length);
+assert(items.every((item) => item.spawnAtMs <= itemNow && itemNow < item.expiresAtMs));
+for (const item of items) assert.equal(chunkLineUpItemKind("round-1", 4, item.id), item.kind);
+const firstItem = items[0]!;
+const powerUps = new ChunkLineUpPowerUps("round-1");
+powerUps.setFloorCount(4);
+assert(powerUps.beginClaim(firstItem.id) && !powerUps.beginClaim(firstItem.id), "a pickup is only attempted once");
+powerUps.addClaim({ id: firstItem.id, by: "p1", atMs: itemNow });
+assert(!powerUps.available(itemNow).some((item) => item.id === firstItem.id), "claimed items disappear for everyone");
+assert.equal(powerUps.buffs("p1", itemNow + 1_000).has(firstItem.kind), true);
+assert.equal(powerUps.buffs("p2", itemNow + 1_000).size, 0, "only the picker gets the buff");
+assert.equal(powerUps.buffs("p1", itemNow + BUFF_DURATION_MS + 1).size, 0, "buffs last 30 seconds");
 
 console.log("chunk line-up viewport and elevator tests passed");

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import { playCorrectChime } from "../../game-engine/effects/sound.ts";
+import { FullscreenToggle, ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useChunkLineUpBoard, useChunkLineUpElevator } from "../../multiplayer/chunk-line-up/hooks.ts";
@@ -16,7 +17,9 @@ import type {
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import ChunkLineUpCanvas, { type ChunkLineUpController } from "./ChunkLineUpCanvas.tsx";
+import ChunkLineUpBuffHud from "./ChunkLineUpBuffHud.tsx";
 import ChunkLineUpFloorGuide from "./ChunkLineUpFloorGuide.tsx";
+import type { ActiveBuff } from "./scene/PowerUpLayer.ts";
 import { chunkLineUpFloorLabel } from "./layout.ts";
 import styles from "./ChunkLineUp.module.css";
 
@@ -25,7 +28,9 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   const elevatorState = useChunkLineUpElevator(roomId, session.roundId);
   const controllerRef = useRef<ChunkLineUpController | null>(null);
   const busyRef = useRef(false);
-  const [feedback, setFeedback] = useState<"wrong" | "stale" | "connection" | "checking" | null>(null);
+  const [feedback, setFeedback] = useState<"wrong" | "stale" | "connection" | "checking" | "expired" | null>(null);
+  const [buffs, setBuffs] = useState<readonly ActiveBuff[]>([]);
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const [localElevatorState, setLocalElevatorState] = useState<ChunkLineUpElevatorState | null>(null);
   const [elevatorRide, setElevatorRide] = useState<ChunkLineUpElevatorRideInfo | null>(null);
   const [destinationBusy, setDestinationBusy] = useState(false);
@@ -103,8 +108,9 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       if (result.reason === "wrong") {
         setFeedback("wrong");
         controllerRef.current?.rejectSlot();
-      } else if (result.reason === "stale") {
-        setFeedback("stale");
+      } else {
+        // "stale" and "expired" both need visible feedback; a silent no-op felt like a broken key.
+        setFeedback(result.reason);
       }
     } catch (reason: unknown) {
       console.error(reason);
@@ -124,7 +130,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
     .map((group, floor) => ({ floor, groupId: group.id, prompt: group.prompt, open: group.slots.some((slot) => !slot.fixed && !slot.filledBy) }))
     .filter((choice) => choice.open && choice.floor !== elevatorRide?.currentFloor);
 
-  return <div className={styles.studentShell}>
+  return <ImmersiveStage><div className={styles.studentShell} ref={shellRef}>
     <ChunkLineUpCanvas
       ref={controllerRef}
       role="student"
@@ -138,15 +144,18 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       onElevatorApproach={(elevatorId, floor) => setElevatorRide({ elevatorId, currentFloor: floor, destinationFloor: null })}
       onElevatorRideChange={setElevatorRide}
       onFloorChange={setCurrentFloor}
+      onBuffsChange={setBuffs}
     />
+    <ChunkLineUpBuffHud buffs={buffs} />
     <ChunkLineUpFloorGuide board={board} currentFloor={currentFloor} />
     <div className={styles.studentHud}>
       <div className={styles.tokenHud}><small>내 청크</small><strong>{assignment.token}</strong></div>
       <div className={styles.scoreHud}><small>점수</small><strong>{assignment.score}</strong></div>
       <TimedGameStatus session={session} compact />
+      <FullscreenToggle target={shellRef} className={styles.fullscreenButton} />
     </div>
     <div className={styles.controlsHint}>
-      <kbd>← →</kbd> 이동 <kbd>↑</kbd><kbd>Space</kbd> 점프(2단) <kbd>↓</kbd><kbd>S</kbd> 놓기 · 엘리베이터 · 내려가기 <kbd>R</kbd> 로비로
+      <kbd>← →</kbd> 이동 <kbd>↑</kbd> 점프(2단) <kbd>Space</kbd> 펀치 <kbd>↓</kbd> 놓기 · 엘리베이터 · 내려가기 <kbd>R</kbd> 로비로
     </div>
     {elevatorRide && elevatorRide.destinationFloor === null ? <div className={styles.elevatorDestination}>
       <strong>몇 층으로 갈까요?</strong>
@@ -172,9 +181,11 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
           ? "슬롯 확인 중…"
         : feedback === "connection"
           ? "서버 연결 오류 · 잠시 후 다시 시도하세요."
+        : feedback === "expired"
+          ? "시간이 끝났어요."
           : "게임판이 바뀌었어요. 새 청크를 확인하세요."}
     </div> : null}
     {elevatorState.error ? <div className={styles.elevatorError}>엘리베이터 연결 오류 · 발판 이용</div> : null}
     {clock.expired ? <div className={styles.expiredBadge}>시간 종료</div> : null}
-  </div>;
+  </div></ImmersiveStage>;
 }

@@ -1,4 +1,6 @@
 import Phaser from "phaser";
+import { pauseWhileBackgroundFrame } from "../../game-engine/phaser-kit/backgroundPause.ts";
+import { resizeScaleConfig } from "../../game-engine/phaser-kit/scaleConfig.ts";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
 import { createLiveMovementEngine, createLiveMovementObserver } from "../../live-world/client.ts";
@@ -105,12 +107,13 @@ const ChunkJumpRaceCanvas = forwardRef<ChunkJumpRaceController, Props>(function 
       width: host.clientWidth || 960,
       height: host.clientHeight || CHUNK_JUMP_VIEW_HEIGHT,
       backgroundColor: "#bfe4fb",
-      scale: { mode: Phaser.Scale.RESIZE },
+      scale: resizeScaleConfig(),
       render: { antialias: true, pixelArt: false },
       input: { keyboard: false },
       audio: { noAudio: true },
       scene,
     });
+    const stopBackgroundPause = pauseWhileBackgroundFrame(game);
 
     const rankingTimer = window.setInterval(() => {
       const localState = props.role === "student" ? scene.getLocalState() : null;
@@ -125,6 +128,7 @@ const ChunkJumpRaceCanvas = forwardRef<ChunkJumpRaceController, Props>(function 
       active = false;
       window.clearInterval(rankingTimer);
       sceneRef.current = null;
+      stopBackgroundPause();
       game.destroy(true);
       void closeLive();
     };

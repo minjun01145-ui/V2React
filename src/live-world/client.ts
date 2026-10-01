@@ -4,6 +4,11 @@ import { createFirebaseRealtimeMovementObserverTransport, createFirebaseRealtime
 import { LiveMovementEngine, type LiveMovementEngineOptions } from "./LiveMovementEngine.ts";
 import { LiveMovementObserver, type LiveMovementObserverOptions } from "./LiveMovementObserver.ts";
 import { currentTenantConfig } from "../tenant/config.ts";
+import { connectLiveClaims, type LiveClaim, type LiveClaims } from "./claims.ts";
+import type { LiveWorldScope } from "./core/types.ts";
+import { connectLiveEvents, type LiveEvent, type LiveEventChannel } from "./events.ts";
+
+export type { LiveClaim, LiveClaims, LiveEvent, LiveEventChannel };
 
 function realtimeDatabase() {
   return getDatabase(firebaseApp);
@@ -15,6 +20,24 @@ export function createLiveMovementEngine(playerId: string, options?: LiveMovemen
 
 export function createLiveMovementObserver(options?: LiveMovementObserverOptions): LiveMovementObserver {
   return new LiveMovementObserver(createFirebaseRealtimeMovementObserverTransport(realtimeDatabase(), currentTenantConfig().id), options);
+}
+
+export function createLiveEventChannel(
+  scope: LiveWorldScope,
+  playerId: string | null,
+  onEvent: (event: LiveEvent) => void,
+  onError: (error: Error) => void,
+): LiveEventChannel {
+  return connectLiveEvents(realtimeDatabase(), currentTenantConfig().id, scope, playerId, onEvent, onError);
+}
+
+export function createLiveClaims(
+  scope: LiveWorldScope,
+  playerId: string | null,
+  onClaim: (claim: LiveClaim) => void,
+  onError: (error: Error) => void,
+): LiveClaims {
+  return connectLiveClaims(realtimeDatabase(), currentTenantConfig().id, scope, playerId, onClaim, onError);
 }
 
 export function subscribeLiveServerTimeOffset(

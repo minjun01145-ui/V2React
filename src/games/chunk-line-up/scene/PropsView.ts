@@ -1,18 +1,28 @@
 import Phaser from "phaser";
-import { chunkLineUpPropX, chunkLineUpProps, type ChunkLineUpProp } from "../layout.ts";
+import { BakedLayer, bakeSprite } from "../../../game-engine/phaser-kit/BakedLayer.ts";
+import {
+  chunkLineUpFloorY,
+  chunkLineUpGroundY,
+  chunkLineUpPropX,
+  chunkLineUpProps,
+  type ChunkLineUpProp,
+} from "../layout.ts";
+import { CHUNK_LINE_UP_WORLD_WIDTH } from "../model.ts";
 
 const STEP_HEIGHT = 14;
 const PAD_HEIGHT = 10;
 
+const PAD_ART_HEIGHT = 26;
+
 interface MovingPlatform {
   readonly prop: ChunkLineUpProp;
   readonly zone: Phaser.GameObjects.Zone;
-  readonly art: Phaser.GameObjects.Graphics;
+  readonly art: Phaser.GameObjects.Image;
 }
 
 interface Pad {
   readonly prop: ChunkLineUpProp;
-  readonly art: Phaser.GameObjects.Graphics;
+  readonly art: Phaser.GameObjects.Image;
 }
 
 function drawStep(graphics: Phaser.GameObjects.Graphics, x: number, y: number, width: number, moving: boolean): void {
@@ -29,18 +39,25 @@ function drawStep(graphics: Phaser.GameObjects.Graphics, x: number, y: number, w
   }
 }
 
-function drawPad(graphics: Phaser.GameObjects.Graphics, width: number, squash: number): void {
-  graphics.clear();
-  const spring = 6 * squash;
-  graphics.fillStyle(0x64748b, 1).fillRect(-width / 2 + 6, -spring - 2, 4, spring + 2).fillRect(width / 2 - 10, -spring - 2, 4, spring + 2);
-  graphics.fillStyle(0xef4444, 1).fillRoundedRect(-width / 2, -spring - PAD_HEIGHT, width, PAD_HEIGHT, 5);
-  graphics.fillStyle(0xfecaca, 1).fillRoundedRect(-width / 2 + 5, -spring - PAD_HEIGHT + 2, width - 10, 3, 2);
+/** Pad art is drawn with its base on the bottom edge of the sprite. */
+function padTexture(scene: Phaser.Scene, width: number, squash: number): string {
+  return bakeSprite(scene, `cl-pad-${width}-${squash}`, width, PAD_ART_HEIGHT, (graphics) => {
+    const base = PAD_ART_HEIGHT;
+    const spring = 6 * squash;
+    graphics.fillStyle(0x64748b, 1).fillRect(6, base - spring - 2, 4, spring + 2).fillRect(width - 10, base - spring - 2, 4, spring + 2);
+    graphics.fillStyle(0xef4444, 1).fillRoundedRect(0, base - spring - PAD_HEIGHT, width, PAD_HEIGHT, 5);
+    graphics.fillStyle(0xfecaca, 1).fillRoundedRect(5, base - spring - PAD_HEIGHT + 2, width - 10, 3, 2);
+  });
+}
+
+function moverTexture(scene: Phaser.Scene, width: number): string {
+  return bakeSprite(scene, `cl-mover-${width}`, width + 4, STEP_HEIGHT + 6, (graphics) => drawStep(graphics, 0, 0, width, true));
 }
 
 /** The climbing course between floors: static steps, clock-synced moving platforms and jump pads. */
 export class PropsView {
   private readonly scene: Phaser.Scene;
-  private readonly staticArt: Phaser.GameObjects.Graphics;
+  private readonly staticArt: BakedLayer;
   readonly steps: Phaser.Physics.Arcade.StaticGroup;
   readonly movers: Phaser.Physics.Arcade.Group;
   private moving: MovingPlatform[] = [];
@@ -49,7 +66,7 @@ export class PropsView {
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
-    this.staticArt = scene.add.graphics().setDepth(5);
+    this.staticArt = new BakedLayer(scene, "cl-steps", 5);
     this.steps = scene.physics.add.staticGroup();
     this.movers = scene.physics.add.group({ allowGravity: false, immovable: true });
   }
@@ -57,7 +74,6 @@ export class PropsView {
   build(floorCount: number, nowMs: number): void {
     if (floorCount === this.floorCount) return;
     this.floorCount = floorCount;
-    this.staticArt.clear();
     this.steps.clear(true, true);
     this.movers.clear(true, true);
     this.moving.forEach((platform) => platform.art.destroy());
@@ -65,13 +81,20 @@ export class PropsView {
     this.moving = [];
     this.pads = [];
 
-    for (const prop of chunkLineUpProps(floorCount)) {
+    const props = chunkLineUpProps(floorCount);
+    const top = chunkLineUpFloorY(0, floorCount);
+    this.staticArt.draw(
+      { x: 0, y: top, width: CHUNK_LINE_UP_WORLD_WIDTH, height: chunkLineUpGroundY(floorCount) - top },
+      (graphics) => props.filter((prop) => prop.kind === "step")
+        .forEach((prop) => drawStep(graphics, prop.x, prop.y, prop.width, false)),
+    );
+    for (const prop of props) {
       if (prop.kind === "pad") {
-        const art = this.scene.add.graphics().setDepth(7).setPosition(prop.x + prop.width / 2, prop.y);
-        drawPad(art, prop.width, 1);
+        const art = this.scene.add.image(prop.x + prop.width / 2, prop.y, padTexture(this.scene, prop.width, 1))
+          .setOrigin(0.5, 1)
+          .setDepth(7);
         this.pads.push({ prop, art });
       } else if (prop.kind === "step") {
-        drawStep(this.staticArt, prop.x, prop.y, prop.width, false);
         const zone = this.scene.add.zone(prop.x + prop.width / 2, prop.y + 6, prop.width, 12);
         this.steps.add(zone);
         oneWay(zone.body as Phaser.Physics.Arcade.StaticBody);
@@ -82,9 +105,9 @@ export class PropsView {
         const body = zone.body as Phaser.Physics.Arcade.Body;
         body.setAllowGravity(false).setImmovable(true);
         oneWay(body);
-        const art = this.scene.add.graphics().setDepth(5);
-        drawStep(art, -prop.width / 2, 0, prop.width, true);
-        art.setPosition(x + prop.width / 2, prop.y);
+        const art = this.scene.add.image(x + prop.width / 2, prop.y, moverTexture(this.scene, prop.width))
+          .setOrigin(0.5, 0)
+          .setDepth(5);
         this.moving.push({ prop, zone, art });
       }
     }
@@ -122,8 +145,8 @@ export class PropsView {
   bouncePad(id: string): void {
     const pad = this.pads.find((item) => item.prop.id === id);
     if (!pad) return;
-    drawPad(pad.art, pad.prop.width, 2.2);
-    this.scene.time.delayedCall(140, () => drawPad(pad.art, pad.prop.width, 1));
+    pad.art.setTexture(padTexture(this.scene, pad.prop.width, 2));
+    this.scene.time.delayedCall(140, () => pad.art.setTexture(padTexture(this.scene, pad.prop.width, 1)));
   }
 }
 

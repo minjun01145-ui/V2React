@@ -4,6 +4,7 @@ import { FONT_FAMILY, TEXT_METRICS_SAMPLE, TEXT_RESOLUTION, ensureBodyTexture, p
 const BODY_WIDTH = 34;
 const BODY_HEIGHT = 38;
 const LANDING_SPEED = 260;
+const PUNCH_MS = 200;
 export const BLOB_TAG_Y = -54;
 
 export interface BlobPose {
@@ -35,6 +36,8 @@ export class BlobActor {
   private readonly eyes: readonly [Phaser.GameObjects.Ellipse, Phaser.GameObjects.Ellipse];
   private readonly pupils: readonly [Phaser.GameObjects.Arc, Phaser.GameObjects.Arc];
   private readonly shadow: Phaser.GameObjects.Ellipse;
+  private readonly fist: Phaser.GameObjects.Arc;
+  private punchStartedAt = -Infinity;
   private stride = 0;
   private facing = 1;
   private squashUntil = 0;
@@ -61,6 +64,7 @@ export class BlobActor {
       scene.add.circle(-6, -29, 3, 0x111827),
       scene.add.circle(8, -29, 3, 0x111827),
     ];
+    this.fist = scene.add.circle(0, -18, 7, shade(color, -0.25)).setStrokeStyle(2, shade(color, -0.6)).setVisible(false);
     this.tag = scene.add.text(0, BLOB_TAG_Y, "", {
       fontFamily: FONT_FAMILY,
       fontSize: self ? "13px" : "10px",
@@ -77,8 +81,19 @@ export class BlobActor {
       this.body,
       ...this.eyes,
       ...this.pupils,
+      this.fist,
       this.tag,
     ]).setDepth(self ? 22 : 18);
+  }
+
+  get facingDirection(): number {
+    return this.facing;
+  }
+
+  /** Quick jab in `direction` (−1 left, 1 right). */
+  punch(time: number, direction: number): void {
+    this.punchStartedAt = time;
+    this.facing = direction < 0 ? -1 : 1;
   }
 
   setTag(text: string): void {
@@ -99,7 +114,15 @@ export class BlobActor {
     const landed = this.previousVy > LANDING_SPEED && grounded;
     this.previousVy = pose.vy;
     if (landed) this.squashUntil = time + 110;
-    if (Math.abs(pose.vx) > 20) this.facing = Math.sign(pose.vx);
+    const punchAge = time - this.punchStartedAt;
+    const punching = punchAge >= 0 && punchAge < PUNCH_MS;
+    if (Math.abs(pose.vx) > 20 && !punching) this.facing = Math.sign(pose.vx);
+    if (punching) {
+      const reach = Math.sin(Math.PI * punchAge / PUNCH_MS);
+      this.fist.setVisible(true).setPosition(this.facing * (14 + reach * 22), -18 - reach * 2).setScale(0.8 + reach * 0.4);
+    } else if (this.fist.visible) {
+      this.fist.setVisible(false);
+    }
 
     const running = grounded && Math.abs(pose.vx) > 30;
     if (running) this.stride += delta * Math.min(Math.abs(pose.vx), 320) * 0.00005;

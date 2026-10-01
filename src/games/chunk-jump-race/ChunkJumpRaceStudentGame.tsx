@@ -4,6 +4,7 @@ import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createLearningCompletion } from "../../game-engine/effects/model.ts";
 import { playCorrectChime } from "../../game-engine/effects/sound.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
+import { FullscreenToggle, ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
@@ -91,6 +92,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
   readonly course: ReturnType<typeof buildChunkJumpCourse>;
 }) {
   const controllerRef = useRef<ChunkJumpRaceController | null>(null);
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const choiceEffectTimerRef = useRef<number | null>(null);
   const completedSentenceRef = useRef<{ readonly text: string; readonly meaning: string } | null>(null);
   const storageKey = raceStorageKey(roundId, playerId);
@@ -147,7 +149,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     }
   };
 
-  return <div className={styles.studentShell}>
+  return <ImmersiveStage><div className={styles.studentShell} ref={shellRef}>
     <GameEffectLayer effect={effects.activeEffect} className={styles.completionEffectLayer} />
     <ChunkJumpRaceCanvas
       ref={controllerRef}
@@ -185,6 +187,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
       <span><small>거리</small><b>{distance}</b></span>
       <span className={ownRank <= 3 ? styles.podiumRank : undefined}><small>순위</small><b>{ownRank}위</b></span>
       <TimedGameStatus session={session} compact />
+      <FullscreenToggle target={shellRef} />
     </div>
     <div className={styles.skyQuestion} aria-label="다음 끊어읽기 조각 선택">
       <div className={styles.skyPrompt}>
@@ -209,5 +212,5 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
       <strong>죽었습니다!</strong>
       <span>{CHUNK_JUMP_RESPAWN_PENALTY}칸 아래에서 리스폰됩니다.</span>
     </div> : null}
-  </div>;
+  </div></ImmersiveStage>;
 }

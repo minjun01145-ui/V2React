@@ -21,6 +21,29 @@
                     "t": { ".validate": "newData.isNumber() && newData.val() > 0" },
                     "$other": { ".validate": false }
                   }
+                },
+                "events": {
+                  ".read": "auth != null && auth.token.tenantId === $tenantId && (auth.token.role !== 'test-student' || auth.token.testRoomId === $roomId)",
+                  "$playerId": {
+                    ".write": "auth != null && auth.uid === $playerId && auth.token.tenantId === $tenantId && (auth.token.role !== 'test-student' || auth.token.testRoomId === $roomId)",
+                    ".validate": "newData.hasChildren(['k', 'g', 'v', 'q', 't'])",
+                    "k": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16" },
+                    "g": { ".validate": "newData.isString() && newData.val().length <= 128" },
+                    "v": { ".validate": "newData.isNumber() && newData.val() >= -10 && newData.val() <= 10" },
+                    "q": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 9007199254740991" },
+                    "t": { ".validate": "newData.isNumber() && newData.val() === now" },
+                    "$other": { ".validate": false }
+                  }
+                },
+                "claims": {
+                  ".read": "auth != null && auth.token.tenantId === $tenantId && (auth.token.role !== 'test-student' || auth.token.testRoomId === $roomId)",
+                  "$claimId": {
+                    ".write": "auth != null && !data.exists() && newData.child('by').val() === auth.uid && auth.token.tenantId === $tenantId && (auth.token.role !== 'test-student' || auth.token.testRoomId === $roomId)",
+                    ".validate": "$claimId.length <= 40 && newData.hasChildren(['by', 't'])",
+                    "by": { ".validate": "newData.isString()" },
+                    "t": { ".validate": "newData.isNumber() && newData.val() === now" },
+                    "$other": { ".validate": false }
+                  }
                 }
               }
             }

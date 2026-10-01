@@ -8,10 +8,13 @@ import {
   chunkLineUpGroundY,
 } from "../layout.ts";
 import { TEXTURE } from "../../../game-engine/phaser-kit/art.ts";
+import { BakedLayer } from "../../../game-engine/phaser-kit/BakedLayer.ts";
 
 // The camera may show more than the world on odd aspect ratios, so the sky and
 // ground are painted well past the world edges instead of leaving bare bars.
 const BLEED = 1_600;
+/** Hills are baked, so they only cover the widths a camera can realistically show. */
+const DETAIL_BLEED = 700;
 
 interface Cloud {
   readonly image: Phaser.GameObjects.Image;
@@ -20,12 +23,14 @@ interface Cloud {
 
 export class Backdrop {
   private readonly sky: Phaser.GameObjects.Graphics;
-  private readonly tower: Phaser.GameObjects.Graphics;
+  private readonly ground: BakedLayer;
+  private readonly tower: BakedLayer;
   private readonly clouds: Cloud[] = [];
 
   constructor(scene: Phaser.Scene) {
     this.sky = scene.add.graphics().setDepth(-30);
-    this.tower = scene.add.graphics().setDepth(-10);
+    this.ground = new BakedLayer(scene, "cl-ground", -29);
+    this.tower = new BakedLayer(scene, "cl-tower", -10);
     for (let index = 0; index < 9; index += 1) {
       const image = scene.add.image(
         Phaser.Math.Between(-300, CHUNK_LINE_UP_WORLD_WIDTH + 300),
@@ -40,10 +45,16 @@ export class Backdrop {
   draw(floorCount: number): void {
     const groundY = chunkLineUpGroundY(floorCount);
     this.drawSky(groundY);
-    const graphics = this.tower.clear();
     const topY = chunkLineUpFloorY(0, floorCount) - CHUNK_LINE_UP_FLOOR_GAP * 0.55;
     const left = CHUNK_LINE_UP_WALK_LEFT - 6;
     const right = CHUNK_LINE_UP_WALK_RIGHT + 6;
+    this.tower.draw(
+      { x: left - 16, y: topY - 72, width: right - left + 32, height: groundY - topY + 74 },
+      (graphics) => this.paintTower(graphics, floorCount, topY, left, right, groundY),
+    );
+  }
+
+  private paintTower(graphics: Phaser.GameObjects.Graphics, floorCount: number, topY: number, left: number, right: number, groundY: number): void {
 
     // Roof, flag and facade.
     graphics.fillStyle(0x3d5a80, 1).fillRoundedRect(left - 14, topY - 16, right - left + 28, 22, 8);
@@ -82,20 +93,32 @@ export class Backdrop {
   }
 
   private drawSky(groundY: number): void {
+    // Live layer: only plain rectangles (the gradient cannot be baked).
     const graphics = this.sky.clear();
     const left = -BLEED;
     const width = CHUNK_LINE_UP_WORLD_WIDTH + BLEED * 2;
     graphics.fillGradientStyle(0x5fb3ef, 0x5fb3ef, 0xdff3ff, 0xdff3ff, 1);
     graphics.fillRect(left, -BLEED, width, BLEED + groundY);
-
-    graphics.fillStyle(0xb9dfc8, 1);
-    for (let x = left; x < left + width; x += 220) graphics.fillEllipse(x + 110, groundY + 8, 320, 150);
-    graphics.fillStyle(0x6dbf73, 1).fillRect(left, groundY, width, 12);
-    graphics.fillStyle(0x4f9a58, 1).fillRect(left, groundY + 12, width, 4);
+    paintGround(graphics, left, width, groundY);
     graphics.fillStyle(0xc9a878, 1).fillRect(left, groundY + 16, width, BLEED);
-    graphics.fillStyle(0xb8966a, 1);
-    for (let x = left; x < left + width; x += 46) {
-      graphics.fillRoundedRect(x + Math.abs(x % 3) * 7, groundY + 22 + Math.abs(x % 2) * 6, 16, 5, 2);
-    }
+
+    // Baked layer: hills and soil specks around the tower.
+    const detailLeft = -DETAIL_BLEED;
+    const detailWidth = CHUNK_LINE_UP_WORLD_WIDTH + DETAIL_BLEED * 2;
+    this.ground.draw({ x: detailLeft, y: groundY - 70, width: detailWidth, height: 110 }, (detail) => {
+      detail.fillStyle(0xb9dfc8, 1);
+      for (let x = detailLeft; x < detailLeft + detailWidth; x += 220) detail.fillEllipse(x + 110, groundY + 8, 320, 150);
+      paintGround(detail, detailLeft, detailWidth, groundY);
+      detail.fillStyle(0xc9a878, 1).fillRect(detailLeft, groundY + 16, detailWidth, 24);
+      detail.fillStyle(0xb8966a, 1);
+      for (let x = detailLeft; x < detailLeft + detailWidth; x += 46) {
+        detail.fillRoundedRect(x + Math.abs(x % 3) * 7, groundY + 22 + Math.abs(x % 2) * 6, 16, 5, 2);
+      }
+    });
   }
+}
+
+function paintGround(graphics: Phaser.GameObjects.Graphics, left: number, width: number, groundY: number): void {
+  graphics.fillStyle(0x6dbf73, 1).fillRect(left, groundY, width, 12);
+  graphics.fillStyle(0x4f9a58, 1).fillRect(left, groundY + 12, width, 4);
 }

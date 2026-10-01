@@ -1,5 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import type { TeacherGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
+import { FullscreenToggle } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
 import { useChunkLineUpBoard, useChunkLineUpElevator } from "../../multiplayer/chunk-line-up/hooks.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
@@ -10,6 +11,7 @@ import styles from "./ChunkLineUp.module.css";
 export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameModuleProps) {
   const boardState = useChunkLineUpBoard(roomId, session.roundId, true);
   const elevatorState = useChunkLineUpElevator(roomId, session.roundId);
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const ranking = useMemo(
     () => boardState.value ? chunkLineUpRanking(boardState.value) : [],
     [boardState.value],
@@ -20,7 +22,8 @@ export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameM
   const fixedCount = board.groups.reduce((count, group) => count + group.slots.filter((slot) => slot.fixed).length, 0);
   const filledCount = board.groups.reduce((count, group) => count + group.slots.filter((slot) => Boolean(slot.filledBy)).length, 0);
 
-  return <div className={styles.teacherShell}>
+  return <div className={styles.teacherShell} ref={shellRef}>
+    <FullscreenToggle target={shellRef} className={styles.teacherFullscreen} />
     <div className={styles.teacherHud}>
       <div><strong>Chunk Line-Up</strong><span>{board.groups.length}개 문장 · 완료 {board.completedGroupCount}</span></div>
       <span>채운 슬롯 {filledCount} · 고정 슬롯 {fixedCount}</span>

@@ -16,7 +16,7 @@ interface Props {
 }
 
 export default function TestStudentViewport({ session, tenant, activeSlot, onPrevious, onNext, onSelectSlot }: Props) {
-  const frames = useTestStudentFrames(session);
+  const frames = useTestStudentFrames(session, activeSlot);
   const activeFrame = useRef<HTMLIFrameElement | null>(null);
   const [viewport, setViewport] = useState<"mobile" | "tablet" | "desktop">("mobile");
   const [frameVersions, setFrameVersions] = useState<Readonly<Record<number, number>>>({});

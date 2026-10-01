@@ -8,11 +8,14 @@ import {
   CHUNK_LINE_UP_WALK_LEFT,
   CHUNK_LINE_UP_WALK_RIGHT,
   chunkLineUpFloorLabel,
+  chunkLineUpFloorY,
+  chunkLineUpGroundY,
   chunkLineUpLandingRect,
   chunkLineUpSlotRects,
   type ChunkLineUpRect,
 } from "../layout.ts";
 import { FONT_FAMILY, TEXT_RESOLUTION } from "../../../game-engine/phaser-kit/art.ts";
+import { BakedLayer } from "../../../game-engine/phaser-kit/BakedLayer.ts";
 
 export interface SlotHit {
   readonly groupId: string;
@@ -41,7 +44,9 @@ function structureKey(board: ChunkLineUpBoard): string {
 export class BoardView {
   private readonly scene: Phaser.Scene;
   private readonly platforms: Phaser.Physics.Arcade.StaticGroup;
-  private readonly graphics: Phaser.GameObjects.Graphics;
+  /** Static shelves are baked into one texture per board change (see BakedLayer). */
+  private readonly layer: BakedLayer;
+  private graphics!: Phaser.GameObjects.Graphics;
   private readonly focusGraphics: Phaser.GameObjects.Graphics;
   private nodes: Phaser.GameObjects.GameObject[] = [];
   private hits: SlotHit[] = [];
@@ -51,7 +56,7 @@ export class BoardView {
   constructor(scene: Phaser.Scene, platforms: Phaser.Physics.Arcade.StaticGroup) {
     this.scene = scene;
     this.platforms = platforms;
-    this.graphics = scene.add.graphics().setDepth(PLATFORM_DEPTH);
+    this.layer = new BakedLayer(scene, "cl-board", PLATFORM_DEPTH);
     this.focusGraphics = scene.add.graphics().setDepth(PLATFORM_DEPTH + 2);
   }
 
@@ -61,7 +66,6 @@ export class BoardView {
     const rebuildPhysics = nextStructure !== this.structure;
     this.board = board;
     this.structure = nextStructure;
-    this.graphics.clear();
     this.nodes.forEach((node) => node.destroy());
     this.nodes = [];
     this.hits = [];
@@ -70,27 +74,36 @@ export class BoardView {
     const floorCount = board.groups.length;
     const filled: ChunkLineUpRect[] = [];
     const completedFloors: number[] = [];
+    const bounds = {
+      x: CHUNK_LINE_UP_WALK_LEFT - 4,
+      y: chunkLineUpFloorY(0, floorCount) - 10,
+      width: CHUNK_LINE_UP_WALK_RIGHT - CHUNK_LINE_UP_WALK_LEFT + 8,
+      height: chunkLineUpGroundY(floorCount) - chunkLineUpFloorY(0, floorCount) + 10,
+    };
 
-    board.groups.forEach((group, floor) => {
-      const rects = chunkLineUpSlotRects(group.slots.length, floor, floorCount);
-      const before = previous?.groups[floor];
-      if (before && before.id !== group.id) completedFloors.push(floor);
+    this.layer.draw(bounds, (graphics) => {
+      this.graphics = graphics;
+      board.groups.forEach((group, floor) => {
+        const rects = chunkLineUpSlotRects(group.slots.length, floor, floorCount);
+        const before = previous?.groups[floor];
+        if (before && before.id !== group.id) completedFloors.push(floor);
 
-      this.drawPrompt(group.prompt, chunkLineUpFloorLabel(floor, floorCount), rects[0]?.y ?? 0);
-      group.slots.forEach((slot, index) => {
-        const rect = rects[index];
-        if (!rect) return;
-        this.hits.push({ groupId: group.id, slot, rect });
-        this.drawSlot(slot, rect);
-        if (before?.id === group.id && slot.filledBy && !before.slots[index]?.filledBy) filled.push(rect);
-        if (rebuildPhysics) this.addPlatform(rect.x, rect.y, rect.width);
+        this.drawPrompt(group.prompt, chunkLineUpFloorLabel(floor, floorCount), rects[0]?.y ?? 0);
+        group.slots.forEach((slot, index) => {
+          const rect = rects[index];
+          if (!rect) return;
+          this.hits.push({ groupId: group.id, slot, rect });
+          this.drawSlot(slot, rect);
+          if (before?.id === group.id && slot.filledBy && !before.slots[index]?.filledBy) filled.push(rect);
+          if (rebuildPhysics) this.addPlatform(rect.x, rect.y, rect.width);
+        });
+
+        for (const id of ["left", "right"] as const) {
+          const landing = chunkLineUpLandingRect(id, floor, floorCount);
+          this.drawLanding(landing);
+          if (rebuildPhysics) this.addPlatform(landing.x, landing.y, landing.width);
+        }
       });
-
-      for (const id of ["left", "right"] as const) {
-        const landing = chunkLineUpLandingRect(id, floor, floorCount);
-        this.drawLanding(landing);
-        if (rebuildPhysics) this.addPlatform(landing.x, landing.y, landing.width);
-      }
     });
     this.platforms.refresh();
     return { filled, completedFloors };

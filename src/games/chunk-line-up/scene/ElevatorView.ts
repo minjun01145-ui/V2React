@@ -17,6 +17,8 @@ import {
   chunkLineUpShaftX,
 } from "../layout.ts";
 import { FONT_FAMILY, TEXT_RESOLUTION } from "../../../game-engine/phaser-kit/art.ts";
+import { BakedLayer } from "../../../game-engine/phaser-kit/BakedLayer.ts";
+import { CHUNK_LINE_UP_WORLD_WIDTH } from "../model.ts";
 
 export const ELEVATOR_CABIN_WIDTH = 76;
 const CABIN_HEIGHT = 58;
@@ -27,12 +29,13 @@ function shaftTop(floorCount: number): number {
 
 /** Pure rendering of the two server-driven elevator cars. */
 export class ElevatorView {
-  private readonly shafts: Phaser.GameObjects.Graphics;
+  private readonly shafts: BakedLayer;
   private readonly cars: Phaser.GameObjects.Graphics;
   private readonly labels: Record<ChunkLineUpElevatorId, Phaser.GameObjects.Text>;
+  private carsKey = "";
 
   constructor(scene: Phaser.Scene) {
-    this.shafts = scene.add.graphics().setDepth(-5);
+    this.shafts = new BakedLayer(scene, "cl-shafts", -5);
     this.cars = scene.add.graphics().setDepth(4);
     const label = (): Phaser.GameObjects.Text => scene.add.text(0, 0, "", {
       fontFamily: FONT_FAMILY,
@@ -46,9 +49,16 @@ export class ElevatorView {
   }
 
   drawShafts(floorCount: number): void {
-    const graphics = this.shafts.clear();
     const top = shaftTop(floorCount);
     const groundY = chunkLineUpGroundY(floorCount);
+    this.shafts.draw(
+      { x: 0, y: top - 12, width: CHUNK_LINE_UP_WORLD_WIDTH, height: groundY - top + 20 },
+      (graphics) => this.paintShafts(graphics, top, groundY),
+    );
+    this.carsKey = "";
+  }
+
+  private paintShafts(graphics: Phaser.GameObjects.Graphics, top: number, groundY: number): void {
     for (const id of ["left", "right"] as const) {
       const x = chunkLineUpShaftX(id) - CHUNK_LINE_UP_SHAFT_WIDTH / 2;
       graphics.fillStyle(0x1e3a4c, 1).fillRoundedRect(x, top, CHUNK_LINE_UP_SHAFT_WIDTH, groundY - top + 6, 10);
@@ -62,6 +72,20 @@ export class ElevatorView {
   }
 
   draw(state: ChunkLineUpElevatorState | null, floorCount: number, nowMs: number): void {
+    // Idle cars look the same frame after frame; only redraw when something visible changed.
+    const key = !state || floorCount < 1 ? "none" : (["left", "right"] as const).map((id) => {
+      const car = state[id];
+      return [
+        car.phase,
+        car.floor,
+        car.targetFloor,
+        car.seats.length,
+        chunkLineUpElevatorFloorPosition(car, nowMs).toFixed(3),
+        chunkLineUpElevatorDoorOpenRatio(car, nowMs).toFixed(2),
+      ].join(":");
+    }).join("|");
+    if (key === this.carsKey) return;
+    this.carsKey = key;
     this.cars.clear();
     if (!state || floorCount < 1) {
       this.labels.left.setVisible(false);

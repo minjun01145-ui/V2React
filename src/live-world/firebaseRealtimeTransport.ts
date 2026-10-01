@@ -14,6 +14,7 @@ import {
 } from "firebase/database";
 import type { LiveMovementSnapshot, LiveMovementUpdate, LiveWorldScope } from "./core/types.ts";
 import type { TenantId } from "../tenant/scope.ts";
+import { liveChannelPath, livePathSegment } from "./paths.ts";
 import type {
   LiveMovementConnection,
   LiveMovementObserverConnection,
@@ -22,15 +23,6 @@ import type {
   LiveMovementTransportHandlers,
 } from "./transport.ts";
 
-const FORBIDDEN_PATH_CHARACTERS = /[.#$\/[\]]/;
-
-function pathSegment(value: string, label: string): string {
-  const normalized = value.trim();
-  if (!normalized || normalized.length > 120 || FORBIDDEN_PATH_CHARACTERS.test(normalized)) {
-    throw new Error(`Invalid live movement ${label}.`);
-  }
-  return normalized;
-}
 
 function finiteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
@@ -60,11 +52,7 @@ function parseSnapshot(snapshot: DataSnapshot): LiveMovementSnapshot | null {
 }
 
 function livePlayersPath(tenantId: TenantId, scope: LiveWorldScope): string {
-  const tenant = pathSegment(tenantId, "tenantId");
-  const roomId = pathSegment(scope.roomId, "roomId");
-  const roundId = pathSegment(scope.roundId, "roundId");
-  const channelId = pathSegment(scope.channelId, "channelId");
-  return `liveWorld/v2/${tenant}/${roomId}/${roundId}/${channelId}/players`;
+  return `${liveChannelPath(tenantId, scope)}/players`;
 }
 
 function subscribePlayers(
@@ -98,7 +86,7 @@ export function createFirebaseRealtimeMovementTransport(database: Database, tena
       rawPlayerId: string,
       handlers: LiveMovementTransportHandlers,
     ): Promise<LiveMovementConnection> {
-      const playerId = pathSegment(rawPlayerId, "playerId");
+      const playerId = livePathSegment(rawPlayerId, "playerId");
       const playersRef = ref(database, livePlayersPath(tenantId, scope));
       const ownRef = ref(database, `${livePlayersPath(tenantId, scope)}/${playerId}`);
       const connectedRef = ref(database, ".info/connected");

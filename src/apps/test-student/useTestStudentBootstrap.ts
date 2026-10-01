@@ -4,7 +4,9 @@ import type { StudentIdentity } from "../../auth/types.ts";
 import {
   createTestStudentStatusMessage,
   parseTestStudentBootstrapMessage,
+  parseTestStudentVisibilityMessage,
 } from "../../classroom-test/protocol.ts";
+import { markBackgroundFrame } from "../../game-engine/phaser-kit/backgroundPause.ts";
 import { joinMultiplayerTestSession } from "../../classroom-test-client/repository.ts";
 import { auth } from "../../firebase/firebaseClient.ts";
 import { effectiveTenantId } from "../../tenant/scope.ts";
@@ -80,6 +82,17 @@ export function useTestStudentBootstrap(): BootstrapResult {
     window.parent.postMessage({ type: "classroom-test/ready", slot }, window.location.origin);
     return () => window.removeEventListener("message", receiveBootstrap);
   }, [slot]);
+
+  // Only the student on screen renders its game; the others idle until shown.
+  useEffect(() => {
+    const receiveVisibility = (event: MessageEvent<unknown>): void => {
+      if (event.origin !== window.location.origin || event.source !== window.parent) return;
+      const message = parseTestStudentVisibilityMessage(event.data);
+      if (message) markBackgroundFrame(!message.visible);
+    };
+    window.addEventListener("message", receiveVisibility);
+    return () => window.removeEventListener("message", receiveVisibility);
+  }, []);
 
   const leave = useCallback(async (): Promise<void> => {
     await signOut(auth);

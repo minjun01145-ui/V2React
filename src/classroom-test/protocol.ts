@@ -21,6 +21,21 @@ export interface TestStudentStatusMessage {
 
 export type TestStudentToParentMessage = TestStudentReadyMessage | TestStudentStatusMessage;
 
+/** Tells a test student frame whether it is the one on screen; hidden frames pause rendering. */
+export interface TestStudentVisibilityMessage {
+  readonly type: "classroom-test/visibility";
+  readonly visible: boolean;
+}
+
+export function createTestStudentVisibilityMessage(visible: boolean): TestStudentVisibilityMessage {
+  return { type: "classroom-test/visibility", visible };
+}
+
+export function parseTestStudentVisibilityMessage(value: unknown): TestStudentVisibilityMessage | null {
+  if (!isRecord(value) || value.type !== "classroom-test/visibility" || typeof value.visible !== "boolean") return null;
+  return { type: "classroom-test/visibility", visible: value.visible };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }

@@ -41,6 +41,10 @@ import { BoardView, type SlotHit } from "./scene/BoardView.ts";
 import { Effects } from "../../game-engine/phaser-kit/Effects.ts";
 import { ElevatorView } from "./scene/ElevatorView.ts";
 import { PropsView } from "./scene/PropsView.ts";
+import { PowerUpLayer, type ActiveBuff } from "./scene/PowerUpLayer.ts";
+import { BUFF_EFFECT, type ItemClaim } from "./items.ts";
+import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, choosePunchTarget, encodePunch, punchKnockback } from "./punch.ts";
+import type { LiveEvent } from "../../live-world/events.ts";
 
 const RUN_SPEED = 300;
 const GROUND_ACCELERATION = 2_600;
@@ -68,6 +72,11 @@ export interface ChunkLineUpSceneOptions {
   readonly onElevatorApproach: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
   readonly onElevatorRideChange: (ride: ChunkLineUpElevatorRideInfo | null) => void;
   readonly onFloorChange?: (floor: number) => void;
+  /** Seeds the shared item spawns. */
+  readonly roundId: string;
+  readonly publishEvent?: (kind: string, target: string, value: number) => void;
+  readonly claimItem?: (id: string) => Promise<boolean>;
+  readonly onBuffsChange?: (buffs: readonly ActiveBuff[]) => void;
 }
 
 /**
@@ -127,6 +136,11 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private localRideKey = "";
   private requestedElevator: { readonly id: ChunkLineUpElevatorId; readonly floor: number } | null = null;
   private reportedFloor = -1;
+  private powerUps!: PowerUpLayer;
+  private lastFrames: readonly LiveRemoteFrame[] = [];
+  private punchReadyAt = 0;
+  /** Briefly loosens drag and the speed cap so a punch knockback actually slides. */
+  private knockedUntil = 0;
 
   constructor(options: ChunkLineUpSceneOptions) {
     super("chunk-line-up");
@@ -142,6 +156,13 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.boardView = new BoardView(this, this.boardPlatforms);
     this.props = new PropsView(this);
     this.effects = new Effects(this);
+    this.powerUps = new PowerUpLayer(this, this.effects, {
+      roundId: this.options.roundId,
+      ...(this.options.localPlayer ? { localPlayerId: this.options.localPlayer.id } : {}),
+      nowMs: this.options.nowMs,
+      ...(this.options.claimItem ? { claimItem: this.options.claimItem } : {}),
+      ...(this.options.onBuffsChange ? { onBuffsChange: this.options.onBuffsChange } : {}),
+    });
     this.ground = this.add.zone(CHUNK_LINE_UP_WORLD_WIDTH / 2, 0, CHUNK_LINE_UP_WORLD_WIDTH, 80);
     this.physics.add.existing(this.ground, true);
     this.actionHint = this.add.text(0, 0, "", {
@@ -217,7 +238,55 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.localActor?.flash(0xff6b6b);
     const direction = this.body.velocity.x === 0 ? (Math.random() < 0.5 ? -1 : 1) : -Math.sign(this.body.velocity.x);
     this.body.setVelocity(direction * 240, -360);
+    this.knockedUntil = this.time.now + 220;
     this.cameras.main.shake(160, 0.006);
+  }
+
+  /** Jab whoever stands right in front of us. Purely for fun: a small knockback, nothing else. */
+  punch(): void {
+    const body = this.body;
+    const actor = this.localActor;
+    const localId = this.options.localPlayer?.id;
+    if (!body || !actor || !localId || this.localRide || this.time.now < this.punchReadyAt) return;
+    this.punchReadyAt = this.time.now + PUNCH_COOLDOWN_MS;
+    const facing = actor.facingDirection;
+    actor.punch(this.time.now, facing);
+    const target = choosePunchTarget(
+      { x: body.center.x, y: body.center.y, facing },
+      this.lastFrames.filter((frame) => frame.playerId !== localId && !this.insideRiderIds.has(frame.playerId)),
+    );
+    const powered = this.powerUps.has("punch");
+    this.options.publishEvent?.(PUNCH_EVENT, target?.playerId ?? "", encodePunch(facing, powered));
+    if (target) this.effects.punchHit(target.x, target.y - 6, powered);
+  }
+
+  receiveEvent(event: LiveEvent): void {
+    if (event.kind !== PUNCH_EVENT || !this.ready) return;
+    const direction = event.value < 0 ? -1 : 1;
+    const powered = Math.abs(event.value) >= 2;
+    this.remotes.get(event.playerId)?.punch(this.time.now, direction);
+    const localId = this.options.localPlayer?.id;
+    if (event.target && event.target === localId) {
+      this.takePunch(event.value);
+      return;
+    }
+    const victim = this.lastFrames.find((frame) => frame.playerId === event.target);
+    if (victim) this.effects.punchHit(victim.x, victim.y - 6, powered);
+  }
+
+  receiveClaim(claim: ItemClaim): void {
+    this.powerUps.receiveClaim(claim);
+  }
+
+  private takePunch(value: number): void {
+    const body = this.body;
+    if (!body || this.localRide) return;
+    const knockback = punchKnockback(value);
+    body.setVelocity(knockback.vx, knockback.vy);
+    this.knockedUntil = this.time.now + 280;
+    this.localActor?.flash(0xffffff);
+    this.effects.punchHit(body.center.x, body.center.y - 6, Math.abs(value) >= 2);
+    this.cameras.main.shake(90, Math.abs(value) >= 2 ? 0.008 : 0.004);
   }
 
   showCorrect(completedGroup: boolean): void {
@@ -258,7 +327,9 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.props.update(now, delta);
     this.updateElevators(now);
     if (this.body && this.options.input) this.updateLocalPlayer(time, delta);
-    this.updateActors(time, delta, this.options.samplePlayers());
+    this.lastFrames = this.options.samplePlayers();
+    this.updateActors(time, delta, this.lastFrames);
+    this.powerUps.update(time, this.body && !this.localRide ? { x: this.body.center.x, y: this.body.center.y } : null);
     const action = this.localRide ? null : this.downAction();
     this.boardView.drawFocus(action?.kind === "slot" ? action.hit : null, time);
     this.updateActionHint(action);
@@ -344,6 +415,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.backdrop.draw(floorCount);
     this.elevatorView.drawShafts(floorCount);
     this.props.build(floorCount, this.options.nowMs());
+    this.powerUps.setFloorCount(floorCount);
     if (this.body) {
       const center = this.body.center;
       if (center.y > chunkLineUpGroundY(floorCount) || center.y < 0) {
@@ -402,10 +474,13 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const right = directions.includes("right");
     const grounded = body.blocked.down;
     const fallSpeed = body.velocity.y;
-    body.setAccelerationX((Number(right) - Number(left)) * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION));
+    const knocked = time < this.knockedUntil;
+    const speedBoost = this.powerUps.has("speed") ? BUFF_EFFECT.speed.runMultiplier : 1;
+    body.setMaxVelocity(knocked ? RUN_SPEED * 2 : RUN_SPEED * speedBoost, 1_000);
+    body.setAccelerationX((Number(right) - Number(left)) * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION) * speedBoost);
     // Turning around should feel immediate rather than skating.
-    if (grounded && ((right && body.velocity.x < 0) || (left && body.velocity.x > 0))) body.setVelocityX(body.velocity.x * 0.5);
-    body.setDragX(grounded && !left && !right ? GROUND_DRAG : AIR_DRAG);
+    if (grounded && !knocked && ((right && body.velocity.x < 0) || (left && body.velocity.x > 0))) body.setVelocityX(body.velocity.x * 0.5);
+    body.setDragX(grounded && !knocked && !left && !right ? GROUND_DRAG : AIR_DRAG);
 
     // Ride along with a moving platform underfoot.
     if (grounded) body.x += this.props.carrySpeedAt(body.center.x, body.bottom) * (delta / 1_000);
@@ -419,7 +494,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     } else {
       const jumpVelocity = takeJump(this.jump, grounded, input.jumpQueued, time);
       if (jumpVelocity !== null) {
-        body.setVelocityY(jumpVelocity);
+        body.setVelocityY(jumpVelocity * (this.powerUps.has("jump") ? BUFF_EFFECT.jump.jumpMultiplier : 1));
         this.effects.jumpPuff(body.center.x, body.bottom);
       }
     }
@@ -453,8 +528,10 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const localId = this.options.localPlayer?.id;
     if (this.localActor && localId && this.body) {
       this.localActor.setTag(actorTag(this.options.localPlayer!.label, this.options.playerToken(localId), true));
-      const landed = this.localActor.update(actorPose(this.movement(), this.insideRiderIds.has(localId)), time, delta);
+      const movement = this.movement();
+      const landed = this.localActor.update(actorPose(movement, this.insideRiderIds.has(localId)), time, delta);
       if (landed) this.effects.landingDust(this.body.center.x, this.body.bottom);
+      this.powerUps.trail(localId, movement.x, this.body.bottom, movement.vx, time);
     }
     const visible = new Set<string>();
     for (const frame of frames) {
@@ -469,6 +546,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       }
       actor.setTag(actorTag(label, this.options.playerToken(frame.playerId), false));
       actor.update(actorPose(frame, this.insideRiderIds.has(frame.playerId)), time, delta);
+      this.powerUps.trail(frame.playerId, frame.x, frame.y + CHUNK_LINE_UP_PLAYER_HEIGHT / 2, frame.vx, time);
     }
     for (const [id, actor] of this.remotes) {
       if (visible.has(id)) continue;

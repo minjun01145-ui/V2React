@@ -1,13 +1,18 @@
 import Phaser from "phaser";
+import { pauseWhileBackgroundFrame } from "../../game-engine/phaser-kit/backgroundPause.ts";
+import { resizeScaleConfig } from "../../game-engine/phaser-kit/scaleConfig.ts";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type PointerEvent } from "react";
 import { movementAction } from "../../game-engine/input/movementKeys.ts";
 import { clearPlatformerInput, createPlatformerInput } from "../../game-engine/platformer/movement.ts";
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
 import {
+  createLiveClaims,
+  createLiveEventChannel,
   createLiveMovementEngine,
   createLiveMovementObserver,
   subscribeLiveServerTimeOffset,
 } from "../../live-world/client.ts";
+import type { ActiveBuff } from "./scene/PowerUpLayer.ts";
 import type {
   ChunkLineUpBoard,
   ChunkLineUpElevatorId,
@@ -52,6 +57,7 @@ type Props = CommonProps & (
       readonly onElevatorApproach: (elevatorId: ChunkLineUpElevatorId, floor: number) => void;
       readonly onElevatorRideChange: (ride: ChunkLineUpElevatorRideInfo | null) => void;
       readonly onFloorChange: (floor: number) => void;
+      readonly onBuffsChange: (buffs: readonly ActiveBuff[]) => void;
     }
   | {
       readonly role: "teacher";
@@ -60,20 +66,26 @@ type Props = CommonProps & (
       readonly onElevatorApproach?: never;
       readonly onElevatorRideChange?: never;
       readonly onFloorChange?: never;
+      readonly onBuffsChange?: never;
     }
 );
 
 const TOUCH_ACTIONS = [
   { action: "left", label: "왼쪽", text: "◀" },
   { action: "right", label: "오른쪽", text: "▶" },
+  { action: "punch", label: "펀치", text: "✊" },
   { action: "confirm", label: "놓기, 엘리베이터, 내려가기", text: "▼" },
   { action: "jump", label: "점프", text: "점프" },
 ] as const;
 
+// Buttons are deliberately not listed: after clicking a HUD button (floor guide,
+// elevator menu) focus stays on it, and the game keys must keep working.
 function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof Element
-    && Boolean(target.closest("input, textarea, select, button, [contenteditable='true']"));
+    && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
 }
+
+const PUNCH_KEYS = new Set(["Space", "KeyF", "KeyJ"]);
 
 const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function ChunkLineUpCanvas(props, ref) {
   const shellRef = useRef<HTMLDivElement | null>(null);
@@ -86,6 +98,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   const elevatorApproachRef = useRef(props.role === "student" ? props.onElevatorApproach : undefined);
   const elevatorRideChangeRef = useRef(props.role === "student" ? props.onElevatorRideChange : undefined);
   const floorChangeRef = useRef(props.role === "student" ? props.onFloorChange : undefined);
+  const buffsChangeRef = useRef(props.role === "student" ? props.onBuffsChange : undefined);
   const serverOffsetRef = useRef(0);
   const [connectionError, setConnectionError] = useState<Error | null>(null);
   boardRef.current = props.board;
@@ -94,6 +107,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   elevatorApproachRef.current = props.role === "student" ? props.onElevatorApproach : undefined;
   elevatorRideChangeRef.current = props.role === "student" ? props.onElevatorRideChange : undefined;
   floorChangeRef.current = props.role === "student" ? props.onFloorChange : undefined;
+  buffsChangeRef.current = props.role === "student" ? props.onBuffsChange : undefined;
 
   useImperativeHandle(ref, () => ({
     rejectSlot: () => sceneRef.current?.showWrong(),
@@ -124,6 +138,12 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       if (event.code === "Enter" || event.code === "KeyS" || event.code === "ArrowDown") {
         event.preventDefault();
         if (!event.repeat) sceneRef.current?.performDownAction();
+        return;
+      }
+      // Space punches in this game; jump stays on ↑ / W.
+      if (PUNCH_KEYS.has(event.code)) {
+        event.preventDefault();
+        if (!event.repeat) sceneRef.current?.punch();
         return;
       }
       const action = movementAction(event.code, event.key);
@@ -184,8 +204,18 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
         .catch((reason: unknown) => onError(reason instanceof Error ? reason : new Error("실시간 중계 연결에 실패했습니다.")));
     }
 
+    // Punches and item pickups ride on their own channels next to movement.
+    const scope = { roomId: props.roomId, roundId: props.roundId, channelId: CHUNK_LINE_UP_CHANNEL_ID };
+    const localId = props.role === "student" ? props.playerId : null;
+    const events = createLiveEventChannel(scope, localId, (event) => sceneRef.current?.receiveEvent(event), onError);
+    const claims = createLiveClaims(scope, localId, (claim) => sceneRef.current?.receiveClaim(claim), onError);
+
     const scene = new ChunkLineUpScene({
       mode: props.role,
+      roundId: props.roundId,
+      publishEvent: (kind, target, value) => events.publish(kind, target, value),
+      claimItem: (id) => claims.claim(id),
+      onBuffsChange: (buffs) => buffsChangeRef.current?.(buffs),
       ...(props.role === "student" ? {
         input: inputRef.current,
         localPlayer: { id: props.playerId, label: props.label },
@@ -215,12 +245,13 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       },
       // The canvas follows its container; the scene camera zooms the fixed
       // world into it so every client shares the same coordinates.
-      scale: { mode: Phaser.Scale.RESIZE },
+      scale: resizeScaleConfig(),
       render: { antialias: true, pixelArt: false },
       input: { keyboard: false },
       audio: { noAudio: true },
       scene,
     });
+    const stopBackgroundPause = pauseWhileBackgroundFrame(game);
     scene.setBoard(boardRef.current);
 
     return () => {
@@ -228,18 +259,25 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       unsubscribeClock();
       clearPlatformerInput(inputRef.current);
       sceneRef.current = null;
+      stopBackgroundPause();
       game.destroy(true);
       void closeLive();
+      void events.close();
+      claims.close();
     };
   }, [props.label, props.playerId, props.role, props.roomId, props.roundId]);
 
-  const press = (event: PointerEvent<HTMLButtonElement>, action: "left" | "right" | "jump" | "confirm"): void => {
+  const press = (event: PointerEvent<HTMLButtonElement>, action: (typeof TOUCH_ACTIONS)[number]["action"]): void => {
     if (props.role !== "student") return;
     event.preventDefault();
     shellRef.current?.focus({ preventScroll: true });
     event.currentTarget.setPointerCapture(event.pointerId);
     if (action === "confirm") {
       sceneRef.current?.performDownAction();
+      return;
+    }
+    if (action === "punch") {
+      sceneRef.current?.punch();
       return;
     }
     if (action === "jump") inputRef.current.jumpQueued = true;
@@ -264,7 +302,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
         type="button"
         key={action}
         aria-label={label}
-        className={action === "jump" || action === "confirm" ? styles.touchPrimary : undefined}
+        className={action === "left" || action === "right" ? undefined : styles.touchPrimary}
         onPointerDown={(event) => press(event, action)}
         onPointerUp={release}
         onPointerCancel={release}
