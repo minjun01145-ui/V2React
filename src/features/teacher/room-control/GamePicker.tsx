@@ -1,4 +1,4 @@
-import { GAME_CATEGORY_LABEL, GAME_CATEGORY_ORDER, type GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
+import type { GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
 import CoverTile from "../../../shared/ui/CoverTile.tsx";
 import styles from "./GamePicker.module.css";
 
@@ -9,15 +9,38 @@ interface Props {
   disabled: boolean;
 }
 
+const GROUPS = [
+  { title: "학습", games: [
+    ["ai-tutor", "AI 문답"],
+    ["simple-quiz", "객관식 퀴즈"],
+    ["matching-all", "짝 맞추기(모든 카드)"],
+    ["matching", "짝 맞추기(일부 카드)"],
+    ["sentence-builder", "문장 만들기"],
+  ] },
+  { title: "타자", games: [["typing", "문장 타자"], ["acid-rain", "산성비"]] },
+  { title: "게임", games: [
+    ["one-on-one-battle", "1:1 배틀"],
+    ["word-uno", "단어 우노"],
+    ["cooperative-sentence-builder", "커플 문장 만들기"],
+    ["pokemon-catch", "포켓몬 잡기"],
+    ["meaning-dash", "달리기"],
+    ["chunk-line-up", "플랫포머 문장 만들기"],
+    ["chunk-jump-race", "점프 문장 만들기"],
+  ] },
+] as const;
+
 export default function GamePicker({ games, selectedId, onSelect, disabled }: Props) {
   return <div className={styles.picker}>
-    {GAME_CATEGORY_ORDER.map((category) => {
-      const group = games.filter((game) => game.category === category);
+    {GROUPS.map(({ title, games: entries }) => {
+      const group = entries.flatMap(([id, label]) => {
+        const game = games.find((candidate) => candidate.id === id);
+        return game ? [{ game, label }] : [];
+      });
       if (group.length === 0) return null;
-      return <section className={styles.group} key={category} aria-label={GAME_CATEGORY_LABEL[category]}>
-        <h3 className={styles.heading}>{GAME_CATEGORY_LABEL[category]}</h3>
+      return <section className={styles.group} key={title} aria-label={title}>
+        <h3 className={styles.heading}>{title}</h3>
         <div className={styles.cards}>
-          {group.map((game) => <CoverTile key={game.id} title={game.title} cover={game.cover} selected={selectedId === game.id} disabled={disabled} onClick={() => onSelect(game.id)} />)}
+          {group.map(({ game, label }) => <CoverTile key={game.id} title={label} cover={game.cover} selected={selectedId === game.id} disabled={disabled} onClick={() => onSelect(game.id)} />)}
         </div>
       </section>;
     })}

@@ -157,18 +157,19 @@ export default function SimpleQuizPlay({
     </header>
 
     <div className={styles.body}>
-    <LearningCardSurface className={styles.prompt} eyebrow="뜻" marker="?" tone="warm">{question.prompt}</LearningCardSurface>
+    <LearningCardSurface key={question.id} className={styles.prompt} eyebrow="뜻" marker="?" tone="warm">{question.prompt}</LearningCardSurface>
     <p className={styles.guide}>뜻에 맞는 단어를 빠르게 선택하세요.</p>
     <section className={styles.options} aria-label={`${game.questionCount > 0 ? question.options.length : 0}개 선택지`}>
       {question.options.map((option, index) => <LearningCardButton
         className={styles.option}
         eyebrow={`선택지 ${index + 1}`}
-        marker={OPTION_MARKERS[index] ?? String(index + 1)}
+        marker={selectedOptionId === option.id && feedbackTone ? (feedbackTone === "correct" ? "✓" : "×") : OPTION_MARKERS[index] ?? String(index + 1)}
         tone={OPTION_TONES[index] ?? "indigo"}
         selected={selectedOptionId === option.id}
+        feedback={selectedOptionId === option.id && feedbackTone ? feedbackTone : undefined}
         disabled={submitting || clockExpired || finishing || exiting}
         onClick={() => void chooseOption(option.id)}
-        key={option.id}
+        key={`${question.id}:${option.id}`}
       >{option.text}</LearningCardButton>)}
     </section>
     </div>

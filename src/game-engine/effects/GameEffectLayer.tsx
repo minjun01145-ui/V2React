@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import type { ActiveGameEffect } from "./model.ts";
 import styles from "./GameEffectLayer.module.css";
 
@@ -8,9 +9,9 @@ export function GameEffectLayer({ effect, className }: {
   readonly effect: ActiveGameEffect | null;
   readonly className?: string | undefined;
 }) {
-  if (!effect) return null;
+  if (!effect || typeof document === "undefined") return null;
 
-  return <div
+  return createPortal(<div
     className={className ? `${styles.layer} ${className}` : styles.layer}
     data-kind={effect.kind}
     data-level={effect.level}
@@ -30,5 +31,5 @@ export function GameEffectLayer({ effect, className }: {
       <b className={styles.metric}>{effect.metric}</b>
       {effect.detail && <span className={styles.detail}>{effect.detail}</span>}
     </div>
-  </div>;
+  </div>, document.body);
 }

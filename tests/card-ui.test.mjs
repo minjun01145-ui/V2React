@@ -26,6 +26,30 @@ try {
     assert.ok(markup.includes('aria-label="검증 카드"'));
   }
   console.log("Card UI composition regression tests passed");
+
+  const { default: GamePicker } = await server.ssrLoadModule("/src/features/teacher/room-control/GamePicker.tsx");
+  const { listGames } = await server.ssrLoadModule("/src/games/registry.ts");
+  const pickerProps = { games: listGames().filter((game) => game.supportedSetTypes.length > 0), selectedId: "matching-all", onSelect: () => {}, disabled: false };
+  const picker = renderToStaticMarkup(createElement(GamePicker, pickerProps));
+  const groups = [...picker.matchAll(/<section\b[^>]*aria-label="([^"]+)"[^>]*>([\s\S]*?)<\/section>/g)];
+  assert.deepEqual(groups.map((group) => group[1]), ["학습", "타자", "게임"]);
+  const expectedLabels = [
+    ["AI 문답", "객관식 퀴즈", "짝 맞추기(모든 카드)", "짝 맞추기(일부 카드)", "문장 만들기"],
+    ["문장 타자", "산성비"],
+    ["1:1 배틀", "단어 우노", "커플 문장 만들기", "포켓몬 잡기", "달리기", "플랫포머 문장 만들기", "점프 문장 만들기"],
+  ];
+  groups.forEach((group, index) => {
+    const labels = [...group[2].matchAll(/<button\b[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span><\/button>/g)].map((match) => match[1]);
+    assert.deepEqual(labels, expectedLabels[index], "teacher picker preserves the requested groups and order");
+  });
+  const selectedButtons = [...picker.matchAll(/<button[^>]*aria-pressed="true"[^>]*>([\s\S]*?)<\/button>/g)];
+  assert.equal(selectedButtons.length, 1);
+  assert.ok(selectedButtons[0][1].includes("짝 맞추기(모든 카드)"), "the renamed choice retains its original game id selection");
+  const disabledPicker = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, disabled: true }));
+  assert.equal((disabledPicker.match(/ disabled=""/g) ?? []).length, 14, "all game choices remain disabled while starting");
+  const subset = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, games: pickerProps.games.filter((game) => game.id === "typing") }));
+  assert.equal((subset.match(/<section\b/g) ?? []).length, 1, "unavailable games and empty groups are omitted");
+  console.log("Teacher game picker grouping regression tests passed");
 } finally {
   await server.close();
 }

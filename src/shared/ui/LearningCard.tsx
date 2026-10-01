@@ -23,8 +23,9 @@ export function LearningCardButton({
   className,
   selected = false,
   exiting = false,
+  feedback,
   ...buttonProps
-}: SharedProps & ButtonHTMLAttributes<HTMLButtonElement> & { readonly selected?: boolean; readonly exiting?: boolean }) {
+}: SharedProps & ButtonHTMLAttributes<HTMLButtonElement> & { readonly selected?: boolean; readonly exiting?: boolean; readonly feedback?: "correct" | "incorrect" | undefined }) {
   return <button
     type="button"
     {...buttonProps}
@@ -32,6 +33,7 @@ export function LearningCardButton({
     data-tone={tone}
     data-selected={selected}
     data-exiting={exiting}
+    data-feedback={feedback}
   >
     <span className={styles.eyebrow}>{eyebrow}</span>
     <strong className={styles.content}>{children}</strong>
