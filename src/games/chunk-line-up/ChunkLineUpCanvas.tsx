@@ -12,7 +12,7 @@ import {
   createLiveMovementObserver,
   subscribeLiveServerTimeOffset,
 } from "../../live-world/client.ts";
-import type { ActiveBuff } from "./scene/PowerUpLayer.ts";
+import type { ActiveBuff } from "../../game-engine/platformer-party/buffs.ts";
 import type {
   ChunkLineUpBoard,
   ChunkLineUpElevatorId,

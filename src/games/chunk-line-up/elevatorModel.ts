@@ -9,6 +9,7 @@ export const CHUNK_LINE_UP_ELEVATOR_CAPACITY = 3;
 export const CHUNK_LINE_UP_ELEVATOR_OPEN_DWELL_MS = 1_250;
 export const CHUNK_LINE_UP_ELEVATOR_DOOR_MS = 360;
 export const CHUNK_LINE_UP_ELEVATOR_DESTINATION_GRACE_MS = 8_000;
+const PREDICTION_HOLD_MS = 10_000;
 const TRAVEL_BASE_MS = 420;
 const TRAVEL_PER_FLOOR_MS = 520;
 
@@ -155,7 +156,11 @@ export function predictChunkLineUpElevatorRide(
     revision: state.revision + 1,
     [elevatorId]: {
       ...car,
-      phaseStartedAtMs: car.seats.some((seat) => seat.destinationFloor === null) ? car.phaseStartedAtMs : nowMs,
+      // The player is shown inside at once, but the doors stay open until the
+      // server's state (with its own departure time) replaces this prediction.
+      // Departing locally first let a slow server reply seat the player again
+      // after they had already got off at the destination.
+      phaseStartedAtMs: nowMs + PREDICTION_HOLD_MS,
       seats: [...car.seats, { playerId, destinationFloor }],
       queue,
     },

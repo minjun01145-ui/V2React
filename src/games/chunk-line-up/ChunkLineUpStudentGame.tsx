@@ -17,9 +17,9 @@ import type {
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
 import ChunkLineUpCanvas, { type ChunkLineUpController } from "./ChunkLineUpCanvas.tsx";
-import ChunkLineUpBuffHud from "./ChunkLineUpBuffHud.tsx";
+import BuffHud from "../../game-engine/platformer-party/BuffHud.tsx";
 import ChunkLineUpFloorGuide from "./ChunkLineUpFloorGuide.tsx";
-import type { ActiveBuff } from "./scene/PowerUpLayer.ts";
+import type { ActiveBuff } from "../../game-engine/platformer-party/buffs.ts";
 import { chunkLineUpFloorLabel } from "./layout.ts";
 import styles from "./ChunkLineUp.module.css";
 
@@ -146,7 +146,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
       onFloorChange={setCurrentFloor}
       onBuffsChange={setBuffs}
     />
-    <ChunkLineUpBuffHud buffs={buffs} />
+    <BuffHud buffs={buffs} />
     <ChunkLineUpFloorGuide board={board} currentFloor={currentFloor} />
     <div className={styles.studentHud}>
       <div className={styles.tokenHud}><small>내 청크</small><strong>{assignment.token}</strong></div>

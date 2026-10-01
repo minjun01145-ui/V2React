@@ -32,9 +32,10 @@ import {
   resolveChunkLineUpElevatorCar,
 } from "../../src/games/chunk-line-up/elevatorModel.ts";
 import type { ChunkLineUpElevatorCarState } from "../../src/multiplayer/chunk-line-up/types.ts";
-import { choosePunchTarget, encodePunch, punchKnockback } from "../../src/games/chunk-line-up/punch.ts";
-import { BUFF_DURATION_MS, ITEMS_PER_SLOT, chunkLineUpItemKind, chunkLineUpItemsAt } from "../../src/games/chunk-line-up/items.ts";
-import { ChunkLineUpPowerUps } from "../../src/games/chunk-line-up/powerUps.ts";
+import { choosePunchTarget, encodePunch, punchKnockback } from "../../src/game-engine/platformer-party/punch.ts";
+import { ITEMS_PER_SLOT, chunkLineUpItemKind, chunkLineUpItemsAt } from "../../src/games/chunk-line-up/items.ts";
+import { BUFF_DURATION_MS } from "../../src/game-engine/platformer-party/buffs.ts";
+import { PowerUpTracker } from "../../src/game-engine/platformer-party/PowerUpTracker.ts";
 
 assert.equal(CHUNK_LINE_UP_WORLD_WIDTH, 1_280, "all clients should share one canonical world width");
 assert.deepEqual(chunkLineUpProps(4), chunkLineUpProps(4), "every client must build the identical climbing course");
@@ -95,6 +96,8 @@ const optimisticRide = predictChunkLineUpElevatorRide(
 );
 assert.equal(optimisticRide?.left.seats[0]?.destinationFloor, 1,
   "a selected destination should start the local elevator ride without waiting for the server round trip");
+assert.equal(resolveChunkLineUpElevatorCar(optimisticRide!.left, epoch + 5_000, 5).phase, "open",
+  "a predicted ride must not depart before the server confirms it (a slow reply would re-seat the player after arrival)");
 assert.equal(predictChunkLineUpElevatorRide(
   createChunkLineUpElevatorState(5, epoch),
   "left",
@@ -148,8 +151,10 @@ assert(items.length >= ITEMS_PER_SLOT && new Set(items.map((item) => item.id)).s
 assert(items.every((item) => item.spawnAtMs <= itemNow && itemNow < item.expiresAtMs));
 for (const item of items) assert.equal(chunkLineUpItemKind("round-1", 4, item.id), item.kind);
 const firstItem = items[0]!;
-const powerUps = new ChunkLineUpPowerUps("round-1");
-powerUps.setFloorCount(4);
+const powerUps = new PowerUpTracker({
+  itemsAt: (nowMs) => chunkLineUpItemsAt("round-1", 4, nowMs),
+  kindOf: (id) => chunkLineUpItemKind("round-1", 4, id),
+});
 assert(powerUps.beginClaim(firstItem.id) && !powerUps.beginClaim(firstItem.id), "a pickup is only attempted once");
 powerUps.addClaim({ id: firstItem.id, by: "p1", atMs: itemNow });
 assert(!powerUps.available(itemNow).some((item) => item.id === firstItem.id), "claimed items disappear for everyone");

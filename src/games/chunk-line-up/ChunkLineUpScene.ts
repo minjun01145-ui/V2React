@@ -41,9 +41,11 @@ import { BoardView, type SlotHit } from "./scene/BoardView.ts";
 import { Effects } from "../../game-engine/phaser-kit/Effects.ts";
 import { ElevatorView } from "./scene/ElevatorView.ts";
 import { PropsView } from "./scene/PropsView.ts";
-import { PowerUpLayer, type ActiveBuff } from "./scene/PowerUpLayer.ts";
-import { BUFF_EFFECT, type ItemClaim } from "./items.ts";
-import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, choosePunchTarget, encodePunch, punchKnockback } from "./punch.ts";
+import { PowerUpLayer } from "../../game-engine/platformer-party/PowerUpLayer.ts";
+import type { PartyItemSource } from "../../game-engine/platformer-party/PowerUpTracker.ts";
+import { BUFF_EFFECT, type ActiveBuff, type ItemClaim } from "../../game-engine/platformer-party/buffs.ts";
+import { chunkLineUpItemKind, chunkLineUpItemsAt } from "./items.ts";
+import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, choosePunchTarget, encodePunch, punchKnockback } from "../../game-engine/platformer-party/punch.ts";
 import type { LiveEvent } from "../../live-world/events.ts";
 
 const RUN_SPEED = 300;
@@ -54,6 +56,7 @@ const AIR_DRAG = 700;
 const DROP_THROUGH_MS = 240;
 const SEAT_OFFSETS = [-22, 0, 22] as const;
 const MIN_STUDENT_ZOOM = 0.62;
+const EXIT_GUARD_MS = 8_000;
 /** Students see roughly this many floors at once; the camera follows them up the tower. */
 const STUDENT_VISIBLE_FLOORS = 2.5;
 
@@ -136,7 +139,9 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   private localRideKey = "";
   private requestedElevator: { readonly id: ChunkLineUpElevatorId; readonly floor: number } | null = null;
   private reportedFloor = -1;
-  private powerUps!: PowerUpLayer;
+  private lastExit: { readonly elevatorId: ChunkLineUpElevatorId; readonly floor: number; readonly until: number } | null = null;
+  private powerUps: PowerUpLayer | undefined;
+  private earlyClaims: ItemClaim[] = [];
   private lastFrames: readonly LiveRemoteFrame[] = [];
   private punchReadyAt = 0;
   /** Briefly loosens drag and the speed cap so a punch knockback actually slides. */
@@ -157,13 +162,15 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.props = new PropsView(this);
     this.effects = new Effects(this);
     this.powerUps = new PowerUpLayer(this, this.effects, {
-      roundId: this.options.roundId,
+      source: this.itemSource(0),
       ...(this.options.localPlayer ? { localPlayerId: this.options.localPlayer.id } : {}),
       nowMs: this.options.nowMs,
       ...(this.options.claimItem ? { claimItem: this.options.claimItem } : {}),
       ...(this.options.onBuffsChange ? { onBuffsChange: this.options.onBuffsChange } : {}),
     });
-    this.ground = this.add.zone(CHUNK_LINE_UP_WORLD_WIDTH / 2, 0, CHUNK_LINE_UP_WORLD_WIDTH, 80);
+    this.earlyClaims.forEach((claim) => this.powerUps?.receiveClaim(claim));
+    this.earlyClaims = [];
+    this.ground =this.add.zone(CHUNK_LINE_UP_WORLD_WIDTH / 2, 0, CHUNK_LINE_UP_WORLD_WIDTH, 80);
     this.physics.add.existing(this.ground, true);
     this.actionHint = this.add.text(0, 0, "", {
       fontFamily: FONT_FAMILY,
@@ -255,7 +262,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       { x: body.center.x, y: body.center.y, facing },
       this.lastFrames.filter((frame) => frame.playerId !== localId && !this.insideRiderIds.has(frame.playerId)),
     );
-    const powered = this.powerUps.has("punch");
+    const powered = this.powerUps?.has("punch") ?? false;
     this.options.publishEvent?.(PUNCH_EVENT, target?.playerId ?? "", encodePunch(facing, powered));
     if (target) this.effects.punchHit(target.x, target.y - 6, powered);
   }
@@ -275,7 +282,9 @@ export default class ChunkLineUpScene extends Phaser.Scene {
   }
 
   receiveClaim(claim: ItemClaim): void {
-    this.powerUps.receiveClaim(claim);
+    // Claims can arrive before create(); keep them until the power-up layer exists.
+    if (this.powerUps) this.powerUps.receiveClaim(claim);
+    else this.earlyClaims.push(claim);
   }
 
   private takePunch(value: number): void {
@@ -329,12 +338,21 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     if (this.body && this.options.input) this.updateLocalPlayer(time, delta);
     this.lastFrames = this.options.samplePlayers();
     this.updateActors(time, delta, this.lastFrames);
-    this.powerUps.update(time, this.body && !this.localRide ? { x: this.body.center.x, y: this.body.center.y } : null);
+    this.powerUps?.update(time, this.body && !this.localRide ? { x: this.body.center.x, y: this.body.center.y } : null);
     const action = this.localRide ? null : this.downAction();
     this.boardView.drawFocus(action?.kind === "slot" ? action.hit : null, time);
     this.updateActionHint(action);
     this.backdrop.update(delta);
     if (this.body) this.followLocalPlayer(delta);
+  }
+
+  /** The tower's item schedule for the shared power-up layer. */
+  private itemSource(floorCount: number): PartyItemSource {
+    const roundId = this.options.roundId;
+    return {
+      itemsAt: (nowMs) => chunkLineUpItemsAt(roundId, floorCount, nowMs),
+      kindOf: (id) => chunkLineUpItemKind(roundId, floorCount, id),
+    };
   }
 
   private worldHeight(): number {
@@ -415,7 +433,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.backdrop.draw(floorCount);
     this.elevatorView.drawShafts(floorCount);
     this.props.build(floorCount, this.options.nowMs());
-    this.powerUps.setFloorCount(floorCount);
+    this.powerUps?.setSource(this.itemSource(floorCount));
     if (this.body) {
       const center = this.body.center;
       if (center.y > chunkLineUpGroundY(floorCount) || center.y < 0) {
@@ -475,7 +493,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     const grounded = body.blocked.down;
     const fallSpeed = body.velocity.y;
     const knocked = time < this.knockedUntil;
-    const speedBoost = this.powerUps.has("speed") ? BUFF_EFFECT.speed.runMultiplier : 1;
+    const speedBoost = this.powerUps?.has("speed") ? BUFF_EFFECT.speed.runMultiplier : 1;
     body.setMaxVelocity(knocked ? RUN_SPEED * 2 : RUN_SPEED * speedBoost, 1_000);
     body.setAccelerationX((Number(right) - Number(left)) * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION) * speedBoost);
     // Turning around should feel immediate rather than skating.
@@ -494,7 +512,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     } else {
       const jumpVelocity = takeJump(this.jump, grounded, input.jumpQueued, time);
       if (jumpVelocity !== null) {
-        body.setVelocityY(jumpVelocity * (this.powerUps.has("jump") ? BUFF_EFFECT.jump.jumpMultiplier : 1));
+        body.setVelocityY(jumpVelocity * (this.powerUps?.has("jump") ? BUFF_EFFECT.jump.jumpMultiplier : 1));
         this.effects.jumpPuff(body.center.x, body.bottom);
       }
     }
@@ -531,7 +549,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       const movement = this.movement();
       const landed = this.localActor.update(actorPose(movement, this.insideRiderIds.has(localId)), time, delta);
       if (landed) this.effects.landingDust(this.body.center.x, this.body.bottom);
-      this.powerUps.trail(localId, movement.x, this.body.bottom, movement.vx, time);
+      this.powerUps?.trail(localId, movement.x, this.body.bottom, movement.vx, time);
     }
     const visible = new Set<string>();
     for (const frame of frames) {
@@ -546,7 +564,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       }
       actor.setTag(actorTag(label, this.options.playerToken(frame.playerId), false));
       actor.update(actorPose(frame, this.insideRiderIds.has(frame.playerId)), time, delta);
-      this.powerUps.trail(frame.playerId, frame.x, frame.y + CHUNK_LINE_UP_PLAYER_HEIGHT / 2, frame.vx, time);
+      this.powerUps?.trail(frame.playerId, frame.x, frame.y + CHUNK_LINE_UP_PLAYER_HEIGHT / 2, frame.vx, time);
     }
     for (const [id, actor] of this.remotes) {
       if (visible.has(id)) continue;
@@ -589,7 +607,13 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     if (!localId || !this.body) return;
 
     const previousRide = this.localRide;
-    const ride = findChunkLineUpPlayerElevator(state, localId);
+    let ride = findChunkLineUpPlayerElevator(state, localId);
+    // A late or clock-skewed state can still list us in the car we just left; never step back in.
+    const exit = this.lastExit;
+    if (ride && exit && this.time.now < exit.until
+      && ride.elevatorId === exit.elevatorId && ride.rider.destinationFloor === exit.floor) {
+      ride = null;
+    }
     this.localRide = ride ? {
       elevatorId: ride.elevatorId,
       currentFloor: ride.car.floor,
@@ -623,10 +647,13 @@ export default class ChunkLineUpScene extends Phaser.Scene {
       // Step out onto the landing on the building side of the shaft.
       const car = state[previousRide.elevatorId];
       const direction = previousRide.elevatorId === "left" ? 1 : -1;
+      // Just past the door zone, so ↓ right after arriving means "drop", not "board again".
       const exitX = chunkLineUpShaftX(previousRide.elevatorId)
-        + direction * (CHUNK_LINE_UP_SHAFT_WIDTH / 2 + CHUNK_LINE_UP_LANDING_WIDTH / 2 + 20);
-      this.body.reset(exitX, chunkLineUpFloorY(car.floor, this.floorCount) - CHUNK_LINE_UP_PLAYER_HEIGHT / 2);
+        + direction * (CHUNK_LINE_UP_SHAFT_WIDTH / 2 + CHUNK_LINE_UP_LANDING_WIDTH + 24);
+      const exitFloor = previousRide.destinationFloor ?? car.floor;
+      this.body.reset(exitX, chunkLineUpFloorY(exitFloor, this.floorCount) - CHUNK_LINE_UP_PLAYER_HEIGHT / 2);
       this.body.setVelocityX(direction * 200);
+      this.lastExit = { elevatorId: previousRide.elevatorId, floor: exitFloor, until: this.time.now + EXIT_GUARD_MS };
       return;
     }
 
