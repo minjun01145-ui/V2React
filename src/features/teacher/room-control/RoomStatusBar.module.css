@@ -1,0 +1,9 @@
+.bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.status strong { font-weight: 700; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+.waiting { background: var(--color-muted); }
+.preparing { background: var(--color-warning); }
+.playing { background: var(--color-success); }
+.detail { color: var(--color-muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }

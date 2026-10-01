@@ -1,46 +1,9 @@
-.embedded { display: grid; gap: 1rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
-.embeddedHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
-.embeddedHeader h2 { margin: .25rem 0 0; }
-.actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-.waitingStack { display: grid; gap: 1rem; }
-.waitingStack > * { margin-bottom: 0; }
-.launchPanel { display: grid; gap: 1rem; border-color: #a5b4fc; background: linear-gradient(145deg, var(--color-surface), #f4f5ff); }
-.launchTitle { margin: 0; }
-.activityChoices { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: .5rem; }
-.activityChoices button { min-height: 2.75rem; padding: .65rem .75rem; border: 1px solid var(--color-border-strong); border-radius: .75rem; color: var(--color-muted); background: var(--color-surface); font: inherit; font-size: .84rem; font-weight: 850; cursor: pointer; }
-.activityChoices button[aria-pressed="true"] { border-color: #6366f1; color: #3730a3; background: #eef2ff; box-shadow: inset 0 0 0 1px #818cf8; }
-.activityChoices button:focus-visible { outline: 3px solid var(--color-primary-soft); outline-offset: 2px; }
-.activityChoices button:disabled { cursor: not-allowed; opacity: .55; }
-.launchContent { padding: 1rem; border: 1px solid #d8dcf3; border-radius: .9rem; background: rgba(255, 255, 255, .72); }
-.gameSetup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, .75fr); gap: 1rem; align-items: start; }
-.gameSetup h2, .quizSetup h2, .questionSetup h2, .latestQuestionSetup h2 { margin: .15rem 0; }
-.quizSetup, .questionSetup, .latestQuestionSetup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .75fr); gap: 1rem; align-items: end; }
-.quizSetup label, .questionControls label, .latestQuestionSetup label { display: grid; gap: .4rem; font-size: .82rem; font-weight: 800; }
-.quizSetup select, .questionControls select, .latestQuestionSetup select { width: 100%; border: 1px solid var(--color-border-strong); border-radius: .75rem; padding: .78rem .85rem; color: var(--color-text); background: var(--color-surface); font: inherit; }
-.questionControls { display: grid; grid-template-columns: minmax(140px, .65fr) minmax(180px, 1fr); gap: .75rem; align-items: end; }
-.questionControls .checkbox { display: flex; align-items: center; min-height: 2.8rem; }
-.launchFooter { display: grid; gap: .55rem; }
-.launchFooter p { margin: 0; color: var(--color-muted); font-size: .82rem; font-weight: 750; text-align: center; }
-.heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-.headingTitle { display: flex; align-items: center; gap: .65rem; min-width: 0; }
-.heading h2 { margin: 0; }
-.count { display: inline-grid; place-content: center; min-width: 2.4rem; height: 2.4rem; border-radius: 999px; background: var(--color-primary-soft); color: #4338ca; font-weight: 900; }
-.studentNumberToggle { display: inline-flex; align-items: center; gap: .55rem; min-height: 2.5rem; padding: .45rem .7rem; border: 1px solid var(--color-border-strong); border-radius: 999px; background: var(--color-surface); color: var(--color-text); font: inherit; font-size: .82rem; font-weight: 800; cursor: pointer; transition: border-color 150ms ease, background 150ms ease; }
-.studentNumberToggle:hover { border-color: var(--color-primary); background: var(--color-primary-soft); }
-.studentNumberToggle:focus-visible { outline: 3px solid var(--color-primary-soft); outline-offset: 2px; }
-.toggleTrack { position: relative; width: 2rem; height: 1.15rem; flex: 0 0 auto; border-radius: 999px; background: var(--color-border-strong); transition: background 150ms ease; }
-.toggleThumb { position: absolute; top: .15rem; left: .15rem; width: .85rem; height: .85rem; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(15, 23, 42, .3); transition: transform 150ms ease; }
-.studentNumberToggle[aria-pressed="true"] .toggleTrack { background: var(--color-primary); }
-.studentNumberToggle[aria-pressed="true"] .toggleThumb { transform: translateX(.85rem); }
-.gameSetup label { display: grid; gap: .4rem; font-size: .82rem; font-weight: 800; }
-.gameSetup select { width: 100%; border: 1px solid var(--color-border-strong); border-radius: .75rem; padding: .78rem .85rem; color: var(--color-text); background: var(--color-surface); font: inherit; }
-.gameSetup select:focus, .quizSetup select:focus, .questionControls select:focus, .latestQuestionSetup select:focus { border-color: var(--color-primary); outline: 3px solid var(--color-primary-soft); }
-.pickerControls { display: grid; gap: .7rem; }
-.setError { grid-column: 1 / -1; margin: 0; color: var(--color-danger-text); font-weight: 700; }
-.waitingTypingPicker { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,.65fr); gap:1rem; align-items:end; margin-top:.5rem; border-color:#b8ddef; background:linear-gradient(135deg,var(--color-surface),#effaff); box-shadow:none; }
-.waitingTypingPicker h2 { margin:.2rem 0; }
-.waitingTypingPicker label { display:grid; gap:.4rem; font-size:.82rem; font-weight:800; }
-.waitingTypingPicker select { width:100%; border:1px solid var(--color-border-strong); border-radius:.75rem; padding:.78rem .85rem; color:var(--color-text); background:var(--color-surface); font:inherit; }
-.waitingTypingPicker select:focus { border-color:#2993c7; outline:3px solid rgba(41,147,199,.14); }
-@media (max-width: 680px) { .gameSetup, .quizSetup, .questionSetup, .latestQuestionSetup, .waitingTypingPicker { grid-template-columns: 1fr; } .activityChoices { grid-template-columns: repeat(2, minmax(0, 1fr)); } .questionControls { grid-template-columns: 1fr; } .embeddedHeader { flex-direction: column; } .actions { width: 100%; } .actions > * { flex: 1; } .heading { align-items: flex-start; } }
-@media (prefers-reduced-motion: reduce) { .studentNumberToggle, .toggleTrack, .toggleThumb { transition: none; } }
+.content, .embedded { display: grid; gap: 16px; min-width: 0; }
+.embedded { padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
+.embeddedHeader h2 { margin: 0; font-size: var(--text-lg); font-weight: 700; }
+.lobbyGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
+.mainColumn, .sideColumn { display: grid; gap: 16px; min-width: 0; }
+@media (min-width: 1100px) {
+  .lobbyGrid { grid-template-columns: minmax(0, 1fr) 360px; }
+  .sideColumn { position: sticky; top: 72px; }
+}

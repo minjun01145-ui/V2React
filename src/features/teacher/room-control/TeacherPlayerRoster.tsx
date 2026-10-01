@@ -5,7 +5,9 @@ import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Card from "../../../shared/ui/Card.tsx";
-import styles from "./TeacherRoomController.module.css";
+import Badge from "../../../shared/ui/Badge.tsx";
+import Button from "../../../shared/ui/Button.tsx";
+import styles from "./TeacherPlayerRoster.module.css";
 
 interface Props {
   readonly roomId: string;
@@ -50,25 +52,24 @@ export default function TeacherPlayerRoster({ roomId, players, disabled = false 
   return (
     <Card>
       <div className={styles.heading}>
-        <div className={styles.headingTitle}><h2>접속 학생</h2><span className={styles.count}>{players.length}</span></div>
-        <button
-          className={styles.studentNumberToggle}
-          type="button"
+        <div className={styles.headingTitle}><h2>접속 학생</h2><Badge tone="primary">{players.length}</Badge></div>
+        <Button
+          variant="quiet"
+          size="sm"
           aria-pressed={showStudentNumbers}
           onClick={() => setShowStudentNumbers((visible) => !visible)}
         >
-          <span className={styles.toggleTrack} aria-hidden="true"><span className={styles.toggleThumb} /></span>
-          학번 {showStudentNumbers ? "표시" : "숨김"}
-        </button>
+          학번 {showStudentNumbers ? "숨기기" : "보이기"}
+        </Button>
       </div>
-      <PlayerGrid
+      <div className={styles.players}><PlayerGrid
         players={players}
         showStudentNumber={showStudentNumbers}
         emptyMessage="접속한 학생이 없습니다."
         onPlayerClick={(player) => void removePlayer(player)}
         disabled={disabled || removingPlayerId !== null}
         disabledPlayerId={removingPlayerId}
-      />
+      /></div>
     </Card>
   );
 }

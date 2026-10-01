@@ -5,16 +5,19 @@ import type { StudentQuestionConfig } from "../../../student-question-activity/t
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import { Muted } from "../../../shared/ui/Typography.tsx";
+import Field from "../../../shared/ui/Field.tsx";
+import Select from "../../../shared/ui/Select.tsx";
+import SegmentedControl from "../../../shared/ui/SegmentedControl.tsx";
 import { GameSetupPanel } from "./GameSetupPanel.tsx";
 import QuizGameLaunchPanel from "./QuizGameLaunchPanel.tsx";
-import styles from "./TeacherRoomController.module.css";
+import styles from "./ActivityLaunchPanel.module.css";
 import type { GameSetupState } from "./useGameSetup.ts";
 
 type ActivityKind = "game" | "quiz" | "questions" | "latest-questions";
 
 const activityOptions: readonly { readonly id: ActivityKind; readonly label: string }[] = [
-  { id: "game", label: "기존 게임" },
-  { id: "quiz", label: "퀴즈쇼 모드" },
+  { id: "game", label: "게임" },
+  { id: "quiz", label: "퀴즈쇼" },
   { id: "questions", label: "질문 만들기" },
 ];
 
@@ -43,7 +46,7 @@ export default function ActivityLaunchPanel({
   const [englishOnly, setEnglishOnly] = useState(false);
   const handleQuizPlanChange = useCallback((plan: QuizGamePlan | null) => setQuizPlan(plan), []);
   const options = latestQuestionSetId
-    ? [...activityOptions, { id: "latest-questions", label: "학생 질문 AI" } as const]
+    ? [...activityOptions, { id: "latest-questions", label: "학생 질문으로 AI 문답" } as const]
     : activityOptions;
 
   const invalidSelection = activityKind === "game"
@@ -71,28 +74,26 @@ export default function ActivityLaunchPanel({
   };
 
   return <Card className={styles.launchPanel}>
-    <h2 className={styles.launchTitle}>활동 선택</h2>
-    <div className={styles.activityChoices} role="group" aria-label="시작할 수업 활동">
-      {options.map((option) => <button type="button" aria-pressed={activityKind === option.id} onClick={() => setActivityKind(option.id)} disabled={disabled} key={option.id}>{option.label}</button>)}
-    </div>
+    <h2 className={styles.launchTitle}>수업 시작</h2>
+    <SegmentedControl options={options} value={activityKind} onChange={setActivityKind} disabled={disabled} ariaLabel="시작할 수업 활동" />
     <div className={styles.launchContent}>
       {activityKind === "game" ? <GameSetupPanel setup={setup} disabled={disabled} /> : null}
       {activityKind === "quiz" ? <QuizGameLaunchPanel disabled={disabled} onPlanChange={handleQuizPlanChange} /> : null}
       {activityKind === "questions" ? <div className={styles.questionSetup}>
         <h2>학생 질문 만들기</h2>
         <div className={styles.questionControls}>
-          <label>학생당 질문 수<select value={questionCount} onChange={(event) => setQuestionCount(Number(event.target.value))} disabled={disabled}>{[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count}개</option>)}</select></label>
-          <label className={styles.checkbox}><input type="checkbox" checked={englishOnly} onChange={(event) => setEnglishOnly(event.target.checked)} disabled={disabled} />영어 질문만 받기</label>
+          <Field label="학생당 질문 수"><Select value={questionCount} onChange={(event) => setQuestionCount(Number(event.target.value))} disabled={disabled}>{[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count}개</option>)}</Select></Field>
+          <Field label="영어 질문만 받기"><input className={styles.checkbox} type="checkbox" checked={englishOnly} onChange={(event) => setEnglishOnly(event.target.checked)} disabled={disabled} /></Field>
         </div>
       </div> : null}
       {activityKind === "latest-questions" ? <div className={styles.latestQuestionSetup}>
         <div><h2>완성된 학생 질문</h2><Muted>가장 최근에 학생들이 만든 질문 세트로 AI 문답을 진행합니다.</Muted></div>
-        <label>게임 시간<select value={setup.timedMode} onChange={(event) => { if (isTimedGameMode(event.target.value)) setup.selectTimedMode(event.target.value); }} disabled={disabled}>{TIMED_GAME_MODE_OPTIONS.map((option) => <option value={option.mode} key={option.mode}>{option.label} 모드</option>)}</select></label>
+        <Field label="게임 시간"><Select value={setup.timedMode} onChange={(event) => { if (isTimedGameMode(event.target.value)) setup.selectTimedMode(event.target.value); }} disabled={disabled}>{TIMED_GAME_MODE_OPTIONS.map((option) => <option value={option.mode} key={option.mode}>{option.label} 모드</option>)}</Select></Field>
       </div> : null}
     </div>
     <div className={styles.launchFooter}>
       {!hasPlayers ? <p>학생이 한 명 이상 접속하면 시작할 수 있습니다.</p> : null}
-      <Button full disabled={disabled || !hasPlayers || invalidSelection} onClick={() => void start()}>{disabled ? "처리 중…" : startLabel}</Button>
+      <Button size="lg" full disabled={disabled || !hasPlayers || invalidSelection} onClick={() => void start()}>{disabled ? "처리 중…" : startLabel}</Button>
     </div>
   </Card>;
 }

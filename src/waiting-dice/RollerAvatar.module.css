@@ -1,0 +1,8 @@
+.roller { display: grid; flex: 0 0 auto; place-items: center; gap: 6px; max-width: 112px; text-align: center; }
+.roller strong { width: 100%; overflow: hidden; color: var(--color-text); font-size: var(--text-sm); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.avatar { position: relative; display: grid; width: 88px; height: 88px; place-items: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-muted); }
+.avatar img { position: absolute; width: 84%; height: 84%; object-fit: contain; image-rendering: pixelated; }
+.avatar span { color: var(--color-primary-text); font-size: var(--text-2xl); font-weight: 700; }
+.roller[data-bouncing="true"] .avatar { animation: character-bounce .72s ease-in-out infinite; }
+@keyframes character-bounce { 0%, 100% { transform: translateY(0) scale(1); } 45% { transform: translateY(-14px) scale(1.04); } 65% { transform: translateY(-11px) scale(.98); } }
+@media (prefers-reduced-motion: reduce) { .roller[data-bouncing="true"] .avatar { animation: none; } }

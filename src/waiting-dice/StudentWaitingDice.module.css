@@ -1,0 +1,5 @@
+.card { display: grid; gap: 16px; overflow: hidden; }
+.studentHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.studentHeader h2 { margin: 0; font-size: var(--text-md); font-weight: 700; }
+.error { margin: 0; color: var(--color-danger-text); font-size: var(--text-sm); font-weight: 600; }
+@media (max-width: 480px) { .studentHeader { flex-direction: column; } }

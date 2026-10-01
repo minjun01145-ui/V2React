@@ -6,7 +6,7 @@ import Card from "../shared/ui/Card.tsx";
 import { rollRequestedWaitingDice } from "./repository.ts";
 import { useWaitingDice } from "./useWaitingDice.ts";
 import WaitingDiceStage from "./WaitingDiceStage.tsx";
-import styles from "./WaitingDice.module.css";
+import styles from "./StudentWaitingDice.module.css";
 
 export default function StudentWaitingDice({ roomId, uid, players }: {
   readonly roomId: string;

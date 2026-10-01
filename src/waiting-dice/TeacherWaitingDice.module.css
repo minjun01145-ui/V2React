@@ -1,0 +1,6 @@
+.panel { display: grid; gap: 16px; min-width: 0; }
+.header { display: grid; gap: 8px; }
+.header h2 { margin: 0; font-size: var(--text-md); font-weight: 700; }
+.teacherControls { display: grid; gap: 12px; }
+.or { justify-self: center; color: var(--color-muted); font-size: var(--text-xs); }
+.error { margin: 0; color: var(--color-danger-text); font-size: var(--text-sm); }

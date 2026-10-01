@@ -5,9 +5,10 @@ import { LEARNING_SET_TYPE, learningSetTypeLabel, type LearningSetSummary } from
 import { updateWaitingTypingConfig } from "../../../multiplayer/repository.ts";
 import type { GameSession } from "../../../multiplayer/types.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
-import Card from "../../../shared/ui/Card.tsx";
+import Field from "../../../shared/ui/Field.tsx";
+import Select from "../../../shared/ui/Select.tsx";
 import { Muted } from "../../../shared/ui/Typography.tsx";
-import styles from "./TeacherRoomController.module.css";
+import styles from "./WaitingTypingSetupPanel.module.css";
 
 interface Props {
   readonly roomId: string;
@@ -53,19 +54,18 @@ export default function WaitingTypingSetupPanel({ roomId, session, disabled }: P
       .finally(() => setSaving(false));
   };
 
-  return <Card className={styles.waitingTypingPicker}>
+  return <div className={styles.waitingTypingPicker}>
     <div>
-      <h2>기다리는 동안 타자게임</h2>
-      <Muted>영어 입력 · 대소문자 무시 · 특수문자 생략 가능 · 산성비 10단계</Muted>
+      <Muted>학생이 대기실에서 문장 타자·산성비를 할 때 쓰는 세트입니다.</Muted>
     </div>
-    <label>연습 세트<select
+    <Field label="연습 세트"><Select
       value={validConfig?.setId ?? compatibleSets[0]?.id ?? ""}
       onChange={(event) => selectSet(event.target.value)}
       disabled={disabled || loading || saving || compatibleSets.length === 0}
     >
       {compatibleSets.length === 0 ? <option value="">사용할 수 있는 세트가 없습니다</option> : null}
       {compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} · {learningSetTypeLabel(set.type)} ({set.itemCount}개)</option>)}
-    </select></label>
+    </Select></Field>
     {error ? <p className={styles.setError}>{error}</p> : null}
-  </Card>;
+  </div>;
 }

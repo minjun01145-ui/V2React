@@ -5,11 +5,13 @@ import { DICE_COUNTS, type DiceCount } from "../dice/model.ts";
 import { useDiceRoll } from "../dice/useDiceRoll.ts";
 import { toErrorMessage } from "../shared/errors/errorMessage.ts";
 import Button from "../shared/ui/Button.tsx";
-import Card from "../shared/ui/Card.tsx";
+import Field from "../shared/ui/Field.tsx";
+import Select from "../shared/ui/Select.tsx";
+import SegmentedControl from "../shared/ui/SegmentedControl.tsx";
 import { cancelStudentDiceRoll, requestStudentDiceRoll } from "./repository.ts";
 import { useWaitingDice } from "./useWaitingDice.ts";
 import WaitingDiceStage from "./WaitingDiceStage.tsx";
-import styles from "./WaitingDice.module.css";
+import styles from "./TeacherWaitingDice.module.css";
 
 export default function TeacherWaitingDice({ roomId, players, disabled = false }: {
   readonly roomId: string;
@@ -81,25 +83,23 @@ export default function TeacherWaitingDice({ roomId, players, disabled = false }
   };
 
   return (
-    <Card className={styles.card}>
+    <div className={styles.panel}>
       <div className={styles.header}>
-        <div><h2>주사위 굴리기</h2></div>
-        <div className={styles.countPicker} role="group" aria-label="주사위 개수">
-          {DICE_COUNTS.map((count) => <button key={count} type="button" aria-pressed={diceCount === count} disabled={disabled || working || localRolling} onClick={() => setDiceCount(count)}>{count}개</button>)}
-        </div>
+        <h2>주사위 굴리기</h2>
+        <SegmentedControl options={DICE_COUNTS.map((count) => ({ id: String(count), label: `${count}개` }))} value={String(diceCount)} onChange={(value) => setDiceCount(Number(value) as DiceCount)} disabled={disabled || working || localRolling} ariaLabel="주사위 개수" size="sm" />
       </div>
       <WaitingDiceStage state={presentation} player={mode === "remote" ? roller : undefined} />
       <div className={styles.teacherControls}>
         <Button disabled={disabled || working || localRolling} onClick={rollLocally}>{localRolling && mode === "local" ? "굴리는 중…" : "내가 굴리기"}</Button>
         <span className={styles.or} aria-hidden="true">또는</span>
-        <label>학생 선택
-          <select value={selectedPlayerId} disabled={disabled || working || players.length === 0} onChange={(event) => setSelectedPlayerId(event.target.value)}>
+        <Field label="학생 선택">
+          <Select value={selectedPlayerId} disabled={disabled || working || players.length === 0} onChange={(event) => setSelectedPlayerId(event.target.value)}>
             {players.length === 0 ? <option value="">접속 학생 없음</option> : players.map((player) => <option key={player.id} value={player.id}>{displayLabel(player.displayName, player.nickname)}</option>)}
-          </select>
-        </label>
+          </Select>
+        </Field>
         <Button variant="ghost" disabled={disabled || working || !selectedPlayer} onClick={askStudent}>이 학생에게 부탁하기</Button>
       </div>
       {(mode === "remote" && subscriptionError) || actionError ? <p className={styles.error}>{actionError ?? subscriptionError?.message}</p> : null}
-    </Card>
+    </div>
   );
 }

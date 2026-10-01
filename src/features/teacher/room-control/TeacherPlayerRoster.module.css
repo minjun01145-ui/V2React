@@ -1,0 +1,4 @@
+.heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.headingTitle { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.heading h2 { margin: 0; font-size: var(--text-md); font-weight: 700; }
+.players { max-height: 50vh; overflow-y: auto; }

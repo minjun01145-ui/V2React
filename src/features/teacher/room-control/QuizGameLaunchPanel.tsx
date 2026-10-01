@@ -3,7 +3,9 @@ import { getQuizGamePlan, listQuizGamePlans } from "../../../quiz-game/repositor
 import type { QuizGamePlan, QuizGamePlanSummary } from "../../../quiz-game/types.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { Muted } from "../../../shared/ui/Typography.tsx";
-import styles from "./TeacherRoomController.module.css";
+import Field from "../../../shared/ui/Field.tsx";
+import Select from "../../../shared/ui/Select.tsx";
+import styles from "./QuizGameLaunchPanel.module.css";
 
 export default function QuizGameLaunchPanel({ disabled, onPlanChange }: {
   readonly disabled: boolean;
@@ -39,8 +41,7 @@ export default function QuizGameLaunchPanel({ disabled, onPlanChange }: {
   }, [onPlanChange, selectedId]);
 
   return <div className={styles.quizSetup}>
-    <h2>퀴즈쇼 모드</h2>
-    <label>퀴즈<select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={disabled || loadingPlan}><option value="">저장된 퀴즈 선택</option>{plans.map((plan) => <option value={plan.id} key={plan.id}>{plan.name} ({plan.roundCount}문제)</option>)}</select></label>
+    <Field label="퀴즈"><Select value={selectedId} onChange={(event) => setSelectedId(event.target.value)} disabled={disabled || loadingPlan}><option value="">저장된 퀴즈 선택</option>{plans.map((plan) => <option value={plan.id} key={plan.id}>{plan.name} ({plan.roundCount}문제)</option>)}</Select></Field>
     {loadingPlan ? <Muted>퀴즈 내용을 불러오는 중…</Muted> : null}
     {error ? <p className={styles.setError}>{error}</p> : null}
   </div>;

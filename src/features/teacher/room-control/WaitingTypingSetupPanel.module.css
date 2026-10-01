@@ -1,0 +1,2 @@
+.waitingTypingPicker { display: grid; gap: 12px; min-width: 0; }
+.setError { margin: 0; color: var(--color-danger-text); font-size: var(--text-sm); }

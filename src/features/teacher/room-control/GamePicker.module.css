@@ -1,0 +1,8 @@
+.picker, .group { display: grid; gap: 8px; min-width: 0; }
+.picker { gap: 16px; }
+.heading { margin: 0; font-size: var(--text-xs); font-weight: 600; color: var(--color-muted); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.content { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+.title { font-size: var(--text-md); font-weight: 700; }
+.summary { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; color: var(--color-muted); font-size: var(--text-xs); }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }

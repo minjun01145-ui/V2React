@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import GameHost from "../../../games/GameHost.tsx";
+import { getGame } from "../../../games/registry.ts";
 import TeacherQuizGameRuntime from "../quiz-game-runtime/TeacherQuizGameRuntime.tsx";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayers, useRoundReadiness, useSessionSubscription } from "../../../multiplayer/hooks.ts";
@@ -15,12 +16,12 @@ import Button from "../../../shared/ui/Button.tsx";
 import ActivityLaunchPanel from "./ActivityLaunchPanel.tsx";
 import styles from "./TeacherRoomController.module.css";
 import { useGameSetup } from "./useGameSetup.ts";
-import WaitingTypingSetupPanel from "./WaitingTypingSetupPanel.tsx";
+import LobbyToolsPanel from "./LobbyToolsPanel.tsx";
+import RoomStatusBar from "./RoomStatusBar.tsx";
 import TeacherStudentQuestionPanel from "../../../student-question-activity/TeacherStudentQuestionPanel.tsx";
 import { startStudentQuestionActivity } from "../../../student-question-activity/repository.ts";
 import type { StudentQuestionConfig } from "../../../student-question-activity/types.ts";
 import type { QuizGamePlan } from "../../../quiz-game/types.ts";
-import TeacherWaitingDice from "../../../waiting-dice/TeacherWaitingDice.tsx";
 import TeacherPlayerRoster from "./TeacherPlayerRoster.tsx";
 
 type RoomAction = (roomId: string) => Promise<void>;
@@ -103,7 +104,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
 
   const actions = isPlaying || isPreparing ? <>
     {isPreparing ? <Button disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
-    <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetQuizAwareSession)}>대기실로</Button>
+    <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetQuizAwareSession)}>대기실로 돌아가기</Button>
   </> : undefined;
 
   const startQuestions = (config: StudentQuestionConfig): Promise<void> => run(async (id) => {
@@ -113,13 +114,16 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const startLatestQuestions = (setId: string, timedMode: TimedGameMode): Promise<void> => run((id) => startRegularGameSession(id, { gameId: "ai-tutor", gameConfig: withTimedGameConfig({ setId }, timedMode) }));
 
   const content = <>
+    <RoomStatusBar
+      label={isPlaying ? "게임 진행 중" : isPreparing ? "접속 확인 중" : "학생 대기 중"}
+      detail={isPlaying && session ? quizGame ? "퀴즈쇼" : getGame(session.gameId).title : isPreparing ? `${readyCount}/${expectedCount}명 준비됨` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 연결 끊김 ${staleCount}명` : ""}`}
+      tone={isPlaying ? "playing" : isPreparing ? "preparing" : "waiting"}
+      actions={actions}
+    />
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
-    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : <div className={styles.waitingStack}>
-      <StatusPanel title={isPreparing ? "게임 접속 확인 중" : "학생 대기 중"} tone="waiting">
-        {isPreparing ? `${readyCount}/${expectedCount} 학생 접속 완료` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 종료 추정 ${staleCount}명` : ""}`}
-      </StatusPanel>
-      {!isPreparing && !isQuestionActivity ? <TeacherWaitingDice roomId={roomId} players={activePlayers} disabled={working || loading} /> : null}
+    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : <div className={styles.lobbyGrid}>
+      <div className={styles.mainColumn}>
       {!isPreparing && isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
       {!isPreparing && !isQuestionActivity ? <ActivityLaunchPanel
         setup={gameSetup}
@@ -131,14 +135,17 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
         onStartQuestions={startQuestions}
         onStartLatestQuestions={startLatestQuestions}
       /> : null}
-      <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
-      {!isPreparing && !isQuestionActivity ? <WaitingTypingSetupPanel roomId={roomId} session={session} disabled={working} /> : null}
+      </div>
+      <div className={styles.sideColumn}>
+        <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
+        {!isQuestionActivity ? <LobbyToolsPanel roomId={roomId} players={activePlayers} session={session} disabled={working || loading} typingDisabled={working} /> : null}
+      </div>
     </div>}
   </>;
 
-  if (!embedded) return <PageShell title="교사용 컨트롤" roomId={roomId} actions={actions}>{content}</PageShell>;
+  if (!embedded) return <PageShell title="대기실" width="wide" roomId={roomId}><div className={styles.content}>{content}</div></PageShell>;
   return <section className={styles.embedded} aria-label="테스트 멀티플레이 제어">
-    <header className={styles.embeddedHeader}><div><h2>테스트 대기실 제어</h2></div><div className={styles.actions}>{actions}</div></header>
+    <header className={styles.embeddedHeader}><h2>테스트 대기실 제어</h2></header>
     {content}
   </section>;
 }

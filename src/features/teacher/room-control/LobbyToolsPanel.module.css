@@ -1,0 +1,2 @@
+.panel { display: grid; gap: 16px; min-width: 0; }
+.title { margin: 0; font-size: var(--text-md); font-weight: 700; }
