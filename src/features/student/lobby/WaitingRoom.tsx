@@ -6,10 +6,10 @@ import { replaceRandomNicknameIfUnchanged } from "../../../multiplayer/repositor
 import type { GameSession, NicknameGrade, PlayerAvatar } from "../../../multiplayer/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import Button from "../../../shared/ui/Button.tsx";
+import Badge from "../../../shared/ui/Badge.tsx";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import CharacterShop from "../shop/CharacterShop.tsx";
-import TypingGameButton from "./TypingGameButton.tsx";
+import LobbyActivityTiles from "./LobbyActivityTiles.tsx";
 import styles from "./WaitingRoom.module.css";
 import StudentQuestionAuthoring from "../../../student-question-activity/StudentQuestionAuthoring.tsx";
 import { useStudentQuestionSubmission } from "../../../student-question-activity/useStudentQuestionSubmission.ts";
@@ -108,8 +108,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   }
   return (
     <div className={styles.stack}>
-      <StatusPanel title="대기 중" tone="waiting">선생님이 시작하면 게임이 자동으로 시작됩니다.</StatusPanel>
-      <StudentWaitingDice roomId={roomId} uid={uid} players={activePlayers} />
+      <div className={styles.left}>
       <Card className={styles.profileCard}>
         <CharacterShop
           identity={{ uid, studentNumber: selfStudentNumber, displayName }}
@@ -119,20 +118,19 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
           initialAvatar={avatar}
         />
       </Card>
+      <LobbyActivityTiles soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} />
+      {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
+      {!soloAllowed && requiredActivityActive ? <p className={styles.activityHint}>필수 질문 만들기 활동이 끝난 뒤 혼자하기를 시작할 수 있어요.</p> : null}
+      </div>
+      <div className={styles.right}>
+      <StudentWaitingDice roomId={roomId} uid={uid} players={activePlayers} />
       <Card className={styles.card}>
         <div className={styles.sectionHeading}>
           <h2 className={styles.sectionTitle}>대기 중인 학생</h2>
-          <span>{activePlayers.length}명</span>
+          <Badge tone="neutral">{activePlayers.length}명</Badge>
         </div>
-        <PlayerGrid players={activePlayers} selfStudentNumber={selfStudentNumber} />
+        <div className={styles.players}><PlayerGrid players={activePlayers} selfStudentNumber={selfStudentNumber} /></div>
       </Card>
-      <div className={styles.actions}>
-        <Button onClick={() => setSoloOpen(true)} disabled={!soloAllowed}>혼자하기</Button>
-        <TypingGameButton mode="sentence" onClick={() => setTypingOpen("sentence")} />
-        <TypingGameButton mode="acid-rain" onClick={() => setTypingOpen("acid-rain")} />
-        <Button variant="ghost" onClick={() => setPlatformerOpen(true)}>점프 타워</Button>
-        {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
-        {!soloAllowed && requiredActivityActive ? <p className={styles.activityHint}>필수 질문 만들기 활동이 끝난 뒤 혼자하기를 시작할 수 있어요.</p> : null}
       </div>
     </div>
   );

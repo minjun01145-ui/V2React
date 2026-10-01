@@ -1,0 +1,2 @@
+.entry { width: 100%; max-width: 640px; justify-self: center; min-height: 0; overflow: auto; padding: 16px; display: grid; align-content: start; gap: 12px; }
+@media (max-width: 1099px) { .entry { overflow: visible; } }
