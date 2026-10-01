@@ -113,6 +113,7 @@ export default function AiTutorPlayView({ game, clockExpired = false, remainingM
       </div>
     </header>
 
+    <div className={styles.body}>
     <Card className={styles.questionCard}>
       <p className={styles.eyebrow}>{game.currentQuestion.promptLabel}</p>
       {game.currentQuestion.author
@@ -122,24 +123,7 @@ export default function AiTutorPlayView({ game, clockExpired = false, remainingM
       <p className={styles.guide}>답을 입력하거나, 이 문제에 나온 모르는 단어·문법을 질문해도 됩니다.</p>
     </Card>
 
-    <form className={styles.answerForm} onSubmit={onSubmit}>
-      <label htmlFor="ai-tutor-answer">{game.currentQuestion.answerLabel}</label>
-      <textarea
-        ref={answerRef}
-        id="ai-tutor-answer"
-        rows={3}
-        value={message}
-        onChange={(event) => setMessage(event.target.value)}
-        onKeyDown={onAnswerKeyDown}
-        disabled={game.busy || answered || isDisabled}
-        maxLength={1000}
-        placeholder="답 또는 문제와 관련된 질문을 입력하세요"
-        autoFocus
-      />
-      <Button type="submit" disabled={game.busy || answered || isDisabled || !message.trim()}>
-        {game.busy ? "AI가 살펴보는 중…" : "답변 보내기"}
-      </Button>
-    </form>
+
 
     {game.reply
       ? <section className={styles.feedback} data-kind={game.reply.kind} role="status">
@@ -159,5 +143,24 @@ export default function AiTutorPlayView({ game, clockExpired = false, remainingM
 
     {game.error ? <p className={styles.error} role="alert">{game.error.message}</p> : null}
     {finishError ? <p className={styles.error} role="alert">{finishError}</p> : null}
+    </div>
+    <form className={styles.answerForm} onSubmit={onSubmit}>
+      <label htmlFor="ai-tutor-answer">{game.currentQuestion.answerLabel}</label>
+      <textarea
+        ref={answerRef}
+        id="ai-tutor-answer"
+        rows={3}
+        value={message}
+        onChange={(event) => setMessage(event.target.value)}
+        onKeyDown={onAnswerKeyDown}
+        disabled={game.busy || answered || isDisabled}
+        maxLength={1000}
+        placeholder="답 또는 문제와 관련된 질문을 입력하세요"
+        autoFocus
+      />
+      <Button type="submit" disabled={game.busy || answered || isDisabled || !message.trim()}>
+        {game.busy ? "AI가 살펴보는 중…" : "답변 보내기"}
+      </Button>
+    </form>
   </main>;
 }
