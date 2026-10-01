@@ -24,6 +24,10 @@ Firestore, API, localStorage, URL, 사용자 입력처럼 신뢰할 수 없는 �
 
 변경과 관련된 검증을 실행합니다. 기본 명령은 `npm run check`, `npm run build`, 서버 변경은 `npm test --prefix functions`입니다. 문서만 변경했다면 링크와 `git diff --check` 확인으로 충분합니다.
 
+## UI 문구
+
+화면에 기능을 설명하는 회색 보조 문구(부제, 설명문, hint, "~할 수 있어요" 같은 안내, 기능 배지)를 붙이지 않습니다. 화면은 제목, 조작 요소, 실제 데이터로 이해되어야 합니다. 오류 메시지, 로딩 상태, 빈 목록 상태처럼 사용자가 지금 알아야 하는 상태 정보만 예외입니다. 버튼을 누를 수 없는 이유는 별도 설명문 대신 버튼 문구로 표시합니다.
+
 ## 문서와 의존 경계
 
 [ARCHITECTURE.md](./ARCHITECTURE.md)의 큰 의존 경계와 [SECURITY.md](./SECURITY.md)의 신뢰 경계를 유지합니다.
