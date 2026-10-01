@@ -21,7 +21,6 @@ import PageShell from "../../../shared/PageShell.tsx";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./TeacherSetsPage.module.css";
 
 function blankFormChangeItem(): LearningSetItem {
@@ -264,11 +263,10 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
               <div><Button type="button" variant="ghost" onClick={addFormChangeItem} disabled={Boolean(busy)}>행 추가</Button></div>
             </div>
           ) : <label>내용<textarea rows={13} value={pasteText} onChange={(event) => setPasteText(event.target.value)} disabled={Boolean(busy) || studentQuestionType} placeholder={readingType ? "I go / to school.\t나는 / 학교에 간다." : "apple\t사과\nclassroom\t교실"} required /></label>}
-          {studentQuestionType ? <Muted>학생 질문 세트는 작성자 정보를 보존하기 위해 읽기 전용으로 표시됩니다.</Muted> : null}
 
           {!studentQuestionType ? (
             <div className={styles.aiAssist}>
-              <div className={styles.heading}><div><h3>AI로 내용 만들기</h3><Muted>자료를 붙여넣거나 PDF·텍스트 파일을 하나 선택하세요. 결과는 위 편집칸에 채워지며 자동 저장되지 않습니다.</Muted></div></div>
+              <div className={styles.heading}><div><h3>AI로 내용 만들기</h3></div></div>
               <textarea
                 rows={5}
                 maxLength={MAX_AI_SOURCE_TEXT_CHARACTERS}

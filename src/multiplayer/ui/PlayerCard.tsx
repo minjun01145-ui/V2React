@@ -7,6 +7,7 @@ import styles from "./PlayerCard.module.css";
 
 interface Props {
   readonly player: Player;
+  readonly size?: "regular" | "large";
   readonly isSelf?: boolean;
   readonly showStudentNumber?: boolean;
   readonly onClick?: () => void;
@@ -17,6 +18,7 @@ interface Props {
 
 export default function PlayerCard({
   player,
+  size = "regular",
   isSelf = false,
   showStudentNumber = false,
   onClick,
@@ -30,7 +32,7 @@ export default function PlayerCard({
     ? { as: "button" as const, className: `${styles.card} ${styles.interactive}`, onClick, disabled, "aria-label": actionLabel }
     : { className: styles.card };
   return (
-    <Card {...interactiveProps}>
+    <Card {...interactiveProps} data-size={size}>
       <span className={styles.avatar} data-empty={character || player.avatar?.kind === "pokemon" ? undefined : "true"}>
         {character && characterFrame ? <img className={styles.characterFrame} src={characterFrame} alt={`${character.name} 캐릭터`} decoding="async" draggable={false} /> : null}
         {player.avatar?.kind === "pokemon" ? (

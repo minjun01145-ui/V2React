@@ -4,7 +4,6 @@ import PageShell from "../../../shared/PageShell.tsx";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import { Muted } from "../../../shared/ui/Typography.tsx";
 import {
   importStudentRoster,
   listStudentRoster,
@@ -147,8 +146,7 @@ export default function TeacherStudentsPage({ roomId }: Props) {
 
         <Card as="form" className={styles.form} onSubmit={(event) => void submitBulk(event)}>
           <h2>명단 붙여넣기</h2>
-          <Muted>엑셀에서 학번·이름 두 열을 복사하거나 한 줄에 `학번,이름`.</Muted>
-          <label>학생 명단<textarea rows={7} placeholder={'20301\t홍길동\n20302\t김민준'} value={bulkText} onChange={(event) => setBulkText(event.target.value)} disabled={Boolean(busyKey)} required /></label>
+          <label>학생 명단<textarea rows={7} placeholder="학번,이름" value={bulkText} onChange={(event) => setBulkText(event.target.value)} disabled={Boolean(busyKey)} required /></label>
           <Button type="submit" disabled={Boolean(busyKey)}>{busyKey === "import" ? "등록 중…" : "반영"}</Button>
         </Card>
       </div>

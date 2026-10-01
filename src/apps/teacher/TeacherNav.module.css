@@ -1,25 +1,23 @@
 .nav {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
   height: 56px;
   padding: 0 clamp(16px, 3vw, 32px);
-  background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border);
+  background: transparent;
 }
 .brand { display: inline-flex; align-items: center; min-width: 0; text-decoration: none; }
 .brandMark { width: 40px; height: 32px; object-fit: contain; }
 .mainLinks { display: flex; justify-content: center; height: 100%; min-width: 0; overflow-x: auto; }
-.link { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 0 10px; border-bottom: 2px solid transparent; color: var(--color-text); text-decoration: none; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
-.link:hover { color: var(--color-primary-text); }
-.active { border-bottom-color: var(--color-primary); color: var(--color-primary-text); font-weight: 700; }
+.link { display: inline-flex; align-items: center; flex: 0 0 auto; padding: 0 10px; border-bottom: 3px solid transparent; color: var(--color-on-brand-muted); text-decoration: none; font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
+.link:hover { color: var(--color-on-brand); }
+.active { border-bottom-color: var(--color-accent); color: var(--color-on-brand); font-weight: 700; }
 .secondaryLinks { display: flex; align-items: center; gap: 12px; }
-.secondaryLink { color: var(--color-muted); text-decoration: none; font-size: var(--text-sm); white-space: nowrap; }
-.secondaryLink:hover, .secondaryLink[aria-current="page"] { color: var(--color-text); }
+.secondaryLink { color: var(--color-on-brand-muted); text-decoration: none; font-size: var(--text-sm); white-space: nowrap; }
+.secondaryLink:hover, .secondaryLink[aria-current="page"] { color: var(--color-on-brand); }
+.secondaryLinks > button { color: var(--color-on-brand-muted); }
+.secondaryLinks > button:not(:disabled):hover { color: var(--color-on-brand); }
 @media (max-width: 720px) {
   .nav { height: auto; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px; }
   .brand { height: 56px; }

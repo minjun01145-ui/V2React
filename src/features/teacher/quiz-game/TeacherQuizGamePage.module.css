@@ -1,7 +1,5 @@
-.intro { margin: 0; color: var(--color-muted); }
 .promptField { display: grid; gap: .45rem; color: var(--color-muted); font-size: .82rem; font-weight: 700; }
 .promptField textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: .7rem; border: 1px solid var(--color-border); border-radius: .6rem; background: var(--color-surface); color: var(--color-text); font: inherit; }
-.promptField small { font-weight: 400; }
 .workspace { display: grid; grid-template-columns: minmax(13rem, .34fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
 .planList, .editor { display: grid; gap: .9rem; }
 .planList h2 { margin: 0; }
@@ -17,7 +15,6 @@
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; }
 .customQuestions { display: grid; gap: .6rem; padding-top: .7rem; border-top: 1px dashed var(--color-border); }
 .customHeading { display: flex; justify-content: space-between; gap: .7rem; align-items: baseline; }
-.customHeading small { color: var(--color-muted); }
 .customRow { display: grid; grid-template-columns: 1.7rem minmax(0, 1fr) minmax(0, 1fr) auto; gap: .55rem; align-items: end; }
 .customRow > b { align-self: center; color: var(--color-primary); text-align: center; }
 .customRow label { display: grid; gap: .3rem; color: var(--color-muted); font-size: .78rem; font-weight: 700; }

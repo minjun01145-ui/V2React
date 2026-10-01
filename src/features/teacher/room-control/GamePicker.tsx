@@ -1,5 +1,4 @@
 import { GAME_CATEGORY_LABEL, GAME_CATEGORY_ORDER, type GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
-import Badge from "../../../shared/ui/Badge.tsx";
 import SelectableCard from "../../../shared/ui/SelectableCard.tsx";
 import styles from "./GamePicker.module.css";
 
@@ -21,11 +20,6 @@ export default function GamePicker({ games, selectedId, onSelect, disabled }: Pr
           {group.map((game) => <SelectableCard key={game.id} selected={selectedId === game.id} disabled={disabled} onClick={() => onSelect(game.id)}>
             <span className={styles.content}>
               <span className={styles.title}>{game.title}</span>
-              <span className={styles.summary}>{game.summary}</span>
-              <span className={styles.badges}>
-                {game.timing === "timed" ? <Badge>시간제</Badge> : null}
-                {game.solo.supported ? <Badge>혼자하기</Badge> : null}
-              </span>
             </span>
           </SelectableCard>)}
         </div>

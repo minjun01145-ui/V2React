@@ -90,11 +90,18 @@
 .gradeBadge[data-grade="S"] { background: var(--color-surface); color: var(--color-primary-text); box-shadow: var(--shadow-card); }
 
 .actionHint {
+  opacity: 0;
   margin-top: .2rem;
   color: var(--color-danger-text, var(--color-danger));
   font-size: .7rem;
   font-weight: 700;
 }
+
+.interactive:hover .actionHint, .interactive:focus-visible .actionHint { opacity: 1; }
+.card[data-size="large"] { padding: 16px 12px; background: var(--color-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-tactile); }
+.card[data-size="large"] .avatar { width: 88px; height: 88px; border: 0; background: var(--color-paper); }
+.card[data-size="large"] .meta, .card[data-size="large"] .nicknameRow { max-width: 100%; }
+.card[data-size="large"] .nickname { font-size: var(--text-lg); font-weight: 700; max-width: 100%; }
 
 .characterFrame,
 .pokemon {

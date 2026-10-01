@@ -119,8 +119,6 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
         />
       </Card>
       <LobbyActivityTiles soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} />
-      {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
-      {!soloAllowed && requiredActivityActive ? <p className={styles.activityHint}>필수 질문 만들기 활동이 끝난 뒤 혼자하기를 시작할 수 있어요.</p> : null}
       </div>
       <div className={styles.right}>
       <StudentWaitingDice roomId={roomId} uid={uid} players={activePlayers} />

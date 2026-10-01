@@ -12,6 +12,7 @@ import TeacherNav from "./TeacherNav.tsx";
 import type { TenantConfig } from "../../tenant/config.ts";
 import { PRIMARY_TENANT_ID } from "../../tenant/scope.ts";
 import { getTeacherView, TEACHER_VIEW, type TeacherView } from "./teacherRoute.ts";
+import styles from "./TeacherWorkspace.module.css";
 
 export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantConfig }) {
   const [view, setView] = useState<TeacherView>(getTeacherView);
@@ -25,7 +26,7 @@ export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantCo
   }, []);
 
   return (
-    <>
+    <div className={styles.workspace}>
       <TeacherNav currentView={activeView} tenant={tenant} onLogout={signOutAdmin} />
       {activeView === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
       {activeView === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
@@ -34,6 +35,6 @@ export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantCo
       {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
       {activeView === TEACHER_VIEW.TEST_TOOL ? <TeacherTestToolPage roomId={roomId} tenant={tenant} /> : null}
       {activeView === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
-    </>
+    </div>
   );
 }

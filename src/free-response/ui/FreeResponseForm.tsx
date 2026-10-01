@@ -35,7 +35,6 @@ export default function FreeResponseForm({ prompt, submittedAnswer, closed = fal
   return <Card as="form" className={styles.form} onSubmit={(event) => void submit(event)}>
     <header className={styles.hud}>
     <h2 className={styles.prompt}>{prompt}</h2>
-    <p>정해진 정답 없이 자유롭게 생각을 적어 주세요.</p>
     </header>
     <label className={styles.body}>내 답안<textarea rows={6} value={answer} maxLength={FREE_RESPONSE_MAX_LENGTH} onChange={(event) => setAnswer(event.target.value)} disabled={closed || busy} placeholder="답안을 입력하세요" /></label>
     <div className={styles.footer}>

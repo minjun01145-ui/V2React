@@ -7,7 +7,6 @@ import type { GameSession } from "../../../multiplayer/types.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import Field from "../../../shared/ui/Field.tsx";
 import Select from "../../../shared/ui/Select.tsx";
-import { Muted } from "../../../shared/ui/Typography.tsx";
 import styles from "./WaitingTypingSetupPanel.module.css";
 
 interface Props {
@@ -55,9 +54,6 @@ export default function WaitingTypingSetupPanel({ roomId, session, disabled }: P
   };
 
   return <div className={styles.waitingTypingPicker}>
-    <div>
-      <Muted>학생이 대기실에서 문장 타자·산성비를 할 때 쓰는 세트입니다.</Muted>
-    </div>
     <Field label="연습 세트"><Select
       value={validConfig?.setId ?? compatibleSets[0]?.id ?? ""}
       onChange={(event) => selectSet(event.target.value)}

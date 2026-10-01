@@ -16,6 +16,7 @@ import Button from "../../../shared/ui/Button.tsx";
 import ActivityLaunchPanel from "./ActivityLaunchPanel.tsx";
 import styles from "./TeacherRoomController.module.css";
 import { useGameSetup } from "./useGameSetup.ts";
+import { useActivityLaunch } from "./useActivityLaunch.ts";
 import LobbyToolsPanel from "./LobbyToolsPanel.tsx";
 import RoomStatusBar from "./RoomStatusBar.tsx";
 import TeacherStudentQuestionPanel from "../../../student-question-activity/TeacherStudentQuestionPanel.tsx";
@@ -35,7 +36,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const { value: sessionSnapshot, loading, error } = useSessionSubscription(roomId, subscribeQuizGameSession, { ensure: true });
   const session = sessionSnapshot ? sessionSnapshot.session : null;
   const quizGame = sessionSnapshot ? sessionSnapshot.quizGame : null;
-  const { activePlayers, players } = usePlayers(roomId);
+  const { activePlayers } = usePlayers(roomId);
   const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
   const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
   const [working, setWorking] = useState(false);
@@ -59,7 +60,6 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const isPlaying = session?.status === SESSION_STATUS.PLAYING;
   const isPreparing = session?.status === SESSION_STATUS.PREPARING;
   const isQuestionActivity = Boolean(session?.classroomActivity);
-  const staleCount = Math.max(players.length - activePlayers.length, 0);
   const expectedPlayerIds = session?.expectedPlayerIds ?? [];
   const readyCount = countExpectedReady(expectedPlayerIds, readiness);
   const expectedCount = new Set(expectedPlayerIds).size;
@@ -102,44 +102,44 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
     });
   };
 
-  const actions = isPlaying || isPreparing ? <>
-    {isPreparing ? <Button disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
-    <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetQuizAwareSession)}>대기실로 돌아가기</Button>
-  </> : undefined;
-
   const startQuestions = (config: StudentQuestionConfig): Promise<void> => run(async (id) => {
     await startStudentQuestionActivity(id, config, activePlayers.map((player) => player.id));
   });
   const startQuiz = (plan: QuizGamePlan): Promise<void> => run((id) => startQuizGame(id, plan));
   const startLatestQuestions = (setId: string, timedMode: TimedGameMode): Promise<void> => run((id) => startRegularGameSession(id, { gameId: "ai-tutor", gameConfig: withTimedGameConfig({ setId }, timedMode) }));
+  const launch = useActivityLaunch({
+    setup: gameSetup,
+    disabled: working || loading,
+    hasPlayers: activePlayers.length > 0,
+    latestQuestionSetId: session?.latestStudentQuestionResult?.resultSetId ?? null,
+    onStartGame: () => run(startGame),
+    onStartQuiz: startQuiz,
+    onStartQuestions: startQuestions,
+    onStartLatestQuestions: startLatestQuestions,
+  });
+  const activityTitle = launch.activityKind === "game" ? gameSetup.selectedGame.title
+    : launch.activityKind === "quiz" ? launch.quizPlan?.name ?? "퀴즈쇼"
+    : launch.activityKind === "questions" ? "질문 만들기" : "학생 질문 AI 문답";
+  const actions = isPlaying || isPreparing ? <>
+    {isPreparing ? <Button disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
+    <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetQuizAwareSession)}>대기실로 돌아가기</Button>
+  </> : <Button size="lg" disabled={working || loading || activePlayers.length === 0 || launch.invalidSelection} onClick={() => void launch.start()}>{working ? "처리 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
 
   const content = <>
     <RoomStatusBar
       label={isPlaying ? "게임 진행 중" : isPreparing ? "접속 확인 중" : "학생 대기 중"}
-      detail={isPlaying && session ? quizGame ? "퀴즈쇼" : getGame(session.gameId).title : isPreparing ? `${readyCount}/${expectedCount}명 준비됨` : `접속 ${activePlayers.length}명${staleCount > 0 ? ` · 연결 끊김 ${staleCount}명` : ""}`}
+      count={isPreparing ? `${readyCount}/${expectedCount}` : String(activePlayers.length)}
+      {...(isPreparing ? {} : { title: isPlaying && session ? quizGame ? "퀴즈쇼" : getGame(session.gameId).title : activityTitle })}
       tone={isPlaying ? "playing" : isPreparing ? "preparing" : "waiting"}
       actions={actions}
     />
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
     {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : <div className={styles.lobbyGrid}>
-      <div className={styles.mainColumn}>
-      {!isPreparing && isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
-      {!isPreparing && !isQuestionActivity ? <ActivityLaunchPanel
-        setup={gameSetup}
-        disabled={working || loading}
-        hasPlayers={activePlayers.length > 0}
-        latestQuestionSetId={session?.latestStudentQuestionResult?.resultSetId ?? null}
-        onStartGame={() => run(startGame)}
-        onStartQuiz={startQuiz}
-        onStartQuestions={startQuestions}
-        onStartLatestQuestions={startLatestQuestions}
-      /> : null}
-      </div>
-      <div className={styles.sideColumn}>
-        <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
-        {!isQuestionActivity ? <LobbyToolsPanel roomId={roomId} players={activePlayers} session={session} disabled={working || loading} typingDisabled={working} /> : null}
-      </div>
+      <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
+      {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
+      {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading} launch={launch} /> : null}
+      {!isQuestionActivity ? <LobbyToolsPanel roomId={roomId} players={activePlayers} session={session} disabled={working || loading} typingDisabled={working} /> : null}
     </div>}
   </>;
 

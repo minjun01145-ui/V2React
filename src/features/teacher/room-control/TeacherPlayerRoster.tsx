@@ -5,7 +5,6 @@ import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Card from "../../../shared/ui/Card.tsx";
-import Badge from "../../../shared/ui/Badge.tsx";
 import Button from "../../../shared/ui/Button.tsx";
 import styles from "./TeacherPlayerRoster.module.css";
 
@@ -52,7 +51,7 @@ export default function TeacherPlayerRoster({ roomId, players, disabled = false 
   return (
     <Card>
       <div className={styles.heading}>
-        <div className={styles.headingTitle}><h2>접속 학생</h2><Badge tone="primary">{players.length}</Badge></div>
+        <h2>접속 학생</h2><strong className={styles.count}>{players.length}</strong>
         <Button
           variant="quiet"
           size="sm"
@@ -62,14 +61,15 @@ export default function TeacherPlayerRoster({ roomId, players, disabled = false 
           학번 {showStudentNumbers ? "숨기기" : "보이기"}
         </Button>
       </div>
-      <div className={styles.players}><PlayerGrid
+      <PlayerGrid
         players={players}
+        size="large"
         showStudentNumber={showStudentNumbers}
-        emptyMessage="접속한 학생이 없습니다."
+        emptyMessage="아직 접속한 학생이 없어요"
         onPlayerClick={(player) => void removePlayer(player)}
         disabled={disabled || removingPlayerId !== null}
         disabledPlayerId={removingPlayerId}
-      /></div>
+      />
     </Card>
   );
 }

@@ -1,9 +1,4 @@
 .content, .embedded { display: grid; gap: 16px; min-width: 0; }
 .embedded { padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface-subtle); }
 .embeddedHeader h2 { margin: 0; font-size: var(--text-lg); font-weight: 700; }
-.lobbyGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
-.mainColumn, .sideColumn { display: grid; gap: 16px; min-width: 0; }
-@media (min-width: 1100px) {
-  .lobbyGrid { grid-template-columns: minmax(0, 1fr) 360px; }
-  .sideColumn { position: sticky; top: 72px; }
-}
+.lobbyGrid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }

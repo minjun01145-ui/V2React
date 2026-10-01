@@ -5,6 +5,5 @@
 .players { min-height: 0; overflow: auto; }
 .sectionTitle { margin: 0; font-size: var(--text-md); font-weight: 700; }
 .sectionHeading { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
-.activityHint { margin: 0; color: var(--color-muted); font-size: var(--text-xs); font-weight: 600; }
 .profileCard { padding: 12px; container-type: inline-size; }
 @media (max-width: 1099px) { .stack { height: auto; grid-template-columns: 1fr; } .players { overflow: visible; } }

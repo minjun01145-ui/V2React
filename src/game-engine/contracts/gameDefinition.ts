@@ -54,7 +54,6 @@ export interface GameDefinition {
   readonly id: string;
   readonly title: string;
   readonly category: GameCategory;
-  readonly summary: string;
   readonly supportedSetTypes: readonly string[];
   readonly timing: GameTiming;
   readonly minimumSetItemCount: number;

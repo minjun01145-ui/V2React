@@ -1,6 +1,4 @@
 import { TIMED_GAME_MODE_OPTIONS, isTimedGameMode } from "../../../game-engine/timed-game/config.ts";
-import { minimumSetItemCountForType } from "../../../game-engine/contracts/gameDefinition.ts";
-import { isLearningSetType, learningSetTypeLabel } from "../../../learning-sets/types.ts";
 import Field from "../../../shared/ui/Field.tsx";
 import Select from "../../../shared/ui/Select.tsx";
 import GamePicker from "./GamePicker.tsx";
@@ -14,14 +12,10 @@ interface Props {
 
 export function GameSetupPanel({ setup, disabled }: Props) {
   const { availableGames, selectedGame, compatibleSets, selectedSetId, timedMode, setError, invalidSet, minimumSetItemCount } = setup;
-  const setRequirements = selectedGame.supportedSetTypes.map((type) => {
-    const label = isLearningSetType(type) ? learningSetTypeLabel(type) : type;
-    return `${label} ${minimumSetItemCountForType(selectedGame, type)}개 이상`;
-  }).join(" · ");
   return <div className={styles.gameSetup}>
     <GamePicker games={availableGames} selectedId={selectedGame.id} onSelect={setup.selectGame} disabled={disabled} />
     <div className={styles.pickerControls}>
-      <Field label="학습 세트" hint={setRequirements}><Select value={selectedSetId} onChange={(event) => setup.selectSet(event.target.value)} disabled={disabled}><option value="" disabled={selectedGame.requiresStoredSet}>{selectedGame.requiresStoredSet ? "저장된 세트를 선택하세요" : "내장 데모 세트"}</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</Select></Field>
+      <Field label="학습 세트"><Select value={selectedSetId} onChange={(event) => setup.selectSet(event.target.value)} disabled={disabled}><option value="" disabled={selectedGame.requiresStoredSet}>{selectedGame.requiresStoredSet ? "저장된 세트를 선택하세요" : "내장 데모 세트"}</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</Select></Field>
       {selectedGame.settings.map((setting) => <Field key={setting.key} label={setting.label}><Select value={setup.settingValues[setting.key] ?? setting.defaultValue} onChange={(event) => setup.selectSetting(setting.key, event.target.value)} disabled={disabled}>{setting.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</Select></Field>)}
       {selectedGame.timing === "timed" && selectedGame.fixedTimedMode === null ? <Field label="게임 시간"><Select value={timedMode} onChange={(event) => { if (isTimedGameMode(event.target.value)) setup.selectTimedMode(event.target.value); }} disabled={disabled}>{TIMED_GAME_MODE_OPTIONS.map((option) => <option value={option.mode} key={option.mode}>{option.label} 모드</option>)}</Select></Field> : null}
       {selectedGame.timing === "timed" && selectedGame.fixedTimedMode !== null ? <Field label="게임 시간"><Select value={selectedGame.fixedTimedMode} disabled><option value={selectedGame.fixedTimedMode}>{TIMED_GAME_MODE_OPTIONS.find((option) => option.mode === selectedGame.fixedTimedMode)?.label ?? "고정"} 고정</option></Select></Field> : null}

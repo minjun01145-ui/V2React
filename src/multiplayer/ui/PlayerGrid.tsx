@@ -1,10 +1,10 @@
 import type { Player } from "../types.ts";
-import { Muted } from "../../shared/ui/Typography.tsx";
 import PlayerCard from "./PlayerCard.tsx";
 import styles from "./PlayerGrid.module.css";
 
 interface Props {
   readonly players: readonly Player[];
+  readonly size?: "regular" | "large";
   readonly selfStudentNumber?: string;
   readonly showStudentNumber?: boolean;
   readonly emptyMessage?: string;
@@ -19,6 +19,7 @@ interface Props {
  */
 export default function PlayerGrid({
   players,
+  size = "regular",
   selfStudentNumber,
   showStudentNumber = false,
   emptyMessage = "아직 대기 중인 학생이 없어요.",
@@ -27,14 +28,15 @@ export default function PlayerGrid({
   disabledPlayerId = null,
 }: Props) {
   if (players.length === 0) {
-    return <Muted>{emptyMessage}</Muted>;
+    return <p className={styles.empty}>{emptyMessage}</p>;
   }
   return (
-    <ul className={styles.grid} aria-label="대기 중인 학생">
+    <ul className={styles.grid} data-size={size} aria-label="대기 중인 학생">
       {players.map((player) => (
         <li key={player.id} className={styles.cell}>
           <PlayerCard
             player={player}
+            size={size}
             isSelf={Boolean(selfStudentNumber) && player.studentNumber === selfStudentNumber}
             showStudentNumber={showStudentNumber}
             disabled={disabled || disabledPlayerId === player.id}
