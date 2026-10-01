@@ -7,8 +7,9 @@ import { currentTenantConfig } from "../tenant/config.ts";
 import { connectLiveClaims, type LiveClaim, type LiveClaims } from "./claims.ts";
 import type { LiveWorldScope } from "./core/types.ts";
 import { connectLiveEvents, type LiveEvent, type LiveEventChannel } from "./events.ts";
+import { connectLiveRecords, type LiveRecord, type LiveRecords } from "./records.ts";
 
-export type { LiveClaim, LiveClaims, LiveEvent, LiveEventChannel };
+export type { LiveClaim, LiveClaims, LiveEvent, LiveEventChannel, LiveRecord, LiveRecords };
 
 function realtimeDatabase() {
   return getDatabase(firebaseApp);
@@ -38,6 +39,17 @@ export function createLiveClaims(
   onError: (error: Error) => void,
 ): LiveClaims {
   return connectLiveClaims(realtimeDatabase(), currentTenantConfig().id, scope, playerId, onClaim, onError);
+}
+
+export function createLiveRecords(
+  scope: LiveWorldScope,
+  playerId: string,
+  topCount: number,
+  onTop: (records: readonly LiveRecord[]) => void,
+  onOwnBest: (score: number) => void,
+  onError: (error: Error) => void,
+): LiveRecords {
+  return connectLiveRecords(realtimeDatabase(), currentTenantConfig().id, scope, playerId, topCount, onTop, onOwnBest, onError);
 }
 
 export function subscribeLiveServerTimeOffset(

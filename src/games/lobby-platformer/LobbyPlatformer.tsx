@@ -12,7 +12,9 @@ import {
   createLiveClaims,
   createLiveEventChannel,
   createLiveMovementEngine,
+  createLiveRecords,
   subscribeLiveServerTimeOffset,
+  type LiveRecord,
 } from "../../live-world/client.ts";
 import { displayLabel, type Player } from "../../multiplayer/types.ts";
 import ClimbScene, { type ClimbStanding } from "./ClimbScene.ts";
@@ -20,6 +22,8 @@ import { CLIMB_GRAVITY, CLIMB_PLAYER_HEIGHT, CLIMB_WORLD_WIDTH } from "./course.
 import styles from "./LobbyPlatformer.module.css";
 
 const LOBBY_SCOPE_ID = "lobby";
+const RECORDS_CHANNEL_ID = "climb-records";
+const RECORD_BOARD_SIZE = 5;
 
 interface Props {
   readonly roomId: string;
@@ -63,6 +67,8 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
   const [height, setHeight] = useState({ floor: 0, best: 0 });
   const [standings, setStandings] = useState<readonly ClimbStanding[]>([]);
   const [buffs, setBuffs] = useState<readonly ActiveBuff[]>([]);
+  const [records, setRecords] = useState<readonly LiveRecord[]>([]);
+  const [ownRecord, setOwnRecord] = useState(0);
 
   labelsRef.current = new Map(players.map((player) => [player.id, displayLabel(player.displayName, player.nickname)]));
 
@@ -125,6 +131,15 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
     const live = createLiveMovementEngine(playerId, { sendHz: 10, onError });
     const events = createLiveEventChannel(scope, playerId, (event) => sceneRef.current?.receiveEvent(event), onError);
     const claims = createLiveClaims(scope, playerId, (claim) => sceneRef.current?.receiveClaim(claim), onError);
+    // All-time bests persist per room, unlike the daily live channel above.
+    const records = createLiveRecords(
+      { roomId, roundId: LOBBY_SCOPE_ID, channelId: RECORDS_CHANNEL_ID },
+      playerId,
+      RECORD_BOARD_SIZE,
+      setRecords,
+      setOwnRecord,
+      onError,
+    );
     const scene = new ClimbScene({
       seed: roomId,
       input: inputRef.current,
@@ -137,7 +152,10 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       publishEvent: (kind, target, value) => events.publish(kind, target, value),
       claimItem: (id) => claims.claim(id),
       onBuffsChange: setBuffs,
-      onHeight: (floor, best) => setHeight({ floor, best }),
+      onHeight: (floor, best) => {
+        setHeight({ floor, best });
+        records.submit(best, label);
+      },
       onStandings: setStandings,
     });
     sceneRef.current = scene;
@@ -169,6 +187,7 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       void live.close();
       void events.close();
       claims.close();
+      records.close();
     };
   }, [label, playerId, roomId]);
 
@@ -190,7 +209,7 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       ref={stageRef}
       className={styles.shell}
       tabIndex={0}
-      aria-label="점프 타워"
+      aria-label="점프게임"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) clearPlatformerInput(inputRef.current);
       }}
@@ -202,14 +221,30 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
           <strong>{height.floor}<span>층</span></strong>
           <em>최고 {height.best}층</em>
         </div>
-        <ol className={styles.standings} aria-label="지금 높이 순위">
-          {standings.slice(0, 5).map((standing, index) => <li key={standing.playerId} data-self={standing.self}>
-            <b>{index + 1}</b>{standing.label}<span>{standing.floor}층</span>
-          </li>)}
-        </ol>
-        <div className={styles.hudActions}>
-          <FullscreenToggle target={stageRef} />
-          <button type="button" className={styles.exitButton} onClick={onExit}>대기실로</button>
+        {standings.length > 0 ? <section className={styles.standings} aria-label="지금 순위">
+          <h2>지금 순위</h2>
+          <ol>
+            {standings.slice(0, 5).map((standing, index) => <li key={standing.playerId} data-self={standing.self}>
+              <b>{index + 1}</b>{standing.label}<span>{standing.floor}층</span>
+            </li>)}
+          </ol>
+        </section> : null}
+        <div className={styles.hudRight}>
+          <div className={styles.hudActions}>
+            <FullscreenToggle target={stageRef} />
+            <button type="button" className={styles.exitButton} onClick={onExit}>대기실로</button>
+          </div>
+          <section className={styles.records} aria-label="역대 순위">
+            <h2>🏆 역대 순위</h2>
+            {records.length === 0
+              ? <p>아직 기록이 없어요</p>
+              : <ol>
+                {records.map((record, index) => <li key={record.playerId} data-self={record.playerId === playerId}>
+                  <b>{index + 1}</b>{record.label}<span>{record.score}층</span>
+                </li>)}
+              </ol>}
+            <small>내 최고 {Math.max(ownRecord, height.best)}층</small>
+          </section>
         </div>
       </div>
       <BuffHud buffs={buffs} />
@@ -217,7 +252,7 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       <div className={styles.controlsHint}>
         <kbd>← →</kbd> 이동 <kbd>↑</kbd> 점프(2단) <kbd>Space</kbd> 펀치 <kbd>↓</kbd> 내려가기 <kbd>R</kbd> 처음으로
       </div>
-      <div className={styles.touchControls} aria-label="점프 타워 조작">
+      <div className={styles.touchControls} aria-label="점프게임 조작">
         {TOUCH_ACTIONS.map(({ action, label: actionLabel, text }) => <button
           type="button"
           key={action}

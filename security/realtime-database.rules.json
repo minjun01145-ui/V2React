@@ -35,6 +35,18 @@
                     "$other": { ".validate": false }
                   }
                 },
+                "records": {
+                  ".read": "auth != null && auth.token.tenantId === $tenantId && (auth.token.role !== 'test-student' || auth.token.testRoomId === $roomId)",
+                  ".indexOn": ["s"],
+                  "$playerId": {
+                    ".write": "auth != null && auth.uid === $playerId && newData.exists() && (!data.exists() || newData.child('s').val() > data.child('s').val()) && auth.token.tenantId === $tenantId && (auth.token.role !== 'test-student' || auth.token.testRoomId === $roomId)",
+                    ".validate": "newData.hasChildren(['s', 'l', 't'])",
+                    "s": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && newData.val() % 1 === 0" },
+                    "l": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" },
+                    "t": { ".validate": "newData.isNumber() && newData.val() === now" },
+                    "$other": { ".validate": false }
+                  }
+                },
                 "claims": {
                   ".read": "auth != null && auth.token.tenantId === $tenantId && (auth.token.role !== 'test-student' || auth.token.testRoomId === $roomId)",
                   "$claimId": {

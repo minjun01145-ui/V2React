@@ -96,7 +96,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
     </Suspense>;
   }
   if (platformerOpen) {
-    return <Suspense fallback={<StatusPanel title="플랫포머 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
+    return <Suspense fallback={<StatusPanel title="점프게임 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
       <LobbyPlatformer
         roomId={roomId}
         playerId={uid}
@@ -130,7 +130,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
         <Button onClick={() => setSoloOpen(true)} disabled={!soloAllowed}>혼자하기</Button>
         <TypingGameButton mode="sentence" onClick={() => setTypingOpen("sentence")} />
         <TypingGameButton mode="acid-rain" onClick={() => setTypingOpen("acid-rain")} />
-        <Button variant="ghost" onClick={() => setPlatformerOpen(true)}>플랫포머 (테스트)</Button>
+        <Button variant="ghost" onClick={() => setPlatformerOpen(true)}>점프게임</Button>
         {!savedTypingConfig ? <p className={styles.activityHint}>선생님이 세트를 선택하기 전에는 기본 영어 연습 세트로 시작해요.</p> : null}
         {!soloAllowed && requiredActivityActive ? <p className={styles.activityHint}>필수 질문 만들기 활동이 끝난 뒤 혼자하기를 시작할 수 있어요.</p> : null}
       </div>
