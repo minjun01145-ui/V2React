@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createScoreCelebration } from "../../game-engine/effects/model.ts";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
@@ -54,6 +54,7 @@ export default function MatchingAllStudentGame({ roomId, session, player, set, d
       </div></div>
     </header>
 
+    <div className={styles.body}>
     <section className={styles.progress} aria-label={`현재 판 ${matchedCount}/4쌍`}>
       <div style={{ width: `${matchedCount * 25}%` }} />
     </section>
@@ -63,7 +64,7 @@ export default function MatchingAllStudentGame({ roomId, session, player, set, d
       <span>4쌍을 전부 찾으면 판 점수 {game.baseScore}점과 콤보 보너스를 받습니다.</span>
     </section>
 
-    <section className={styles.grid} aria-label="모두 짝이 있는 단어와 뜻 카드">
+    <section className={styles.grid} style={{ "--cols": Math.ceil(Math.sqrt(game.board.length * 1.6)) } as CSSProperties} aria-label="모두 짝이 있는 단어와 뜻 카드">
       {game.board.map((card) => {
         const matched = game.matchedPairIds.includes(card.pairId);
         if (matched) return <div className={styles.clearedSlot} key={card.id} aria-hidden="true" />;
@@ -84,6 +85,7 @@ export default function MatchingAllStudentGame({ roomId, session, player, set, d
       })}
     </section>
 
+    </div>
     <div className={styles.feedback} data-tone={game.feedbackTone} role="status" aria-live="polite">
       {game.feedback || "카드 두 장을 골라 첫 번째 짝을 찾아보세요."}
     </div>
