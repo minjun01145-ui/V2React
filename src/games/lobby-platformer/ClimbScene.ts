@@ -183,7 +183,7 @@ export default class ClimbScene extends Phaser.Scene {
     const now = this.options.nowMs();
     // Build the tower around where the player *is*, not the last floor they stood on:
     // otherwise a long fall outruns the window and drops through empty sky to the ground.
-    this.course.update(this.focusFloor(), now, delta);
+    this.course.update(this.focusFloor(), now);
     this.updateLocalPlayer(time, delta);
     this.lastFrames = this.options.samplePlayers();
     this.updateActors(time, delta);

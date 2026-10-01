@@ -70,7 +70,7 @@ export class ClimbCourseView {
   }
 
   /** Keeps platforms around `focusFloor` alive and steers the moving ones by the shared clock. */
-  update(focusFloor: number, nowMs: number, delta: number): void {
+  update(focusFloor: number, nowMs: number): void {
     const low = Math.max(1, focusFloor - WINDOW_BELOW);
     const high = focusFloor + WINDOW_ABOVE;
     for (const [index, entry] of this.live) {
@@ -81,13 +81,13 @@ export class ClimbCourseView {
     for (let index = low; index <= high; index += 1) {
       if (!this.live.has(index)) this.live.set(index, this.create(climbPlatform(this.seed, index), nowMs));
     }
-    const seconds = Math.max(delta, 1) / 1_000;
     for (const entry of this.live.values()) {
       if (entry.platform.kind !== "moving") continue;
-      const body = entry.zone.body as Phaser.Physics.Arcade.Body;
-      const target = climbPlatformX(entry.platform, nowMs + delta) + entry.platform.width / 2;
-      body.setVelocity((target - body.center.x) / seconds, 0);
-      entry.art.setX(body.center.x);
+      // Direct control derives collision velocity from the actual displacement.
+      // Render-frame feedback can oscillate against Arcade's fixed physics steps.
+      const target = climbPlatformX(entry.platform, nowMs) + entry.platform.width / 2;
+      entry.zone.setX(target);
+      entry.art.setX(target);
     }
   }
 
@@ -123,7 +123,7 @@ export class ClimbCourseView {
     const zone = this.scene.add.zone(centreX, platform.y + 6, platform.width, 12);
     if (platform.kind === "moving") {
       this.movers.add(zone);
-      (zone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setImmovable(true);
+      (zone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setImmovable(true).setDirectControl(true);
     } else {
       this.statics.add(zone);
     }
