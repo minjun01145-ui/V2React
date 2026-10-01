@@ -17,7 +17,7 @@ import StatusPanel from "../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../shared/errors/errorMessage.ts";
 import Button from "../../shared/ui/Button.tsx";
 import Card from "../../shared/ui/Card.tsx";
-import styles from "./WordUno.module.css";
+import styles from "./WordUnoStudentGame.module.css";
 
 const ROUND_DURATION_MS = 3 * 60_000;
 const TURN_DURATION_MS = 20_000;
@@ -231,6 +231,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
 
   return <div className={styles.shell} data-colors={colorsEnabled ? "on" : "off"}>
     <GameEffectLayer effect={effects.activeEffect} className={styles.turnEffectLayer} />
+    <header className={styles.hud}>
     <div className={styles.gameHeader}>
       <div><span>{state.groupLabel ?? "단어 우노"}</span><strong>{isMyTurn ? "내 차례" : `${memberById.get(state.currentPlayerId ?? "")?.nickname ?? "다른 친구"} 차례`}</strong></div>
       <SharedClock endsAtMs={state.endsAtMs} />
@@ -241,6 +242,8 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
       ? <DeadlineCountdownBar deadlineAtMs={state.turnDeadlineAtMs} durationMs={TURN_DURATION_MS} label="턴 남은 시간" />
       : null}
 
+    </header>
+    <div className={styles.body}>
     <div className={styles.unoTableScene} aria-label="단어 우노 게임 테이블">
       <WordUnoActionMotion motion={actionMotion} />
       {opponents.map((member, index) => <div
@@ -294,6 +297,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
       <Button variant="ghost" onClick={() => setPendingWild(null)} disabled={busy}>취소</Button>
     </Card> : null}
 
+    </div>
     <section className={styles.handSection} aria-label="내 카드">
       <div className={styles.handHeading}><div><span>내 카드</span><strong>{state.hand.length}장</strong></div><span className={styles.handHint}>낼 카드가 없으면 테이블의 덱을 눌러 뽑으세요.</span></div>
       <div className={styles.hand} key={shakeRevision} data-shake={Boolean(actionError)}>
