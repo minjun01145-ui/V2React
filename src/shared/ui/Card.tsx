@@ -12,16 +12,16 @@ export default function Card(props: CardProps) {
   const classes = [styles.card, className].filter(Boolean).join(" ");
   if (props.as === "form") {
     const { as: _as, ...formProps } = props;
-    return <form className={classes} {...formProps} />;
+    return <form {...formProps} className={classes} />;
   }
   if (props.as === "div") {
     const { as: _as, ...divProps } = props;
-    return <div className={classes} {...divProps} />;
+    return <div {...divProps} className={classes} />;
   }
   if (props.as === "button") {
     const { as: _as, type = "button", ...buttonProps } = props;
-    return <button className={classes} type={type} {...buttonProps} />;
+    return <button {...buttonProps} className={classes} type={type} />;
   }
   const { as: _as, ...sectionProps } = props;
-  return <section className={classes} {...sectionProps} />;
+  return <section {...sectionProps} className={classes} />;
 }

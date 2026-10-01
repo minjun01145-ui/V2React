@@ -9,7 +9,7 @@ import { useTypingSet } from "./useTypingSet.ts";
 function TypingMonitor({ roomId, session, set }: TeacherGameModuleProps & { readonly set: unknown }) {
   const options = useMemo(() => typingGameOptions(session), [session]);
   const adaptedSet = useMemo(() => adaptLearningSetToTyping(set, options.target), [options.target, set]);
-  return <TypingLeaderboard roomId={roomId} session={session} title={`${adaptedSet.title} · 타자게임`} />;
+  return <TypingLeaderboard roomId={roomId} session={session} title={`${adaptedSet.title} · 문장 타자`} />;
 }
 
 export default function TypingTeacherGame(props: TeacherGameModuleProps) {

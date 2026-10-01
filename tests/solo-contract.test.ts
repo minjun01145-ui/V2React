@@ -23,9 +23,9 @@ import {
 } from "../functions/src/solo/model.ts";
 
 const supportedSoloGames = listGames().filter((game) => game.solo.supported);
-assert.deepEqual(supportedSoloGames.map((game) => game.id), ["simple-quiz"]);
+assert.deepEqual(supportedSoloGames.map((game) => game.id), ["ai-tutor", "pokemon-catch", "sentence-builder", "simple-quiz"]);
 assert.equal(getGame("word-uno").solo.supported, false);
-assert.equal(getGame("ai-tutor").solo.supported, false);
+assert.equal(getGame("ai-tutor").solo.supported, true);
 assert.equal(getGame("placeholder").solo.supported, false);
 
 const game = getGame("simple-quiz");
