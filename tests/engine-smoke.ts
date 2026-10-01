@@ -57,6 +57,8 @@ assert.equal(normalizeRoomId("///", "fallback"), "fallback");
 const game = defineGame({
   id: "test-game",
   title: "Test Game",
+  category: "quiz",
+  summary: "Test Game",
   supportedSetTypes: ["reading-chunks", "reading-chunks"],
   loadStudent: async () => ({ default: (_props: StudentGameModuleProps) => null }),
   loadTeacher: async () => ({ default: (_props: TeacherGameModuleProps) => null }),
@@ -70,6 +72,8 @@ assert.deepEqual(game.settings, []);
 const configurableGame = defineGame({
   id: "configurable-game",
   title: "Configurable Game",
+  category: "quiz",
+  summary: "Configurable Game",
   supportedSetTypes: ["vocabulary"],
   settings: [{ kind: "select", key: "level", label: "난이도", defaultValue: "easy", options: [{ value: "easy", label: "쉬움" }, { value: "hard", label: "어려움" }] }],
   loadStudent: async () => ({ default: (_props: StudentGameModuleProps) => null }),
@@ -78,7 +82,7 @@ const configurableGame = defineGame({
 assert.equal(configurableGame.settings[0]?.defaultValue, "easy");
 assert.throws(() => defineGame({ ...configurableGame, id: "invalid-setting", settings: [{ ...configurableGame.settings[0]!, defaultValue: "missing" }] }));
 const simpleQuiz = getGame("simple-quiz");
-assert.equal(simpleQuiz.title, "심플퀴즈");
+assert.equal(simpleQuiz.title, "객관식 퀴즈");
 assert.equal(simpleQuiz.settings[0]?.key, "choice-count");
 assert.equal(simpleQuiz.settings[0]?.defaultValue, "4");
 const pokemonCatch = getGame("pokemon-catch");
@@ -88,6 +92,8 @@ assert.equal(wordUno.fixedTimedMode, "3-minutes", "Word UNO는 3분 고정 시�
 const invalidGame = {
   id: "Bad Game",
   title: "x",
+  category: "quiz" as const,
+  summary: "x",
   supportedSetTypes: [],
   loadStudent: async () => ({ default: (_props: StudentGameModuleProps) => null }),
   loadTeacher: async () => ({ default: (_props: TeacherGameModuleProps) => null }),
@@ -97,6 +103,8 @@ assert.throws(() => defineGame(invalidGame));
 const typedMinimumGame = defineGame({
   id: "typed-minimum-game",
   title: "Typed Minimum Game",
+  category: "quiz",
+  summary: "Typed Minimum Game",
   supportedSetTypes: ["vocabulary", "reading-chunks"],
   minimumSetItemCountByType: { vocabulary: 4, "reading-chunks": 1 },
   loadStudent: async () => ({ default: (_props: StudentGameModuleProps) => null }),

@@ -21,6 +21,12 @@ export type StudentGameModuleComponent = ComponentType<StudentGameModuleProps>;
 
 export type GameTiming = "timed" | "untimed";
 
+export type GameCategory = "quiz" | "card" | "sentence" | "typing" | "action";
+export const GAME_CATEGORY_LABEL: Readonly<Record<GameCategory, string>> = {
+  quiz: "퀴즈", card: "카드", sentence: "문장 조립", typing: "타자", action: "액션",
+};
+export const GAME_CATEGORY_ORDER: readonly GameCategory[] = ["quiz", "card", "sentence", "typing", "action"];
+
 export interface StudentGamePreparationContext {
   readonly session: GameSession;
   readonly player: Player;
@@ -47,6 +53,8 @@ export interface GameQuizQuestionPresentation {
 export interface GameDefinition {
   readonly id: string;
   readonly title: string;
+  readonly category: GameCategory;
+  readonly summary: string;
   readonly supportedSetTypes: readonly string[];
   readonly timing: GameTiming;
   readonly minimumSetItemCount: number;

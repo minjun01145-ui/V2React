@@ -19,8 +19,8 @@ export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameM
     () => boardState.value ? chunkLineUpRanking(boardState.value) : [],
     [boardState.value],
   );
-  if (boardState.error) return <StatusPanel title="Chunk Line-Up 연결 오류" tone="error">{boardState.error.message}</StatusPanel>;
-  if (boardState.loading || !boardState.value) return <StatusPanel title="Chunk Line-Up 준비 중">학생 수에 맞춰 게임판을 만들고 있습니다.</StatusPanel>;
+  if (boardState.error) return <StatusPanel title="끊어읽기 줄 세우기 연결 오류" tone="error">{boardState.error.message}</StatusPanel>;
+  if (boardState.loading || !boardState.value) return <StatusPanel title="끊어읽기 줄 세우기 준비 중">학생 수에 맞춰 게임판을 만들고 있습니다.</StatusPanel>;
   const board = boardState.value;
   const fixedCount = board.groups.reduce((count, group) => count + group.slots.filter((slot) => slot.fixed).length, 0);
   const filledCount = board.groups.reduce((count, group) => count + group.slots.filter((slot) => Boolean(slot.filledBy)).length, 0);
@@ -28,7 +28,7 @@ export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameM
   return <div className={styles.teacherShell} ref={shellRef}>
     <FullscreenToggle target={shellRef} className={styles.teacherFullscreen} />
     <div className={styles.teacherHud}>
-      <div><strong>Chunk Line-Up</strong><span>{board.groups.length}개 문장 · 완료 {board.completedGroupCount}</span></div>
+      <div><strong>끊어읽기 줄 세우기</strong><span>{board.groups.length}개 문장 · 완료 {board.completedGroupCount}</span></div>
       <span>채운 슬롯 {filledCount} · 고정 슬롯 {fixedCount}</span>
       <TimedGameStatus session={session} compact />
     </div>
@@ -46,7 +46,7 @@ export default function ChunkLineUpTeacherGame({ roomId, session }: TeacherGameM
       </span>)}
     </div>
     {clock.expired ? <TimedResultsOverlay
-      title="Chunk Line-Up 최종 순위"
+      title="끊어읽기 줄 세우기 최종 순위"
       note="게임을 끝내면 학생들이 대기실로 돌아갑니다."
       unit="점"
       entries={ranking.map((entry) => ({ id: entry.playerId, label: entry.label, value: entry.score }))}

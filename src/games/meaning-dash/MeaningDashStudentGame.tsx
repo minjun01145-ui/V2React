@@ -19,9 +19,9 @@ export default function MeaningDashStudentGame({ roomId, session, player }: Stud
     [learningSet.set, session.roundId],
   );
 
-  if (learningSet.loading || participants.loading) return <StatusPanel title="Meaning Dash 준비 중">학습 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
+  if (learningSet.loading || participants.loading) return <StatusPanel title="뜻 달리기 (실험) 준비 중">학습 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
   if (learningSet.error) return <StatusPanel title="학습 세트 오류" tone="error">{learningSet.error.message}</StatusPanel>;
-  if (!course) return <StatusPanel title="학습 세트 오류" tone="error">Meaning Dash에 사용할 단어 세트가 없습니다.</StatusPanel>;
+  if (!course) return <StatusPanel title="학습 세트 오류" tone="error">뜻 달리기 (실험)에 사용할 단어 세트가 없습니다.</StatusPanel>;
   return <StudentMeaningDashRuntime roomId={roomId} session={session} player={player} course={course} participantValues={participants.value} />;
 }
 
@@ -64,13 +64,13 @@ function StudentMeaningDashRuntime({
   if (!game.ready) return <StatusPanel title="출발 준비 중">이전 진행 기록을 확인하고 있습니다.</StatusPanel>;
   return <div className={styles.shell}>
     <header className={styles.hud}>
-      <div><strong>Meaning Dash</strong><span>{game.nextQuestion.prompt}의 뜻이 있는 길로 이동하세요.</span></div>
+      <div><strong>뜻 달리기 (실험)</strong><span>{game.nextQuestion.prompt}의 뜻이 있는 길로 이동하세요.</span></div>
       <div className={styles.score}><strong>{game.progress.score}</strong><span>점</span></div>
     </header>
     {live.error ? <div className={styles.connectionError}>실시간 연결 오류: {live.error.message}</div> : null}
     {game.saveError ? <div className={styles.connectionError}>기록 저장 오류: {game.saveError.message}</div> : null}
     {game.feedback ? <div className={styles.feedback}>{game.feedback}</div> : null}
-    <div tabIndex={0} aria-label="Meaning Dash 조작 영역" onPointerDown={(event) => event.currentTarget.focus({ preventScroll: true })}>
+    <div tabIndex={0} aria-label="뜻 달리기 (실험) 조작 영역" onPointerDown={(event) => event.currentTarget.focus({ preventScroll: true })}>
       <MeaningDashScene course={course} runners={runners} cameraY={game.runner.y} />
     </div>
     <div className={styles.controls}>

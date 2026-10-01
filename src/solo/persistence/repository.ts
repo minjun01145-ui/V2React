@@ -62,7 +62,7 @@ export async function submitSoloSequenceAnswer<TDetails>(run: SoloRun, submissio
   readonly tokenIds: readonly string[];
 }): Promise<GameProgress<TDetails>> {
   assertRunOwner(run);
-  if (run.gameId !== "sentence-builder") throw new Error("문장 만들기 Solo run이 아닙니다.");
+  if (run.gameId !== "sentence-builder") throw new Error("문장 조립 Solo run이 아닙니다.");
   const input = { runId: run.runId, gameId: run.gameId, ...submission };
   const call = httpsCallable<typeof input, GameProgress<TDetails>>(functions, "submitSoloAnswer");
   const progress = (await call(input)).data;

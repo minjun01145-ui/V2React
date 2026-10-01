@@ -38,7 +38,7 @@ export function useChunkLineUpBoard(roomId: string, roundId: string, initialize 
     if (initialize) {
       void ensureChunkLineUpRound(roomId, roundId).catch((reason: unknown) => {
         if (!active || hasBoard) return;
-        setError(reason instanceof Error ? reason : new Error("Chunk Line-Up 준비에 실패했습니다."));
+        setError(reason instanceof Error ? reason : new Error("끊어읽기 줄 세우기 준비에 실패했습니다."));
         setLoading(false);
       });
     }

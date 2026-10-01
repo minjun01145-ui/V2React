@@ -51,11 +51,11 @@ export default function WordUnoTeacherGame({ roomId, session }: TeacherGameModul
     void expireWordUnoRound(roomId, session.roundId).then((accepted) => { if (!accepted) retry(); }).catch(retry);
   }, [endsAtMs, expiryRetry, hasUnfinishedGroup, roomId, roundCountdown?.expired, session.roundId]);
 
-  if (assignments.error) return <StatusPanel title="Word UNO 현황 연결 오류" tone="error">{assignments.error.message}</StatusPanel>;
-  if (assignments.loading) return <StatusPanel title="Word UNO 준비 중" tone="waiting">학생들을 조에 배치하고 카드를 나누고 있습니다.</StatusPanel>;
+  if (assignments.error) return <StatusPanel title="단어 우노 현황 연결 오류" tone="error">{assignments.error.message}</StatusPanel>;
+  if (assignments.loading) return <StatusPanel title="단어 우노 준비 중" tone="waiting">학생들을 조에 배치하고 카드를 나누고 있습니다.</StatusPanel>;
 
   return <div className={styles.teacherShell}>
-    <div className={styles.teacherHeader}><div><h2>Word UNO 현황</h2><p>{assignments.value.length}명 참여</p></div><SharedClock endsAtMs={endsAtMs} /></div>
+    <div className={styles.teacherHeader}><div><h2>단어 우노 현황</h2><p>{assignments.value.length}명 참여</p></div><SharedClock endsAtMs={endsAtMs} /></div>
     {groups.length === 0 ? <StatusPanel title="참가 학생을 기다리는 중" tone="waiting">학생이 연결되면 조 현황이 여기에 표시됩니다.</StatusPanel> : null}
     <div className={styles.groupGrid}>{groups.map(([groupId, members]) => {
       const first = members[0];

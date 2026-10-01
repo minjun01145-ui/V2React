@@ -16,7 +16,7 @@ export function useWordUnoAssignment(roomId: string, roundId: string, playerId: 
     setLoading(true);
     setError(null);
     void ensureWordUnoRound(roomId, roundId).catch((reason: unknown) => {
-      if (active) setError(reason instanceof Error ? reason : new Error("Word UNO 준비에 실패했습니다."));
+      if (active) setError(reason instanceof Error ? reason : new Error("단어 우노 준비에 실패했습니다."));
     });
     const unsubscribe = subscribeWordUnoAssignment(
       roomId,
@@ -41,7 +41,7 @@ export function useWordUnoAssignments(roomId: string, roundId: string) {
     setLoading(true);
     setError(null);
     void ensureWordUnoRound(roomId, roundId).catch((reason: unknown) => {
-      if (active) setError(reason instanceof Error ? reason : new Error("Word UNO 준비에 실패했습니다."));
+      if (active) setError(reason instanceof Error ? reason : new Error("단어 우노 준비에 실패했습니다."));
     });
     const unsubscribe = subscribeWordUnoAssignments(
       roomId,

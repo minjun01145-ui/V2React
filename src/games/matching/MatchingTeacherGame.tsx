@@ -7,5 +7,5 @@ export default function MatchingTeacherGame({ roomId, session, set }: {
   readonly session: ActiveGameSession;
   readonly set: RuntimeLearningSet;
 }) {
-  return <LiveLeaderboard roomId={roomId} session={session} title={`${set.name} · 짝맞추기(일부카드)`} />;
+  return <LiveLeaderboard roomId={roomId} session={session} title={`${set.name} · 짝 맞추기`} />;
 }

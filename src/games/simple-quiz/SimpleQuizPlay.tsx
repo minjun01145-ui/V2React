@@ -88,7 +88,7 @@ export default function SimpleQuizPlay({
     });
   }, [clockExpired, exiting, finishing, game.isComplete, game.loading, onFinish, showMessage, submitting]);
 
-  if (game.loading) return <StatusPanel title="심플퀴즈 연결 중">진행 상황을 저장할 준비를 하고 있습니다.</StatusPanel>;
+  if (game.loading) return <StatusPanel title="객관식 퀴즈 연결 중">진행 상황을 저장할 준비를 하고 있습니다.</StatusPanel>;
   if (game.error) return <StatusPanel title="게임 연결 오류" tone="error">{game.error.message}</StatusPanel>;
   if (!question) return game.isComplete
     ? <StatusPanel title="문제를 모두 풀었어요">결과를 정리하고 있습니다.</StatusPanel>
@@ -144,7 +144,7 @@ export default function SimpleQuizPlay({
   return <section className={styles.game}>
     <GameEffectLayer effect={effects.activeEffect} />
     <header className={styles.topbar}>
-      <div><h1>심플퀴즈</h1>{remainingMs !== null ? <small className={styles.remaining}>남은 시간 {formatClock(remainingMs)}</small> : null}</div>
+      <div><h1>객관식 퀴즈</h1>{remainingMs !== null ? <small className={styles.remaining}>남은 시간 {formatClock(remainingMs)}</small> : null}</div>
       <div className={styles.headerActions}>
         {onReturnToLobby ? <Button variant="ghost" disabled={finishing || exiting || submitting || Boolean(pendingQuestionId)} onClick={() => void returnToLobby()}>{exiting ? "종료 중…" : "대기실로 돌아가기"}</Button> : null}
         {onFinish ? <Button variant="ghost" disabled={submitting || finishing || exiting || Boolean(pendingQuestionId)} onClick={() => void finish()}>{finishing ? "결과 저장 중…" : "퀴즈 마치기"}</Button> : null}

@@ -8,7 +8,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 export default function TypingGameButton({ disabled = false, mode = "acid-rain", ...props }: Props) {
   return (
     <Button variant="ghost" disabled={disabled} {...props}>
-      ⌨️ {mode === "sentence" ? "단문" : "산성비"} 타자게임 하기
+      {mode === "sentence" ? "문장 타자" : "산성비"}
     </Button>
   );
 }

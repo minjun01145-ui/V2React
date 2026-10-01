@@ -82,18 +82,18 @@ function board(value: unknown): ChunkLineUpBoard | null {
 }
 
 function actionResult(value: unknown): ChunkLineUpActionResult {
-  if (!isRecord(value)) throw new Error("Chunk Line-Up 응답이 올바르지 않습니다.");
+  if (!isRecord(value)) throw new Error("끊어읽기 줄 세우기 응답이 올바르지 않습니다.");
   const revision = integer(value.revision);
-  if (revision < 1) throw new Error("Chunk Line-Up 상태 번호가 올바르지 않습니다.");
+  if (revision < 1) throw new Error("끊어읽기 줄 세우기 상태 번호가 올바르지 않습니다.");
   if (value.accepted === true) {
     const score = integer(value.score);
-    if (score < 0) throw new Error("Chunk Line-Up 점수가 올바르지 않습니다.");
+    if (score < 0) throw new Error("끊어읽기 줄 세우기 점수가 올바르지 않습니다.");
     return { accepted: true, revision, score, completedGroup: value.completedGroup === true };
   }
   if (value.accepted === false && (value.reason === "wrong" || value.reason === "stale" || value.reason === "expired")) {
     return { accepted: false, revision, reason: value.reason };
   }
-  throw new Error("Chunk Line-Up 처리 결과가 올바르지 않습니다.");
+  throw new Error("끊어읽기 줄 세우기 처리 결과가 올바르지 않습니다.");
 }
 
 function elevatorRider(value: unknown): ChunkLineUpElevatorRider | null {
@@ -158,7 +158,7 @@ export function subscribeChunkLineUpBoard(
       }
       const parsed = board(snapshot.data());
       if (!parsed) {
-        onError(new Error("Chunk Line-Up 게임판 데이터가 올바르지 않습니다."));
+        onError(new Error("끊어읽기 줄 세우기 게임판 데이터가 올바르지 않습니다."));
         return;
       }
       onValue(parsed);

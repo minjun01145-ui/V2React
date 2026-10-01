@@ -209,7 +209,7 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       ref={stageRef}
       className={styles.shell}
       tabIndex={0}
-      aria-label="점프게임"
+      aria-label="점프 타워"
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) clearPlatformerInput(inputRef.current);
       }}
@@ -252,7 +252,7 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       <div className={styles.controlsHint}>
         <kbd>← →</kbd> 이동 <kbd>↑</kbd> 점프(2단) <kbd>Space</kbd> 펀치 <kbd>↓</kbd> 내려가기 <kbd>R</kbd> 처음으로
       </div>
-      <div className={styles.touchControls} aria-label="점프게임 조작">
+      <div className={styles.touchControls} aria-label="점프 타워 조작">
         {TOUCH_ACTIONS.map(({ action, label: actionLabel, text }) => <button
           type="button"
           key={action}

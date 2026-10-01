@@ -6,7 +6,7 @@ import { useSimpleQuizSet } from "./useSimpleQuizSet.ts";
 
 export default function SimpleQuizTeacherModule({ roomId, session }: TeacherGameModuleProps) {
   const learningSet = useSimpleQuizSet(session);
-  if (learningSet.loading) return <StatusPanel title="단어 세트 불러오는 중">심플퀴즈 현황을 준비하고 있습니다.</StatusPanel>;
+  if (learningSet.loading) return <StatusPanel title="단어 세트 불러오는 중">객관식 퀴즈 현황을 준비하고 있습니다.</StatusPanel>;
   if (learningSet.error || !learningSet.set) return <StatusPanel title="단어 세트 오류" tone="error">{learningSet.error?.message ?? "선택한 단어 세트를 찾을 수 없습니다."}</StatusPanel>;
-  return <LiveLeaderboard roomId={roomId} session={session} title={`${learningSet.set.name} · 심플퀴즈(${simpleQuizChoiceCount(session)}지선다)`} />;
+  return <LiveLeaderboard roomId={roomId} session={session} title={`${learningSet.set.name} · 객관식 퀴즈(${simpleQuizChoiceCount(session)}지선다)`} />;
 }

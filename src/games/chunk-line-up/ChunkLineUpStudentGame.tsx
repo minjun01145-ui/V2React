@@ -40,10 +40,10 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
   const clock = useTimedGameClock(session);
 
   if (!session.expectedPlayerIds.includes(player.id)) {
-    return <StatusPanel title="다음 게임을 기다려 주세요" tone="waiting">이미 시작된 Chunk Line-Up에는 중간 참가할 수 없습니다.</StatusPanel>;
+    return <StatusPanel title="다음 게임을 기다려 주세요" tone="waiting">이미 시작된 끊어읽기 줄 세우기에는 중간 참가할 수 없습니다.</StatusPanel>;
   }
-  if (boardState.error) return <StatusPanel title="Chunk Line-Up 연결 오류" tone="error">{boardState.error.message}</StatusPanel>;
-  if (boardState.loading || !boardState.value) return <StatusPanel title="Chunk Line-Up 준비 중">학생 수에 맞춰 문장과 청크를 배정하고 있습니다.</StatusPanel>;
+  if (boardState.error) return <StatusPanel title="끊어읽기 줄 세우기 연결 오류" tone="error">{boardState.error.message}</StatusPanel>;
+  if (boardState.loading || !boardState.value) return <StatusPanel title="끊어읽기 줄 세우기 준비 중">학생 수에 맞춰 문장과 청크를 배정하고 있습니다.</StatusPanel>;
 
   const board = boardState.value;
   const assignment = board.assignments[player.id];
@@ -203,7 +203,7 @@ export default function ChunkLineUpStudentGame({ roomId, session, player }: Stud
     </div> : null}
     {elevatorState.error ? <div className={styles.elevatorError}>엘리베이터 연결 오류 · 발판 이용</div> : null}
     {clock.expired ? <TimedResultsOverlay
-      title="Chunk Line-Up 결과"
+      title="끊어읽기 줄 세우기 결과"
       unit="점"
       entries={chunkLineUpRanking(board).map((entry) => ({ id: entry.playerId, label: entry.label, value: entry.score }))}
       selfId={player.id}

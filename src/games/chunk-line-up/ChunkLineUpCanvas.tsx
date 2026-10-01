@@ -302,7 +302,7 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
   >
     {connectionError ? <div className={styles.connectionError}>실시간 연결 오류: {connectionError.message}</div> : null}
     <div ref={hostRef} className={styles.canvasHost} onPointerDown={() => shellRef.current?.focus({ preventScroll: true })} />
-    {props.role === "student" ? <div className={styles.touchControls} aria-label="Chunk Line-Up 조작">
+    {props.role === "student" ? <div className={styles.touchControls} aria-label="끊어읽기 줄 세우기 조작">
       {TOUCH_ACTIONS.map(({ action, label, text }) => <button
         type="button"
         key={action}

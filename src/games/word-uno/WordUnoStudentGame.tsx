@@ -157,14 +157,14 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
     }));
   }, [effects.play, memberById, player.id, session.roundId, state]);
 
-  if (assignment.error) return <StatusPanel title="Word UNO 연결 오류" tone="error">{assignment.error.message}</StatusPanel>;
+  if (assignment.error) return <StatusPanel title="단어 우노 연결 오류" tone="error">{assignment.error.message}</StatusPanel>;
   if (joinedAfterRoundStart) return <StatusPanel title="다음 게임부터 참여" tone="waiting">이번 라운드의 조 편성은 이미 끝났습니다. 현재 조는 바꾸지 않고 다음 게임이 시작되면 참여합니다.</StatusPanel>;
-  if (assignment.loading || !state) return <StatusPanel title="Word UNO 준비 중" tone="waiting">게임 조와 카드를 준비하고 있습니다.</StatusPanel>;
+  if (assignment.loading || !state) return <StatusPanel title="단어 우노 준비 중" tone="waiting">게임 조와 카드를 준비하고 있습니다.</StatusPanel>;
   if (state.status === "waiting") return <StatusPanel title="게임 참가 대기 중" tone="waiting">이번 라운드의 조 편성은 이미 끝났습니다. 다음 게임이 시작되면 참여할 수 있습니다.</StatusPanel>;
 
   const roundEnded = state.status === "completed" || Boolean(roundCountdown?.expired);
   if (roundEnded) {
-    return <div className={styles.shell}><SharedClock endsAtMs={state.endsAtMs} /><StatusPanel title="Word UNO 종료">
+    return <div className={styles.shell}><SharedClock endsAtMs={state.endsAtMs} /><StatusPanel title="단어 우노 종료">
       {state.rank ? `${state.rank}등으로 게임을 마쳤습니다.` : "선생님이 다음 활동을 준비할 때까지 기다려 주세요."}
     </StatusPanel></div>;
   }
@@ -232,7 +232,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
   return <div className={styles.shell} data-colors={colorsEnabled ? "on" : "off"}>
     <GameEffectLayer effect={effects.activeEffect} className={styles.turnEffectLayer} />
     <div className={styles.gameHeader}>
-      <div><span>{state.groupLabel ?? "Word UNO"}</span><strong>{isMyTurn ? "내 차례" : `${memberById.get(state.currentPlayerId ?? "")?.nickname ?? "다른 친구"} 차례`}</strong></div>
+      <div><span>{state.groupLabel ?? "단어 우노"}</span><strong>{isMyTurn ? "내 차례" : `${memberById.get(state.currentPlayerId ?? "")?.nickname ?? "다른 친구"} 차례`}</strong></div>
       <SharedClock endsAtMs={state.endsAtMs} />
       <div className={styles.stageBadge}><span>현재 단계</span><strong>{state.activeStage ? `${state.activeStage}단계` : "선택 전"}</strong></div>
     </div>
@@ -241,7 +241,7 @@ export default function WordUnoStudentGame({ roomId, session, player }: StudentG
       ? <DeadlineCountdownBar deadlineAtMs={state.turnDeadlineAtMs} durationMs={TURN_DURATION_MS} label="턴 남은 시간" />
       : null}
 
-    <div className={styles.unoTableScene} aria-label="Word UNO 게임 테이블">
+    <div className={styles.unoTableScene} aria-label="단어 우노 게임 테이블">
       <WordUnoActionMotion motion={actionMotion} />
       {opponents.map((member, index) => <div
         className={styles.opponentSeat}

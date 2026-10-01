@@ -2,7 +2,7 @@ import { LEARNING_SET_TYPE, type RuntimeLearningSet } from "../../learning-sets/
 
 export const simpleQuizDemoSet: RuntimeLearningSet = {
   id: "simple-quiz-demo",
-  name: "심플퀴즈 체험 단어",
+  name: "객관식 퀴즈 체험 단어",
   type: LEARNING_SET_TYPE.VOCABULARY,
   itemCount: 10,
   items: [

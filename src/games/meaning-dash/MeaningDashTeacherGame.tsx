@@ -32,13 +32,13 @@ export default function MeaningDashTeacherGame({ roomId, session }: TeacherGameM
   const pixelsPerWorldUnit = Math.min(54, 320 / runnerSpread);
   const ranking = [...progress.value].sort((left, right) => right.score - left.score || right.correctCount - left.correctCount);
 
-  if (learningSet.loading || participants.loading) return <StatusPanel title="Meaning Dash 중계 준비 중">학습 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
+  if (learningSet.loading || participants.loading) return <StatusPanel title="뜻 달리기 (실험) 중계 준비 중">학습 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
   if (learningSet.error) return <StatusPanel title="학습 세트 오류" tone="error">{learningSet.error.message}</StatusPanel>;
-  if (!course) return <StatusPanel title="학습 세트 오류" tone="error">Meaning Dash에 사용할 단어 세트가 없습니다.</StatusPanel>;
+  if (!course) return <StatusPanel title="학습 세트 오류" tone="error">뜻 달리기 (실험)에 사용할 단어 세트가 없습니다.</StatusPanel>;
   return <div className={styles.teacherShell}>
     <div className={styles.teacherMain}>
       <header className={styles.hud}>
-        <div><strong>Meaning Dash (테스트) · 실시간 중계</strong><span>{runners.length}/{participants.value.length}명 위치 수신</span></div>
+        <div><strong>뜻 달리기 (실험) · 실시간 중계</strong><span>{runners.length}/{participants.value.length}명 위치 수신</span></div>
       </header>
       {live.error ? <div className={styles.connectionError}>실시간 중계 오류: {live.error.message}</div> : null}
       <MeaningDashScene course={course} runners={runners} cameraY={cameraY} pixelsPerWorldUnit={pixelsPerWorldUnit} />

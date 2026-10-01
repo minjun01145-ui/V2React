@@ -138,7 +138,7 @@ export default function SentenceBuilderPlay({
   if (engine.error) return <StatusPanel title="게임 연결 오류" tone="error">{engine.error.message}</StatusPanel>;
   if (!question) return engine.isComplete || clockExpired
     ? <StatusPanel title="결과를 정리하고 있어요">
-        문장 만들기 결과를 저장하고 있습니다.
+        문장 조립 결과를 저장하고 있습니다.
         {finishError ? <p role="alert">{finishError}</p> : null}
         {finishError && onFinish ? <Button onClick={() => void finish()} disabled={finishing}>{finishing ? "결과 저장 중…" : "결과 저장 다시 시도"}</Button> : null}
         {finishError && onExit ? <Button variant="ghost" onClick={() => void exit()} disabled={exiting}>{exiting ? "종료 중…" : "대기실로 돌아가기"}</Button> : null}

@@ -8,7 +8,7 @@ import SimpleQuizPlay from "./SimpleQuizPlay.tsx";
 export default function SimpleQuizStudentModule({ roomId, session, player }: StudentGameModuleProps) {
   const learningSet = useSimpleQuizSet(session);
   const clock = useTimedGameClock(session);
-  if (learningSet.loading) return <StatusPanel title="심플퀴즈 준비 중">문제와 선택지를 만들고 있습니다.</StatusPanel>;
+  if (learningSet.loading) return <StatusPanel title="객관식 퀴즈 준비 중">문제와 선택지를 만들고 있습니다.</StatusPanel>;
   if (learningSet.error || !learningSet.set) return <StatusPanel title="단어 세트 오류" tone="error">{learningSet.error?.message ?? "선택한 단어 세트를 찾을 수 없습니다."}</StatusPanel>;
   return <SimpleQuizMultiplayerGame roomId={roomId} session={session} player={player} set={learningSet.set} clockExpired={clock.expired} />;
 }

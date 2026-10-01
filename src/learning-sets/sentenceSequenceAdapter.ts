@@ -28,5 +28,5 @@ export function adaptReadingChunksToSequence(set: unknown): SequenceQuestionSet 
     const tokens = chunks.map((text, tokenIndex) => ({ id: `${questionId}:chunk:${tokenIndex}`, text, order: tokenIndex }));
     return { id: questionId, kind: "sequence", prompt, tokens, expectedTokenIds: tokens.map((token) => token.id), source: { setId, itemIndex: index } };
   });
-  return validateCanonicalQuestionSet({ id: setId, title: firstText(set.title, set.name) || "끊어읽기 문장 만들기", type: "reading-chunks", questions });
+  return validateCanonicalQuestionSet({ id: setId, title: firstText(set.title, set.name) || "끊어읽기 문장 조립", type: "reading-chunks", questions });
 }

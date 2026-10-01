@@ -216,7 +216,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
       <span>{CHUNK_JUMP_RESPAWN_PENALTY}칸 아래에서 리스폰됩니다.</span>
     </div> : null}
     {expired ? <TimedResultsOverlay
-      title="끊어읽기 점프 레이스 결과"
+      title="끊어읽기 점프 결과"
       unit="칸"
       entries={standings.map((standing) => ({ id: standing.playerId, label: standing.label, value: standing.distance }))}
       selfId={playerId}

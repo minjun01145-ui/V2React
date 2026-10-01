@@ -28,7 +28,7 @@ export default function ChunkJumpRaceTeacherGame({ roomId, session }: TeacherGam
   return <div className={styles.teacherShell} ref={shellRef}>
     <main className={styles.teacherMain}>
       <header className={styles.hud}>
-        <div className={styles.promptBlock}><strong>끊어읽기 점프 레이스 · 실시간 중계</strong><span>{learningSet.set.name}</span><small>{standings.length}/{expectedIds.size}명 위치 수신</small></div>
+        <div className={styles.promptBlock}><strong>끊어읽기 점프 · 실시간 중계</strong><span>{learningSet.set.name}</span><small>{standings.length}/{expectedIds.size}명 위치 수신</small></div>
         <TimedGameStatus session={session} compact />
         <FullscreenToggle target={shellRef} />
       </header>

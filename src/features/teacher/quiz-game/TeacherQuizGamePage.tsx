@@ -152,7 +152,7 @@ export default function TeacherQuizGamePage({ roomId }: { readonly roomId: strin
   };
 
   return <PageShell title="퀴즈게임 편집기" roomId={roomId} actions={<Button variant="ghost" onClick={resetEditor} disabled={Boolean(busy)}>새 퀴즈</Button>}>
-    <p className={styles.intro}>라운드마다 문제 방식과 답안 시간을 선택하세요. 자유 답안 제출은 정답 없이 질문만 입력하고, 마감 후 학생별 답안을 확인해 100점을 부여할 수 있습니다.</p>
+    <p className={styles.intro}>라운드마다 문제 방식과 답안 시간을 선택하세요. 답안 제출은 정답 없이 질문만 입력하고, 마감 후 학생별 답안을 확인해 100점을 부여할 수 있습니다.</p>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
     {notice ? <p className={styles.notice} role="status">{notice}</p> : null}
     <div className={styles.workspace}>
