@@ -6,7 +6,6 @@ import { replaceRandomNicknameIfUnchanged } from "../../../multiplayer/repositor
 import type { GameSession, NicknameGrade, PlayerAvatar } from "../../../multiplayer/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Card from "../../../shared/ui/Card.tsx";
-import Badge from "../../../shared/ui/Badge.tsx";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import CharacterShop from "../shop/CharacterShop.tsx";
 import LobbyActivityTiles from "./LobbyActivityTiles.tsx";
@@ -125,7 +124,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
       <Card className={styles.card}>
         <div className={styles.sectionHeading}>
           <h2 className={styles.sectionTitle}>대기 중인 학생</h2>
-          <Badge tone="neutral">{activePlayers.length}명</Badge>
+          <strong className={styles.playerCount}>{activePlayers.length}</strong>
         </div>
         <div className={styles.players}><PlayerGrid players={activePlayers} selfStudentNumber={selfStudentNumber} /></div>
       </Card>

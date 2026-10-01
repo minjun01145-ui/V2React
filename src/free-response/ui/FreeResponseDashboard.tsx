@@ -12,7 +12,6 @@ export default function FreeResponseDashboard({ rows, onAward, busyPlayerId = nu
   const submittedCount = rows.filter((row) => row.response).length;
   return <Card className={styles.dashboard}>
     <header><h2>자유 답안 현황</h2><span>제출 {submittedCount}/{rows.length}명</span></header>
-    <p>학생 카드를 누르면 {FREE_RESPONSE_AWARD_POINTS}점을 부여합니다.</p>
     {rows.length === 0 ? <p>참가한 학생이 없습니다.</p> : <div className={styles.grid}>{rows.map((row) => {
       const awarded = row.response?.score === FREE_RESPONSE_AWARD_POINTS;
       return <button type="button" className={styles.response} data-awarded={awarded} key={row.playerId}

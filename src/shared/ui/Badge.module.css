@@ -4,3 +4,5 @@
 .success { background: var(--color-success-soft); color: var(--color-success); }
 .warning { background: var(--color-warning-soft); color: var(--color-warning); }
 .danger { background: var(--color-danger-soft); color: var(--color-danger-text); }
+.accent { background: var(--color-accent); color: var(--color-accent-ink); font-weight: 700; }
+.lg { height: 32px; padding: 0 14px; font-size: var(--text-sm); }

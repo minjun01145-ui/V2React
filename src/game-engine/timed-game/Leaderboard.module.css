@@ -3,16 +3,13 @@
 .header h2 { margin: .2rem 0; font-size: var(--text-game-card); }
 .columnLabels { display: grid; grid-template-columns: minmax(0,1fr) 110px 120px; gap: .8rem; padding: .55rem 1.25rem; color: var(--color-primary); border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); background: var(--color-surface); font-size: .7rem; font-weight: 700; }
 .columnLabels span:nth-child(n+2) { text-align: right; }
-.rows { display: grid; padding: .55rem; }
-.row { display: grid; grid-template-columns: 52px minmax(0,1fr) 110px 120px; gap: .8rem; align-items: center; min-height: 66px; padding: .6rem .7rem; border-radius: .85rem; transition: transform .25s ease, background .25s ease; }
-.row + .row { border-top: 1px solid var(--color-border); }
-.row[data-rank="1"] { background: var(--color-surface); }
-.row[data-rank="2"] { background: var(--color-surface); }
-.row[data-rank="3"] { background: var(--color-surface); }
+.rows { display: grid; padding: .55rem; gap: 10px; }
+.row { display: grid; grid-template-columns: 52px minmax(0,1fr) 110px 120px; gap: .8rem; align-items: center; min-height: 66px; padding: 10px 14px; border-radius: 12px; background: var(--color-surface); box-shadow: var(--shadow-card-tactile); transition: transform .25s ease, background .25s ease; }
 .rank { display: grid; width: 2.25rem; height: 2.25rem; place-items: center; border-radius: 50%; color: var(--color-primary); background: var(--color-surface); font-variant-numeric: tabular-nums; }
-.row[data-rank="1"] .rank { color: var(--color-danger); background: var(--color-warning-soft); }
-.row[data-rank="2"] .rank { color: var(--color-primary-text); background: var(--color-surface-muted); }
-.row[data-rank="3"] .rank { color: var(--color-danger); background: var(--color-danger-soft); }
+.row[data-rank="1"] .rank, .row[data-rank="2"] .rank, .row[data-rank="3"] .rank { width: 32px; height: 32px; color: var(--color-text); font-weight: 800; }
+.row[data-rank="1"] .rank { background: #ffd967; }
+.row[data-rank="2"] .rank { background: #d9dde3; }
+.row[data-rank="3"] .rank { background: #f0b98a; }
 .student { min-width: 0; }
 .student strong,.student small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .student small { margin-top: .15rem; color: var(--color-muted); font-size: .72rem; }

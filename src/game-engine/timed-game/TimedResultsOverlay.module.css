@@ -45,7 +45,7 @@
 
 .ranking {
   display: grid;
-  gap: 4px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -54,16 +54,17 @@
 
 .ranking li {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr) auto;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 10px 14px;
   border-radius: 12px;
   background: var(--color-surface);
   font-weight: 700;
+  box-shadow: var(--shadow-card-tactile);
 }
 
-.ranking li[data-self="true"] { outline: 3px solid var(--color-danger); background: var(--color-surface); }
+.ranking li[data-self="true"] { outline: 3px solid var(--color-danger); background: var(--color-primary-soft); }
 .ranking li b {
   display: grid;
   width: 26px;
@@ -74,12 +75,13 @@
   color: var(--color-text);
   font-size: 13px;
 }
-.ranking li[data-rank="1"] b { background: var(--color-danger); color: var(--color-surface); }
-.ranking li[data-rank="2"] b { background: var(--color-primary); color: var(--color-surface); }
-.ranking li[data-rank="3"] b { background: var(--color-danger); color: var(--color-surface); }
+.ranking li[data-rank] b { width: 32px; height: 32px; color: var(--color-text); font-weight: 800; }
+.ranking li[data-rank="1"] b { background: #ffd967; }
+.ranking li[data-rank="2"] b { background: #d9dde3; }
+.ranking li[data-rank="3"] b { background: #f0b98a; }
 .ranking li span { overflow: hidden; color: var(--color-text); text-overflow: ellipsis; white-space: nowrap; }
 .ranking li em { color: var(--color-primary-text); font-style: normal; font-weight: 700; }
-.selfRow { margin-top: 6px; }
+.selfRow { margin-top: 0; }
 
 .note { margin: 0; color: var(--color-primary); font-size: 12px; font-weight: 700; }
 
