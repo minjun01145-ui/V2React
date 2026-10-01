@@ -3,5 +3,5 @@
   border-radius: var(--radius-lg);
   background: var(--color-surface);
   box-shadow: var(--shadow-card);
-  padding: 1.15rem;
+  padding: 20px;
 }

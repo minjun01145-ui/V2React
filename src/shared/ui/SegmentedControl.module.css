@@ -1,0 +1,6 @@
+.group { display: inline-flex; flex-wrap: wrap; padding: 3px; border-radius: var(--radius-md); background: var(--color-surface-muted); }
+.option { border: 0; border-radius: var(--radius-sm); padding: 0 12px; color: var(--color-muted); background: transparent; font-size: var(--text-sm); font-weight: 600; }
+.md .option { height: 36px; }
+.sm .option { height: 30px; }
+.option[aria-pressed="true"] { background: var(--color-surface); color: var(--color-text); box-shadow: var(--shadow-card); }
+.option:focus-visible { outline: none; box-shadow: var(--focus-ring); }

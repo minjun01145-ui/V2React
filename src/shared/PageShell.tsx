@@ -7,12 +7,13 @@ interface Props {
   readonly roomId: string;
   readonly children: ReactNode;
   readonly actions?: ReactNode;
+  readonly width?: "default" | "wide";
 }
 
-export default function PageShell({ title, roomId: _roomId, children, actions = null }: Props) {
-  return <main className={styles.shell}>
+export default function PageShell({ title, roomId: _roomId, children, actions = null, width = "default" }: Props) {
+  return <main className={`${styles.shell} ${styles[width]}`}>
     <header className={styles.header}>
-      <div className={styles.titleBlock}><h1>{title}</h1><span className={styles.rule} aria-hidden="true" /></div>
+      <div className={styles.titleBlock}><h1>{title}</h1></div>
       {actions ? <div className={styles.actions}>{actions}</div> : null}
     </header>
     {children}

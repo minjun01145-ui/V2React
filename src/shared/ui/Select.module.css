@@ -1,0 +1,12 @@
+.select {
+  height: 40px;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  padding: 0 12px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.select:focus { border-color: var(--color-primary); outline: none; box-shadow: var(--focus-ring); }
+.select:disabled { background: var(--color-surface-muted); }
