@@ -3,5 +3,5 @@
 .panel p { margin: 0.2rem 0 0; color: var(--color-muted); font-size: 0.88rem; }
 .dot { flex: 0 0 auto; width: 0.6rem; height: 0.6rem; margin-top: 0.4rem; border-radius: 999px; background: var(--color-muted); }
 .waiting .dot { background: var(--color-warning); }
-.error { border-color: #fecaca; background: var(--color-danger-soft); }
+.error { border-color: var(--color-danger-soft); background: var(--color-danger-soft); }
 .error .dot { background: var(--color-danger); }

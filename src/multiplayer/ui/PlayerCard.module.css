@@ -18,13 +18,13 @@
 
 .interactive:hover:not(:disabled) {
   border-color: var(--color-danger-text);
-  background: var(--color-danger-soft, #fff1f2);
-  box-shadow: 0 8px 22px rgba(190, 18, 60, .12);
+  background: var(--color-danger-soft, var(--color-surface));
+  box-shadow: var(--shadow-card);
   transform: translateY(-2px);
 }
 
 .interactive:focus-visible {
-  outline: 3px solid rgba(225, 29, 72, .22);
+  outline: 3px solid var(--color-danger);
   outline-offset: 2px;
 }
 
@@ -39,8 +39,8 @@
   width: 6rem;
   height: 6rem;
   border-radius: 50%;
-  background: var(--surface-muted, #eef0f4);
-  border: 2px dashed var(--border-muted, #c4c9d4);
+  background: var(--surface-muted, var(--color-surface-muted));
+  border: 2px dashed var(--border-muted, var(--color-border));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -49,7 +49,7 @@
 .avatar[data-empty="true"]::after {
   content: "미설정";
   font-size: 0.75rem;
-  color: var(--text-muted, #8a90a0);
+  color: var(--color-muted);
 }
 
 .meta {
@@ -71,7 +71,7 @@
 
 .studentNumber {
   font-size: 0.78rem;
-  color: var(--text-muted, #8a90a0);
+  color: var(--color-muted);
 }
 
 .selfBadge {
@@ -79,21 +79,21 @@
   font-weight: 700;
   padding: 0.15rem 0.4rem;
   border-radius: 999px;
-  background: var(--accent, #4f6bff);
-  color: #fff;
+  background: var(--accent, var(--color-primary));
+  color: var(--color-surface);
 }
 
 .nicknameRow { display: flex; max-width: 10rem; align-items: center; justify-content: center; gap: .3rem; }
-.gradeBadge { display: inline-grid; flex: none; width: 1.35rem; height: 1.35rem; place-items: center; border-radius: .4rem; font-size: .72rem; font-weight: 900; line-height: 1; background: #eef2f7; color: #475569; }
-.gradeBadge[data-grade="B"] { background: #e0f2fe; color: #0369a1; }
-.gradeBadge[data-grade="A"] { background: #fef3c7; color: #92400e; }
-.gradeBadge[data-grade="S"] { background: linear-gradient(135deg, #fef08a, #f0abfc, #bfdbfe); color: #581c87; box-shadow: 0 0 0 1px rgba(168, 85, 247, .18), 0 2px 8px rgba(168, 85, 247, .2); }
+.gradeBadge { display: inline-grid; flex: none; width: 1.35rem; height: 1.35rem; place-items: center; border-radius: .4rem; font-size: .72rem; font-weight: 700; line-height: 1; background: var(--color-surface); color: var(--color-primary-text); }
+.gradeBadge[data-grade="B"] { background: var(--color-primary-soft); color: var(--color-primary-text); }
+.gradeBadge[data-grade="A"] { background: var(--color-warning-soft); color: var(--color-danger); }
+.gradeBadge[data-grade="S"] { background: var(--color-surface); color: var(--color-primary-text); box-shadow: var(--shadow-card); }
 
 .actionHint {
   margin-top: .2rem;
-  color: var(--color-danger-text, #be123c);
+  color: var(--color-danger-text, var(--color-danger));
   font-size: .7rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .characterFrame,
@@ -105,7 +105,7 @@
   image-rendering: pixelated;
 }
 
-.pokemon { filter: drop-shadow(0 4px 2px rgba(15, 23, 42, .18)); }
+.pokemon { filter: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .interactive { transition: none; }

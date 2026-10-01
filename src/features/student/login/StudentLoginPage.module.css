@@ -3,10 +3,7 @@
   min-height: 100vh;
   place-items: center;
   padding: clamp(1.25rem, 4vw, 3.5rem);
-  background:
-    radial-gradient(circle at 14% 18%, rgba(34, 211, 238, .13), transparent 28rem),
-    radial-gradient(circle at 88% 84%, rgba(124, 58, 237, .11), transparent 28rem),
-    var(--color-bg);
+  background: var(--color-surface);
 }
 
 .shell {
@@ -23,10 +20,10 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, .9);
+  border: 1px solid var(--color-border);
   border-radius: clamp(1.5rem, 4vw, 2.5rem);
-  background: #fff;
-  box-shadow: 0 24px 70px rgba(31, 41, 89, .12);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
   text-decoration: none;
 }
 .brandMark { width: 100%; height: auto; }
@@ -39,7 +36,7 @@
 .field { display: grid; gap: .4rem; }
 .field label { color: var(--color-text); font-size: .8rem; font-weight: 700; }
 .field input { width: 100%; min-height: 2.9rem; padding: 0 .9rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); outline: none; color: var(--color-text); background: var(--color-surface); transition: border-color 150ms ease, box-shadow 150ms ease; }
-.field input::placeholder { color: #9ca3af; }
+.field input::placeholder { color: var(--color-muted); }
 .field input:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-soft); }
 .field input:disabled { opacity: .6; }
 
