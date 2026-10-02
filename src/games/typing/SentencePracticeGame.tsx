@@ -44,6 +44,25 @@ function SentencePracticeBoard({ roomId, nickname, config, onExit, set }: Props 
   const [retry, setRetry] = useState(0);
   const [showRanking, setShowRanking] = useState(false);
 
+  function nextSentence() {
+    game.next();
+    inputRef.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!game.comparison.isComplete || game.completedAt !== null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.repeat || event.defaultPrevented) return;
+      // Focused buttons keep their normal Enter action, including returning to the lobby.
+      if (event.target instanceof Element && event.target.closest("button")) return;
+      event.preventDefault();
+      game.next();
+      inputRef.current?.focus();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [game.comparison.isComplete, game.completedAt, game.next]);
+
   useEffect(() => {
     if (game.completedAt === null) return;
     let active = true;
@@ -87,12 +106,11 @@ function SentencePracticeBoard({ roomId, nickname, config, onExit, set }: Props 
         <p className={styles.target}><span>{game.question?.targetText.slice(0, game.comparison.currentPrefixLength)}</span><b data-error={game.comparison.hasError}>{game.question?.targetText.slice(game.comparison.currentPrefixLength)}</b></p>
         <label className={styles.inputLabel}><span>문장을 입력한 뒤 Enter를 눌러주세요.</span>
           <input ref={inputRef} autoFocus value={game.input} onChange={(event) => game.updateInput(event.target.value)}
-            onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing) { event.preventDefault(); game.next(); } }}
             aria-invalid={game.comparison.hasError} autoComplete="off" autoCapitalize="off" spellCheck={false} />
         </label>
         <div className={styles.feedback} data-tone={game.comparison.hasError ? "error" : "neutral"} role="status">
           {game.comparison.hasError ? "빨간 부분부터는 타수가 기록되지 않아요. 오타를 고쳐주세요." : "정확하게 입력한 부분만 타수에 반영됩니다."}
-          <Button disabled={!game.comparison.isComplete} onClick={() => { game.next(); inputRef.current?.focus(); }}>{game.index === set.questions.length - 1 ? "완주" : "다음 문장"}</Button>
+          <Button disabled={!game.comparison.isComplete} onClick={nextSentence}>{game.index === set.questions.length - 1 ? "완주" : "다음 문장"}</Button>
         </div>
         <p>{config.ignoreCase ? "대소문자 구분 없음" : "대소문자 구분"} · {config.ignorePunctuation ? "특수문자 생략 가능" : "특수문자 포함"}</p>
         <ol className={styles.upcoming} start={game.index + 2} aria-label="다음에 입력할 문장">
