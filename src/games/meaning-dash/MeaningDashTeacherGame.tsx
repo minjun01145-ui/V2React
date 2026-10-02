@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { TeacherGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
+import { createLeaderboard } from "../../game-engine/timed-game/leaderboard.ts";
 import { useRoundProgress } from "../../multiplayer/game-progress/hooks.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
@@ -30,10 +31,12 @@ export default function MeaningDashTeacherGame({ roomId, session }: TeacherGameM
   const runnerSpread = Math.max(maxRunnerY - minRunnerY, 1);
   const cameraY = minRunnerY;
   const pixelsPerWorldUnit = Math.min(54, 320 / runnerSpread);
-  const ranking = [...progress.value].sort((left, right) => right.score - left.score || right.correctCount - left.correctCount);
+  const ranking = useMemo(() => createLeaderboard(participants.value, progress.value), [participants.value, progress.value]);
 
   if (learningSet.loading || participants.loading) return <StatusPanel title="뜻 달리기 (실험) 중계 준비 중">학습 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
   if (learningSet.error) return <StatusPanel title="학습 세트 오류" tone="error">{learningSet.error.message}</StatusPanel>;
+  const rankingError = participants.error ?? progress.error;
+  if (rankingError) return <StatusPanel title="순위 연결 오류" tone="error">{rankingError.message}</StatusPanel>;
   if (!course) return <StatusPanel title="학습 세트 오류" tone="error">뜻 달리기 (실험)에 사용할 단어 세트가 없습니다.</StatusPanel>;
   return <div className={styles.teacherShell}>
     <div className={styles.teacherMain}>
@@ -45,8 +48,8 @@ export default function MeaningDashTeacherGame({ roomId, session }: TeacherGameM
     </div>
     <aside className={styles.ranking}>
       <h3>점수</h3>
-      {ranking.length === 0 ? <p>아직 통과 기록이 없습니다.</p> : ranking.map((item, index) => <div className={styles.rankRow} key={item.playerId}>
-        <strong>{index + 1}</strong><span>{item.displayName}</span><b>{item.score}</b>
+      {ranking.length === 0 ? <p>참가자를 기다리고 있습니다.</p> : ranking.map((item) => <div className={styles.rankRow} key={item.playerId}>
+        <strong>{item.rank}</strong><span>{item.displayName}</span><b>{item.score}</b>
       </div>)}
     </aside>
   </div>;

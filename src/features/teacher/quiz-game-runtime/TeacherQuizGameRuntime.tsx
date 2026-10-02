@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTimedGameClock } from "../../../game-engine/timed-game/useTimedGameClock.ts";
+import type { LeaderboardEntry } from "../../../game-engine/timed-game/leaderboard.ts";
 import GameHost from "../../../games/GameHost.tsx";
 import { getGame } from "../../../games/registry.ts";
 import { useRoundAttempts, useRoundProgress } from "../../../multiplayer/game-progress/hooks.ts";
 import { loadRoundProgress } from "../../../multiplayer/game-progress/repository.ts";
 import { useRoundParticipants } from "../../../multiplayer/hooks.ts";
+import { loadRoundParticipants } from "../../../multiplayer/round-participants/repository.ts";
 import type { GameSession } from "../../../multiplayer/types.ts";
 import { advanceQuizGame, setQuizGamePhase } from "../../../quiz-game/multiplayerService.ts";
 import type { QuizGameRound, QuizGameSessionState } from "../../../quiz-game/types.ts";
@@ -13,6 +15,7 @@ import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import FreeResponseReview from "../free-response/FreeResponseReview.tsx";
+import { createCumulativeLeaderboard } from "./cumulativeLeaderboard.ts";
 import styles from "./TeacherQuizGameRuntime.module.css";
 
 function QuizAnswering({ roomId, session, round, onClosed }: { readonly roomId: string; readonly session: GameSession; readonly round: QuizGameRound; readonly onClosed: () => Promise<void> }) {
@@ -56,27 +59,25 @@ function SubmissionStatus({ roomId, session, round }: { readonly roomId: string;
   return <><Card><h2>답안 제출 현황</h2><div className={styles.submissionGrid}>{participants.value.map((participant) => { const state = completed.has(participant.playerId) ? "완료" : submitted.has(participant.playerId) ? "진행 중 마감" : "미제출"; return <div data-submitted={submitted.has(participant.playerId)} key={participant.playerId}><strong>{participant.nickname || participant.displayName}</strong><span>{state}</span></div>; })}</div></Card>{round.source.kind === "custom" && presenter ? <Card><h2>정답 공개</h2><div className={styles.answers}>{round.source.items.map((item, index) => { const question = presenter(item, round.gameConfig); return <div key={item.id}><b>{index + 1}</b><span>{question.prompt}</span><strong>{question.answer}</strong></div>; })}</div></Card> : null}</>;
 }
 
-interface RankingEntry { readonly playerId: string; readonly displayName: string; readonly score: number; readonly correctCount: number; readonly attemptCount: number; }
-
 function CumulativeLeaderboard({ roomId, roundIds }: { readonly roomId: string; readonly roundIds: readonly string[] }) {
-  const [entries, setEntries] = useState<readonly RankingEntry[]>([]);
+  const [entries, setEntries] = useState<readonly LeaderboardEntry[]>([]);
   const [error, setError] = useState("");
   const scope = roundIds.join(":");
   useEffect(() => {
     let active = true;
-    void Promise.all(roundIds.map((roundId) => loadRoundProgress(roomId, roundId))).then((rounds) => {
+    setError("");
+    setEntries([]);
+    void Promise.all(roundIds.map(async (roundId) => {
+      const [participants, progress] = await Promise.all([loadRoundParticipants(roomId, roundId), loadRoundProgress(roomId, roundId)]);
+      return { participants, progress };
+    })).then((rounds) => {
       if (!active) return;
-      const totals = new Map<string, RankingEntry>();
-      for (const item of rounds.flat()) {
-        const current = totals.get(item.playerId);
-        totals.set(item.playerId, { playerId: item.playerId, displayName: item.displayName, score: (current?.score ?? 0) + item.score, correctCount: (current?.correctCount ?? 0) + item.correctCount, attemptCount: (current?.attemptCount ?? 0) + item.attemptCount });
-      }
-      setEntries([...totals.values()].sort((a, b) => b.score - a.score || b.correctCount - a.correctCount));
+      setEntries(createCumulativeLeaderboard(rounds));
     }).catch((value: unknown) => { if (active) setError(toErrorMessage(value, "누적 순위를 불러오지 못했습니다.")); });
     return () => { active = false; };
   }, [roomId, scope]);
   if (error) return <StatusPanel title="리더보드 오류" tone="error">{error}</StatusPanel>;
-  return <Card><h2>현재까지 리더보드</h2><div className={styles.ranking}>{entries.length === 0 ? <p>아직 저장된 점수가 없습니다.</p> : entries.map((entry, index) => <div key={entry.playerId}><b>{index + 1}</b><strong>{entry.displayName}</strong><span>{entry.correctCount}/{entry.attemptCount}</span><em>{entry.score.toLocaleString("ko-KR")}점</em></div>)}</div></Card>;
+  return <Card><h2>현재까지 리더보드</h2><div className={styles.ranking}>{entries.length === 0 ? <p>아직 참가자가 없습니다.</p> : entries.map((entry) => <div key={entry.playerId}><b>{entry.rank}</b><strong>{entry.displayName}</strong><span>{entry.correctCount}/{entry.attemptCount}</span><em>{entry.score.toLocaleString("ko-KR")}점</em></div>)}</div></Card>;
 }
 
 export default function TeacherQuizGameRuntime({ roomId, session, quizGame }: { readonly roomId: string; readonly session: GameSession; readonly quizGame: QuizGameSessionState }) {

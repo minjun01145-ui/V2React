@@ -1,4 +1,4 @@
-import { collection, doc, onSnapshot, type DocumentReference, type Unsubscribe } from "firebase/firestore";
+import { collection, doc, getDocs, onSnapshot, type DocumentReference, type Unsubscribe } from "firebase/firestore";
 import { db } from "../../firebase/firebaseClient.ts";
 import { MULTIPLAYER_COLLECTION } from "../constants.ts";
 import { parseRoundParticipant, type RoundParticipant } from "./model.ts";
@@ -9,6 +9,13 @@ export function roundParticipantsRef(roomId: string, roundId: string) {
 
 export function roundParticipantRef(roomId: string, roundId: string, playerId: string): DocumentReference {
   return doc(roundParticipantsRef(roomId, roundId), playerId);
+}
+
+export async function loadRoundParticipants(roomId: string, roundId: string): Promise<RoundParticipant[]> {
+  const snapshot = await getDocs(roundParticipantsRef(roomId, roundId));
+  return snapshot.docs
+    .map((participantDoc) => parseRoundParticipant(participantDoc.id, participantDoc.data()))
+    .filter((participant): participant is RoundParticipant => participant !== null);
 }
 
 export function subscribeRoundParticipants(

@@ -4,6 +4,9 @@ import { parseQuizGamePlan, parseQuizGameSessionState, validateQuizGameRounds } 
 import { advanceQuizGameRound, assertQuizGamePhaseTransition, canTransitionQuizGamePhase, completeQuizGame, createQuizGameSessionState } from "../src/quiz-game/stateMachine.ts";
 import { quizRoundGameConfig } from "../src/quiz-game/runtimeConfig.ts";
 import { usesFiniteQuestionSequence } from "../src/game-engine/question-engine/sessionConfig.ts";
+import { createCumulativeLeaderboard } from "../src/features/teacher/quiz-game-runtime/cumulativeLeaderboard.ts";
+import type { RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
+import type { RoundProgressRecord } from "../src/multiplayer/game-progress/types.ts";
 
 const plan: QuizGamePlan = {
   id: "plan-1",
@@ -79,5 +82,32 @@ assert.throws(() => validateQuizGameRounds([{ ...freeRound, gameId: "ai-tutor" }
 assert.equal(parseQuizGamePlan(plan.id, { ...freePlan, rounds: [{ ...freeRound, source: { kind: "free-response", prompt: "" } }] }), null);
 const freeLeaderboard = { ...createQuizGameSessionState(freePlan, "free-runtime"), phase: "leaderboard" as const };
 assert.equal(advanceQuizGameRound(freeLeaderboard, "next-runtime").round.gameId, "simple-quiz");
+
+function participant(playerId: string, studentNumber: string, nickname: string | null): RoundParticipant {
+  return { id: playerId, playerId, studentNumber, displayName: `이름-${playerId}`, nickname, joinedAtMs: 1 };
+}
+function progress(playerId: string, score: number, correctCount: number, attemptCount: number): RoundProgressRecord {
+  return { id: playerId, playerId, gameId: "simple-quiz", displayName: `저장된 이름-${playerId}`, score, correctCount, attemptCount, currentIndex: correctCount, completedAtMs: null, updatedAtMs: 1, revision: 1 };
+}
+const cumulative = createCumulativeLeaderboard([
+  {
+    participants: [participant("a", "101", "이전 별명"), participant("b", "102", null), participant("c", "103", "달"), participant("unanswered", "104", "대기")],
+    progress: [progress("a", 100, 1, 1), progress("b", 200, 2, 2), progress("c", 200, 2, 3)],
+  },
+  {
+    participants: [participant("a", "101", "별"), participant("late", "105", "새 참가자")],
+    progress: [progress("a", 100, 1, 1), progress("late", 50, 1, 1)],
+  },
+]);
+assert.deepEqual(cumulative.map((entry) => ({ playerId: entry.playerId, rank: entry.rank })), [
+  { playerId: "a", rank: 1 }, { playerId: "b", rank: 1 }, { playerId: "c", rank: 3 }, { playerId: "late", rank: 4 }, { playerId: "unanswered", rank: 5 },
+], "누적 점수에도 공동 순위와 시도 수 기준을 적용하고 모든 라운드의 참가자를 유지해야 합니다.");
+assert.deepEqual(cumulative[0], {
+  playerId: "a", displayName: "별", studentNumber: "101", score: 200, correctCount: 2, attemptCount: 2, rank: 1,
+}, "점수·정답·시도를 합산하고 마지막 참여 라운드의 닉네임을 표시해야 합니다.");
+assert.equal(cumulative[1]?.displayName, "이름-b", "닉네임이 없는 이전 라운드 참가자는 이름과 점수를 유지해야 합니다.");
+assert.equal(cumulative[1]?.score, 200, "다음 라운드에 참여하지 않아도 이전 점수가 사라지면 안 됩니다.");
+assert.equal(cumulative[4]?.score, 0, "답안을 저장하지 않은 참가자도 0점으로 표시해야 합니다.");
+assert.deepEqual(createCumulativeLeaderboard([]), []);
 
 console.log("quiz game model tests passed");
