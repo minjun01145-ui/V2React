@@ -141,22 +141,6 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: student cosmetics data must not depend on app, feature, game, or multiplayer layers (${specifier})`);
     }
 
-    if (rel.startsWith("src/classroom-test/") &&
-        (specifier === "react" || specifier.startsWith("firebase/") || specifier.includes("/apps/") || specifier.includes("/features/") ||
-         specifier.includes("/games/") || specifier.includes("/multiplayer/") || specifier.includes("/firebase/"))) {
-      violations.push(`${rel}: classroom test model must remain pure and isolated (${specifier})`);
-    }
-
-    if (rel.startsWith("src/classroom-test-admin/") &&
-        (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/"))) {
-      violations.push(`${rel}: classroom test admin transport must not depend on app, feature, game, or multiplayer layers (${specifier})`);
-    }
-
-    if (rel.startsWith("src/features/teacher/test-tool/") &&
-        (specifier.startsWith("firebase/") || specifier.includes("/features/student/") || specifier.includes("/multiplayer/") ||
-         specifier.includes("/firebase/") || specifier.includes("/auth/") || specifier.includes("/games/"))) {
-      violations.push(`${rel}: teacher test tool must not access real student, auth, game, Firebase, or multiplayer state (${specifier})`);
-    }
   }
 }
 
@@ -177,13 +161,10 @@ for (const file of sourceFiles) visitDependency(file, []);
 
 const studentHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const teacherHtml = fs.readFileSync(path.join(root, "teacher/index.html"), "utf8");
-const testStudentHtml = fs.readFileSync(path.join(root, "test-student/index.html"), "utf8");
 if (!studentHtml.includes("/src/apps/student/main.tsx")) violations.push("index.html: must load the student entry only");
 if (studentHtml.includes("/src/apps/teacher/")) violations.push("index.html: must not load teacher app code");
 if (!teacherHtml.includes("/src/apps/teacher/main.tsx")) violations.push("teacher/index.html: must load the teacher entry only");
 if (teacherHtml.includes("/src/apps/student/")) violations.push("teacher/index.html: must not load student app code");
-if (!testStudentHtml.includes("/src/apps/test-student/main.tsx")) violations.push("test-student/index.html: must load the test student entry only");
-if (testStudentHtml.includes("/src/apps/teacher/") || testStudentHtml.includes("/src/apps/student/main.tsx")) violations.push("test-student/index.html: must not load a normal student or teacher entry");
 
 if (violations.length) {
   console.error("Architecture checks failed:\n" + violations.map((item) => `- ${item}`).join("\n"));

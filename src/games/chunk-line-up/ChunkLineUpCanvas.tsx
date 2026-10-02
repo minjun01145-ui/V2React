@@ -1,5 +1,4 @@
 import Phaser from "phaser";
-import { pauseWhileBackgroundFrame } from "../../game-engine/phaser-kit/backgroundPause.ts";
 import { resizeScaleConfig } from "../../game-engine/phaser-kit/scaleConfig.ts";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type PointerEvent } from "react";
 import { movementAction } from "../../game-engine/input/movementKeys.ts";
@@ -256,7 +255,6 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       audio: { noAudio: true },
       scene,
     });
-    const stopBackgroundPause = pauseWhileBackgroundFrame(game);
     scene.setBoard(boardRef.current);
 
     return () => {
@@ -264,7 +262,6 @@ const ChunkLineUpCanvas = forwardRef<ChunkLineUpController, Props>(function Chun
       unsubscribeClock();
       clearPlatformerInput(inputRef.current);
       sceneRef.current = null;
-      stopBackgroundPause();
       game.destroy(true);
       void closeLive();
       void events.close();

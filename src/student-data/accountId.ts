@@ -11,7 +11,6 @@ export async function resolveStudentGameDataAccountId(uid: string, studentNumber
   if (token.claims.studentNumber !== studentNumber) {
     throw new Error("학생 계정 인증 정보를 확인하지 못했습니다.");
   }
-  if (token.claims.role === "test-student") return `test-${uid}`;
   if (token.claims.role !== "student") {
     throw new Error("학생 계정 인증 정보를 확인하지 못했습니다.");
   }

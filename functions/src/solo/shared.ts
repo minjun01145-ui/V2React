@@ -3,11 +3,11 @@ import type { DocumentReference } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
 import type { TenantId } from "../shared/tenant.js";
-import type { SoloStudent } from "./auth.js";
+import type { requireRegularStudent } from "../shared/auth.js";
 import { isSoloGameId, parseSoloGameConfig, soloGameRules, type SoloGameId } from "./registry.js";
 import { emptySoloQuestionProgress, parseSoloQuestionAuthoritativeState, soloLeaderboardScopeId, type SoloQuestionAuthoritativeState } from "./model.js";
 
-export type { SoloStudent } from "./auth.js";
+export type SoloStudent = Awaited<ReturnType<typeof requireRegularStudent>>;
 
 export function soloRuns(tenantId: TenantId) {
   return db.collection("tenants").doc(tenantId).collection("soloRuns");

@@ -26,7 +26,7 @@ import {
   type SoloStudent,
 } from "../shared.js";
 import { verifySoloLearningSet } from "./learningSet.js";
-import { requireSoloStudent } from "../auth.js";
+import { requireRegularStudent } from "../../shared/auth.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public", timeoutSeconds: 120, maxInstances: 6, memory: "256MiB" } as const;
 
@@ -164,7 +164,7 @@ async function loadContext(student: SoloStudent, input: SoloAiTutorInput): Promi
 
 export const submitSoloAiTutorTurn = onCall(options, async (request) => {
   try {
-    const student = await requireSoloStudent(request);
+    const student = await requireRegularStudent(request);
     const input = parseInput(request.data);
     const loaded = await loadContext(student, input);
     if (loaded.duplicate) return loaded.duplicate;

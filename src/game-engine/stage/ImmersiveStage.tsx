@@ -3,8 +3,7 @@ import styles from "./ImmersiveStage.module.css";
 
 /**
  * Lays a game over the whole viewport instead of inside the page card, which
- * platformers need to be playable on small classroom screens. Inside the
- * teacher test tool this fills the student iframe.
+ * platformers need to be playable on small classroom screens.
  */
 export function ImmersiveStage({ children }: { readonly children: ReactNode }) {
   useEffect(() => {

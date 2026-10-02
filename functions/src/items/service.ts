@@ -24,7 +24,6 @@ export async function requireStudentItemAccount(request: CallableRequest<unknown
   const token = request.auth?.token;
   if (!token) throw new HttpsError("unauthenticated", "학생 인증 정보가 없습니다.");
 
-  if (token.role === "test-student") return `test-${uid}`;
   if (token.role !== "student" || typeof token.studentNumber !== "string" || !token.studentNumber.trim()) {
     throw new HttpsError("permission-denied", "학생 계정 정보를 확인할 수 없습니다.");
   }

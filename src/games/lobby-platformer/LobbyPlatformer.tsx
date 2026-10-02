@@ -2,7 +2,6 @@ import Phaser from "phaser";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { hashString } from "../../game-engine/core/random.ts";
 import { movementAction } from "../../game-engine/input/movementKeys.ts";
-import { pauseWhileBackgroundFrame } from "../../game-engine/phaser-kit/backgroundPause.ts";
 import { resizeScaleConfig } from "../../game-engine/phaser-kit/scaleConfig.ts";
 import { clearPlatformerInput, createPlatformerInput } from "../../game-engine/platformer/movement.ts";
 import BuffHud from "../../game-engine/platformer-party/BuffHud.tsx";
@@ -172,7 +171,6 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       audio: { noAudio: true },
       scene,
     });
-    const stopBackgroundPause = pauseWhileBackgroundFrame(game);
     void live.connect(scope, initialState).catch((reason: unknown) => {
       onError(reason instanceof Error ? reason : new Error("실시간 이동 연결에 실패했습니다."));
     });
@@ -182,7 +180,6 @@ export default function LobbyPlatformer({ roomId, playerId, label, players, onEx
       unsubscribeClock();
       clearPlatformerInput(inputRef.current);
       sceneRef.current = null;
-      stopBackgroundPause();
       game.destroy(true);
       void live.close();
       void events.close();

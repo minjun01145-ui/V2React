@@ -49,15 +49,6 @@ for (const file of aiSources) {
   if (relative === "types.ts") assert.equal([...source.matchAll(importPattern)].length, 0, "AI types must remain dependency-free");
 }
 
-const multiplayerTestRoot = path.join(srcRoot, "multiplayer-test");
-const multiplayerTestSources = walk(multiplayerTestRoot).filter((file) => file.endsWith(".ts"));
-for (const file of multiplayerTestSources) {
-  const relative = path.relative(multiplayerTestRoot, file).replaceAll(path.sep, "/");
-  const source = fs.readFileSync(file, "utf8");
-  if (relative !== "callables.ts") assert.equal(source.includes("/v2/https"), false, `${relative} must not depend on callable transport`);
-  if (relative === "types.ts") assert.equal([...source.matchAll(importPattern)].length, 0, "Multiplayer test types must remain dependency-free");
-}
-
 const aiTutorRoot = path.join(srcRoot, "ai-tutor");
 const aiTutorSources = walk(aiTutorRoot).filter((file) => file.endsWith(".ts"));
 for (const file of aiTutorSources) {

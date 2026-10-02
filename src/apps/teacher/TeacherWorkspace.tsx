@@ -7,7 +7,6 @@ import TeacherQuizGamePage from "../../features/teacher/quiz-game/TeacherQuizGam
 import TeacherSetsPage from "../../features/teacher/sets/TeacherSetsPage.tsx";
 import TeacherSettingsPage from "../../features/teacher/settings/TeacherSettingsPage.tsx";
 import TeacherStudentsPage from "../../features/teacher/students/TeacherStudentsPage.tsx";
-import TeacherTestToolPage from "../../features/teacher/test-tool/TeacherTestToolPage.tsx";
 import TeacherNav from "./TeacherNav.tsx";
 import type { TenantConfig } from "../../tenant/config.ts";
 import { PRIMARY_TENANT_ID } from "../../tenant/scope.ts";
@@ -33,7 +32,6 @@ export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantCo
       {activeView === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
       {activeView === TEACHER_VIEW.QUIZ_GAME ? <TeacherQuizGamePage roomId={roomId} /> : null}
       {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
-      {activeView === TEACHER_VIEW.TEST_TOOL ? <TeacherTestToolPage roomId={roomId} tenant={tenant} /> : null}
       {activeView === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
     </div>
   );

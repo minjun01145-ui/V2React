@@ -144,33 +144,15 @@ for (const file of clientFiles) {
   }
 }
 
-const multiplayerTestCallables = read("functions/src/multiplayer-test/callables.ts");
-if ((multiplayerTestCallables.match(/requireAdminTenant\(request\)/g) ?? []).length < 2) {
-  violations.push("functions/src/multiplayer-test/callables.ts: test session creation and cleanup must both require an administrator");
-}
-
 const realtimeRules = read("security/realtime-database.rules.json");
 if (!realtimeRules.includes('"v2"')
   || !realtimeRules.includes("auth.token.tenantId === $tenantId")
   || realtimeRules.includes('"v1"')) {
   violations.push("security/realtime-database.rules.json: live-world traffic must be isolated by authenticated tenant under v2");
 }
-if (!multiplayerTestCallables.includes("requireAnonymous(request)")) {
-  violations.push("functions/src/multiplayer-test/callables.ts: test student joining must start from an isolated anonymous Firebase user");
-}
-if (!rules.includes('request.auth.token.testRoomId == roomId') || !rules.includes('data.testOwnerUid == request.auth.token.testOwnerUid') || !rules.includes('data.expiresAt > request.time')) {
-  violations.push("security/firestore.rules.secure: test students must be restricted to their administrator-owned test room");
-}
-if (!rules.includes("isDeletedTestRoomReader(roomId)")
-  || !rules.includes("!exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))")) {
-  violations.push("security/firestore.rules.secure: test-session teardown may expose only the deleted room's final snapshot to its bound test identity");
-}
 if (!rules.includes("roomIdMatchesTenant(roomId, tenantIdFrom(request.resource.data))")
   || !rules.includes("request.resource.data.roomId == roomId")) {
   violations.push("security/firestore.rules.secure: room creation must bind the physical room ID to its tenant namespace");
-}
-if (!denyAll.test(matchBlock(rules, "multiplayerTestRuns"))) {
-  violations.push("security/firestore.rules.secure: multiplayer test run credentials must be server-only");
 }
 
 for (const collectionName of ["players", "waitingDiceRequests", "readiness", "participants", "progress"]) {

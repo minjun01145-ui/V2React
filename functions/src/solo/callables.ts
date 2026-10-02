@@ -28,7 +28,7 @@ import {
 import { isSoloGameId, parseSoloGameConfig, soloGameRules, type SoloGameId } from "./registry.js";
 import { verifySoloLearningSet } from "./games/learningSet.js";
 import { submitSoloSentenceAnswer } from "./games/sentenceBuilder.js";
-import { requireSoloStudent, type SoloStudent } from "./auth.js";
+import { requireRegularStudent } from "../shared/auth.js";
 import {
   assertSoloRunIdentity as assertRunIdentity,
   authoritativeProgress,
@@ -41,6 +41,7 @@ import {
   verifySoloScope as verifyScope,
   emptySoloQuestionState,
   validateSoloQuestionState,
+  type SoloStudent,
 } from "./shared.js";
 
 const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public" } as const;
@@ -230,7 +231,7 @@ function validateStoredState(value: unknown, runId: string, student: SoloStudent
 }
 
 export const startSoloRun = onCall(options, async (request) => {
-  const student = await requireSoloStudent(request);
+  const student = await requireRegularStudent(request);
   const input = parseStartInput(request.data);
   if (input.tenantId !== student.tenantId) throw new HttpsError("permission-denied", "다른 테넌트의 Solo 데이터에 접근할 수 없습니다.");
 
@@ -342,7 +343,7 @@ export const startSoloRun = onCall(options, async (request) => {
 });
 
 export const submitSoloAnswer = onCall(options, async (request) => {
-  const student = await requireSoloStudent(request);
+  const student = await requireRegularStudent(request);
   const input = parseAnswerInput(request.data);
   if (input.gameId === "sentence-builder") return submitSoloSentenceAnswer(student, input);
   if (input.gameId !== GAME_ID) throw new HttpsError("invalid-argument", "지원하지 않는 Solo 게임입니다.");
@@ -451,7 +452,7 @@ export const submitSoloAnswer = onCall(options, async (request) => {
 });
 
 export const finishSoloRun = onCall(options, async (request) => {
-  const student = await requireSoloStudent(request);
+  const student = await requireRegularStudent(request);
   if (!isRecord(request.data)) throw new HttpsError("invalid-argument", "결과 요청이 올바르지 않습니다.");
   const runId = parseRunId(request.data.runId);
   const gameId = request.data.gameId;
@@ -481,7 +482,7 @@ export const finishSoloRun = onCall(options, async (request) => {
       if (!resultSnapshot.exists) throw new HttpsError("failed-precondition", "저장된 Solo 결과를 찾을 수 없습니다.");
       const result = parseClientResult(resultSnapshot.data());
       if (!result) throw new HttpsError("failed-precondition", "저장된 Solo 결과가 올바르지 않습니다.");
-      const best = student.isTestStudent ? result : parseStoredBestRecord(bestSnapshot.data()) ?? result;
+      const best = parseStoredBestRecord(bestSnapshot.data()) ?? result;
       return { result, best };
     }
     if (rawRun.status !== "active") throw new HttpsError("failed-precondition", "종료된 Solo run은 완료할 수 없습니다.");
@@ -506,8 +507,8 @@ export const finishSoloRun = onCall(options, async (request) => {
       displayLabel,
       completedAtMs,
     };
-    const currentBest = student.isTestStudent ? null : parseStoredBestRecord(bestSnapshot.data());
-    const nextBest = student.isTestStudent || isBetterSimpleQuizResult(result, currentBest) ? result : currentBest;
+    const currentBest = parseStoredBestRecord(bestSnapshot.data());
+    const nextBest = isBetterSimpleQuizResult(result, currentBest) ? result : currentBest;
     if (!nextBest) throw new HttpsError("internal", "Solo 최고 기록을 계산하지 못했습니다.");
 
     tx.update(runRef, {
@@ -519,7 +520,7 @@ export const finishSoloRun = onCall(options, async (request) => {
     });
     tx.create(resultRef, { ...result, runId, gameId, setId: rawRun.setId, setFingerprint: rawRun.setFingerprint, rulesVersion: rawRun.rulesVersion, gameConfig: rawRun.gameConfig });
     if (!scopeSnapshot.exists) tx.create(boardRef, { ...scopeInput(rawRun), scopeId, createdAt: FieldValue.serverTimestamp() });
-    if (!student.isTestStudent && nextBest === result) {
+    if (nextBest === result) {
       tx.set(bestRef, {
         ...result,
         gameId,
@@ -546,7 +547,7 @@ export const finishSoloRun = onCall(options, async (request) => {
 });
 
 export const abandonSoloRun = onCall(options, async (request) => {
-  const student = await requireSoloStudent(request);
+  const student = await requireRegularStudent(request);
   if (!isRecord(request.data)) throw new HttpsError("invalid-argument", "Solo 종료 요청이 올바르지 않습니다.");
   const runId = parseRunId(request.data.runId);
   const runRef = soloRuns(student.tenantId).doc(runId);

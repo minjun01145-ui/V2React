@@ -51,52 +51,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/studentRoster/$(rosterKey())).data.active != false;
     }
 
-    function isTestStudentForRoom(roomId) {
-      return signedIn()
-        && request.auth.token.role == "test-student"
-        && request.auth.token.studentNumber is string
-        && request.auth.token.displayName is string
-        && request.auth.token.testOwnerUid is string
-        && request.auth.token.testRoomId == roomId
-        && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
-        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.isTestSession == true
-        && tenantIdFrom(get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data) == authTenantId()
-        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.expiresAt > request.time
-        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.testOwnerUid == request.auth.token.testOwnerUid;
-    }
-
-    // Test iframes keep a live listener on their room document. During teardown the
-    // server deletes that document before the iframe unmounts; allow that exact test
-    // identity to observe the final "document missing" snapshot without weakening
-    // access to any existing room or nested game data.
-    function isDeletedTestRoomReader(roomId) {
-      return signedIn()
-        && request.auth.token.role == "test-student"
-        && request.auth.token.studentNumber is string
-        && request.auth.token.displayName is string
-        && request.auth.token.testOwnerUid is string
-        && request.auth.token.testRoomId == roomId
-        && validTenantId(authTenantId())
-        && !exists(/databases/$(database)/documents/multiplayerSessions/$(roomId));
-    }
-
     function isRoomStudent(roomId) {
-      return (
-        isRosterStudent()
+      return isRosterStudent()
         && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
-        && tenantIdFrom(get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data) == authTenantId()
-      ) || isTestStudentForRoom(roomId);
+        && tenantIdFrom(get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data) == authTenantId();
     }
 
     function isSoloStudentForTenant(tenantId) {
-      return validTenantId(tenantId) && (
-        (isRosterStudent() && authTenantId() == tenantId)
-        || (signedIn()
-          && request.auth.token.role == "test-student"
-          && request.auth.token.testRoomId is string
-          && authTenantId() == tenantId
-          && isTestStudentForRoom(request.auth.token.testRoomId))
-      );
+      return validTenantId(tenantId) && isRosterStudent() && authTenantId() == tenantId;
     }
 
     function isRoomAdmin(roomId) {
@@ -118,8 +80,7 @@ service cloud.firestore {
 
     function isTenantReader(tenantId) {
       return isAdminForTenant(tenantId)
-        || (isRosterStudent() && authTenantId() == tenantId)
-        || (signedIn() && request.auth.token.role == "test-student" && validTenantId(authTenantId()) && authTenantId() == tenantId);
+        || (isRosterStudent() && authTenantId() == tenantId);
     }
 
     function isAdminForStudentAccount(accountId) {
@@ -130,11 +91,8 @@ service cloud.firestore {
     }
 
     function ownsStudentGameData(accountId) {
-      return signedIn()
-        && (
-          (isRosterStudent() && accountId == (authTenantId() == "minjun" ? request.auth.token.studentNumber : authTenantId() + "--" + request.auth.token.studentNumber))
-          || (request.auth.token.role == "test-student" && accountId == "test-" + request.auth.uid)
-        );
+      return isRosterStudent()
+        && accountId == (authTenantId() == "minjun" ? request.auth.token.studentNumber : authTenantId() + "--" + request.auth.token.studentNumber);
     }
 
     function validPokemonInventory(inventory) {
@@ -270,10 +228,6 @@ service cloud.firestore {
     }
 
     match /aiTutorRateLimits/{uid} {
-      allow read, write: if false;
-    }
-
-    match /multiplayerTestRuns/{adminUid} {
       allow read, write: if false;
     }
 
@@ -487,7 +441,7 @@ service cloud.firestore {
     }
 
     match /multiplayerSessions/{roomId} {
-      allow read: if isRoomStudent(roomId) || isRoomAdmin(roomId) || isAdminForMissingRoomNamespace(roomId) || isDeletedTestRoomReader(roomId);
+      allow read: if isRoomStudent(roomId) || isRoomAdmin(roomId) || isAdminForMissingRoomNamespace(roomId);
       allow create: if validTenantId(tenantIdFrom(request.resource.data))
         && roomIdMatchesTenant(roomId, tenantIdFrom(request.resource.data))
         && request.resource.data.roomId == roomId

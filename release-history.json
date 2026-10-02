@@ -1,11 +1,17 @@
 {
-  "version": "2.00",
+  "version": "2.01",
   "releases": [
     {
       "version": "2.00",
       "kind": "baseline",
       "date": "2026-10-02",
       "message": "현재 버전 기준 설정"
+    },
+    {
+      "version": "2.01",
+      "kind": "patch",
+      "date": "2026-10-02T14:49:21.166Z",
+      "message": "내장 테스트툴과 전용 인증·권한 제거"
     }
   ]
 }

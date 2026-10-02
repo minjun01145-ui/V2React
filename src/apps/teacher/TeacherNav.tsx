@@ -13,7 +13,6 @@ const mainItems: readonly { readonly view: TeacherView; readonly label: string }
   { view: TEACHER_VIEW.STUDENTS, label: "학생 명단" },
 ];
 const secondaryItems: readonly { readonly view: TeacherView; readonly label: string }[] = [
-  { view: TEACHER_VIEW.TEST_TOOL, label: "테스트" },
   { view: TEACHER_VIEW.AI, label: "AI 설정" },
   { view: TEACHER_VIEW.SETTINGS, label: "설정" },
 ];
