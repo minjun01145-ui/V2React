@@ -8,6 +8,7 @@ import type { RoundProgressRecord } from "../src/multiplayer/game-progress/types
 import type { RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
 import { millisecondsUntilRoundStart, roundStartCountdownValue } from "../src/multiplayer/startSchedule.ts";
 import { resolveSessionStartedAtMs } from "../src/multiplayer/types.ts";
+import { resolveSessionStartedAtMs as resolveServerStartedAtMs } from "../functions/src/shared/sessionTime.ts";
 import { listGames } from "../src/games/registry.ts";
 
 assert.equal(DEFAULT_TIMED_GAME_MODE, TIMED_GAME_MODE.THREE_MINUTES);
@@ -44,6 +45,14 @@ assert.equal(resolveSessionStartedAtMs({ toMillis: () => 50_000 }, 10_000, 3_000
 assert.equal(resolveSessionStartedAtMs(null, 10_000), 10_000, "legacy session은 startedAtMs를 계속 사용해야 합니다.");
 assert.equal(resolveSessionStartedAtMs({ toMillis: () => Number.NaN }, 10_000), 10_000);
 assert.equal(resolveSessionStartedAtMs({ toMillis: () => { throw new Error("partial snapshot"); } }, 10_000), 10_000);
+for (const teacherTime of [10_000, 90_000]) {
+  const timestamp = { toMillis: () => 50_000 };
+  const serverStart = resolveServerStartedAtMs(timestamp, teacherTime, 3_000);
+  assert.equal(serverStart, resolveSessionStartedAtMs(timestamp, teacherTime, 3_000), "Server and browser must use the same start despite teacher clock skew.");
+  assert.equal(timedGameClockSnapshot(timedGameConfig(TIMED_GAME_MODE.THREE_MINUTES), serverStart, 232_999).expired, false);
+  assert.equal(timedGameClockSnapshot(timedGameConfig(TIMED_GAME_MODE.THREE_MINUTES), serverStart, 233_000).expired, true);
+}
+assert.equal(resolveServerStartedAtMs(null, 53_000, 3_000), resolveSessionStartedAtMs(null, 53_000, 3_000));
 assert.equal(millisecondsUntilRoundStart(53_000, 50_250), 2_750);
 assert.equal(millisecondsUntilRoundStart(53_000, 54_000), 0);
 assert.equal(roundStartCountdownValue(2_750), 3);

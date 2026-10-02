@@ -1,6 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
+import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
 import { isRecord } from "../shared/validation.js";
 import { belongsToTenant, effectiveTenantId, type TenantId } from "../shared/tenant.js";
 import { tenantLearningSetsCollection } from "../shared/tenantData.js";
@@ -75,7 +76,7 @@ function assertRoundTimeRemaining(sessionData: Record<string, unknown>): void {
   const config = isRecord(sessionData.gameConfig) ? sessionData.gameConfig : {};
   const mode = string(config.timedGameMode) || "3-minutes";
   const durationMs = mode === "unlimited" ? null : mode === "5-minutes" ? 300_000 : 180_000;
-  const startedAtMs = typeof sessionData.startedAtMs === "number" ? sessionData.startedAtMs : null;
+  const startedAtMs = resolveSessionStartedAtMs(sessionData.startedAt, sessionData.startedAtMs, sessionData.startDelayMs);
   if (durationMs !== null && startedAtMs !== null && Date.now() >= startedAtMs + durationMs) throw new HttpsError("failed-precondition", "게임 시간이 종료되었습니다.");
 }
 

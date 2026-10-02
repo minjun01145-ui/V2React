@@ -5,6 +5,7 @@ import {
   grantStudentItemInTransaction,
 } from "../items/service.js";
 import { db } from "../shared/firebase.js";
+import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
 import { isRecord } from "../shared/validation.js";
 import { belongsToTenant, effectiveTenantId, type TenantId } from "../shared/tenant.js";
 import { tenantLearningSetsCollection } from "../shared/tenantData.js";
@@ -164,7 +165,7 @@ function assertTime(data: Record<string, unknown>) {
   const config = isRecord(data.gameConfig) ? data.gameConfig : {};
   const mode = text(config.timedGameMode) || "3-minutes";
   const duration = mode === "unlimited" ? null : mode === "5-minutes" ? 300_000 : 180_000;
-  const start = typeof data.startedAtMs === "number" ? data.startedAtMs : null;
+  const start = resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs);
   if (duration !== null && start !== null && Date.now() >= start + duration) {
     throw new HttpsError("failed-precondition", "게임 시간이 종료되었습니다.");
   }

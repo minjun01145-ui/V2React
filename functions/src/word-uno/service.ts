@@ -1,6 +1,7 @@
 import { FieldValue, type DocumentReference, type Transaction } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
+import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
 import { belongsToTenant, effectiveTenantId, type TenantId } from "../shared/tenant.js";
 import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { isRecord } from "../shared/validation.js";
@@ -158,7 +159,7 @@ async function validateRound(input: WordUnoBaseInput): Promise<ValidRound> {
   }
   const config = isRecord(data.gameConfig) ? data.gameConfig : {};
   const setId = text(config.setId);
-  const startedAtMs = typeof data.startedAtMs === "number" && Number.isFinite(data.startedAtMs) ? data.startedAtMs : 0;
+  const startedAtMs = resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs) ?? 0;
   const expectedPlayerIds = Array.isArray(data.expectedPlayerIds)
     ? [...new Set(data.expectedPlayerIds.filter((item): item is string => typeof item === "string" && Boolean(item)))]
     : [];

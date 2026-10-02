@@ -142,8 +142,9 @@ export async function setQuizGamePhase(roomId: string, roundId: string, phase: E
 }
 
 export async function advanceQuizGame(roomId: string): Promise<void> {
-  const players = await loadPlayers(roomId);
+  const loadedPlayers = await loadPlayers(roomId);
   const now = Date.now();
+  const players = selectActivePlayers(loadedPlayers, now, appConfig.playerStaleAfterMs);
   await runTransaction(db, async (tx) => {
     const ref = sessionRef(roomId);
     const snapshot = await tx.get(ref);

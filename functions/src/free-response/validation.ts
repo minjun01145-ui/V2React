@@ -1,5 +1,6 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { isRecord } from "../shared/validation.js";
+import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
 
 function id(value: unknown): string {
   const text = typeof value === "string" ? value.trim() : "";
@@ -45,11 +46,7 @@ export function parseFreeResponseRound(value: unknown, roundId: string): FreeRes
     || (phase !== "answering" && phase !== "submissions" && phase !== "leaderboard" && phase !== "complete")) {
     throw new HttpsError("failed-precondition", "자유 답안 라운드 설정을 확인해 주세요.");
   }
-  // 서버 타임스탬프와 시작 지연은 학생 화면의 시작 시각과 동일하게 해석한다.
-  const timestamp = value.startedAt;
-  const hasTimestamp = isRecord(timestamp) && typeof timestamp.toMillis === "function";
-  const start: unknown = isRecord(timestamp) && typeof timestamp.toMillis === "function" ? timestamp.toMillis() : value.startedAtMs;
-  const delay = typeof value.startDelayMs === "number" && Number.isFinite(value.startDelayMs) && value.startDelayMs >= 0 ? value.startDelayMs : 0;
-  if (typeof start !== "number" || !Number.isFinite(start)) throw new HttpsError("failed-precondition", "답안 제출이 아직 시작되지 않았습니다.");
-  return { prompt: round.source.prompt.trim(), phase, startedAtMs: start + (hasTimestamp ? delay : 0), durationMs: round.durationSeconds * 1000 };
+  const startedAtMs = resolveSessionStartedAtMs(value.startedAt, value.startedAtMs, value.startDelayMs);
+  if (startedAtMs === null) throw new HttpsError("failed-precondition", "답안 제출이 아직 시작되지 않았습니다.");
+  return { prompt: round.source.prompt.trim(), phase, startedAtMs, durationMs: round.durationSeconds * 1000 };
 }

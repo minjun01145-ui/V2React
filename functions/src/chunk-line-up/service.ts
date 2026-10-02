@@ -1,6 +1,7 @@
 import { FieldValue, type DocumentReference, type Transaction } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
+import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
 import { effectiveTenantId, belongsToTenant, type TenantId } from "../shared/tenant.js";
 import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { isRecord } from "../shared/validation.js";
@@ -65,19 +66,7 @@ async function validateRound(input: ChunkLineUpBaseInput, verifyReadingSet = tru
   }
   const config = isRecord(data.gameConfig) ? data.gameConfig : {};
   const setId = text(config.setId);
-  const timestamp = data.startedAt;
-  const hasTimestamp = isRecord(timestamp) && typeof timestamp.toMillis === "function";
-  const rawStartedAt: unknown = isRecord(timestamp) && typeof timestamp.toMillis === "function"
-    ? timestamp.toMillis()
-    : data.startedAtMs;
-  const startDelayMs = typeof data.startDelayMs === "number"
-    && Number.isFinite(data.startDelayMs)
-    && data.startDelayMs >= 0
-    ? data.startDelayMs
-    : 0;
-  const startedAtMs = typeof rawStartedAt === "number" && Number.isFinite(rawStartedAt)
-    ? rawStartedAt + (hasTimestamp ? startDelayMs : 0)
-    : 0;
+  const startedAtMs = resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs) ?? 0;
   const expectedPlayerIds = Array.isArray(data.expectedPlayerIds)
     ? [...new Set(data.expectedPlayerIds.filter((item): item is string => typeof item === "string" && Boolean(item)))]
     : [];
