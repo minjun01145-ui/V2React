@@ -1,0 +1,25 @@
+name: Record pushed version
+
+on:
+  push:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Record push
+        run: node scripts/release-version.mjs record push success
+      - uses: actions/upload-artifact@v4
+        with:
+          name: version-push-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .release-records/*.json
+          include-hidden-files: true

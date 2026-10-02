@@ -36,6 +36,14 @@ npm test --prefix functions
 - `tests/`, `scripts/`: 테스트와 기존 검사·도구.
 - `.github/workflows/`: CI와 Firebase 배포.
 
+## 버전 기록
+
+현재 기준 버전은 **v2.00**입니다. `npm ci` 또는 `npm install`이 Git hook을 설치합니다. 커밋할 때 일반 변경은 0.01씩 올리고, 새 `src/games/` 게임 디렉터리 추가는 다음 0.1 경계로 올립니다. 큰 기능 변경은 PowerShell에서 `$env:V2R_RELEASE = 'feature'`를 설정한 뒤 커밋하고 `Remove-Item Env:V2R_RELEASE`로 해제합니다. 예를 들어 v2.05 다음 기능 추가는 **v2.10**입니다. 필요하면 `V2R_RELEASE_NOTE`로 변경 제목을 설정한 뒤 커밋하고 해제합니다. v3.00 전환은 자동으로 진행하지 않습니다.
+
+한 커밋의 푸시·배포는 같은 버전을 사용하며 재배포로 번호를 추가 소비하지 않습니다. [release-history.json](./release-history.json)에 버전별 날짜·변경 제목을 누적하고 npm 버전은 호환되는 세 자리 형식(v2.05 → `2.0.5`, v2.10 → `2.1.0`)으로 함께 갱신합니다. 학생·교사 브라우저 탭 제목에 현재 버전이 표시되고 배포된 `/version.json`에서 이력·커밋·빌드 시각을 확인할 수 있습니다.
+
+GitHub Actions는 푸시와 Hosting·Functions·Rules 배포 결과를 실행 요약과 JSON artifact에 남깁니다. Artifact는 저장소의 보존 기간을 따르며 커밋별 버전 이력은 Git에 남습니다. 수동 배포는 [SETUP_KO.md](./SETUP_KO.md)의 npm 배포 명령을 사용하면 로컬 `.release-records/`에도 결과를 기록합니다. hook을 실행하지 않는 웹 편집·`--no-verify` 커밋은 자동 증가 대상이 아니므로 로컬 hook을 통해 커밋합니다.
+
 ## 작업 안내
 
 - [AGENTS.md](./AGENTS.md): 코드를 수정할 때의 최소 작업 원칙.

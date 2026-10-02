@@ -46,6 +46,17 @@ jobs:
           --project v2react-jurye-classroom
           --non-interactive
 
+      - name: Record deployment result
+        if: always()
+        run: node scripts/release-version.mjs record deploy "${{ job.status }}" rules-live
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: version-rules-live-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .release-records/*.json
+          include-hidden-files: true
+
   test_and_deploy_functions:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -77,3 +88,14 @@ jobs:
           --only "functions:jurye-v2"
           --project v2react-jurye-classroom
           --non-interactive
+
+      - name: Record deployment result
+        if: always()
+        run: node scripts/release-version.mjs record deploy "${{ job.status }}" functions-live
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: version-functions-live-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .release-records/*.json
+          include-hidden-files: true

@@ -83,15 +83,13 @@ AI API key는 GitHub Secret이나 `VITE_` 변수에 중복 저장하지 않습�
 ```bash
 firebase login
 firebase use v2react-jurye-classroom
-npm run build
-firebase deploy --only hosting
+npm run deploy:hosting
 npm ci --prefix functions
-npm run build --prefix functions
-firebase deploy --only "functions:jurye-v2"
-firebase deploy --only firestore:rules
+npm run deploy:functions
+npm run deploy:rules
 ```
 
-필요한 대상만 배포합니다. `firebase.json`에 Functions predeploy 빌드가 없으므로 수동 Functions 배포 전 빌드를 실행합니다. 기존 배포 Rules와 다른 경우 덮어쓸 정책을 먼저 확인하고, 보호 대상에 겹치는 광범위 공개 허용이 없는지 검토합니다.
+필요한 대상만 배포합니다. 배포 script는 Hosting·Functions 빌드를 먼저 실행하고 결과를 `.release-records/`에 기록합니다. `deploy:rules`는 Firestore Rules를 배포합니다. 기존 배포 Rules와 다른 경우 덮어쓸 정책을 먼저 확인하고, 보호 대상에 겹치는 광범위 공개 허용이 없는지 검토합니다.
 
 ## Troubleshooting
 

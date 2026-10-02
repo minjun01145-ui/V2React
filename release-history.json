@@ -1,0 +1,11 @@
+{
+  "version": "2.00",
+  "releases": [
+    {
+      "version": "2.00",
+      "kind": "baseline",
+      "date": "2026-10-02",
+      "message": "현재 버전 기준 설정"
+    }
+  ]
+}

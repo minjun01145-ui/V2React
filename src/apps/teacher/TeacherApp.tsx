@@ -4,6 +4,7 @@ import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
 import { PopupProvider } from "../../shared/popup/index.ts";
 import { tenantConfigFromLocation } from "../../tenant/config.ts";
 import TeacherWorkspace from "./TeacherWorkspace.tsx";
+import { APP_VERSION } from "../../app/version.ts";
 
 function TeacherAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType<typeof tenantConfigFromLocation>> }) {
   const authState = useAdminAuth(tenant.id);
@@ -20,6 +21,6 @@ function TeacherAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType
 export default function TeacherApp() {
   const tenant = tenantConfigFromLocation();
   if (!tenant) return <AuthStatusPage title="사용자 주소를 확인해 주세요" message="등록되지 않은 사용자 주소입니다." />;
-  document.title = `${tenant.brandAlt} | 관리자`;
+  document.title = `${tenant.brandAlt} ${APP_VERSION} | 관리자`;
   return <PopupProvider><TeacherAppContent tenant={tenant} /></PopupProvider>;
 }
