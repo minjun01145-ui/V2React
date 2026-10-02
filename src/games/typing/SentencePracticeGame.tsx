@@ -6,6 +6,8 @@ import Card from "../../shared/ui/Card.tsx";
 import { typingDemoSet } from "./demoSet.ts";
 import { adaptLearningSetToTypingPractice } from "./typingPracticeAdapter.ts";
 import { useSentencePractice } from "./useSentencePractice.ts";
+import TypingSentenceCard from "./TypingSentenceCard.tsx";
+import { upcomingTypingQuestions } from "./typingEngine.ts";
 import { savePracticeCompletion, type PracticeCompletion } from "../../student-data/typing-practice/repository.ts";
 import type { WaitingTypingConfig } from "./waitingTypingConfig.ts";
 import type { TypingQuestionSet } from "./types.ts";
@@ -38,30 +40,10 @@ function formatDate(value: number) {
 function SentencePracticeBoard({ roomId, nickname, config, onExit, set }: Props & { readonly set: TypingQuestionSet }) {
   const game = useSentencePractice(set, config);
   const runId = useRef(crypto.randomUUID());
-  const inputRef = useRef<HTMLInputElement>(null);
   const [saved, setSaved] = useState<PracticeCompletion | null>(null);
   const [saveError, setSaveError] = useState("");
   const [retry, setRetry] = useState(0);
   const [showRanking, setShowRanking] = useState(false);
-
-  function nextSentence() {
-    game.next();
-    inputRef.current?.focus();
-  }
-
-  useEffect(() => {
-    if (!game.comparison.isComplete || game.completedAt !== null) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Enter" || event.isComposing || event.keyCode === 229 || event.repeat || event.defaultPrevented) return;
-      // Focused buttons keep their normal Enter action, including returning to the lobby.
-      if (event.target instanceof Element && event.target.closest("button")) return;
-      event.preventDefault();
-      game.next();
-      inputRef.current?.focus();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [game.comparison.isComplete, game.completedAt, game.next]);
 
   useEffect(() => {
     if (game.completedAt === null) return;
@@ -101,22 +83,12 @@ function SentencePracticeBoard({ roomId, nickname, config, onExit, set }: Props 
         <div><small>최고 순간타수</small><strong>{game.speed.bestCpm}</strong><span>타/분</span></div>
         <div><small>진행</small><strong>{game.index + 1} / {set.questions.length}</strong></div>
       </section>
-      <Card className={styles.typingCard}>
-        <div className={styles.cardHeader}><span>{set.title}</span><p>{game.question?.helperText}</p></div>
-        <p className={styles.target}><span>{game.question?.targetText.slice(0, game.comparison.currentPrefixLength)}</span><b data-error={game.comparison.hasError}>{game.question?.targetText.slice(game.comparison.currentPrefixLength)}</b></p>
-        <label className={styles.inputLabel}><span>문장을 입력한 뒤 Enter를 눌러주세요.</span>
-          <input ref={inputRef} autoFocus value={game.input} onChange={(event) => game.updateInput(event.target.value)}
-            aria-invalid={game.comparison.hasError} autoComplete="off" autoCapitalize="off" spellCheck={false} />
-        </label>
-        <div className={styles.feedback} data-tone={game.comparison.hasError ? "error" : "neutral"} role="status">
-          {game.comparison.hasError ? "빨간 부분부터는 타수가 기록되지 않아요. 오타를 고쳐주세요." : "정확하게 입력한 부분만 타수에 반영됩니다."}
-          <Button disabled={!game.comparison.isComplete} onClick={nextSentence}>{game.index === set.questions.length - 1 ? "완주" : "다음 문장"}</Button>
-        </div>
-        <p>{config.ignoreCase ? "대소문자 구분 없음" : "대소문자 구분"} · {config.ignorePunctuation ? "특수문자 생략 가능" : "특수문자 포함"}</p>
-        <ol className={styles.upcoming} start={game.index + 2} aria-label="다음에 입력할 문장">
-          {set.questions.slice(game.index + 1, game.index + 5).map((question) => <li key={question.id}>{question.targetText}</li>)}
-        </ol>
-      </Card>
+      {game.question ? <TypingSentenceCard title={set.title} question={game.question} index={game.index}
+        upcomingQuestions={upcomingTypingQuestions(set.questions, game.index)}
+        input={game.input} comparison={game.comparison} options={config}
+        nextDisabled={!game.comparison.isComplete}
+        nextLabel={game.index === set.questions.length - 1 ? "완주" : "다음 문장"}
+        onInput={game.updateInput} onNext={game.next} /> : null}
     </>}
     </div>
   </main>;

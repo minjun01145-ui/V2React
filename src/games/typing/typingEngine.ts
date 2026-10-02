@@ -66,6 +66,16 @@ export function cleanTypingPrompt(text: unknown): string {
     .trim();
 }
 
+export function upcomingTypingQuestions(
+  questions: readonly TypingQuestion[],
+  currentIndex: number,
+  repeat = false,
+): readonly TypingQuestion[] {
+  if (!repeat) return questions.slice(currentIndex + 1, currentIndex + 5);
+  return [...questions.slice(currentIndex + 1), ...questions.slice(0, currentIndex + 1)]
+    .slice(0, Math.min(4, questions.length));
+}
+
 export function normalizeTypingCharacter(
   character: unknown,
   options: TypingComparisonOptions = {},

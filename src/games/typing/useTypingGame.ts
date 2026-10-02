@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createQuestionDeck } from "../../game-engine/question-engine/questionDeck.ts";
 import { useMultiplayerQuestionEngine } from "../../game-engine/question-engine/multiplayer/useMultiplayerQuestionEngine.ts";
 import { usesFiniteQuestionSequence } from "../../game-engine/question-engine/sessionConfig.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
@@ -12,6 +11,7 @@ import {
   evaluateTypingAnswer,
   getNewValidProgress,
   getTypingComparisonState,
+  upcomingTypingQuestions,
 } from "./typingEngine.ts";
 import type { TypingEvaluationDetails, TypingQuestion, TypingSpeedStats } from "./types.ts";
 
@@ -25,10 +25,8 @@ export function useTypingGame(input: {
   const { roomId, session, player, set, disabled = false } = input;
   const options = useMemo(() => typingGameOptions(session), [session]);
   const adaptedSet = useMemo(() => adaptLearningSetToTyping(set, options.target), [options.target, set]);
-  const questions = useMemo(() => createQuestionDeck(adaptedSet.questions, {
-    seed: `${session.roundId}:${adaptedSet.id}:typing`,
-    shuffleQuestions: true,
-  }), [adaptedSet, session.roundId]);
+  const questions = adaptedSet.questions;
+  const repeatQuestions = !usesFiniteQuestionSequence(session.gameConfig);
   const evaluator = useCallback(
     (question: TypingQuestion, answer: { readonly inputText: string; readonly speed: TypingSpeedStats }) => (
       evaluateTypingAnswer(question, answer, options)
@@ -45,7 +43,7 @@ export function useTypingGame(input: {
     player,
     questions,
     evaluator,
-    repeatQuestions: !usesFiniteQuestionSequence(session.gameConfig),
+    repeatQuestions,
     disabled,
   });
   const tracker = useMemo(() => createTypingSpeedTracker(), [player.id, session.roundId]);
@@ -153,6 +151,7 @@ export function useTypingGame(input: {
   return {
     ...engine,
     setTitle: adaptedSet.title,
+    upcomingQuestions: upcomingTypingQuestions(questions, engine.currentIndex, repeatQuestions),
     options,
     inputText,
     speed,

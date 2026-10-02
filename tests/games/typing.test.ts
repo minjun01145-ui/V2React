@@ -10,6 +10,7 @@ import {
   getTypingComparisonState,
   isTypingAnswerComplete,
   evaluateTypingAnswer,
+  upcomingTypingQuestions,
 } from "../../src/games/typing/typingEngine.ts";
 import { TYPING_TARGET } from "../../src/games/typing/types.ts";
 import { createTypingLeaderboard } from "../../src/games/typing/typingLeaderboard.ts";
@@ -102,6 +103,26 @@ assert.equal(sourceQuestions.questions[0]?.helperText, "나는 매일 학교에 
 const meaningQuestions = adaptLearningSetToTyping(readingSet, TYPING_TARGET.MEANING);
 assert.equal(meaningQuestions.questions[0]?.targetText, "나는 매일 학교에 간다.");
 assert.equal(meaningQuestions.questions[0]?.helperText, "I go to school every day.");
+const orderedSet: LearningSet = {
+  ...readingSet,
+  itemCount: 6,
+  items: ["z", "b", "x", "a", "m", "c"].map((id, index) => ({
+    id,
+    sourceText: `Sentence / ${index + 1}.`,
+    meaning: `${index + 1}번 문장`,
+  })),
+};
+const orderedQuestions = adaptLearningSetToTyping(orderedSet, TYPING_TARGET.SOURCE).questions;
+assert.deepEqual(orderedQuestions.map((question) => question.id), ["z", "b", "x", "a", "m", "c"], "타자 문장은 세트의 항목 순서를 유지해야 합니다.");
+assert.deepEqual(upcomingTypingQuestions(orderedQuestions, 0).map((question) => question.targetText), [
+  "Sentence 2.", "Sentence 3.", "Sentence 4.", "Sentence 5.",
+], "현재 문장 아래에는 이어서 입력할 네 문장을 세트 순서대로 보여야 합니다.");
+assert.deepEqual(upcomingTypingQuestions(orderedQuestions, 4).map((question) => question.id), ["c"]);
+assert.deepEqual(upcomingTypingQuestions(orderedQuestions, 5), [], "완주 방식은 마지막 문장 뒤에 예고 문장이 없어야 합니다.");
+assert.deepEqual(upcomingTypingQuestions(orderedQuestions, 4, true).map((question) => question.id), ["c", "z", "b", "x"], "반복하는 수업 게임은 다음 순환의 첫 문장도 실제 진행 순서대로 예고해야 합니다.");
+assert.deepEqual(upcomingTypingQuestions(orderedQuestions.slice(0, 1), 0, true).map((question) => question.id), ["z"], "한 문장 세트의 반복 예고는 같은 문장을 중복 표시하지 않아야 합니다.");
+const orderedPracticeQuestions = adaptLearningSetToTypingPractice(orderedSet).questions;
+assert.deepEqual(orderedPracticeQuestions.map((question) => question.targetText), orderedQuestions.map((question) => question.targetText), "개인 연습과 수업 타자는 같은 세트 순서로 진행해야 합니다.");
 const practiceQuestions = adaptLearningSetToTypingPractice(readingSet);
 assert.deepEqual(
   practiceQuestions.questions.map((question) => question.targetText),
