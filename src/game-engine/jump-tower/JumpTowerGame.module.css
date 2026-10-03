@@ -1,0 +1,228 @@
+/* Fills the immersive stage (the whole viewport). */
+.shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  outline: none;
+  background: #8fd3ff;
+}
+
+.canvasHost {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.canvasHost canvas { display: block; }
+
+.hud {
+  position: absolute;
+  z-index: 40;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.heightCard {
+  display: grid;
+  min-width: 108px;
+  padding: 6px 14px 8px;
+  border: 3px solid #fcd34d;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  box-shadow: 0 4px 0 rgba(30,58,95,.2), 0 10px 22px rgba(15,42,67,.16);
+  text-align: center;
+}
+
+.heightCard small { color: #92400e; font-size: 11px; font-weight: 900; }
+.heightCard strong { color: #9a3412; font-size: 34px; font-weight: 950; line-height: 1; }
+.heightCard strong span { margin-left: 2px; font-size: 16px; }
+.heightCard em { color: #b45309; font-size: 11px; font-style: normal; font-weight: 900; }
+
+/* "지금 순위" (left) and "역대 순위" (right) share one look. */
+.standings,
+.records {
+  display: grid;
+  gap: 3px;
+  min-width: 170px;
+  padding: 6px 8px 8px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 6px 18px rgba(15,42,67,.14);
+  backdrop-filter: blur(4px);
+}
+
+.records { border: 2px solid #fcd34d; }
+
+.standings h2,
+.records h2 {
+  margin: 0 0 2px;
+  color: #1e3a5f;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.standings ol,
+.records ol {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standings li,
+.records li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 110px) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.standings li[data-self="true"],
+.records li[data-self="true"] { background: #fef3c7; }
+
+.standings li b,
+.records li b {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: #cbd5e1;
+  font-size: 11px;
+}
+
+.standings li:first-child b,
+.records li:first-child b { background: #f59e0b; color: #fff; }
+.records li:nth-child(2) b { background: #94a3b8; color: #fff; }
+.records li:nth-child(3) b { background: #c2773d; color: #fff; }
+
+.standings li span,
+.records li span { overflow: hidden; color: #1e3a5f; font-weight: 950; text-overflow: ellipsis; }
+
+.records p { margin: 2px 0; color: #64748b; font-size: 11px; font-weight: 800; }
+.records small { color: #92400e; font-size: 11px; font-weight: 900; text-align: right; }
+
+.hudRight {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.hudActions {
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+}
+.exitButton {
+  height: 38px;
+  padding: 0 14px;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 12px;
+  background: rgba(15,23,42,.62);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.error {
+  position: absolute;
+  z-index: 45;
+  top: 72px;
+  left: 50%;
+  padding: 6px 10px;
+  transform: translateX(-50%);
+  border: 2px solid #b91c1c;
+  border-radius: 8px;
+  background: rgba(255,255,255,.94);
+  color: #991b1b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.controlsHint {
+  position: absolute;
+  z-index: 40;
+  left: 50%;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(15,23,42,.62);
+  color: #f1f5f9;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.controlsHint kbd {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: #f8fafc;
+  box-shadow: 0 2px 0 #94a3b8;
+  color: #1e293b;
+  font: inherit;
+  font-size: 10px;
+}
+
+.touchControls {
+  position: absolute;
+  z-index: 44;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: none;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.touchControls button {
+  min-width: 58px;
+  height: 52px;
+  padding: 0 12px;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 16px;
+  background: rgba(30,58,95,.62);
+  box-shadow: 0 4px 0 rgba(15,23,42,.35);
+  color: white;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.touchControls button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(15,23,42,.35); }
+.touchControls button:nth-child(3) { margin-left: auto; }
+.touchControls .touchPrimary { background: rgba(234,88,12,.78); }
+
+@media (hover: none), (pointer: coarse) {
+  .touchControls { display: flex; }
+  .controlsHint { display: none; }
+}
+
+@media (max-width: 640px) {
+  .standings, .records { display: none; }
+  .controlsHint { display: none; }
+}

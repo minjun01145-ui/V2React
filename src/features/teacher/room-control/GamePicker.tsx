@@ -19,6 +19,7 @@ const GROUPS = [
   ] },
   { title: "타자", games: [["typing", "문장 타자"], ["acid-rain", "산성비"]] },
   { title: "게임", games: [
+    ["learning-jump-tower", "학습 점프타워"],
     ["one-on-one-battle", "1:1 배틀"],
     ["word-uno", "단어 우노"],
     ["cooperative-sentence-builder", "커플 문장 만들기"],

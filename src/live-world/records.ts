@@ -43,6 +43,16 @@ function parseRecord(snapshot: DataSnapshot): LiveRecord | null {
     : null;
 }
 
+export function subscribeLiveRecords(database: Database, tenantId: TenantId, scope: LiveWorldScope,
+  topCount: number, onTop: (records: readonly LiveRecord[]) => void, onError: (error: Error) => void): Unsubscribe {
+  return onValue(query(ref(database, `${liveChannelPath(tenantId, scope)}/records`), orderByChild("s"), limitToLast(topCount)), (snapshot) => {
+    const records: LiveRecord[] = [];
+    snapshot.forEach((child) => { const record = parseRecord(child); if (record) records.push(record); });
+    records.sort((left, right) => right.score - left.score || left.label.localeCompare(right.label, "ko-KR"));
+    onTop(records);
+  }, onError);
+}
+
 export function connectLiveRecords(
   database: Database,
   tenantId: TenantId,
@@ -60,15 +70,7 @@ export function connectLiveRecords(
   const fail = (error: Error): void => { if (!closed) onError(error); };
 
   const subscriptions: Unsubscribe[] = [
-    onValue(query(ref(database, recordsPath), orderByChild("s"), limitToLast(topCount)), (snapshot) => {
-      const records: LiveRecord[] = [];
-      snapshot.forEach((child) => {
-        const record = parseRecord(child);
-        if (record) records.push(record);
-      });
-      records.sort((left, right) => right.score - left.score || left.label.localeCompare(right.label, "ko-KR"));
-      if (!closed) onTop(records);
-    }, fail),
+    subscribeLiveRecords(database, tenantId, scope, topCount, (records) => { if (!closed) onTop(records); }, fail),
     onValue(ownRef, (snapshot) => {
       ownBest = parseRecord(snapshot)?.score ?? 0;
       if (!closed) onOwnBest(ownBest);

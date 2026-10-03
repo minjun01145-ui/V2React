@@ -7,7 +7,7 @@ import { currentTenantConfig } from "../tenant/config.ts";
 import { connectLiveClaims, type LiveClaim, type LiveClaims } from "./claims.ts";
 import type { LiveWorldScope } from "./core/types.ts";
 import { connectLiveEvents, type LiveEvent, type LiveEventChannel } from "./events.ts";
-import { connectLiveRecords, type LiveRecord, type LiveRecords } from "./records.ts";
+import { connectLiveRecords, subscribeLiveRecords, type LiveRecord, type LiveRecords } from "./records.ts";
 
 export type { LiveClaim, LiveClaims, LiveEvent, LiveEventChannel, LiveRecord, LiveRecords };
 
@@ -64,4 +64,9 @@ export function subscribeLiveServerTimeOffset(
     },
     (error) => onError?.(error),
   );
+}
+
+export function observeLiveRecords(scope: LiveWorldScope, topCount: number,
+  onTop: (records: readonly LiveRecord[]) => void, onError: (error: Error) => void): Unsubscribe {
+  return subscribeLiveRecords(realtimeDatabase(), currentTenantConfig().id, scope, topCount, onTop, onError);
 }
