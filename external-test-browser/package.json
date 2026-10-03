@@ -1,0 +1,17 @@
+{
+  "name": "classroom-external-test-browser",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "main.mjs",
+  "engines": { "node": ">=22.12.0" },
+  "scripts": {
+    "start": "node launch.mjs .",
+    "test": "node --test tests/settings.test.mjs",
+    "test:browser": "node launch.mjs tests/browser.test.mjs",
+    "test:passwords": "node launch.mjs tests/passwords.test.mjs"
+  },
+  "devDependencies": {
+    "electron": "44.5.1"
+  }
+}

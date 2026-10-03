@@ -7,6 +7,7 @@ import { readHistory } from "./scripts/release-version.mjs";
 
 export default defineConfig({
   base: "./",
+  server: { watch: { ignored: ["**/external-test-browser/**"] } },
   plugins: [react(), {
     name: "release-manifest",
     generateBundle() {

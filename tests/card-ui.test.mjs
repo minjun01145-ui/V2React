@@ -9,7 +9,7 @@ const server = await createServer({
   cacheDir: "node_modules/.vite-card-tests",
   plugins: [react()],
   optimizeDeps: { noDiscovery: true, include: [] },
-  server: { middlewareMode: true },
+  server: { middlewareMode: true, watch: { ignored: ["**/external-test-browser/**"] } },
   appType: "custom",
 });
 try {

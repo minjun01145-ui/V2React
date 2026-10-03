@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'" />
+    <title>교실 수업 콘솔</title>
+    <link rel="stylesheet" href="shell.css" />
+    <script src="shell.mjs" type="module"></script>
+  </head>
+  <body>
+    <nav id="views" aria-label="화면 보기">
+      <button data-mode="grid" aria-pressed="true">모아서보기</button>
+      <button data-mode="0" aria-pressed="false">교사화면만 보기</button>
+      <button data-mode="1" aria-pressed="false">테스트화면 1</button>
+      <button data-mode="2" aria-pressed="false">테스트화면 2</button>
+      <button data-mode="3" aria-pressed="false">테스트화면 3</button>
+    </nav>
+    <main id="panes" aria-label="교사와 학생 브라우저"></main>
+  </body>
+</html>

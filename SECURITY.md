@@ -12,7 +12,9 @@
 
 ## Administrator
 
-관리자 비밀번호는 Firebase Authentication이 처리하며 앱이 저장하지 않습니다. 인증 성공만으로 관리자 권한을 부여하지 않고 서버와 Firestore Rules가 `admins/{uid}`의 활성 allow-list도 확인합니다. 관리자 계정 이메일은 공개 식별자입니다.
+관리자 비밀번호는 Firebase Authentication이 처리하며 웹 앱이 저장하지 않습니다. 인증 성공만으로 관리자 권한을 부여하지 않고 서버와 Firestore Rules가 `admins/{uid}`의 활성 allow-list도 확인합니다. 관리자 계정 이메일은 공개 식별자입니다.
+
+로컬 수업 콘솔은 화면별 세션과 성공한 로그인 정보를 해당 PC에 보관합니다. 비밀번호·PIN은 Windows 암호화 저장소를 통해 암호화하며 프로필·캐시·로그인 파일은 Git에서 제외합니다. 자동 로그인은 설정한 사이트·tenant·역할의 기존 로그인 폼만 사용하며 서버 인증이나 권한 검증을 우회하지 않습니다. 사이트에는 Electron API를 노출하지 않습니다.
 
 ## Secrets
 

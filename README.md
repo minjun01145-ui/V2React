@@ -16,6 +16,10 @@ npm run dev
 
 `.env.local`에 Firebase Web 설정을 채웁니다. Firebase 초기 설정과 배포는 [SETUP_KO.md](./SETUP_KO.md)를 참고하세요.
 
+Windows 수업 콘솔은 최상단의 [교실 수업 콘솔.cmd](./교실%20수업%20콘솔.cmd)를 더블클릭해 실행합니다. 첫 실행에는 Node.js와 런타임 다운로드를 위한 인터넷 연결이 필요합니다. 접속 사이트는 [external-test-browser/config.json](./external-test-browser/config.json)에서 설정합니다. 교사화면은 자동으로 열리고 테스트화면 1·2·3은 각각 `켜기`를 눌러 엽니다. 상단 메뉴에서 네 화면을 모아 보거나 한 화면만 크게 볼 수 있으며, 보기 전환은 진행 중인 화면을 다시 로드하지 않습니다.
+
+각 화면에서 최초 한 번 로그인하면 이후에는 화면별 로그인 세션과 Windows에서 암호화한 로그인 정보를 사용해 자동으로 로그인합니다. 로그인 정보와 브라우저 프로필은 해당 PC에만 보관하며 Git에 포함하지 않습니다. 콘솔 검증은 `npm run test:console`, 브라우저 동작 및 자동 로그인 검증은 `npm run test:browser --prefix external-test-browser`, `npm run test:passwords --prefix external-test-browser`로 실행합니다.
+
 ```bash
 npm run check
 npm run build
@@ -32,6 +36,7 @@ npm test --prefix functions
 - `src/multiplayer/`, `src/firebase/`: 실시간 수업 데이터와 Firebase 연결 경계.
 - `src/shared/`, `src/styles/`: 도메인 중립 UI·유틸과 공통 스타일.
 - `functions/`: 서버 인증, 비밀값, 권한이 필요한 작업.
+- `external-test-browser/`: 독립 로그인 세션을 사용하는 교실 수업 콘솔.
 - `security/`: Firestore Security Rules.
 - `tests/`, `scripts/`: 테스트와 기존 검사·도구.
 - `.github/workflows/`: CI와 Firebase 배포.
