@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { FONT_FAMILY, TEXT_RESOLUTION } from "../../phaser-kit/art.ts";
 import { bakeSprite } from "../../phaser-kit/BakedLayer.ts";
-import { climbPlatform, climbPlatformX, type ClimbCourseSource, type ClimbPlatform, type ClimbPlatformKind } from "../course.ts";
+import { climbPlatform, climbPlatformX, type ClimbCourseSource, type ClimbPlatform, type ClimbPlatformKind, type ClimbPlatformStyle } from "../course.ts";
 
 const PLATFORM_HEIGHT = 16;
 const PAD_HEIGHT = 26;
@@ -16,9 +16,10 @@ const LOOK: Readonly<Record<ClimbPlatformKind, { readonly top: number; readonly 
   milestone: { top: 0xfbbf24, side: 0xc98a16 },
 };
 
-function platformTexture(scene: Phaser.Scene, kind: ClimbPlatformKind, width: number): string {
-  const { top, side } = LOOK[kind];
-  return bakeSprite(scene, `climb-${kind}-${width}`, width + 4, PLATFORM_HEIGHT + 6, (graphics) => {
+function platformTexture(scene: Phaser.Scene, kind: ClimbPlatformKind, width: number, style?: ClimbPlatformStyle): string {
+  const { top, side } = style ?? LOOK[kind];
+  const key = style ? `climb-${kind}-${width}-${top}-${side}` : `climb-${kind}-${width}`;
+  return bakeSprite(scene, key, width + 4, PLATFORM_HEIGHT + 6, (graphics) => {
     graphics.fillStyle(0x0f172a, 0.14).fillRoundedRect(3, 5, width, PLATFORM_HEIGHT, 7);
     graphics.fillStyle(side, 1).fillRoundedRect(0, 3, width, PLATFORM_HEIGHT - 3, 7);
     graphics.fillStyle(top, 1).fillRoundedRect(0, 0, width, PLATFORM_HEIGHT - 5, 7);
@@ -62,6 +63,9 @@ export class ClimbCourseView {
   readonly statics: Phaser.Physics.Arcade.StaticGroup;
   readonly movers: Phaser.Physics.Arcade.Group;
   private readonly live = new Map<number, LivePlatform>();
+  private highlight: Phaser.GameObjects.Graphics | undefined;
+  private highlightedFloor: number | null = null;
+  private highlightStartedAt = 0;
 
   constructor(scene: Phaser.Scene, seed: string, source?: ClimbCourseSource) {
     this.scene = scene;
@@ -72,7 +76,8 @@ export class ClimbCourseView {
   }
 
   /** Keeps platforms around `focusFloor` alive and steers the moving ones by the shared clock. */
-  update(focusFloor: number, nowMs: number): void {
+  update(focusFloor: number, nowMs: number, answerFloor: number | null = null): void {
+    this.highlightFloor(answerFloor);
     const low = Math.max(this.source ? 0 : 1, focusFloor - WINDOW_BELOW);
     const high = focusFloor + WINDOW_ABOVE;
     for (const [index, entry] of this.live) {
@@ -94,6 +99,47 @@ export class ClimbCourseView {
       const target = climbPlatformX(entry.platform, nowMs) + entry.platform.width / 2;
       entry.zone.setX(target);
       entry.art.setX(target);
+    }
+    this.drawHighlight();
+  }
+
+  /** Every candidate receives the same glow; the effect never identifies the correct answer. */
+  highlightFloor(floor: number | null, restart = false): void {
+    if (floor === this.highlightedFloor && !restart) return;
+    this.highlightedFloor = floor;
+    this.highlightStartedAt = this.scene.time.now;
+    if (floor !== null && !this.highlight) this.highlight = this.scene.add.graphics().setDepth(7);
+    this.drawHighlight();
+  }
+
+  private drawHighlight(): void {
+    const graphics = this.highlight;
+    if (!graphics) return;
+    graphics.clear();
+    if (this.highlightedFloor === null) return;
+    const elapsed = this.scene.time.now - this.highlightStartedAt;
+    const pulse = (Math.sin(elapsed / 180) + 1) / 2;
+    const intro = Math.max(0, 1 - elapsed / 700);
+    for (const entry of this.live.values()) {
+      if (entry.platform.floor !== this.highlightedFloor) continue;
+      const { platform, art, label } = entry;
+      const left = art.x - platform.width / 2;
+      const height = Math.max(PLATFORM_HEIGHT, 20 + (label?.displayHeight ?? 0));
+      graphics.fillStyle(0xfff3a3, 0.06 + pulse * 0.07 + intro * 0.12)
+        .fillRoundedRect(left - 7, platform.y - 6, platform.width + 14, height + 12, 10);
+      graphics.lineStyle(3, 0xfbbf24, 0.55 + pulse * 0.35)
+        .strokeRoundedRect(left - 7, platform.y - 6, platform.width + 14, height + 12, 10);
+      graphics.lineStyle(1, 0xffffff, 0.6 + pulse * 0.35)
+        .strokeRoundedRect(left - 4, platform.y - 3, platform.width + 8, height + 6, 8);
+      for (let star = 0; star < 3; star += 1) {
+        const twinkle = (Math.sin(elapsed / 140 + star * 2.1) + 1) / 2;
+        const x = left + platform.width * star / 2;
+        const y = platform.y - 12 - twinkle * 5;
+        const size = 2 + twinkle * 4 + intro * 2;
+        graphics.fillStyle(0xffffff, 0.4 + twinkle * 0.6);
+        graphics.fillTriangle(x - size, y, x, y - size * 1.5, x + size, y);
+        graphics.fillTriangle(x - size, y, x, y + size * 1.5, x + size, y);
+      }
     }
   }
 
@@ -143,7 +189,7 @@ export class ClimbCourseView {
     }
     oneWay(zone.body as Phaser.Physics.Arcade.Body);
     zone.setData("climbPlatform", platform);
-    const art = this.scene.add.image(centreX, platform.y, platformTexture(this.scene, platform.kind, platform.width))
+    const art = this.scene.add.image(centreX, platform.y, platformTexture(this.scene, platform.kind, platform.width, platform.style))
       .setOrigin(0.5, 0)
       .setDepth(5);
     const pad = platform.kind === "pad"
@@ -151,8 +197,8 @@ export class ClimbCourseView {
       : null;
     const label = platform.label !== undefined
       ? this.scene.add.text(centreX, platform.y + 20, platform.label, {
-        fontFamily: FONT_FAMILY, fontSize: "13px", fontStyle: "bold", color: "#1e3a5f",
-        backgroundColor: "#ffffff", padding: { x: 6, y: 4 }, align: "center",
+        fontFamily: FONT_FAMILY, fontSize: "13px", fontStyle: "bold", color: platform.style?.labelColor ?? "#1e3a5f",
+        backgroundColor: platform.style?.labelBackground ?? "#ffffff", padding: { x: 6, y: 4 }, align: "center",
         wordWrap: { width: platform.width - 12, useAdvancedWrap: true },
       }).setOrigin(0.5, 0).setDepth(6).setResolution(TEXT_RESOLUTION)
       : platform.kind === "milestone"

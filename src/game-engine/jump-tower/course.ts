@@ -23,10 +23,18 @@ const MILESTONE_WIDTH = 260;
 
 export type ClimbPlatformKind = "step" | "moving" | "pad" | "milestone";
 
+export interface ClimbPlatformStyle {
+  readonly top: number;
+  readonly side: number;
+  readonly labelColor: string;
+  readonly labelBackground: string;
+}
+
 export interface ClimbPlatform {
   readonly index: number;
   readonly floor?: number;
   readonly label?: string;
+  readonly style?: ClimbPlatformStyle;
   readonly kind: ClimbPlatformKind;
   /** Left edge at rest and surface y (negative: above the ground at y = 0). */
   readonly x: number;

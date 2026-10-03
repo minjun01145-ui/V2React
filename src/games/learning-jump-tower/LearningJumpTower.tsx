@@ -10,7 +10,7 @@ import type { LiveRecord } from "../../live-world/client.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
-import { LEARNING_TOWER_CHANNEL, type LearningTower, type TowerProgress } from "./model.ts";
+import { LEARNING_TOWER_CHANNEL, towerLandingFeedback, type LearningTower, type TowerProgress } from "./model.ts";
 import { useLearningTower } from "./useLearningTower.ts";
 import styles from "./LearningJumpTower.module.css";
 
@@ -64,9 +64,11 @@ function TowerRuntime({ props, tower, players }: {
     onLand: (platform) => {
       const next = tower.land(progressRef.current, platform.index);
       if (!next) return false;
+      const feedback = towerLandingFeedback(progressRef.current, next);
       saveProgress(next);
-      return true;
+      return feedback ?? true;
     },
+    answerFloor: () => progressRef.current.floor % 2 === 0 ? progressRef.current.floor + 1 : null,
     respawnState: () => tower.respawnState(progressRef.current),
     onDeath: setDead,
     isActive: () => session.startedAtMs !== null && Date.now() >= session.startedAtMs

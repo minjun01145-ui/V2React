@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { buildLearningTower } from "../../src/games/learning-jump-tower/model.ts";
+import { buildLearningTower, towerLandingFeedback } from "../../src/games/learning-jump-tower/model.ts";
 import { CLIMB_GRAVITY, CLIMB_PLAYER_HEIGHT, CLIMB_PLAYER_WIDTH, CLIMB_STEP, CLIMB_WORLD_WIDTH } from "../../src/game-engine/jump-tower/course.ts";
 import type { RuntimeLearningSet } from "../../src/learning-sets/types.ts";
 
@@ -21,6 +21,10 @@ for (const direction of ["source-to-meaning", "meaning-to-source"] as const) {
       const prompts = tower.platformsAt(floor);
       const answers = tower.platformsAt(floor + 1);
       const nextWords = tower.platformsAt(floor + 2);
+      assert.notEqual(prompts[0]!.style.top, answers[0]!.style.top, "word and meaning rows have distinct platform colors, including milestone floors");
+      assert.notEqual(prompts[0]!.style.labelBackground, answers[0]!.style.labelBackground);
+      for (const platform of prompts) assert.deepEqual(platform.style, tower.platformsAt(0)[0]!.style);
+      for (const platform of answers) assert.deepEqual(platform.style, tower.platformsAt(1)[0]!.style);
       assert(answers.length >= 2 && answers.length <= 3);
       assert(nextWords.length >= 2 && nextWords.length <= 3);
       assert.equal(new Set(answers.map((platform) => platform.label)).size, answers.length);
@@ -31,8 +35,18 @@ for (const direction of ["source-to-meaning", "meaning-to-source"] as const) {
         const expected = set.items.find((item) => (direction === "source-to-meaning" ? item.sourceText : item.meaning) === prompt.label)!;
         assert.equal(correct[0]!.label, direction === "source-to-meaning" ? expected.meaning : expected.sourceText);
         const landed = tower.land(progress, correct[0]!.index)!;
+        assert.equal(towerLandingFeedback(progress, landed), "correct", "matching a pair triggers success feedback");
+        assert.equal(towerLandingFeedback(landed, tower.land(landed, landed.platformIndex)!), null,
+          "landing again after a jump or respawn cannot replay success feedback");
+        assert.equal(towerLandingFeedback(progress, tower.land(progress, prompt.index)!), null);
+        for (const other of prompts.filter((platform) => platform.index !== prompt.index)) {
+          assert.equal(towerLandingFeedback(progress, tower.land(progress, other.index)!), "question",
+            "changing the selected prompt on the same floor restarts the answer row effect");
+        }
         for (const next of nextWords) {
           assert(tower.land(landed, next.index), "every next prompt is freely selectable");
+          assert.equal(towerLandingFeedback(landed, tower.land(landed, next.index)!), "question",
+            "each freely selected new prompt highlights its answer row");
           assert.equal(tower.land(progress, next.index), null, "double jumps and jump buffs must not skip answer rows");
           const horizontalHop = Math.abs((next.x + next.width / 2) - (correct[0]!.x + correct[0]!.width / 2));
           const doubleJumpFlight = 550 / CLIMB_GRAVITY + 520 / CLIMB_GRAVITY
@@ -63,6 +77,11 @@ for (const direction of ["source-to-meaning", "meaning-to-source"] as const) {
     }
   }
 }
+
+const forward = buildLearningTower(set, "source-to-meaning", "colors");
+const reversed = buildLearningTower(set, "meaning-to-source", "colors");
+assert.deepEqual(forward.platformsAt(0)[0]!.style, reversed.platformsAt(1)[0]!.style);
+assert.deepEqual(forward.platformsAt(1)[0]!.style, reversed.platformsAt(0)[0]!.style);
 
 const aliases: RuntimeLearningSet = { ...set, items: [...set.items, { id: "alias", sourceText: "apple", meaning: "사과 열매" },
   { id: "synonym", sourceText: "kitten", meaning: "고양이" }, { id: "duplicate", sourceText: "apple", meaning: "사과" }] };

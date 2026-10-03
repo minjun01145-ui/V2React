@@ -45,7 +45,8 @@ export interface ClimbSceneOptions {
   readonly initialBest?: number;
   readonly rules?: {
     readonly canLand: (platform: ClimbPlatform) => boolean;
-    readonly onLand: (platform: ClimbPlatform) => boolean;
+    readonly onLand: (platform: ClimbPlatform) => boolean | "question" | "correct";
+    readonly answerFloor?: () => number | null;
     readonly respawnState: () => LiveMovementState;
     readonly onDeath: (dead: boolean) => void;
     readonly isActive: () => boolean;
@@ -225,7 +226,7 @@ export default class ClimbScene extends Phaser.Scene {
     }
     // Build the tower around where the player *is*, not the last floor they stood on:
     // otherwise a long fall outruns the window and drops through empty sky to the ground.
-    this.course.update(this.focusFloor(), now);
+    this.course.update(this.focusFloor(), now, this.options.mode === "teacher" ? null : this.options.rules?.answerFloor?.() ?? null);
     if (this.options.mode !== "teacher") this.updateLocalPlayer(time, delta);
     this.updateActors(time, delta);
     this.powerUps?.update(time, this.dead || this.options.mode === "teacher" || this.options.rules && !this.options.rules.isActive() ? null : { x: this.body.center.x, y: this.body.center.y });
@@ -287,7 +288,14 @@ export default class ClimbScene extends Phaser.Scene {
     const platform = body.blocked.down ? this.course.platformAt(body.left, body.right, body.bottom) : null;
     if (rules && platform && platform.index !== this.landedIndex) {
       this.landedIndex = platform.index;
-      if (!rules.onLand(platform)) { this.shatter(); return; }
+      const result = rules.onLand(platform);
+      if (!result) { this.shatter(); return; }
+      if (result === "question") this.course.highlightFloor(rules.answerFloor?.() ?? null, true);
+      if (result === "correct") {
+        this.course.highlightFloor(null);
+        this.effects.slotFilled({ x: platform.x, y: platform.y, width: platform.width, height: 16 });
+        this.effects.celebrate(platform.x, platform.x + platform.width, platform.y - 12, "정답!");
+      }
     }
     if (!body.blocked.down) this.landedIndex = null;
     if (rules && body.center.y > rules.respawnState().y + 150) { this.shatter(); return; }

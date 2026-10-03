@@ -166,6 +166,7 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
       rules: rules ? {
         canLand: (platform) => callbacksRef.current.rules!.canLand(platform),
         onLand: (platform) => callbacksRef.current.rules!.onLand(platform),
+        answerFloor: () => callbacksRef.current.rules!.answerFloor?.() ?? null,
         respawnState: () => callbacksRef.current.rules!.respawnState(),
         onDeath: (dead) => callbacksRef.current.rules!.onDeath(dead),
         isActive: () => callbacksRef.current.rules!.isActive(),

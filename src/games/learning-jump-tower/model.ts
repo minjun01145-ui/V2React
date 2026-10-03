@@ -1,11 +1,14 @@
 import { createSeededRandom } from "../../game-engine/core/random.ts";
-import { CLIMB_STEP, CLIMB_WORLD_WIDTH, CLIMB_PLAYER_HEIGHT, CLIMB_ITEM_WINDOW_MS, type ClimbCourseSource, type ClimbPlatform } from "../../game-engine/jump-tower/course.ts";
+import { CLIMB_STEP, CLIMB_WORLD_WIDTH, CLIMB_PLAYER_HEIGHT, CLIMB_ITEM_WINDOW_MS, type ClimbCourseSource, type ClimbPlatform, type ClimbPlatformStyle } from "../../game-engine/jump-tower/course.ts";
 import { ITEM_HOVER, PARTY_ITEM_KINDS, type PartyItemKind } from "../../game-engine/platformer-party/buffs.ts";
 import type { LiveMovementState } from "../../live-world/core/types.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 
 export const LEARNING_TOWER_CHANNEL = "learning-tower";
 export type TowerDirection = "source-to-meaning" | "meaning-to-source";
+
+const WORD_STYLE: ClimbPlatformStyle = { top: 0x60a5fa, side: 0x2563eb, labelColor: "#1e3a8a", labelBackground: "#dbeafe" };
+const MEANING_STYLE: ClimbPlatformStyle = { top: 0xfb923c, side: 0xc2410c, labelColor: "#7c2d12", labelBackground: "#ffedd5" };
 
 interface TowerWord {
   readonly prompt: string;
@@ -16,6 +19,7 @@ interface TowerWord {
 export interface LearningTowerPlatform extends ClimbPlatform {
   readonly floor: number;
   readonly label: string;
+  readonly style: ClimbPlatformStyle;
 }
 
 export interface TowerProgress {
@@ -23,6 +27,12 @@ export interface TowerProgress {
   readonly platformIndex: number;
   readonly prompt: string;
   readonly best: number;
+}
+
+/** Re-landing on a checkpoint (including after respawn) must not replay feedback. */
+export function towerLandingFeedback(previous: TowerProgress, next: TowerProgress): "question" | "correct" | null {
+  if (previous.platformIndex === next.platformIndex) return null;
+  return next.floor % 2 === 0 ? "question" : "correct";
 }
 
 function shuffled<T>(values: readonly T[], random: () => number): T[] {
@@ -94,8 +104,10 @@ export function buildLearningTower(set: RuntimeLearningSet, direction: TowerDire
     }
     labels = shuffled(labels, random);
     const offset = Math.round((random() - 0.5) * 20);
+    const wordRow = (floor % 2 === 0) === (direction === "source-to-meaning");
     const row: LearningTowerPlatform[] = labels.map((label, slot) => ({
       index: floor * 3 + slot, floor, label,
+      style: wordRow ? WORD_STYLE : MEANING_STYLE,
       kind: floor % 10 === 0 ? "milestone" : "step",
       x: CLIMB_WORLD_WIDTH / 2 + (slot - (labels.length - 1) / 2) * 160 + offset - 65,
       y: floor === 0 ? 0 : -floor * CLIMB_STEP, width: 130, range: 0, periodMs: 0,
