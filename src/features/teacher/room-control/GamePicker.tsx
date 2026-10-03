@@ -17,7 +17,7 @@ const GROUPS = [
     ["matching", "짝 맞추기(일부 카드)"],
     ["sentence-builder", "문장 만들기"],
   ] },
-  { title: "타자", games: [["typing", "문장 타자"], ["acid-rain", "산성비"]] },
+  { title: "타자", games: [["typing", "문장 타자"], ["acid-rain", "산성비"], ["typing-escape", "무궁화 탈출"]] },
   { title: "게임", games: [
     ["learning-jump-tower", "학습 점프타워"],
     ["one-on-one-battle", "1:1 배틀"],

@@ -1,0 +1,25 @@
+.game { width: 100%; height: 100%; min-height: 540px; overflow: auto; background: #142f35; color: #f7f3df; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; font-family: Pretendard, sans-serif; }
+.header { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.header h2 { margin: 0; font-size: 20px; flex: 1; }
+.header button { background: #d8edb4; color: #203e33; border: 0; border-radius: 20px; padding: 8px 16px; font-weight: 800; cursor: pointer; }
+.chant { display: flex; justify-content: center; align-items: center; gap: clamp(4px, 1vw, 13px); min-height: 58px; font-size: clamp(20px, 3vw, 34px); font-weight: 900; background: #203f42; border-radius: 14px; flex-shrink: 0; }
+.chant span { opacity: .22; transform: translateY(3px); transition: opacity .1s, transform .1s; }
+.chant .spoken { opacity: 1; transform: translateY(0); color: #def4a8; }
+.chant b { font-size: 16px; color: #ffe6bd; }
+.danger { background: #843c36; }
+.danger .spoken { color: #fff0d5; }
+.stage { width: 100%; flex: 1 0 230px; min-height: 230px; max-height: 540px; overflow: hidden; }
+.stage canvas { display: block; }
+.typing { width: min(850px, 100%); margin: 0 auto; flex-shrink: 0; }
+.prompt { font-size: clamp(20px, 2.7vw, 30px); font-weight: 700; text-align: center; padding: 10px 4px; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 100px; overflow: auto; }
+.prompt mark { background: transparent; color: #a4e6a0; }
+.typing input { width: 100%; box-sizing: border-box; padding: 13px 16px; background: #fffcef; border: 3px solid #8fb5a0; border-radius: 12px; color: #193b37; font-size: 22px; outline-offset: 3px; }
+.typing input[aria-invalid="true"] { border-color: #ff8a77; }
+.typing input:disabled { opacity: .6; }
+.status { display: flex; justify-content: space-between; padding: 9px 4px; font-size: 14px; }
+.ranking { display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 0; list-style: none; }
+.ranking li { display: flex; gap: 10px; align-items: center; background: #23464a; padding: 8px 12px; border-radius: 10px; font-size: 13px; }
+.ranking strong { color: #d8edb4; }
+.finished { text-align: center; color: #def4a8; font-size: 28px; font-weight: 900; padding: 15px; }
+.error { background: #813d39; color: white; padding: 10px; border-radius: 8px; }
+@media (max-width: 600px) { .game { padding: 8px; min-height: 100%; } .chant { flex-wrap: wrap; gap: 4px; } .chant b { font-size: 12px; } .stage { flex-basis: 200px; min-height: 180px; } .typing input { font-size: 18px; } }

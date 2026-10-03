@@ -3,6 +3,19 @@ import { defineGame, type GameDefinition } from "../game-engine/contracts/gameDe
 
 const definitions = [
   defineGame({
+    id: "typing-escape",
+    title: "무궁화 탈출",
+    cover: new URL("./typing-escape/cover.svg", import.meta.url).href,
+    category: "typing",
+    supportedSetTypes: ["vocabulary", "reading-chunks"],
+    requiresStoredSet: true,
+    handlesOwnTimedBoundary: true,
+    settings: [{ kind: "select", key: "escape-target", label: "입력할 글", defaultValue: "source",
+      options: [{ value: "source", label: "단어·문장" }, { value: "meaning", label: "뜻·해석" }] }],
+    loadStudent: () => import("./typing-escape/TypingEscapeGame.tsx"),
+    loadTeacher: () => import("./typing-escape/TypingEscapeGame.tsx"),
+  }),
+  defineGame({
     id: "free-response",
     title: "답안 제출",
     category: "quiz",

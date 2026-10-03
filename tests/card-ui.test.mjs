@@ -35,7 +35,7 @@ try {
   assert.deepEqual(groups.map((group) => group[1]), ["학습", "타자", "게임"]);
   const expectedLabels = [
     ["AI 문답", "객관식 퀴즈", "짝 맞추기(모든 카드)", "짝 맞추기(일부 카드)", "문장 만들기"],
-    ["문장 타자", "산성비"],
+    ["문장 타자", "산성비", "무궁화 탈출"],
     ["학습 점프타워", "1:1 배틀", "단어 우노", "커플 문장 만들기", "포켓몬 잡기", "달리기", "플랫포머 문장 만들기", "점프 문장 만들기"],
   ];
   groups.forEach((group, index) => {
@@ -46,7 +46,7 @@ try {
   assert.equal(selectedButtons.length, 1);
   assert.ok(selectedButtons[0][1].includes("짝 맞추기(모든 카드)"), "the renamed choice retains its original game id selection");
   const disabledPicker = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, disabled: true }));
-  assert.equal((disabledPicker.match(/ disabled=""/g) ?? []).length, 15, "all game choices remain disabled while starting");
+  assert.equal((disabledPicker.match(/ disabled=""/g) ?? []).length, expectedLabels.flat().length, "all game choices remain disabled while starting");
   const subset = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, games: pickerProps.games.filter((game) => game.id === "typing") }));
   assert.equal((subset.match(/<section\b/g) ?? []).length, 1, "unavailable games and empty groups are omitted");
   console.log("Teacher game picker grouping regression tests passed");
