@@ -147,7 +147,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
         {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
         {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading} launch={launch} /> : null}
       </div>
-      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} players={activePlayers} session={session} disabled={working || loading} typingDisabled={working} /></aside> : null}
+      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} /></aside> : null}
     </div>}
   </>;
 

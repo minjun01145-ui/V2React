@@ -13,7 +13,6 @@ import styles from "./WaitingRoom.module.css";
 import StudentQuestionAuthoring from "../../../student-question-activity/StudentQuestionAuthoring.tsx";
 import { useStudentQuestionSubmission } from "../../../student-question-activity/useStudentQuestionSubmission.ts";
 import { shouldShowStudentQuestionAuthoring } from "../../../student-question-activity/model.ts";
-import StudentWaitingDice from "../../../waiting-dice/StudentWaitingDice.tsx";
 import { pickRandomNickname } from "./randomNickname.ts";
 import StudentSoloExperience from "../solo/StudentSoloExperience.tsx";
 import type { StudentIdentity } from "../../../auth/types.ts";
@@ -120,7 +119,6 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
       <LobbyActivityTiles soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} />
       </div>
       <div className={styles.right}>
-      <StudentWaitingDice roomId={roomId} uid={uid} players={activePlayers} />
       <Card className={styles.card}>
         <div className={styles.sectionHeading}>
           <h2 className={styles.sectionTitle}>대기 중인 학생</h2>

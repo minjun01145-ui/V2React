@@ -1,0 +1,7 @@
+.panel { display: grid; gap: 12px; min-width: 0; }
+.panel h2 { margin: 0; font-size: 1.125rem; }
+.result { font-size: 1.75rem; font-weight: 900; text-align: center; overflow-wrap: anywhere; }
+.calculation { padding: 12px; border-radius: 12px; background: var(--color-bg); overflow-wrap: anywhere; }
+.calculation ol { margin: 8px 0 0; padding-left: 24px; }
+.calculation li + li { margin-top: 8px; }
+.error { color: var(--color-danger); margin: 0; }

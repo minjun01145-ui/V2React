@@ -16,9 +16,10 @@ import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
 import AwardPanel from "./AwardPanel.tsx";
 import EnginePhasePanel from "./EnginePhasePanel.tsx";
 import ShowLeaderboard from "./ShowLeaderboard.tsx";
+import StudentPickerPanel from "./StudentPickerPanel.tsx";
 import styles from "./TeacherSlideShowRuntime.module.css";
 
-type SidePanel = "award" | "ranking" | null;
+type SidePanel = "award" | "ranking" | "picker" | null;
 
 function AnsweringCard({ roomId, session, engine }: { readonly roomId: string; readonly session: GameSession; readonly engine: ActiveSlideEngine }) {
   const clock = useTimedGameClock(session);
@@ -57,7 +58,8 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
   const [awarding, setAwarding] = useState(false);
   const [panel, setPanel] = useState<SidePanel>(null);
   const [error, setError] = useState("");
-  const presenterRef = useRef<HTMLDivElement | null>(null);
+  const fullscreenRef = useRef<HTMLElement | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
   const index = slideShow.currentSlideIndex;
   const slide = slides.get(slideShow.slideIds[index] ?? "");
   const engine = slideShow.engine;
@@ -81,7 +83,10 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
   goRef.current = go;
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.target instanceof HTMLElement && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (event.target instanceof HTMLElement) {
+        if (event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+        if (event.key === " " && event.target.closest("button")) return;
+      }
       if (["ArrowRight", "PageDown", " "].includes(event.key)) { event.preventDefault(); goRef.current(index + 1); }
       if (["ArrowLeft", "PageUp"].includes(event.key)) { event.preventDefault(); goRef.current(index - 1); }
     };
@@ -89,9 +94,19 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [index]);
 
-  const toggleFullscreen = (): void => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void presenterRef.current?.requestFullscreen().catch(() => undefined);
+  useEffect(() => {
+    const onChange = (): void => setFullscreen(document.fullscreenElement === fullscreenRef.current);
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = async (): Promise<void> => {
+    try {
+      if (document.fullscreenElement === fullscreenRef.current) await document.exitFullscreen();
+      else await fullscreenRef.current?.requestFullscreen();
+    } catch (cause: unknown) {
+      setError(toErrorMessage(cause, "전체화면으로 전환하지 못했습니다."));
+    }
   };
 
   const engineControls = !engine
@@ -103,8 +118,8 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
         : <Button variant="ghost" onClick={() => void run(() => closeShowEngine(roomId), "문제를 닫지 못했습니다.")} disabled={working || awarding}>문제 닫기</Button>}
     </>;
 
-  return <section className={styles.runtime}>
-    <div ref={presenterRef} className={styles.presenter}>
+  return <section ref={fullscreenRef} className={styles.runtime} data-has-panels={Boolean(panel || engine || error)} aria-label="슬라이드쇼 교사화면">
+    <div className={styles.presenter}>
       <div className={styles.stage}>
         {loadError ? <StatusPanel title="슬라이드를 불러오지 못했습니다" tone="error">{loadError.message}</StatusPanel>
           : loading || !slide ? <StatusPanel title="슬라이드를 불러오는 중" tone="waiting">잠시만 기다려 주세요.</StatusPanel>
@@ -124,13 +139,17 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
         <div className={styles.tools}>
           <Button variant={panel === "award" ? "primary" : "ghost"} onClick={() => setPanel(panel === "award" ? null : "award")}>점수 주기</Button>
           <Button variant={panel === "ranking" ? "primary" : "ghost"} onClick={() => setPanel(panel === "ranking" ? null : "ranking")}>순위</Button>
-          <Button variant="ghost" onClick={toggleFullscreen}>전체 화면</Button>
+          <Button variant={panel === "picker" ? "primary" : "ghost"} onClick={() => setPanel(panel === "picker" ? null : "picker")}>학생 뽑기</Button>
+          <Button variant="ghost" onClick={() => void toggleFullscreen()}>{fullscreen ? "전체화면 종료" : "전체 화면"}</Button>
         </div>
       </div>
     </div>
-    {error ? <StatusPanel title="슬라이드쇼 진행 오류" tone="error">{error}</StatusPanel> : null}
-    {panel === "award" ? <Card><AwardPanel players={players} awards={slideShow.awards} disabled={working} onAward={(playerIds, points) => run(() => awardShowPoints(roomId, playerIds, points), "점수를 주지 못했습니다.")} /></Card> : null}
-    {panel === "ranking" ? <Card><ShowLeaderboard roomId={roomId} slideShow={slideShow} /></Card> : null}
-    {engine ? <EnginePhasePanel roomId={roomId} session={session} engine={engine} onCloseAnswers={() => setShowEnginePhase(roomId, "submissions")} onAwardingChange={setAwarding} /> : null}
+    <div className={styles.panels}>
+      {error ? <StatusPanel title="슬라이드쇼 진행 오류" tone="error">{error}</StatusPanel> : null}
+      {panel === "award" ? <Card><AwardPanel players={players} awards={slideShow.awards} disabled={working} onAward={(playerIds, points) => run(() => awardShowPoints(roomId, playerIds, points), "점수를 주지 못했습니다.")} /></Card> : null}
+      {panel === "ranking" ? <Card><ShowLeaderboard roomId={roomId} slideShow={slideShow} /></Card> : null}
+      {panel === "picker" ? <Card><StudentPickerPanel roomId={roomId} players={players} /></Card> : null}
+      {engine ? <EnginePhasePanel roomId={roomId} session={session} engine={engine} onCloseAnswers={() => setShowEnginePhase(roomId, "submissions")} onAwardingChange={setAwarding} /> : null}
+    </div>
   </section>;
 }
