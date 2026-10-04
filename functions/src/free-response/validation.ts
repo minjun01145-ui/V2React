@@ -27,24 +27,26 @@ export function parseAwardInput(value: unknown) {
 
 export interface FreeResponseRound {
   readonly prompt: string;
-  readonly phase: "answering" | "submissions" | "leaderboard" | "complete";
+  readonly phase: "answering" | "submissions" | "results";
   readonly startedAtMs: number;
   readonly durationMs: number;
 }
 
+/** Free response runs as a slide-show engine; the session's active engine holds its prompt and time. */
 export function parseFreeResponseRound(value: unknown, roundId: string): FreeResponseRound {
+  const slideShow = isRecord(value) ? value.slideShow : null;
+  const engine = isRecord(slideShow) ? slideShow.engine : null;
   if (!isRecord(value) || value.status !== "playing" || value.roundId !== roundId || value.gameId !== "free-response"
-    || !isRecord(value.quizGame) || !isRecord(value.quizGame.plan) || !Array.isArray(value.quizGame.plan.rounds)
-    || typeof value.quizGame.currentRoundIndex !== "number" || !Number.isInteger(value.quizGame.currentRoundIndex)) {
-    throw new HttpsError("failed-precondition", "현재 진행 중인 자유 답안 라운드를 확인해 주세요.");
+    || !isRecord(engine) || engine.roundId !== roundId) {
+    throw new HttpsError("failed-precondition", "현재 진행 중인 자유 답변 문제를 확인해 주세요.");
   }
-  const round: unknown = value.quizGame.plan.rounds[value.quizGame.currentRoundIndex];
-  const phase = value.quizGame.phase;
+  const round = engine.round;
+  const phase = engine.phase;
   if (!isRecord(round) || round.gameId !== "free-response" || !isRecord(round.source) || round.source.kind !== "free-response"
     || typeof round.source.prompt !== "string" || !round.source.prompt.trim() || round.source.prompt.length > 1000
     || typeof round.durationSeconds !== "number" || !Number.isInteger(round.durationSeconds) || round.durationSeconds < 10 || round.durationSeconds > 600
-    || (phase !== "answering" && phase !== "submissions" && phase !== "leaderboard" && phase !== "complete")) {
-    throw new HttpsError("failed-precondition", "자유 답안 라운드 설정을 확인해 주세요.");
+    || (phase !== "answering" && phase !== "submissions" && phase !== "results")) {
+    throw new HttpsError("failed-precondition", "자유 답변 문제 설정을 확인해 주세요.");
   }
   const startedAtMs = resolveSessionStartedAtMs(value.startedAt, value.startedAtMs, value.startDelayMs);
   if (startedAtMs === null) throw new HttpsError("failed-precondition", "답안 제출이 아직 시작되지 않았습니다.");

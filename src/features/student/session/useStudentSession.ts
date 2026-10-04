@@ -4,8 +4,8 @@ import type { NicknameGrade } from "../../../multiplayer/types.ts";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayer, usePlayerHeartbeat, useRoundParticipant, useSessionSubscription } from "../../../multiplayer/hooks.ts";
 import { confirmRoundReady, joinSession, leaveSession } from "../../../multiplayer/repository.ts";
-import { subscribeQuizGameSession } from "../../../quiz-game/multiplayerService.ts";
-import type { QuizGameSessionState } from "../../../quiz-game/types.ts";
+import { subscribeSlideShowSession } from "../../../slide-show/multiplayerService.ts";
+import type { SlideShowSessionState } from "../../../slide-show/types.ts";
 import {
   resolvePlayingParticipation,
   resolveStudentSessionState,
@@ -26,7 +26,7 @@ export interface JoinWithNicknameOptions {
 
 interface UseStudentSessionResult {
   readonly state: StudentSessionState;
-  readonly quizGame: QuizGameSessionState | null;
+  readonly slideShow: SlideShowSessionState | null;
   readonly joinWithNickname: (options: JoinWithNicknameOptions) => Promise<void>;
   readonly retryJoin: () => void;
   readonly leave: () => Promise<void>;
@@ -37,9 +37,9 @@ export function useStudentSession({
   identity,
   onChangeStudent,
 }: UseStudentSessionOptions): UseStudentSessionResult {
-  const { value: sessionSnapshot, loading: sessionLoading, error: sessionError } = useSessionSubscription(roomId, subscribeQuizGameSession);
+  const { value: sessionSnapshot, loading: sessionLoading, error: sessionError } = useSessionSubscription(roomId, subscribeSlideShowSession);
   const session = sessionSnapshot ? sessionSnapshot.session : null;
-  const quizGame = sessionSnapshot ? sessionSnapshot.quizGame : null;
+  const slideShow = sessionSnapshot ? sessionSnapshot.slideShow : null;
   const { player, loading: playerLoading, error: playerError } = usePlayer(roomId, identity.uid);
   const activeRoundId = (session?.status === SESSION_STATUS.PREPARING || session?.status === SESSION_STATUS.PLAYING) && session.roundId
     ? session.roundId
@@ -214,7 +214,7 @@ export function useStudentSession({
   }, [onChangeStudent, playerId, roomId]);
 
   return {
-    quizGame,
+    slideShow,
     state: resolveStudentSessionState({
       session,
       player,

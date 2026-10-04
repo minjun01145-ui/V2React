@@ -4,7 +4,7 @@ import Field from "../../../shared/ui/Field.tsx";
 import Select from "../../../shared/ui/Select.tsx";
 import SegmentedControl from "../../../shared/ui/SegmentedControl.tsx";
 import { GameSetupPanel } from "./GameSetupPanel.tsx";
-import QuizGameLaunchPanel from "./QuizGameLaunchPanel.tsx";
+import SlideShowLaunchPanel from "./SlideShowLaunchPanel.tsx";
 import styles from "./ActivityLaunchPanel.module.css";
 import type { GameSetupState } from "./useGameSetup.ts";
 import type { useActivityLaunch } from "./useActivityLaunch.ts";
@@ -14,13 +14,13 @@ export default function ActivityLaunchPanel({ setup, disabled, launch }: {
   readonly disabled: boolean;
   readonly launch: ReturnType<typeof useActivityLaunch>;
 }) {
-  const { activityKind, setActivityKind, options, handleQuizPlanChange, questionCount, setQuestionCount, englishOnly, setEnglishOnly } = launch;
+  const { activityKind, setActivityKind, options, handleSlideShowChange, questionCount, setQuestionCount, englishOnly, setEnglishOnly } = launch;
   return <Card className={styles.launchPanel}>
     <h2 className={styles.launchTitle}>수업 시작</h2>
     <SegmentedControl options={options} value={activityKind} onChange={setActivityKind} disabled={disabled} ariaLabel="시작할 수업 활동" />
     <div className={styles.launchContent}>
       {activityKind === "game" ? <GameSetupPanel setup={setup} disabled={disabled} /> : null}
-      {activityKind === "quiz" ? <QuizGameLaunchPanel disabled={disabled} onPlanChange={handleQuizPlanChange} /> : null}
+      {activityKind === "slide-show" ? <SlideShowLaunchPanel disabled={disabled} onShowChange={handleSlideShowChange} /> : null}
       {activityKind === "questions" ? <div className={styles.questionSetup}>
         <h2>학생 질문 만들기</h2>
         <div className={styles.questionControls}>

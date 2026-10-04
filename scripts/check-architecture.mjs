@@ -107,8 +107,8 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: multiplayer base may not depend on a concrete game (${specifier})`);
     }
 
-    if (rel.startsWith("src/multiplayer/") && specifier.includes("/quiz-game/")) {
-      violations.push(`${rel}: multiplayer base may not depend on quiz game (${specifier})`);
+    if (rel.startsWith("src/multiplayer/") && specifier.includes("/slide-show/")) {
+      violations.push(`${rel}: multiplayer base may not depend on slide shows (${specifier})`);
     }
 
     if (rel.startsWith("src/ai-admin/") && (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/"))) {
@@ -125,8 +125,12 @@ for (const file of sourceFiles) {
       violations.push(`${rel}: learning set domain must not depend on app, feature, game, or multiplayer layers (${specifier})`);
     }
 
-    if (rel.startsWith("src/quiz-game/") && (specifier === "react" || specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || (rel !== "src/quiz-game/multiplayerService.ts" && specifier.includes("/multiplayer/")))) {
-      violations.push(`${rel}: quiz game plan domain must not depend on React, app, feature, concrete game, or multiplayer layers (${specifier})`);
+    if (rel.startsWith("src/slide-show/") && (specifier === "react" || specifier === "fabric" || specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || (rel !== "src/slide-show/multiplayerService.ts" && specifier.includes("/multiplayer/")))) {
+      violations.push(`${rel}: slide show domain must not depend on React, Fabric, app, feature, concrete game, or multiplayer layers (${specifier})`);
+    }
+
+    if (rel.startsWith("src/slide-canvas/") && (specifier.includes("/apps/") || specifier.includes("/features/") || specifier.includes("/games/") || specifier.includes("/multiplayer/") || specifier.includes("/firebase/"))) {
+      violations.push(`${rel}: slide canvas rendering must stay independent from app, feature, game, multiplayer, and persistence layers (${specifier})`);
     }
 
     if (rel.startsWith("src/characters/") &&

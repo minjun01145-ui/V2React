@@ -17,9 +17,11 @@ const now = Date.now();
 const session = {
   status: "playing", gameId: "free-response", roundId: scope.roundId,
   startedAt: Timestamp.fromMillis(now - 1000), startedAtMs: now - 1000,
-  quizGame: {
-    phase: "answering", currentRoundIndex: 0,
-    plan: { rounds: [{ gameId: "free-response", durationSeconds: 30, source: { kind: "free-response", prompt: "오늘 배운 내용은?" } }] },
+  slideShow: {
+    engine: {
+      roundId: scope.roundId, phase: "answering",
+      round: { gameId: "free-response", durationSeconds: 30, source: { kind: "free-response", prompt: "오늘 배운 내용은?" } },
+    },
   },
 };
 const round = parseFreeResponseRound(session, scope.roundId);
@@ -30,6 +32,8 @@ assert.throws(() => assertSubmissionOpen(round, round.startedAtMs - 1), /아직/
 assert.throws(() => assertSubmissionOpen(round, round.startedAtMs + round.durationMs), /마감/);
 assert.throws(() => parseFreeResponseRound({ ...session, startedAt: null, startedAtMs: null }, scope.roundId), /아직/);
 assert.throws(() => parseFreeResponseRound(session, "other-round"), /현재/);
+assert.throws(() => parseFreeResponseRound({ ...session, slideShow: { engine: null } }, scope.roundId), /현재/, "a closed engine no longer accepts answers");
+assert.throws(() => parseFreeResponseRound({ ...session, slideShow: { engine: { ...session.slideShow.engine, roundId: "older-round" } } }, scope.roundId), /현재/);
 
 const sessionPath = `multiplayerSessions/${scope.roomId}`;
 const roundPath = `${sessionPath}/rounds/${scope.roundId}`;
@@ -85,7 +89,7 @@ try {
   session.startedAt = Timestamp.fromMillis(now - 60000);
   await assert.rejects(submit("시간 초과"), /마감/);
   session.startedAt = Timestamp.fromMillis(now - 1000);
-  session.quizGame.phase = "submissions";
+  session.slideShow.engine.phase = "submissions";
   await assert.rejects(submit("마감 후 수정"), /마감/);
   await assert.rejects(award(teacherAuth, { playerId: "not-submitted" }), /제출된 답안/);
   await award(teacherAuth, { score: 999 });
@@ -100,7 +104,7 @@ try {
   assert.equal(documents.get(progressPath).revision, 3);
   assert.equal(documents.get(responsePath).answer, "수정된 답안");
 
-  session.quizGame.phase = "leaderboard";
+  session.slideShow.engine.phase = "results";
   await assert.rejects(award(), /마감 후 현황판/);
   session.roundId = "round-2";
   await assert.rejects(submit("이전 라운드"), /현재/);

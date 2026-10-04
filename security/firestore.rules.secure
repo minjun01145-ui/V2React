@@ -172,8 +172,17 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "playing"
         && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId
-        && (!("quizGame" in get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data)
-          || get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.quizGame.phase == "answering");
+        && (!("slideShow" in get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data)
+          || (get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.slideShow.engine != null
+            && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.slideShow.engine.phase == "answering"));
+    }
+
+    // Students may (re)join the current round at any time, including while a slide
+    // show is between questions; answering is still limited by activeRound.
+    function joinableRound(roomId, roundId) {
+      return exists(/databases/$(database)/documents/multiplayerSessions/$(roomId))
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.status == "playing"
+        && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.roundId == roundId;
     }
 
     function preparingRound(roomId, roundId) {
@@ -326,12 +335,20 @@ service cloud.firestore {
       }
     }
 
-    match /quizGamePlans/{planId} {
+    match /slideShows/{showId} {
       allow read, create, update, delete: if isAdminForTenant("minjun");
+
+      match /slides/{slideId} {
+        allow read, create, update, delete: if isAdminForTenant("minjun");
+      }
     }
 
-    match /tenants/{tenantId}/quizGamePlans/{planId} {
+    match /tenants/{tenantId}/slideShows/{showId} {
       allow read, create, update, delete: if tenantId != "minjun" && isAdminForTenant(tenantId);
+
+      match /slides/{slideId} {
+        allow read, create, update, delete: if tenantId != "minjun" && isAdminForTenant(tenantId);
+      }
     }
 
     match /tenants/{tenantId}/soloActiveRuns/{studentKey} {
@@ -556,6 +573,12 @@ service cloud.firestore {
         }
       }
 
+      // Slides copied for one slide-show run; students in the room read what the teacher started.
+      match /showRuns/{runId}/slides/{slideId} {
+        allow read: if isRoomAdmin(roomId) || isRoomStudent(roomId);
+        allow write: if isRoomAdmin(roomId);
+      }
+
       match /rounds/{roundId} {
         allow read, write: if isRoomAdmin(roomId);
 
@@ -580,7 +603,7 @@ service cloud.firestore {
           allow read: if isRoomAdmin(roomId) || isRoomStudent(roomId);
           allow create: if isRoomAdmin(roomId) || (
             isRoomStudent(roomId)
-              && activeRound(roomId, roundId)
+              && joinableRound(roomId, roundId)
               && request.auth.uid == uid
               && request.resource.data.playerId == uid
               && request.resource.data.studentNumber == request.auth.token.studentNumber
@@ -599,7 +622,7 @@ service cloud.firestore {
           );
           allow update: if isRoomAdmin(roomId) || (
             isRoomStudent(roomId)
-              && (preparingRound(roomId, roundId) || activeRound(roomId, roundId))
+              && (preparingRound(roomId, roundId) || joinableRound(roomId, roundId))
               && request.auth.uid == uid
               && resource.data.playerId == uid
               && request.resource.data.playerId == resource.data.playerId

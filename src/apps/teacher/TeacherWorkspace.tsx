@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { getRoomIdFromLocation } from "../../app/location.ts";
 import { signOutAdmin } from "../../auth/teacherAuth.ts";
 import TeacherAiPage from "../../features/teacher/ai/TeacherAiPage.tsx";
 import TeacherLobbyPage from "../../features/teacher/lobby/TeacherLobbyPage.tsx";
-import TeacherQuizGamePage from "../../features/teacher/quiz-game/TeacherQuizGamePage.tsx";
 import TeacherSetsPage from "../../features/teacher/sets/TeacherSetsPage.tsx";
 import TeacherSettingsPage from "../../features/teacher/settings/TeacherSettingsPage.tsx";
 import TeacherStudentsPage from "../../features/teacher/students/TeacherStudentsPage.tsx";
@@ -12,6 +11,9 @@ import type { TenantConfig } from "../../tenant/config.ts";
 import { PRIMARY_TENANT_ID } from "../../tenant/scope.ts";
 import { getTeacherView, TEACHER_VIEW, type TeacherView } from "./teacherRoute.ts";
 import styles from "./TeacherWorkspace.module.css";
+
+// The slide editor pulls in Fabric.js; load it only when the teacher opens it.
+const TeacherSlideShowPage = lazy(() => import("../../features/teacher/slide-show/TeacherSlideShowPage.tsx"));
 
 export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantConfig }) {
   const [view, setView] = useState<TeacherView>(getTeacherView);
@@ -31,7 +33,7 @@ export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantCo
         {activeView === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
         {activeView === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
         {activeView === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
-        {activeView === TEACHER_VIEW.QUIZ_GAME ? <TeacherQuizGamePage roomId={roomId} /> : null}
+        {activeView === TEACHER_VIEW.SLIDE_SHOW ? <Suspense fallback={null}><TeacherSlideShowPage roomId={roomId} /></Suspense> : null}
         {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
         {activeView === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
       </div>

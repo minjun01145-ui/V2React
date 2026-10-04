@@ -6,13 +6,13 @@ assert.equal(getTeacherView("#/lobby"), TEACHER_VIEW.LOBBY);
 assert.equal(getTeacherView("#/settings"), TEACHER_VIEW.SETTINGS);
 assert.equal(getTeacherView("#/students"), TEACHER_VIEW.STUDENTS);
 assert.equal(getTeacherView("#/sets"), TEACHER_VIEW.SETS);
-assert.equal(getTeacherView("#/quiz-game"), TEACHER_VIEW.QUIZ_GAME);
+assert.equal(getTeacherView("#/slide-show"), TEACHER_VIEW.SLIDE_SHOW);
 assert.equal(getTeacherView("#/ai"), TEACHER_VIEW.AI);
 assert.equal(getTeacherView("#/unknown"), TEACHER_VIEW.LOBBY);
 assert.equal(teacherHref(TEACHER_VIEW.LOBBY), "#/lobby");
 assert.equal(teacherHref(TEACHER_VIEW.STUDENTS), "#/students");
 assert.equal(teacherHref(TEACHER_VIEW.SETS), "#/sets");
-assert.equal(teacherHref(TEACHER_VIEW.QUIZ_GAME), "#/quiz-game");
+assert.equal(teacherHref(TEACHER_VIEW.SLIDE_SHOW), "#/slide-show");
 assert.equal(teacherHref(TEACHER_VIEW.AI), "#/ai");
 
 console.log("teacher route smoke tests passed");

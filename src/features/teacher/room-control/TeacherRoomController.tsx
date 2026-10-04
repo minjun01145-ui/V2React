@@ -1,13 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import GameHost from "../../../games/GameHost.tsx";
 import { getGame } from "../../../games/registry.ts";
-import TeacherQuizGameRuntime from "../quiz-game-runtime/TeacherQuizGameRuntime.tsx";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayers, useRoundReadiness, useSessionSubscription } from "../../../multiplayer/hooks.ts";
 import { countExpectedReady } from "../../../multiplayer/round-readiness/model.ts";
 import { finalizeSessionStart } from "../../../multiplayer/repository.ts";
 import { withTimedGameConfig, type TimedGameMode } from "../../../game-engine/timed-game/config.ts";
-import { resetQuizAwareSession, startQuizGame, startRegularGameSession, subscribeQuizGameSession } from "../../../quiz-game/multiplayerService.ts";
+import { resetSlideAwareSession, startRegularGameSession, startSlideShow, subscribeSlideShowSession } from "../../../slide-show/multiplayerService.ts";
 import PageShell from "../../../shared/PageShell.tsx";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -23,8 +22,11 @@ import RoomStatusBar from "./RoomStatusBar.tsx";
 import TeacherStudentQuestionPanel from "../../../student-question-activity/TeacherStudentQuestionPanel.tsx";
 import { startStudentQuestionActivity } from "../../../student-question-activity/repository.ts";
 import type { StudentQuestionConfig } from "../../../student-question-activity/types.ts";
-import type { QuizGamePlan } from "../../../quiz-game/types.ts";
+import type { SlideShow } from "../../../slide-show/types.ts";
 import TeacherPlayerRoster from "./TeacherPlayerRoster.tsx";
+
+// Fabric.js is only needed once a slide show is running.
+const TeacherSlideShowRuntime = lazy(() => import("../slide-show-runtime/TeacherSlideShowRuntime.tsx"));
 
 type RoomAction = (roomId: string) => Promise<void>;
 
@@ -34,9 +36,9 @@ interface Props {
 }
 
 export default function TeacherRoomController({ roomId, embedded = false }: Props) {
-  const { value: sessionSnapshot, loading, error } = useSessionSubscription(roomId, subscribeQuizGameSession, { ensure: true });
+  const { value: sessionSnapshot, loading, error } = useSessionSubscription(roomId, subscribeSlideShowSession, { ensure: true });
   const session = sessionSnapshot ? sessionSnapshot.session : null;
-  const quizGame = sessionSnapshot ? sessionSnapshot.quizGame : null;
+  const slideShow = sessionSnapshot ? sessionSnapshot.slideShow : null;
   const { activePlayers } = usePlayers(roomId);
   const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
   const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
@@ -106,7 +108,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const startQuestions = (config: StudentQuestionConfig): Promise<void> => run(async (id) => {
     await startStudentQuestionActivity(id, config, activePlayers.map((player) => player.id));
   });
-  const startQuiz = (plan: QuizGamePlan): Promise<void> => run((id) => startQuizGame(id, plan));
+  const playSlideShow = (show: SlideShow): Promise<void> => run((id) => startSlideShow(id, show));
   const startLatestQuestions = (setId: string, timedMode: TimedGameMode): Promise<void> => run((id) => startRegularGameSession(id, { gameId: "ai-tutor", gameConfig: withTimedGameConfig({ setId }, timedMode) }));
   const launch = useActivityLaunch({
     setup: gameSetup,
@@ -114,31 +116,32 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
     hasPlayers: activePlayers.length > 0,
     latestQuestionSetId: session?.latestStudentQuestionResult?.resultSetId ?? null,
     onStartGame: () => run(startGame),
-    onStartQuiz: startQuiz,
+    onStartSlideShow: playSlideShow,
     onStartQuestions: startQuestions,
     onStartLatestQuestions: startLatestQuestions,
   });
   const activityTitle = launch.activityKind === "game" ? gameSetup.selectedGame.title
-    : launch.activityKind === "quiz" ? launch.quizPlan?.name ?? "퀴즈쇼"
+    : launch.activityKind === "slide-show" ? launch.slideShow?.name ?? "슬라이드쇼"
     : launch.activityKind === "questions" ? "질문 만들기" : "학생 질문 AI 문답";
-  const statusArt = isPlaying && session ? (quizGame ? null : isCoverKey(session.gameId) ? coverArt(session.gameId) : null) : isPreparing ? null : launch.activityKind === "game" && isCoverKey(gameSetup.selectedGame.id) ? coverArt(gameSetup.selectedGame.id) : null;
+  const statusArt = isPlaying && session ? (slideShow ? null : isCoverKey(session.gameId) ? coverArt(session.gameId) : null) : isPreparing ? null : launch.activityKind === "game" && isCoverKey(gameSetup.selectedGame.id) ? coverArt(gameSetup.selectedGame.id) : null;
   const actions = isPlaying || isPreparing ? <>
     {isPreparing ? <Button variant="accent" disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
-    <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetQuizAwareSession)}>대기실로 돌아가기</Button>
+    <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetSlideAwareSession)}>대기실로 돌아가기</Button>
   </> : <Button variant="accent" size="lg" disabled={working || loading || activePlayers.length === 0 || launch.invalidSelection} onClick={() => void launch.start()}>{working ? "처리 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
 
   const content = <>
     <RoomStatusBar
-      label={isPlaying ? "게임 진행 중" : isPreparing ? "접속 확인 중" : "학생 대기 중"}
+      label={isPlaying ? slideShow ? "슬라이드쇼 진행 중" : "게임 진행 중" : isPreparing ? "접속 확인 중" : "학생 대기 중"}
       count={isPreparing ? `${readyCount}/${expectedCount}` : String(activePlayers.length)}
-      {...(isPreparing ? {} : { title: isPlaying && session ? quizGame ? "퀴즈쇼" : getGame(session.gameId).title : activityTitle })}
+      {...(isPreparing ? {} : { title: isPlaying && session ? slideShow ? slideShow.name : getGame(session.gameId).title : activityTitle })}
       tone={isPlaying ? "playing" : isPreparing ? "preparing" : "waiting"}
       actions={actions}
       art={statusArt}
     />
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
-    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : <div className={styles.lobbyGrid} data-has-side={!isQuestionActivity}>
+    {(isPlaying || isPreparing) && session && slideShow ? <Suspense fallback={<StatusPanel title="슬라이드쇼를 여는 중" tone="waiting">잠시만 기다려 주세요.</StatusPanel>}><TeacherSlideShowRuntime roomId={roomId} session={session} slideShow={slideShow} players={activePlayers} /></Suspense>
+      : isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : <div className={styles.lobbyGrid} data-has-side={!isQuestionActivity}>
       <div className={styles.mainColumn}>
         <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
         {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}

@@ -9,7 +9,7 @@ import styles from "./TeacherNav.module.css";
 const mainItems: readonly { readonly view: TeacherView; readonly label: string }[] = [
   { view: TEACHER_VIEW.LOBBY, label: "대기실" },
   { view: TEACHER_VIEW.SETS, label: "학습 세트" },
-  { view: TEACHER_VIEW.QUIZ_GAME, label: "퀴즈쇼 만들기" },
+  { view: TEACHER_VIEW.SLIDE_SHOW, label: "슬라이드쇼" },
   { view: TEACHER_VIEW.STUDENTS, label: "학생 명단" },
 ];
 const secondaryItems: readonly { readonly view: TeacherView; readonly label: string }[] = [

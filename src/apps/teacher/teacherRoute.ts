@@ -2,7 +2,7 @@ export const TEACHER_VIEW = Object.freeze({
   LOBBY: "lobby",
   STUDENTS: "students",
   SETS: "sets",
-  QUIZ_GAME: "quiz-game",
+  SLIDE_SHOW: "slide-show",
   AI: "ai",
   SETTINGS: "settings",
 } as const);

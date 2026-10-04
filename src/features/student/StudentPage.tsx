@@ -11,10 +11,10 @@ interface Props {
 }
 
 export default function StudentPage({ roomId, identity, onChangeStudent }: Props) {
-  const { state, quizGame, joinWithNickname, retryJoin, leave } = useStudentSession({ roomId, identity, onChangeStudent });
+  const { state, slideShow, joinWithNickname, retryJoin, leave } = useStudentSession({ roomId, identity, onChangeStudent });
 
   if (state.view === "playing") {
-    return <StudentGamePage roomId={roomId} session={state.session} player={state.player} quizGame={quizGame} />;
+    return <StudentGamePage roomId={roomId} session={state.session} player={state.player} slideShow={slideShow} />;
   }
 
   if (state.view === "lobby") {

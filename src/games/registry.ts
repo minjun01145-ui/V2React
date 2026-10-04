@@ -16,7 +16,7 @@ const definitions = [
   }),
   defineGame({
     id: "free-response",
-    title: "답안 제출",
+    title: "자유 답변",
     category: "quiz",
     supportedSetTypes: [],
     handlesOwnTimedBoundary: true,

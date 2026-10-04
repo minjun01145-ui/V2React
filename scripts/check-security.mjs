@@ -122,10 +122,13 @@ if (!rules.includes("match /learningSets/{setId}")
   || !rules.includes("isAdminForTenant(tenantId)")) {
   violations.push("security/firestore.rules.secure: learning sets must be isolated by tenant and writable only by that tenant's administrator");
 }
-if (!rules.includes("match /quizGamePlans/{planId}")
+if (!rules.includes("match /slideShows/{showId}")
   || !rules.includes('allow read, create, update, delete: if isAdminForTenant("minjun")')
-  || !rules.includes("match /tenants/{tenantId}/quizGamePlans/{planId}")) {
-  violations.push("security/firestore.rules.secure: quiz game plans must be tenant-admin-only");
+  || !rules.includes("match /tenants/{tenantId}/slideShows/{showId}")) {
+  violations.push("security/firestore.rules.secure: slide shows must be tenant-admin-only");
+}
+if (!/match \/showRuns\/\{runId\}\/slides\/\{slideId\} \{\s*allow read: if isRoomAdmin\(roomId\) \|\| isRoomStudent\(roomId\);\s*allow write: if isRoomAdmin\(roomId\);/.test(rules)) {
+  violations.push("security/firestore.rules.secure: slide-show run copies must be readable by the room and writable only by its administrator");
 }
 
 const aiCallables = read("functions/src/ai/callables.ts");

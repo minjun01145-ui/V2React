@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, onSnapshot, runTransaction, serverTimestamp, type DocumentData, type Unsubscribe } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, onSnapshot, runTransaction, serverTimestamp, type DocumentData, type Unsubscribe } from "firebase/firestore";
 import type { AnswerResult } from "../../game-engine/core/types.ts";
 import { createEmptyProgress, normalizeProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import { db } from "../../firebase/firebaseClient.ts";
@@ -273,4 +273,9 @@ export async function loadRoundProgress(roomId: string, roundId: string): Promis
   const snapshot = await getDocs(collection(db, MULTIPLAYER_COLLECTION, roomId, "rounds", roundId, "progress"));
   return snapshot.docs.map((progressDoc) => parseRoundProgress(progressDoc.id, progressDoc.data()))
     .filter((item): item is RoundProgressRecord => item !== null);
+}
+
+export async function loadPlayerRoundProgress(roomId: string, roundId: string, playerId: string): Promise<RoundProgressRecord | null> {
+  const snapshot = await getDoc(progressRef(roomId, roundId, playerId));
+  return snapshot.exists() ? parseRoundProgress(snapshot.id, snapshot.data()) : null;
 }

@@ -12,12 +12,16 @@ export function tenantLearningSetRef(tenantId: TenantId, setId: string): Documen
   return doc(tenantLearningSetsCollection(tenantId), setId);
 }
 
-export function tenantQuizPlansCollection(tenantId: TenantId): CollectionReference {
+export function tenantSlideShowsCollection(tenantId: TenantId): CollectionReference {
   return tenantId === PRIMARY_TENANT_ID
-    ? collection(db, "quizGamePlans")
-    : collection(db, "tenants", tenantId, "quizGamePlans");
+    ? collection(db, "slideShows")
+    : collection(db, "tenants", tenantId, "slideShows");
 }
 
-export function tenantQuizPlanRef(tenantId: TenantId, planId: string): DocumentReference {
-  return doc(tenantQuizPlansCollection(tenantId), planId);
+export function tenantSlideShowRef(tenantId: TenantId, showId: string): DocumentReference {
+  return doc(tenantSlideShowsCollection(tenantId), showId);
+}
+
+export function tenantSlideShowSlidesCollection(tenantId: TenantId, showId: string): CollectionReference {
+  return collection(tenantSlideShowRef(tenantId, showId), "slides");
 }
