@@ -27,6 +27,7 @@ import TeacherPlayerRoster from "./TeacherPlayerRoster.tsx";
 
 // Fabric.js is only needed once a slide show is running.
 const TeacherSlideShowRuntime = lazy(() => import("../slide-show-runtime/TeacherSlideShowRuntime.tsx"));
+const DrawingBoard = lazy(() => import("../../../collaborative-drawing/DrawingBoard.tsx"));
 
 type RoomAction = (roomId: string) => Promise<void>;
 
@@ -43,6 +44,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
   const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
   const [working, setWorking] = useState(false);
+  const [drawingOpen, setDrawingOpen] = useState(false);
   const finalizingRound = useRef<string | null>(null);
   const gameSetup = useGameSetup(session?.latestStudentQuestionResult?.resultSetId ?? null);
   const { requestConfirmation, showMessage } = usePopup();
@@ -141,13 +143,15 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
     {(isPlaying || isPreparing) && session && slideShow ? <Suspense fallback={<StatusPanel title="슬라이드쇼를 여는 중" tone="waiting">잠시만 기다려 주세요.</StatusPanel>}><TeacherSlideShowRuntime roomId={roomId} session={session} slideShow={slideShow} players={activePlayers} /></Suspense>
-      : isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : <div className={styles.lobbyGrid} data-has-side={!isQuestionActivity}>
+      : isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : drawingOpen && !isQuestionActivity ? <Suspense fallback={<StatusPanel title="그림판 준비 중">그림판을 불러오는 중…</StatusPanel>}>
+        <DrawingBoard scope={{ roomId, boardId: "lobby" }} participants={activePlayers.map((player) => ({ id: player.id, label: player.nickname || player.displayName }))} canClearBoard onExit={() => setDrawingOpen(false)} />
+      </Suspense> : <div className={styles.lobbyGrid} data-has-side={!isQuestionActivity}>
       <div className={styles.mainColumn}>
         <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
         {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
         {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading} launch={launch} /> : null}
       </div>
-      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} /></aside> : null}
+      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} onDrawing={() => setDrawingOpen(true)} /></aside> : null}
     </div>}
   </>;
 

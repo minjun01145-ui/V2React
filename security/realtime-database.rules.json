@@ -2,6 +2,41 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "drawingBoards": {
+      "v1": {
+        "$tenantId": {
+          "$roomId": {
+            "$boardId": {
+              ".read": "auth != null && auth.token.tenantId === $tenantId && root.child('drawingAccess/v1').child($tenantId).child($roomId).child($boardId).child(auth.uid).val() === true",
+              "writers": {
+                "$uid": {
+                  ".write": "auth != null && auth.uid === $uid && auth.token.role === 'student' && auth.token.tenantId === $tenantId && root.child('drawingAccess/v1').child($tenantId).child($roomId).child($boardId).child(auth.uid).val() === true && newData.exists()",
+                  ".validate": "newData.hasChildren(['t', 'g']) && newData.child('g').val() === (newData.parent().parent().child('generation').exists() ? newData.parent().parent().child('generation').val() : 0)",
+                  "t": { ".validate": "newData.isNumber() && newData.val() === now" },
+                  "g": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0" },
+                  "$other": { ".validate": false }
+                }
+              },
+              "strokes": {
+                "$strokeId": {
+                  ".write": "auth != null && auth.token.role === 'student' && auth.token.tenantId === $tenantId && root.child('drawingAccess/v1').child($tenantId).child($roomId).child($boardId).child(auth.uid).val() === true && newData.parent().parent().child('writers').child(auth.uid).child('t').val() === now && ((newData.exists() && !data.exists() && newData.child('by').val() === auth.uid && $strokeId === auth.uid + '_' + newData.child('s').val() && (!root.child('drawingBoards/v1').child($tenantId).child($roomId).child($boardId).child('writers').child(auth.uid).child('t').exists() || root.child('drawingBoards/v1').child($tenantId).child($roomId).child($boardId).child('writers').child(auth.uid).child('t').val() <= now - 600)) || (!newData.exists() && data.child('by').val() === auth.uid && newData.parent().parent().child('writers').child(auth.uid).child('g').val() === data.child('g').val()))",
+                  ".validate": "newData.hasChildren(['by', 's', 'l', 'c', 'w', 'p', 'g', 't']) && newData.child('g').val() === (newData.parent().parent().child('generation').exists() ? newData.parent().parent().child('generation').val() : 0)",
+                  "by": { ".validate": "newData.isString() && newData.val() === auth.uid" },
+                  "s": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 80 && newData.val() % 1 === 0" },
+                  "l": { ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40" },
+                  "c": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 360 && newData.val() % 1 === 0" },
+                  "w": { ".validate": "newData.isNumber() && (newData.val() === 3 || newData.val() === 6 || newData.val() === 10)" },
+                  "p": { ".validate": "newData.isString() && newData.val().length <= 1152 && newData.val().matches(/^([0-9]{6}){1,192}$/)" },
+                  "g": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() % 1 === 0" },
+                  "t": { ".validate": "newData.isNumber() && newData.val() === now" },
+                  "$other": { ".validate": false }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "liveWorld": {
       "v2": {
         "$tenantId": {

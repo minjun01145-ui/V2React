@@ -22,6 +22,7 @@ import { canEnterSolo } from "../solo/model.ts";
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
 const LobbyPlatformer = lazy(() => import("../../../games/lobby-platformer/LobbyPlatformer.tsx"));
+const DrawingBoard = lazy(() => import("../../../collaborative-drawing/DrawingBoard.tsx"));
 
 interface Props {
   readonly roomId: string;
@@ -44,6 +45,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   const [duplicateRetry, setDuplicateRetry] = useState(0);
   const [typingOpen, setTypingOpen] = useState<"sentence" | "acid-rain" | null>(null);
   const [platformerOpen, setPlatformerOpen] = useState(false);
+  const [drawingOpen, setDrawingOpen] = useState(false);
   const [soloOpen, setSoloOpen] = useState(false);
   const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
   const typingConfig = savedTypingConfig ?? createWaitingTypingConfig(typingDemoSet.id);
@@ -86,6 +88,13 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   if (targeted && activity?.phase === "active" && authoring.loading) return <StatusPanel title="질문 만들기 확인 중" tone="waiting">제출 상태를 불러오고 있습니다.</StatusPanel>;
   if (activity && shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)) return <StudentQuestionAuthoring roomId={roomId} playerId={uid} activity={activity} />;
   if (soloOpen && soloAllowed) return <StudentSoloExperience identity={identity} player={player} onReturnToLobby={() => setSoloOpen(false)} />;
+  if (drawingOpen) {
+    return <Suspense fallback={<StatusPanel title="그림판 준비 중">그림판을 불러오는 중…</StatusPanel>}>
+      <DrawingBoard scope={{ roomId, boardId: "lobby" }} author={{ id: uid, label: nickname || displayName }}
+        participants={activePlayers.map((participant) => ({ id: participant.id, label: participant.nickname || participant.displayName }))}
+        onExit={() => setDrawingOpen(false)} />
+    </Suspense>;
+  }
   if (typingOpen && typingConfig) {
     return <Suspense fallback={<StatusPanel title="타자 연습 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
       {typingOpen === "sentence"
@@ -116,7 +125,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
           initialAvatar={avatar}
         />
       </Card>
-      <LobbyActivityTiles soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} />
+      <LobbyActivityTiles soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} onDrawing={() => setDrawingOpen(true)} />
       </div>
       <div className={styles.right}>
       <Card className={styles.card}>

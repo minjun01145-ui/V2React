@@ -1,7 +1,7 @@
 {
   "name": "minjun-game-v2r",
   "private": true,
-  "version": "2.9.2",
+  "version": "2.9.1",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -28,7 +28,7 @@
     "test:multiple-choice": "node --experimental-strip-types tests/multiple-choice-engine.test.ts",
     "test:solo": "node --experimental-strip-types tests/solo-contract.test.ts",
     "check:architecture": "node scripts/check-architecture.mjs && node tests/architecture-source-files.test.mjs",
-    "check": "npm run typecheck && npm run test:version && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:live-world && npm run test:timed-game && npm run test:effects && npm run test:items && npm run test:scoring && npm run test:multiple-choice && npm run test:solo && npm run test:games && npm run test:routing && npm run test:bgm && npm run test:student-session && npm run test:student-questions && npm run test:free-response && npm run test:presence && npm run test:waiting-dice && npm run test:reconnect && npm run test:multiplayer-contract && npm run test:multiplayer-progress && npm run test:retry-idempotency && npm run test:auth && npm run test:popup && npm run test:sets && npm run test:ai && npm run test:ui && npm run test:console",
+    "check": "npm run typecheck && npm run test:version && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:live-world && npm run test:timed-game && npm run test:effects && npm run test:items && npm run test:scoring && npm run test:multiple-choice && npm run test:solo && npm run test:games && npm run test:routing && npm run test:bgm && npm run test:student-session && npm run test:student-questions && npm run test:free-response && npm run test:presence && npm run test:waiting-dice && npm run test:reconnect && npm run test:multiplayer-contract && npm run test:multiplayer-progress && npm run test:retry-idempotency && npm run test:auth && npm run test:popup && npm run test:sets && npm run test:ai && npm run test:ui && npm run test:console && npm run test:drawing",
     "test": "npm run check",
     "test:ui": "node tests/card-ui.test.mjs",
     "test:routing": "node --experimental-strip-types tests/teacher-route-smoke.ts && node --experimental-strip-types tests/tenant-scope.test.ts && node --experimental-strip-types tests/slide-show-model.test.ts && node --experimental-strip-types tests/student-picker.test.ts && node --experimental-strip-types tests/slide-show-timer.test.ts && node --experimental-strip-types --experimental-test-module-mocks tests/slide-show-session.test.mjs",
@@ -47,7 +47,9 @@
     "test:sets": "node --experimental-strip-types tests/learning-sets-smoke.ts && node --experimental-strip-types tests/learning-set-table.test.ts",
     "check:security": "node scripts/check-security.mjs",
     "test:games": "node --experimental-strip-types tests/games/sentence-builder.test.ts && node --experimental-strip-types tests/games/cooperative-sentence-builder.test.ts && node --experimental-strip-types tests/games/pokemon-catch.test.ts && node --experimental-strip-types tests/games/simple-quiz.test.ts && node --experimental-strip-types tests/games/brick-smash.test.ts && node --experimental-strip-types tests/games/matching.test.ts && node --experimental-strip-types tests/games/matching-all.test.ts && node --experimental-strip-types tests/games/typing.test.ts && node --experimental-strip-types tests/games/typing-escape.test.ts && node --experimental-strip-types tests/games/ai-tutor.test.ts && node --experimental-strip-types tests/games/meaning-dash.test.ts && node --experimental-strip-types tests/games/lobby-platformer.test.ts && node --experimental-strip-types tests/games/learning-jump-tower.test.ts && node --experimental-strip-types tests/games/chunk-jump-race.test.ts && node --experimental-strip-types tests/games/chunk-line-up.test.ts",
-    "test:ai": "node --experimental-strip-types tests/ai-admin-smoke.ts"
+    "test:ai": "node --experimental-strip-types tests/ai-admin-smoke.ts",
+    "test:drawing": "node --experimental-strip-types tests/collaborative-drawing.test.ts",
+    "test:drawing:rules": "node tests/collaborative-drawing-rules.test.mjs"
   },
   "dependencies": {
     "fabric": "^7.4.0",

@@ -148,9 +148,10 @@ for (const file of clientFiles) {
 }
 
 const realtimeRules = read("security/realtime-database.rules.json");
-if (!realtimeRules.includes('"v2"')
-  || !realtimeRules.includes("auth.token.tenantId === $tenantId")
-  || realtimeRules.includes('"v1"')) {
+const liveWorldRules = JSON.parse(realtimeRules).rules.liveWorld;
+if (!liveWorldRules?.v2
+  || !JSON.stringify(liveWorldRules.v2).includes("auth.token.tenantId === $tenantId")
+  || liveWorldRules.v1) {
   violations.push("security/realtime-database.rules.json: live-world traffic must be isolated by authenticated tenant under v2");
 }
 if (!rules.includes("roomIdMatchesTenant(roomId, tenantIdFrom(request.resource.data))")

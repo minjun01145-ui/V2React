@@ -89,7 +89,9 @@ npm run deploy:functions
 npm run deploy:rules
 ```
 
-필요한 대상만 배포합니다. 배포 script는 Hosting·Functions 빌드를 먼저 실행하고 결과를 `.release-records/`에 기록합니다. `deploy:rules`는 Firestore Rules를 배포합니다. 기존 배포 Rules와 다른 경우 덮어쓸 정책을 먼저 확인하고, 보호 대상에 겹치는 광범위 공개 허용이 없는지 검토합니다.
+필요한 대상만 배포합니다. 배포 script는 Hosting·Functions 빌드를 먼저 실행하고 결과를 `.release-records/`에 기록합니다. `deploy:rules`는 Firestore Rules를 배포합니다. 공동 그림판을 처음 적용할 때는 Functions와 Hosting에 더해 `firebase deploy --only database`로 [RTDB Rules](./security/realtime-database.rules.json)도 배포합니다. 기존 배포 Rules와 다른 경우 덮어쓸 정책을 먼저 확인하고, 보호 대상에 겹치는 광범위 공개 허용이 없는지 검토합니다.
+
+공동 그림판의 RTDB 권한·저장 한도·전송 제한·전체 지우기 충돌 검사는 Java와 Firebase CLI를 준비한 뒤 `firebase emulators:exec --only database --project demo-drawing "npm run test:drawing:rules"`로 실행합니다. 이 검사는 격리된 demo 데이터베이스만 사용합니다.
 
 ## Troubleshooting
 
