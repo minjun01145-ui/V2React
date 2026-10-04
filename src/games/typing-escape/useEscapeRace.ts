@@ -2,11 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { createLiveMovementEngine, createLiveMovementObserver, createLiveRecords, observeLiveRecords, subscribeLiveServerTimeOffset, type LiveRecord } from "../../live-world/client.ts";
 import type { LiveMovementEngine } from "../../live-world/LiveMovementEngine.ts";
 import type { LiveRemoteFrame } from "../../live-world/core/types.ts";
-import { advanceEscape, escapeScore, exposeEscape, hiddenAt, initialProgress, inputEscape, parseProgress, type EscapeProgress } from "./model.ts";
+import { FINISH, advanceEscape, escapeScore, exposeEscape, hiddenAt, initialProgress, inputEscape, parseProgress, type EscapeProgress } from "./model.ts";
 
 export function useEscapeRace(roomId: string, roundId: string, playerId: string | null, label: string,
   start: number | null, end: number | null, targets: readonly string[]) {
-  const storageKey = `v2r:typing-escape:${roomId}:${roundId}:${playerId}`;
+  const storageKey = `v2r:typing-escape:v2:${roomId}:${roundId}:${playerId}`;
   const [progress, setProgress] = useState(() => {
     try { return parseProgress(JSON.parse(sessionStorage.getItem(storageKey) ?? "null")); }
     catch { return initialProgress(); }
@@ -37,7 +37,9 @@ export function useEscapeRace(roomId: string, roundId: string, playerId: string 
     engine.current = movement;
     const state = () => {
       const time = Date.now() + offset.current;
-      return { x: 0, y: current.current.distance, vx: 0, vy: time < current.current.stunnedUntil ? -1 : hiddenAt(current.current, time) ? 0 : 1 };
+      const progress = current.current;
+      return { x: progress.escapes, y: progress.distance, vx: progress.hits,
+        vy: time < progress.stunnedUntil ? -1 : progress.distance >= FINISH ? 2 : hiddenAt(progress, time) ? 0 : 1 };
     };
     const opening = movement ? movement.connect(scope, state()) : observer!.connect(scope);
     void opening.then(() => { if (!disposed) setConnected(true); }).catch(fail);
@@ -66,10 +68,10 @@ export function useEscapeRace(roomId: string, roundId: string, playerId: string 
       void movement?.close().catch(() => {}); void observer?.close().catch(() => {});
     };
   }, [roomId, roundId, playerId, label]);
-  const input = (value: string) => {
+  const input = (value: string, composing = false) => {
     const clock = Date.now() + offset.current;
     if (!connected || error || (end !== null && clock >= end)) return;
-    commit(inputEscape(current.current, targets[current.current.question % targets.length] ?? "", value, start, clock));
+    commit(inputEscape(current.current, targets[current.current.question % targets.length] ?? "", value, start, clock, composing));
   };
   const activity = () => {
     const clock = Date.now() + offset.current;

@@ -1,25 +1,50 @@
-.game { width: 100%; height: 100%; min-height: 540px; overflow: auto; background: #142f35; color: #f7f3df; padding: 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; font-family: Pretendard, sans-serif; }
-.header { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
-.header h2 { margin: 0; font-size: 20px; flex: 1; }
-.header button { background: #d8edb4; color: #203e33; border: 0; border-radius: 20px; padding: 8px 16px; font-weight: 800; cursor: pointer; }
-.chant { display: flex; justify-content: center; align-items: center; gap: clamp(4px, 1vw, 13px); min-height: 58px; font-size: clamp(20px, 3vw, 34px); font-weight: 900; background: #203f42; border-radius: 14px; flex-shrink: 0; }
-.chant span { opacity: .22; transform: translateY(3px); transition: opacity .1s, transform .1s; }
-.chant .spoken { opacity: 1; transform: translateY(0); color: #def4a8; }
-.chant b { font-size: 16px; color: #ffe6bd; }
-.danger { background: #843c36; }
-.danger .spoken { color: #fff0d5; }
-.stage { width: 100%; flex: 1 0 230px; min-height: 230px; max-height: 540px; overflow: hidden; }
-.stage canvas { display: block; }
-.typing { width: min(850px, 100%); margin: 0 auto; flex-shrink: 0; }
-.prompt { font-size: clamp(20px, 2.7vw, 30px); font-weight: 700; text-align: center; padding: 10px 4px; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 100px; overflow: auto; }
-.prompt mark { background: transparent; color: #a4e6a0; }
-.typing input { width: 100%; box-sizing: border-box; padding: 13px 16px; background: #fffcef; border: 3px solid #8fb5a0; border-radius: 12px; color: #193b37; font-size: 22px; outline-offset: 3px; }
-.typing input[aria-invalid="true"] { border-color: #ff8a77; }
+.game { --ink: #192a31; --paper: #f5efcf; --go: #c6ed65; --red: #f56544; width: 100%; height: 100%; min-height: 540px; overflow: auto; background: var(--ink); color: var(--paper); padding: 14px 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; font-family: Pretendard, sans-serif; }
+.header { display: flex; align-items: center; gap: 20px; flex-shrink: 0; max-width: 1200px; width: 100%; margin: 0 auto; }
+.header h2 { margin: 0; font-size: clamp(22px, 3vw, 34px); font-weight: 950; letter-spacing: -1.5px; flex: 1; white-space: nowrap; }
+.header h2 span { color: var(--go); }
+.score { display: flex; align-items: center; gap: 12px; }
+.score > span { font-size: 14px; font-weight: 800; }
+.score strong { color: var(--go); font-size: 32px; font-variant-numeric: tabular-nums; }
+.score small, .clock small, .ranking small { font-size: 13px; margin-left: 4px; }
+.clock { background: var(--paper); color: var(--ink); padding: 5px 13px; border: 3px solid #080f17; box-shadow: 3px 3px 0 #080f17; font-size: 25px; font-weight: 900; min-width: 65px; text-align: center; font-variant-numeric: tabular-nums; }
+.clockUrgent { background: var(--red); color: white; }
+.sound { font: inherit; font-weight: 800; font-size: 12px; background: transparent; color: var(--paper); border: 2px solid #77827d; padding: 9px; cursor: pointer; }
+.sound:hover { background: #30434a; }
+.arena { position: relative; width: 100%; max-width: min(1200px, calc((100dvh - 245px) * 2)); margin: 0 auto; aspect-ratio: 2 / 1; flex: 0 0 auto; border: 4px solid #080f17; background: #9dbfb3; box-shadow: 5px 5px 0 #080f17; box-sizing: border-box; overflow: hidden; }
+.chant { position: absolute; z-index: 2; left: 50%; top: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; white-space: nowrap; padding: 9px 22px; background: var(--paper); color: var(--ink); border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); font-size: clamp(16px, 2.7vw, 32px); font-weight: 950; }
+.chant strong { display: inline-block; animation: syllable .13s ease-out; letter-spacing: -1px; }
+.signal { width: 15px; height: 15px; border: 3px solid var(--ink); background: var(--go); border-radius: 50%; flex-shrink: 0; }
+.watching .chant { background: var(--red); color: #fff5df; transform: translateX(-50%) rotate(-1deg); }
+.watching .signal { background: #ffed93; }
+.stage { position: absolute; inset: 0; overflow: hidden; }
+.stage canvas { display: block; image-rendering: pixelated; }
+.outcome { pointer-events: none; position: absolute; z-index: 3; left: 50%; top: 48%; transform: translate(-50%, -50%) rotate(-8deg); display: flex; align-items: center; flex-direction: column; text-shadow: 4px 4px 0 var(--ink), -3px -3px 0 var(--ink), 3px -3px 0 var(--ink), -3px 3px 0 var(--ink); animation: outcome .7s both; }
+.outcome strong { font-size: clamp(40px, 8vw, 96px); font-weight: 950; line-height: 1.1; letter-spacing: -4px; }
+.outcome span { padding: 6px 20px; margin-top: 12px; font-size: clamp(20px, 3vw, 36px); font-weight: 900; background: var(--ink); text-shadow: none; }
+.success { color: #e2ff74; }
+.failure { color: #fff2d5; }
+.failure strong { color: #ff8466; }
+.typing { width: min(1000px, 100%); margin: 0 auto; flex-shrink: 0; border: 3px solid #080f17; background: var(--paper); color: var(--ink); box-shadow: 4px 4px 0 #080f17; padding: 10px 16px 13px; box-sizing: border-box; }
+.typingTop { display: flex; align-items: center; gap: 14px; font-size: 14px; font-weight: 900; }
+.inputStatus { min-width: 80px; color: #275f40; }
+.watching .inputStatus, .hit .inputStatus { color: #a32d24; }
+.distance { flex: 1; height: 9px; background: #d4cda9; border: 2px solid var(--ink); }
+.distance span { display: block; height: 100%; background: #59872e; transition: width .08s linear; }
+.prompt { font-size: clamp(20px, 2.6vw, 30px); font-weight: 800; text-align: center; padding: 10px 3px; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 80px; overflow: auto; line-height: 1.4; }
+.prompt mark { background: transparent; color: #65944c; }
+.nextLetter { text-decoration: underline; text-decoration-color: #d55330; text-decoration-thickness: 3px; text-underline-offset: 5px; }
+.typing input { width: 100%; box-sizing: border-box; padding: 8px 13px; background: #fffdf2; border: 2px solid var(--ink); border-radius: 0; color: var(--ink); font: inherit; font-size: 22px; outline-offset: 3px; }
+.typing input[aria-invalid="true"] { border-color: #c23724; background: #fff0e7; }
 .typing input:disabled { opacity: .6; }
-.status { display: flex; justify-content: space-between; padding: 9px 4px; font-size: 14px; }
-.ranking { display: flex; flex-wrap: wrap; gap: 7px; padding: 0; margin: 0; list-style: none; }
-.ranking li { display: flex; gap: 10px; align-items: center; background: #23464a; padding: 8px 12px; border-radius: 10px; font-size: 13px; }
-.ranking strong { color: #d8edb4; }
-.finished { text-align: center; color: #def4a8; font-size: 28px; font-weight: 900; padding: 15px; }
-.error { background: #813d39; color: white; padding: 10px; border-radius: 8px; }
-@media (max-width: 600px) { .game { padding: 8px; min-height: 100%; } .chant { flex-wrap: wrap; gap: 4px; } .chant b { font-size: 12px; } .stage { flex-basis: 200px; min-height: 180px; } .typing input { font-size: 18px; } }
+.typing input:read-only { background: #e8dfbf; }
+.ranking { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0 auto; width: min(1200px, 100%); list-style: none; flex-shrink: 0; }
+.ranking li { display: flex; gap: 10px; align-items: center; border: 2px solid #627675; padding: 7px 10px; font-size: 13px; }
+.ranking li > b { background: var(--paper); color: var(--ink); width: 22px; text-align: center; }
+.ranking strong { color: var(--go); font-size: 18px; }
+.ranking em { font-style: normal; font-size: 12px; }
+.ranking .ownRank { border-color: var(--go); }
+.error { background: #a33228; color: white; padding: 10px; }
+@keyframes syllable { from { transform: translateY(3px) scale(.97); } to { transform: translateY(0) scale(1); } }
+@keyframes outcome { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-15deg) scale(1.7); } 18% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(1); } 85% { opacity: 1; } 100% { opacity: .1; transform: translate(-50%, -65%) rotate(-8deg) scale(.95); } }
+@media (max-width: 600px) { .game { padding: 8px; min-height: 100%; gap: 8px; justify-content: center; } .header { gap: 8px; flex-wrap: wrap; } .header h2 { font-size: 22px; } .score { gap: 6px; } .score > span { font-size: 11px; } .score strong { font-size: 24px; } .clock { font-size: 20px; padding: 3px 7px; min-width: 42px; } .sound { font-size: 10px; padding: 5px; } .arena { max-width: 100%; min-height: 200px; } .chant { top: 9px; padding: 6px 10px; gap: 6px; font-size: 17px; max-width: 94%; box-sizing: border-box; } .signal { width: 10px; height: 10px; } .typing { padding: 9px; } .typing input { font-size: 18px; } .typingTop { gap: 8px; font-size: 12px; } .prompt { font-size: 22px; } }
+@media (prefers-reduced-motion: reduce) { .chant strong, .outcome { animation: none; } .distance span { transition: none; } }

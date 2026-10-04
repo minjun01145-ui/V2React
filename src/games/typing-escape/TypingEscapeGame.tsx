@@ -1,15 +1,14 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { StudentGameModuleProps, TeacherGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import { adaptLearningSetToTyping } from "../../game-engine/typing/typingAdapter.ts";
-import { getTypingComparisonState } from "../../game-engine/typing/typingEngine.ts";
 import { readTimedGameConfig } from "../../game-engine/timed-game/config.ts";
 import { ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { useLearningSet } from "../../learning-sets/useLearningSet.ts";
 import { useRoundParticipants } from "../../multiplayer/hooks.ts";
 import { displayLabel } from "../../multiplayer/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
-import EscapeStage from "./EscapeStage.tsx";
-import { CHANT, FINISH, escapeScore, hiddenAt, phaseAt } from "./model.ts";
+import EscapeStage, { type EscapeRunner } from "./EscapeStage.tsx";
+import { ESCAPE_POINTS, FINISH, escapeScore, escapeTypingState, hiddenAt, phaseAt, type EscapeProgress } from "./model.ts";
 import { useEscapeRace } from "./useEscapeRace.ts";
 import { useEscapeAudio } from "./useEscapeAudio.ts";
 import styles from "./TypingEscape.module.css";
@@ -43,52 +42,88 @@ function Runtime({ props, targets, players }: { props: Props; targets: readonly 
   const end = duration !== null && session.startedAtMs !== null ? session.startedAtMs + duration : null;
   const race = useEscapeRace(props.roomId, session.roundId, selfId, label, session.startedAtMs, end, targets);
   const expired = end !== null && race.now >= end;
-  const phase = phaseAt(session.startedAtMs, race.now);
-  const audio = useEscapeAudio(props.role === "teacher", phase.active && !expired, phase.cycle, phase.syllable, phase.watching);
+  const now = expired ? end! : race.now;
+  const phase = phaseAt(session.startedAtMs, now);
+  const runners: EscapeRunner[] = players.map(player => {
+    const frame = race.frames.find(f => f.playerId === player.id);
+    const record = race.records.find(r => r.playerId === player.id);
+    const local = player.id === selfId;
+    return { ...player, distance: local ? race.progress.distance : Math.max(0, Math.min(FINISH, frame?.y ?? 0)),
+      escapes: local ? race.progress.escapes : Math.max(Math.floor((record?.score ?? 0) / ESCAPE_POINTS), Math.round(frame?.x ?? 0)),
+      hits: local ? race.progress.hits : Math.max(0, Math.round(frame?.vx ?? 0)),
+      hidden: local ? hiddenAt(race.progress, now) : frame?.vy !== 1,
+      hit: local ? now < race.progress.stunnedUntil : frame?.vy === -1 };
+  });
+  const content = <EscapeGameView selfId={selfId} runners={runners} progress={race.progress} phase={phase} now={now}
+    remaining={end === null ? null : Math.max(0, Math.ceil((end - race.now) / 1000))} expired={expired}
+    target={targets[race.progress.question % targets.length]!} connected={race.connected} error={race.error?.message ?? null}
+    onInput={race.input} onActivity={race.activity} />;
+  return props.role === "student" ? <ImmersiveStage>{content}</ImmersiveStage> : content;
+}
+
+export interface EscapeGameViewProps {
+  selfId: string | null; runners: readonly EscapeRunner[]; progress: EscapeProgress;
+  phase: ReturnType<typeof phaseAt>; now: number; remaining: number | null; expired: boolean;
+  target: string; connected: boolean; error: string | null;
+  onInput: (value: string, composing?: boolean) => void; onActivity: () => void;
+}
+export function EscapeGameView({ selfId, runners, progress, phase, now, remaining, expired, target, connected, error, onInput, onActivity }: EscapeGameViewProps) {
+  const audio = useEscapeAudio(selfId === null, phase.active && !expired, phase,
+    selfId === null ? runners.reduce((sum, runner) => sum + runner.hits, 0) : progress.hits,
+    selfId === null ? runners.reduce((sum, runner) => sum + runner.escapes, 0) : progress.escapes);
   const composing = useRef(false);
   const committedComposition = useRef<string | null>(null);
-  const [draft, setDraft] = useState("");
-  const target = targets[race.progress.question % targets.length]!;
-  const comparison = getTypingComparisonState(target, race.progress.input);
-  const finished = race.progress.distance >= FINISH;
-  const hit = race.now < race.progress.stunnedUntil;
-  const runners = players.map(player => {
-    const frame = race.frames.find(f => f.playerId === player.id);
-    const local = player.id === selfId;
-    return { ...player, distance: local ? race.progress.distance : Math.max(0, Math.min(FINISH, frame?.y ?? race.records.find(r => r.playerId === player.id)?.score ?? 0)),
-      hidden: local ? hiddenAt(race.progress, race.now) : frame?.vy !== 1, hit: local ? hit : frame?.vy === -1 };
-  });
-  const score = (runner: typeof runners[number]) => runner.distance < FINISH ? runner.distance
-    : runner.id === selfId ? escapeScore(race.progress) : race.records.find(r => r.playerId === runner.id)?.score ?? FINISH;
-  const standings = [...runners].sort((a, b) => score(b) - score(a) || a.label.localeCompare(b.label, "ko"));
-  const content = <div className={styles.game}>
-    <header className={styles.header}><h2>무궁화 탈출</h2><span>{end === null ? "무제한" : `${Math.max(0, Math.ceil((end - race.now) / 1000))}초`}</span>
-      {props.role === "teacher" && <button type="button" onClick={audio.toggle}>{audio.enabled ? "소리 끄기" : "소리 켜기"}</button>}</header>
-    <div className={`${styles.chant} ${phase.watching && !expired ? styles.danger : ""}`} aria-label="무궁화꽃이피었습니다">
-      {!phase.active ? <strong>출발 준비</strong> : expired ? <strong>경기 종료</strong> : CHANT.map((letter, i) => <span key={i} className={i <= phase.syllable ? styles.spoken : ""}>{letter}</span>)}
-      {phase.watching && !expired && <b>숨으세요!</b>}
+  const input = useRef<HTMLInputElement>(null);
+  const hit = now < progress.stunnedUntil;
+  const escaped = progress.distance >= FINISH;
+  const comparison = escapeTypingState(target, progress.input);
+  const nextLetter = [...target.slice(comparison.prefix)][0] ?? "";
+  const watching = phase.watching && !expired;
+  const standings = [...runners].sort((a, b) => b.escapes - a.escapes || a.label.localeCompare(b.label, "ko"));
+  useEffect(() => {
+    if (connected && phase.active && !expired) input.current?.focus();
+  }, [connected, phase.active, expired]);
+  useEffect(() => {
+    composing.current = false;
+    committedComposition.current = null;
+  }, [progress.hits]);
+  const inputStatus = expired ? "경기 종료" : !connected ? "연결 중…" : !phase.active ? "출발 준비" : hit ? "발각! 재출발 대기" : escaped ? `탈출! +${ESCAPE_POINTS}` : watching ? "꼼짝 마!" : "달려!";
+  return <div className={`${styles.game} ${watching ? styles.watching : ""} ${hit ? styles.hit : ""}`}>
+    <header className={styles.header}>
+      <h2>무궁화 <span>탈출</span></h2>
+      {selfId && <div className={styles.score}><span>탈출 {progress.escapes}회</span><strong>{escapeScore(progress)}<small>점</small></strong></div>}
+      <div className={`${styles.clock} ${remaining !== null && remaining <= 10 ? styles.clockUrgent : ""}`}>{remaining === null ? "∞" : remaining}<small>초</small></div>
+      <button type="button" className={styles.sound} onClick={() => { audio.toggle(); input.current?.focus(); }} aria-label={audio.enabled ? "소리 끄기" : "소리 켜기"}>{audio.enabled ? "소리 끄기" : "소리 켜기"}</button>
+    </header>
+    <div className={styles.arena}>
+      <div className={styles.chant} role="status" aria-live="off">
+        <i className={styles.signal} aria-hidden="true" />
+        <strong key={`${phase.cycle}:${phase.beat}:${watching}`}>{expired ? "경기 종료!" : !phase.active ? "출발 준비!" : watching ? "꼼짝 마!!" : `${phase.text}${phase.syllable === 9 ? "!!!" : phase.beatMs > 600 ? "…" : ""}`}</strong>
+      </div>
+      <EscapeStage runners={runners} selfId={selfId} watching={watching} cycle={phase.cycle} active={phase.active && !expired} />
+      {selfId && !expired && (hit || escaped) && <div className={`${styles.outcome} ${escaped ? styles.success : styles.failure}`} role="status" key={hit ? `hit:${progress.hits}` : `escape:${progress.escapes}`}>
+        <strong>{hit ? "발각!!" : "탈출!!"}</strong><span>{hit ? "다시 출발!" : `+${ESCAPE_POINTS}점`}</span>
+      </div>}
     </div>
-    <EscapeStage runners={runners} selfId={selfId} watching={phase.watching && !expired} cycle={phase.cycle} />
-    {(race.error || audio.error) && <div role="alert" className={styles.error}>{race.error?.message ?? audio.error}</div>}
-    {selfId && !expired && !finished && <div className={styles.typing}>
-      <div className={styles.prompt}><mark>{target.slice(0, comparison.currentPrefixLength)}</mark>{target.slice(comparison.currentPrefixLength)}</div>
-      <input aria-label="제시된 단어 또는 문장 입력" autoFocus autoComplete="off" autoCapitalize="off" spellCheck={false}
-        value={composing.current ? draft : race.progress.input} aria-invalid={comparison.hasError}
-        disabled={!race.connected || !!race.error || !phase.active} readOnly={hit}
-        placeholder={hit ? "앗! 뒤로 밀렸어요" : "입력하면 전진 · 멈추면 숨기"}
+    {(error || audio.error) && <div role="alert" className={styles.error}>{error ?? audio.error}</div>}
+    {selfId && !expired && <div className={styles.typing}>
+      <div className={styles.typingTop}><strong className={styles.inputStatus}>{inputStatus}</strong><div className={styles.distance} aria-label={`탈출까지 ${FINISH - progress.distance}%`}><span style={{ width: `${progress.distance}%` }} /></div><b>{progress.distance}%</b></div>
+      <div className={styles.prompt}><mark>{target.slice(0, comparison.prefix)}</mark><span className={styles.nextLetter}>{nextLetter}</span>{target.slice(comparison.prefix + nextLetter.length)}</div>
+      <input ref={input} aria-label="제시된 단어 또는 문장 입력" autoFocus autoComplete="off" autoCapitalize="off" spellCheck={false}
+        value={progress.input} aria-invalid={comparison.hasError} disabled={!connected || !!error || !phase.active} readOnly={hit || escaped}
+        placeholder={hit || escaped ? inputStatus : "입력"} maxLength={10_000}
         onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()}
-        onCompositionStart={() => { composing.current = true; setDraft(race.progress.input); }}
-        onKeyDown={e => { if (!e.ctrlKey && !e.metaKey && (e.key.length === 1 || e.key === "Process" || e.key === "Backspace")) race.activity(); }}
-        onCompositionEnd={e => { composing.current = false; committedComposition.current = e.currentTarget.value; race.input(e.currentTarget.value); }}
+        onCompositionStart={() => { composing.current = true; }}
+        onKeyDown={e => { if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key.length === 1 || e.key === "Process" || e.key === "Backspace" || e.key === "Delete")) onActivity(); }}
+        onCompositionEnd={e => {
+          if (!composing.current) return;
+          composing.current = false; committedComposition.current = e.currentTarget.value; onInput(e.currentTarget.value);
+        }}
         onChange={e => {
-          if (composing.current) { setDraft(e.target.value); return; }
-          if (committedComposition.current === e.target.value) { committedComposition.current = null; return; }
-          committedComposition.current = null; race.input(e.target.value);
+          if (!composing.current && committedComposition.current === e.target.value) { committedComposition.current = null; return; }
+          committedComposition.current = null; onInput(e.target.value, composing.current);
         }} />
-      <div className={styles.status}><strong>{hit ? "피격! −15" : phase.watching ? "입력 금지" : hiddenAt(race.progress, race.now) ? "쓰레기통 안" : "전진 중"}</strong><span>{race.progress.distance} / {FINISH}</span></div>
     </div>}
-    {selfId && finished && <div className={styles.finished}>탈출 성공! 🎉</div>}
-    {(props.role === "teacher" || expired || finished) && <ol className={styles.ranking} aria-label="탈출 순위">{standings.map(runner => <li key={runner.id}><b>{standings.findIndex(other => score(other) === score(runner)) + 1}</b><span>{runner.label}</span><strong>{runner.distance >= FINISH ? "탈출 성공" : `${Math.round(runner.distance)} / ${FINISH}`}</strong></li>)}</ol>}
+    {(selfId === null || expired) && <ol className={styles.ranking} aria-label="탈출 순위">{standings.map(runner => <li key={runner.id} className={runner.id === selfId ? styles.ownRank : ""}><b>{standings.findIndex(other => other.escapes === runner.escapes) + 1}</b><span>{runner.label}</span><strong>{runner.escapes * ESCAPE_POINTS}<small>점</small></strong><em>{runner.escapes}회 탈출</em></li>)}</ol>}
   </div>;
-  return props.role === "student" ? <ImmersiveStage>{content}</ImmersiveStage> : content;
 }
