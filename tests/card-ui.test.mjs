@@ -51,6 +51,16 @@ try {
   assert.equal((disabledPicker.match(/ disabled=""/g) ?? []).length, expectedLabels.flat().length, "all game choices remain disabled while starting");
   const subset = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, games: pickerProps.games.filter((game) => game.id === "typing") }));
   assert.equal((subset.match(/<section\b/g) ?? []).length, 1, "unavailable games and empty groups are omitted");
+  const newGame = { ...pickerProps.games[0], id: "new-playable-game", title: "새 학습 게임" };
+  for (const games of [[...pickerProps.games, newGame], [newGame]]) {
+    const markup = renderToStaticMarkup(createElement(GamePicker, {
+      ...pickerProps, games, selectedId: newGame.id, disabled: true,
+    }));
+    assert.equal((markup.match(/<button\b/g) ?? []).length, games.length, "ungrouped games are offered exactly once");
+    const defaultGroup = markup.match(/<section\b[^>]*aria-label="게임"[^>]*>([\s\S]*?)<\/section>/)?.[1];
+    assert.ok(defaultGroup?.includes(newGame.title), "new games use their registry title in the default group");
+    assert.match(defaultGroup, /<button[^>]*aria-pressed="true"[^>]*disabled=""[^>]*>[\s\S]*새 학습 게임/, "new games preserve selection and disabled state");
+  }
   console.log("Teacher game picker grouping regression tests passed");
 } finally {
   await server.close();

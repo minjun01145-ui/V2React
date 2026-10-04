@@ -32,13 +32,20 @@ const GROUPS = [
   ] },
 ] as const;
 
+const groupedGameIds = new Set<string>(GROUPS.flatMap((group) => group.games.map(([id]) => id)));
+
 export default function GamePicker({ games, selectedId, onSelect, disabled }: Props) {
   return <div className={styles.picker}>
     {GROUPS.map(({ title, games: entries }) => {
-      const group = entries.flatMap(([id, label]) => {
+      const group: { game: GameDefinition; label: string }[] = entries.flatMap(([id, label]) => {
         const game = games.find((candidate) => candidate.id === id);
         return game ? [{ game, label }] : [];
       });
+      // Grouping controls presentation; new playable games must remain selectable.
+      if (title === "게임") {
+        group.push(...games.filter((game) => !groupedGameIds.has(game.id))
+          .map((game) => ({ game, label: game.title })));
+      }
       if (group.length === 0) return null;
       return <section className={styles.group} key={title} aria-label={title}>
         <h3 className={styles.heading}>{title}</h3>

@@ -17,9 +17,9 @@
 .rosterCard { overflow: hidden; }
 .rosterHeading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .tableWrap { overflow-x: auto; }
-table { width: 100%; min-width: 760px; border-collapse: collapse; }
-th, td { padding: .8rem .65rem; border-top: 1px solid var(--color-border); text-align: left; vertical-align: middle; }
-th { color: var(--color-muted); font-size: .72rem; letter-spacing: .04em; }
+.tableWrap table { width: 100%; min-width: 760px; border-collapse: collapse; }
+.tableWrap th, .tableWrap td { padding: .8rem .65rem; border-top: 1px solid var(--color-border); text-align: left; vertical-align: middle; }
+.tableWrap th { color: var(--color-muted); font-size: .72rem; letter-spacing: .04em; }
 .activeBadge, .inactiveBadge { display: inline-flex; padding: .25rem .5rem; border-radius: 999px; font-size: .72rem; font-weight: 850; }
 .activeBadge { color: #17643a; background: #eaf8f0; }
 .inactiveBadge { color: #7f3940; background: #fff0f1; }

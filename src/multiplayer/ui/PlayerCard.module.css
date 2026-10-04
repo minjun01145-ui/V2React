@@ -32,8 +32,8 @@
   width: 6rem;
   height: 6rem;
   border-radius: 50%;
-  background: var(--surface-muted, #eef0f4);
-  border: 2px dashed var(--border-muted, #c4c9d4);
+  background: var(--color-surface-muted);
+  border: 2px dashed var(--color-border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,7 +42,7 @@
 .avatar[data-empty="true"]::after {
   content: "미설정";
   font-size: 0.75rem;
-  color: var(--text-muted, #8a90a0);
+  color: var(--color-muted);
 }
 
 .meta {
@@ -64,7 +64,7 @@
 
 .studentNumber {
   font-size: 0.78rem;
-  color: var(--text-muted, #8a90a0);
+  color: var(--color-muted);
 }
 
 .selfBadge {
@@ -72,7 +72,7 @@
   font-weight: 700;
   padding: 0.15rem 0.4rem;
   border-radius: 999px;
-  background: var(--accent, #4f6bff);
+  background: var(--color-primary);
   color: #fff;
 }
 
