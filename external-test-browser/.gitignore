@@ -3,3 +3,4 @@ node_modules/
 .profile/
 .test-profile/
 .artifacts/
+.profile-*/
