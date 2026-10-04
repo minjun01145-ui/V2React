@@ -46,15 +46,22 @@ export function buildBrickQuestions(set: RuntimeLearningSet, config: Readonly<Re
   }).questions;
 }
 
-export function strikeBrick(progress: BrickProgress, question: BrickQuestion, optionId: string,
-  context: { readonly item: BrickItemId | null; readonly buffs: BrickBuffs; readonly now: number } = { item: null, buffs: EMPTY_BRICK_BUFFS, now: 0 }) {
+export interface BrickStrikeContext {
+  readonly itemAt: (index: number) => BrickItemId | null;
+  readonly buffs: BrickBuffs;
+  readonly now: number;
+}
+const NO_ITEMS: BrickStrikeContext = { itemAt: () => null, buffs: EMPTY_BRICK_BUFFS, now: 0 };
+
+export function strikeBrick(progress: BrickProgress, question: BrickQuestion, optionId: string, context: BrickStrikeContext = NO_ITEMS) {
   const evaluated = evaluateMultipleChoice(question, { optionId }, 1);
   const correct = evaluated.isCorrect;
   const protectedMiss = !correct && context.buffs.shield;
-  const item = correct ? context.item : null;
+  // Every brick the hammer itself hits pays out its item; blast debris cannot hold one (see brickItemAt).
+  const hammered = correct ? context.buffs.hammer > context.now ? 2 : 1 : 0;
+  const item = Array.from({ length: hammered }, (_, offset) => context.itemAt(progress.currentIndex + offset)).find(Boolean) ?? null;
   let buffs = activateBrickItem(context.buffs, item, context.now);
   if (protectedMiss) buffs = { ...buffs, shield: false };
-  // Collateral bricks never trigger their pickups, so a blast cannot cascade forever.
   const removedCount = correct ? 1 + (buffs.hammer > context.now ? 1 : 0) + (item === "bomb" ? BRICK_ITEM_EFFECTS.bomb.extra : 0) : 0;
   const result = createAnswerResult<BrickDetails>({ isCorrect: correct,
     scoreDelta: removedCount * (buffs.gold > context.now ? 2 : 1),

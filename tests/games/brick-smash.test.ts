@@ -50,37 +50,43 @@ const first = questions[0]!;
 const correctId = first.correctOptionId;
 const wrongId = first.options.find((option) => option.id !== correctId)!.id;
 const empty = createEmptyProgress<MultipleChoiceEvaluationDetails>();
-const bomb = strikeBrick(empty, first, correctId, { item: "bomb", buffs: EMPTY_BRICK_BUFFS, now: 100 });
+const bomb = strikeBrick(empty, first, correctId, { itemAt: () => "bomb", buffs: EMPTY_BRICK_BUFFS, now: 100 });
 assert.equal(bomb.progress.currentIndex, 4);
 assert.equal(bomb.progress.score, 4);
 assert.equal(bomb.progress.correctCount, 1, "Collateral bricks are not extra correct answers");
 const hammer = activateBrickItem(EMPTY_BRICK_BUFFS, "hammer", 100);
 assert.equal(hammer.hammer, 20_100);
-assert.equal(strikeBrick(empty, first, correctId, { item: null, buffs: hammer, now: 20_099 }).progress.currentIndex, 2);
-assert.equal(strikeBrick(empty, first, correctId, { item: null, buffs: hammer, now: 20_100 }).progress.currentIndex, 1);
+assert.equal(strikeBrick(empty, first, correctId, { itemAt: () => null, buffs: hammer, now: 20_099 }).progress.currentIndex, 2);
+assert.equal(strikeBrick(empty, first, correctId, { itemAt: () => null, buffs: hammer, now: 20_100 }).progress.currentIndex, 1);
 const gold = activateBrickItem(hammer, "gold", 100);
-const stacked = strikeBrick(empty, first, correctId, { item: "bomb", buffs: gold, now: 101 });
+const stacked = strikeBrick(empty, first, correctId, { itemAt: () => "bomb", buffs: gold, now: 101 });
 assert.equal(stacked.progress.currentIndex, 5);
 assert.equal(stacked.progress.score, 10);
-assert.equal(strikeBrick(empty, first, correctId, { item: null, buffs: gold, now: 20_100 }).progress.score, 1);
+assert.equal(strikeBrick(empty, first, correctId, { itemAt: () => null, buffs: gold, now: 20_100 }).progress.score, 1);
 assert.equal(activateBrickItem(hammer, "hammer", 1_000).hammer, 21_000, "Repicking refreshes duration");
-assert.equal(activateBrickItem(EMPTY_BRICK_BUFFS, "lightning", 100).lightning, 10_100);
 const shield = activateBrickItem(EMPTY_BRICK_BUFFS, "shield", 100);
-const guarded = strikeBrick({ ...empty, combo: 5 }, first, wrongId, { item: "bomb", buffs: shield, now: 200 });
+const guarded = strikeBrick({ ...empty, combo: 5 }, first, wrongId, { itemAt: () => "bomb", buffs: shield, now: 200 });
 assert.equal(guarded.progress.combo, 5);
 assert.equal(guarded.progress.currentIndex, 0);
 assert.equal(guarded.progress.score, 0);
 assert.equal(guarded.result.details?.activatedItem, null, "A wrong hit never activates a special brick");
 assert.equal(guarded.result.details?.buffs?.shield, false);
-const unguarded = strikeBrick(guarded.progress, first, wrongId, { item: null, buffs: guarded.result.details!.buffs!, now: 201 });
+const unguarded = strikeBrick(guarded.progress, first, wrongId, { itemAt: () => null, buffs: guarded.result.details!.buffs!, now: 201 });
 assert.equal(unguarded.progress.combo, 0);
 assert.deepEqual(parseBrickBuffs(JSON.parse(JSON.stringify(gold))), gold, "Reconnect restores absolute expiry without extending it");
-assert.deepEqual(parseBrickBuffs({ hammer: Infinity, gold: -1, lightning: "1000", shield: "true" }), EMPTY_BRICK_BUFFS);
+assert.deepEqual(parseBrickBuffs({ hammer: Infinity, gold: -1, shield: "true" }), EMPTY_BRICK_BUFFS);
 assert.deepEqual(parseBrickBuffs(null), EMPTY_BRICK_BUFFS);
-const drops = Array.from({ length: 45 }, (_, i) => brickItemAt("round", i)).filter(Boolean);
-assert.equal(drops.length, 5);
+// Regression: a special brick knocked out by the double hammer's second head used to vanish without effect.
+const secondHead = strikeBrick(empty, first, correctId, { itemAt: (index) => index === 1 ? "gold" : null, buffs: hammer, now: 200 });
+assert.equal(secondHead.result.details?.activatedItem, "gold");
+assert.equal(secondHead.result.details?.buffs?.gold, 20_200);
+assert.equal(strikeBrick(empty, first, correctId, { itemAt: (index) => index === 1 ? "gold" : null, buffs: EMPTY_BRICK_BUFFS, now: 200 }).result.details?.activatedItem, null);
+const drops = Array.from({ length: 36 }, (_, i) => brickItemAt("round", i)).filter(Boolean);
+assert.equal(drops.length, BRICK_ITEM_IDS.length);
 assert.deepEqual([...drops].sort(), [...BRICK_ITEM_IDS].sort());
-assert.deepEqual(drops, Array.from({ length: 45 }, (_, i) => brickItemAt("round", i)).filter(Boolean));
+const dropIndexes = Array.from({ length: 900 }, (_, i) => i).filter((i) => brickItemAt("round", i));
+assert.ok(dropIndexes.every((index, i) => i === 0 || index - dropIndexes[i - 1]! > 5), "One strike (max 5 bricks) can never reach two special bricks");
+assert.deepEqual(drops, Array.from({ length: 36 }, (_, i) => brickItemAt("round", i)).filter(Boolean));
 
 const reading: LearningSet = { ...set, type: "reading-chunks", itemCount: 2, items: [
   { id: "s1", sourceText: "I / like / apples", meaning: "나는 사과를 좋아해요" },
@@ -98,7 +104,7 @@ for (const count of ["2", "3"]) {
     const wrong = question.options.find((option) => option.id !== question.correctOptionId)!;
     const retry = strikeBrick(sentenceProgress, question, wrong.id);
     assert.equal(currentBrickQuestion(sentences, retry.progress).id, question.id);
-    sentenceProgress = strikeBrick(retry.progress, question, question.correctOptionId, { item: "bomb", buffs: hammer, now: 200 }).progress;
+    sentenceProgress = strikeBrick(retry.progress, question, question.correctOptionId, { itemAt: () => "bomb", buffs: hammer, now: 200 }).progress;
     assert.equal(sentenceProgress.currentIndex, (i + 1) * 5);
     assert.equal(currentBrickQuestion(sentences, sentenceProgress).id, sentences[(i + 1) % sentences.length]?.id, "Items must not skip sentence chunks");
   }

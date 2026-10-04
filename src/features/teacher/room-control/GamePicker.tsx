@@ -25,6 +25,7 @@ const GROUPS = [
     ["cooperative-sentence-builder", "커플 문장 만들기"],
     ["pokemon-catch", "포켓몬 잡기"],
     ["meaning-dash", "달리기"],
+    ["brick-smash", "벽돌 팡팡"],
     ["chunk-line-up", "플랫포머 문장 만들기"],
     ["chunk-jump-race", "점프 문장 만들기"],
   ] },

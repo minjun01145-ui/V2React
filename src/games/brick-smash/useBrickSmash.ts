@@ -68,7 +68,7 @@ export function useBrickSmash({ roomId, session, player, questions, expired }: S
     const previousProgress = current.current;
     const question = currentBrickQuestion(questions, previousProgress);
     const next = strikeBrick(previousProgress, question, optionId, {
-      item: brickItemAt(session.roundId, previousProgress.currentIndex), buffs: buffsRef.current, now: Date.now(),
+      itemAt: (index) => brickItemAt(session.roundId, index), buffs: buffsRef.current, now: Date.now(),
     });
     buffsRef.current = next.result.details?.buffs ?? EMPTY_BRICK_BUFFS;
     setBuffs(buffsRef.current);

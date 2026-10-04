@@ -36,12 +36,14 @@ try {
   const expectedLabels = [
     ["AI 문답", "객관식 퀴즈", "짝 맞추기(모든 카드)", "짝 맞추기(일부 카드)", "문장 만들기"],
     ["문장 타자", "산성비", "무궁화 탈출"],
-    ["학습 점프타워", "1:1 배틀", "단어 우노", "커플 문장 만들기", "포켓몬 잡기", "달리기", "플랫포머 문장 만들기", "점프 문장 만들기"],
+    ["학습 점프타워", "1:1 배틀", "단어 우노", "커플 문장 만들기", "포켓몬 잡기", "달리기", "벽돌 팡팡", "플랫포머 문장 만들기", "점프 문장 만들기"],
   ];
   groups.forEach((group, index) => {
     const labels = [...group[2].matchAll(/<button\b[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span><\/button>/g)].map((match) => match[1]);
     assert.deepEqual(labels, expectedLabels[index], "teacher picker preserves the requested groups and order");
   });
+  // Regression: brick-smash was registered but never offered, so teachers could not start it.
+  assert.equal((picker.match(/<button\b/g) ?? []).length, pickerProps.games.filter((game) => game.id !== "placeholder").length, "every playable registered game is offered in the picker");
   const selectedButtons = [...picker.matchAll(/<button[^>]*aria-pressed="true"[^>]*>([\s\S]*?)<\/button>/g)];
   assert.equal(selectedButtons.length, 1);
   assert.ok(selectedButtons[0][1].includes("짝 맞추기(모든 카드)"), "the renamed choice retains its original game id selection");
