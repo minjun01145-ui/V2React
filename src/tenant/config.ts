@@ -1,5 +1,5 @@
 import { appConfig } from "../config/appConfig.ts";
-import hanaLogo from "../shared/ui/hana-logo.svg";
+import hanaLogo from "../shared/ui/hana-logo.webp";
 import primaryLogo from "../shared/ui/logo.png";
 import { isTenantId, PRIMARY_TENANT_ID, SECONDARY_TENANT_ID, type TenantId } from "./scope.ts";
 
