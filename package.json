@@ -1,7 +1,7 @@
 {
   "name": "minjun-game-v2r",
   "private": true,
-  "version": "2.8.2",
+  "version": "2.8.3",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -33,7 +33,7 @@
     "test:ui": "node tests/card-ui.test.mjs",
     "test:routing": "node --experimental-strip-types tests/teacher-route-smoke.ts && node --experimental-strip-types tests/tenant-scope.test.ts && node --experimental-strip-types tests/slide-show-model.test.ts && node --experimental-strip-types tests/student-picker.test.ts && node --experimental-strip-types tests/slide-show-timer.test.ts && node --experimental-strip-types --experimental-test-module-mocks tests/slide-show-session.test.mjs",
     "test:bgm": "node --experimental-strip-types tests/teacher-bgm.test.ts",
-    "test:student-session": "node --experimental-strip-types tests/student-session-state.test.ts && node --experimental-strip-types tests/random-nickname.test.ts",
+    "test:student-session": "node --experimental-strip-types tests/student-session-state.test.ts && node --experimental-strip-types --experimental-test-module-mocks tests/student-session-presence.test.mjs && node --experimental-strip-types tests/random-nickname.test.ts",
     "test:student-questions": "node --experimental-strip-types tests/student-questions.test.ts",
     "test:free-response": "node --experimental-strip-types tests/free-response.test.ts",
     "test:presence": "node --experimental-strip-types tests/multiplayer-presence.test.ts && node --experimental-strip-types tests/multiplayer-readiness.test.ts",

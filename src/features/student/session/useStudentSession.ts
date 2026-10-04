@@ -49,7 +49,8 @@ export function useStudentSession({
     loading: participantLoading,
     error: participantError,
   } = useRoundParticipant(roomId, activeRoundId, identity.uid);
-  const heartbeat = usePlayerHeartbeat(roomId, identity.uid, Boolean(player) && session?.status !== SESSION_STATUS.PLAYING);
+  // Room presence outlives each round, including games and slideshow navigation.
+  const heartbeat = usePlayerHeartbeat(roomId, identity.uid, Boolean(player));
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState<Error | null>(null);
   const [readinessError, setReadinessError] = useState<Error | null>(null);
