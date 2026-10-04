@@ -58,7 +58,9 @@ function commitVersion() {
   const override = process.env.V2R_RELEASE;
   if (override && !["patch", "feature"].includes(override)) throw new Error("V2R_RELEASE는 patch 또는 feature만 가능합니다.");
   const kind = newGame || override === "feature" ? "feature" : "patch";
-  const version = nextVersion(previous.version, kind);
+  // A user can pin a release to an earlier version; retain every published entry.
+  const latestVersion = previous.releases.reduce((latest, release) => Number(release.version) > Number(latest) ? release.version : latest, previous.version);
+  const version = nextVersion(latestVersion, kind);
   const history = {
     version,
     releases: [...previous.releases, {

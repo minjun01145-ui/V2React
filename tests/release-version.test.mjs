@@ -89,6 +89,34 @@ test("adding a new game bumps a tenth; editing an existing game is a patch", (t)
   assert.equal(read("release-history.json").version, "2.11");
 });
 
+test("a user-pinned earlier version preserves published history and avoids reusing a version", (t) => {
+  const { git, write, read } = fixture(t);
+  write("app.txt", "first patch\n");
+  git("add", "app.txt");
+  git("commit", "-m", "fix: first patch");
+  const history = read("release-history.json");
+  const baseline = history.releases.shift();
+  history.version = baseline.version;
+  history.releases.push(baseline);
+  write("release-history.json", history);
+  const pkg = read("package.json");
+  pkg.version = "2.0.0";
+  write("package.json", pkg);
+  const lock = read("package-lock.json");
+  lock.version = lock.packages[""].version = pkg.version;
+  write("package-lock.json", lock);
+  git("add", "release-history.json", "package.json", "package-lock.json");
+  git("-c", "core.hooksPath=", "commit", "-m", "chore: user-pinned version");
+  write("app.txt", "next patch\n");
+  git("add", "app.txt");
+  git("commit", "-m", "fix: next patch");
+  const next = readHistory(JSON.stringify(read("release-history.json")));
+  assert.equal(next.version, "2.02");
+  assert.deepEqual(next.releases.slice(0, 2), history.releases);
+  assert.equal(read("package.json").version, "2.0.2");
+  assert.equal(read("package-lock.json").packages[""].version, "2.0.2");
+});
+
 test("partially staged package changes remain unstaged after versioning", (t) => {
   const { git, write, read } = fixture(t);
   const stagedPackage = read("package.json");
