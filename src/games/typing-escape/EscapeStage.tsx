@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { useEffect, useRef } from "react";
-import { FONT_FAMILY, TEXT_METRICS_SAMPLE, playerColor, shade } from "../../game-engine/phaser-kit/art.ts";
+import { BlobActor } from "../../game-engine/phaser-kit/BlobActor.ts";
+import { FONT_FAMILY, TEXT_METRICS_SAMPLE } from "../../game-engine/phaser-kit/art.ts";
 import { FINISH } from "./model.ts";
 import styles from "./TypingEscape.module.css";
 
@@ -11,7 +12,7 @@ const START_X = 112;
 const EXIT_X = 1015;
 const textStyle = { fontFamily: FONT_FAMILY, fontStyle: "bold", color: "#fff6d9", resolution: 2, testString: TEXT_METRICS_SAMPLE };
 interface Actor {
-  sprite: Phaser.GameObjects.Sprite; bin: Phaser.GameObjects.Image; lid: Phaser.GameObjects.Image;
+  id: string; character: BlobActor; bin: Phaser.GameObjects.Image; lid: Phaser.GameObjects.Image;
   tag: Phaser.GameObjects.Text; shadow: Phaser.GameObjects.Ellipse;
   x: number; y: number; distance: number; hits: number; escapes: number; stepAt: number;
 }
@@ -31,23 +32,6 @@ class EscapeScene extends Phaser.Scene {
     if (this.textures.exists(key)) return;
     const g = this.make.graphics({ x: 0, y: 0 });
     draw(g); g.generateTexture(key, width, height); g.destroy();
-  }
-  private runnerTextures(id: string) {
-    const color = playerColor(id);
-    for (let frame = 0; frame < 4; frame++) this.texture(`escape-${id}-${frame}`, 48, 64, g => {
-      const rect = (x: number, y: number, w: number, h: number, c: number) => g.fillStyle(c).fillRect(x, y, w, h);
-      const swing = [0, 5, 0, -5][frame]!;
-      rect(11, 6, 27, 24, INK); rect(14, 9, 24, 19, 0xffd499);
-      rect(10, 5, 26, 8, INK); rect(10, 10, 9, 8, INK); rect(11, 3, 23, 6, shade(color, -0.4));
-      rect(28, 13, 9, 10, 0xfff9df); rect(33, 16, 4, 5, INK); rect(38, 20, 5, 5, 0xffd499);
-      rect(30, 26, 9, 3, INK); rect(13, 28, 24, 25, INK); rect(16, 30, 18, 20, color);
-      rect(16, 35, 18, 4, shade(color, -0.3)); rect(16, 44, 18, 3, shade(color, -0.3));
-      rect(7 - swing / 2, 31, 10, 8, INK); rect(5 - swing / 2, 35, 10, 8, 0xffd499);
-      rect(33, 33 - swing / 2, 11, 7, INK); rect(38, 30 - swing / 2, 8, 7, 0xffd499);
-      rect(14 + swing, 50, 9, 10, INK); rect(26 - swing, 50, 9, 10, INK);
-      rect(11 + swing, 58, 13, 5, INK); rect(25 - swing, 58, 15, 5, INK);
-      rect(17 + swing, 51, 4, 7, color); rect(28 - swing, 51, 4, 7, color);
-    });
   }
   create() {
     const g = this.add.graphics();
@@ -166,8 +150,11 @@ class EscapeScene extends Phaser.Scene {
     trace.lineStyle(3, 0xfff7c2).lineBetween(582, 444, x, y);
     trace.fillStyle(0xffe7a1).fillPoints([{ x: x - 26, y }, { x, y: y - 34 }, { x: x + 24, y }, { x, y: y + 27 }], true);
     this.tweens.add({ targets: trace, alpha: 0, duration: 170, onComplete: () => trace.destroy() });
-    const ghost = this.add.sprite(x, actor.y, actor.sprite.texture.key).setOrigin(.5, 1).setScale(actor.sprite.scaleX).setDepth(96);
-    this.tweens.add({ targets: ghost, x: x - 80, y: actor.y - 140, angle: -230, alpha: 0, duration: 650, ease: "Cubic.Out", onComplete: () => ghost.destroy() });
+    const ghost = new BlobActor(this, actor.id, false);
+    ghost.update({ x, feetY: actor.y, vx: 160, vy: -200 }, this.time.now, 16);
+    ghost.tag.setVisible(false);
+    ghost.container.setScale(actor.character.container.scaleX).setDepth(96);
+    this.tweens.add({ targets: ghost.container, x: x - 80, y: actor.y - 140, angle: -230, alpha: 0, duration: 650, ease: "Cubic.Out", onComplete: () => ghost.destroy() });
     const lid = this.add.image(x, actor.y - 52, "escape-lid").setDepth(97);
     this.tweens.add({ targets: lid, x: x + 60, y: actor.y - 120, angle: 270, alpha: 0, duration: 700, onComplete: () => lid.destroy() });
     this.burst(x, y, [0xffe7a1, 0xf56544, 0xf5efcf], 15);
@@ -175,8 +162,11 @@ class EscapeScene extends Phaser.Scene {
     if (local && !this.reducedMotion) { this.cameras.main.shake(220, .009); this.cameras.main.flash(90, 245, 101, 68); }
   }
   private celebrate(actor: Actor, local: boolean) {
-    const runner = this.add.sprite(EXIT_X, actor.y, actor.sprite.texture.key).setOrigin(.5, 1).setScale(actor.sprite.scaleX).setDepth(96);
-    this.tweens.add({ targets: runner, x: 1130, y: actor.y - 100, angle: 25, alpha: 0, duration: 650, ease: "Cubic.Out", onComplete: () => runner.destroy() });
+    const runner = new BlobActor(this, actor.id, false);
+    runner.update({ x: EXIT_X, feetY: actor.y, vx: 160, vy: -200 }, this.time.now, 16);
+    runner.tag.setVisible(false);
+    runner.container.setScale(actor.character.container.scaleX).setDepth(96);
+    this.tweens.add({ targets: runner.container, x: 1130, y: actor.y - 100, angle: 25, alpha: 0, duration: 650, ease: "Cubic.Out", onComplete: () => runner.destroy() });
     this.burst(EXIT_X, actor.y - 40, [0xc6ed65, 0xffd46b, 0xf56544, 0x72b8cf, 0xfff5d8], 28);
     this.pop(EXIT_X - 20, actor.y - 70, "+100", "#dfff83");
     if (local && !this.reducedMotion) this.cameras.main.flash(100, 218, 248, 161);
@@ -193,7 +183,7 @@ class EscapeScene extends Phaser.Scene {
     this.wasWatching = state.watching;
     const ids = new Set(state.runners.map(r => r.id));
     for (const [id, actor] of this.actors) if (!ids.has(id)) {
-      actor.sprite.destroy(); actor.bin.destroy(); actor.lid.destroy(); actor.tag.destroy(); actor.shadow.destroy(); this.actors.delete(id);
+      actor.character.destroy(); actor.bin.destroy(); actor.lid.destroy(); actor.tag.destroy(); actor.shadow.destroy(); this.actors.delete(id);
     }
     const others = state.runners.filter(r => r.id !== state.selfId);
     const labelsByRow = new Map<number, number[]>();
@@ -207,8 +197,10 @@ class EscapeScene extends Phaser.Scene {
       const scale = local ? 1.12 : others.length > 20 ? .68 : .82;
       let actor = this.actors.get(runner.id);
       if (!actor) {
-        this.runnerTextures(runner.id);
-        actor = { sprite: this.add.sprite(targetX, y, `escape-${runner.id}-0`).setOrigin(.5, 1),
+        const character = new BlobActor(this, runner.id, local);
+        character.tag.setVisible(false);
+        character.container.setScale(scale * 1.35);
+        actor = { id: runner.id, character,
           bin: this.add.image(targetX, y, "escape-bin").setOrigin(.5, 1), lid: this.add.image(targetX, y - 47, "escape-lid").setOrigin(.5, 1),
           tag: this.add.text(targetX, y - 74, "", { ...textStyle, fontSize: local ? "17px" : "13px", stroke: "#192a31", strokeThickness: 4 }).setOrigin(.5, 1),
           shadow: this.add.ellipse(targetX, y, 42, 7, INK, .2),
@@ -228,11 +220,11 @@ class EscapeScene extends Phaser.Scene {
       const visible = !runner.hit && runner.distance < FINISH;
       const step = time - actor.stepAt;
       const hop = moving && step < 150 && !this.reducedMotion ? Math.sin(step / 150 * Math.PI) * 10 : 0;
-      actor.sprite.setTexture(`escape-${runner.id}-${moving ? Math.floor(time / 65) % 4 : 0}`).setPosition(actor.x, y - hop)
-        .setScale(scale).setDepth(y / 10 + 10).setVisible(visible && moving);
+      actor.character.update({ x: actor.x, feetY: y - hop, vx: moving ? 200 : 0, vy: 0, groundY: y }, time, delta);
+      actor.character.container.setScale(scale * 1.35).setDepth(y / 10 + 10).setVisible(visible && moving);
       actor.bin.setPosition(actor.x, y).setScale(scale).setDepth(y / 10 + 11).setVisible(visible && !moving);
       actor.lid.setPosition(actor.x, y - 47 * scale).setScale(scale).setAngle(moving ? -18 : 0).setDepth(y / 10 + 12).setVisible(visible && !moving);
-      actor.shadow.setPosition(actor.x, y).setScale(scale).setDepth(6).setVisible(visible);
+      actor.shadow.setPosition(actor.x, y).setScale(scale).setDepth(6).setVisible(visible && !moving);
       actor.tag.setText(`${local ? "▼ " : ""}${runner.label}${runner.escapes ? ` · ${runner.escapes}` : ""}`)
         .setPosition(actor.x, y - 66 * scale - hop).setDepth(70).setColor(local ? "#e2ff83" : "#fff6d9");
       const labels = labelsByRow.get(y) ?? [];
