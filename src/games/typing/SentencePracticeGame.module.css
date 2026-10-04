@@ -1,41 +1,44 @@
-.game { composes: root from "../../game-engine/stage/GameLayout.module.css"; width: 100%; max-width: 1280px; margin: 0 auto; }
+.game { composes: root from "../../game-engine/stage/GameLayout.module.css"; width: 100%; max-width: 1280px; margin: 0 auto; border-radius: 1.75rem; color: #18233d; background: radial-gradient(circle at 12% 10%, rgba(143, 221, 255, .38), transparent 24%), radial-gradient(circle at 90% 18%, rgba(194, 163, 255, .3), transparent 28%), linear-gradient(145deg, #f8fbff, #eef0ff); }
 .hud { composes: hud from "../../game-engine/stage/GameLayout.module.css"; display: grid; gap: 8px; }
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.topbar h1 { margin: 0; font-size: var(--text-game-prompt); font-weight: 700; }
-.score { padding: 4px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); text-align: center; }
-.score small { display: block; color: var(--color-muted); font-size: var(--text-xs); }
+.topbar h1 { margin: 0; font-size: var(--text-game-prompt); font-weight: 800; letter-spacing: -.04em; }
+.score { padding: 4px 12px; border: 1px solid rgba(88, 101, 216, .15); border-radius: 1rem; background: rgba(255, 255, 255, .82); text-align: center; box-shadow: 0 8px 24px rgba(59, 69, 133, .08); }
+.score small { display: block; color: #79829b; font-size: var(--text-xs); font-weight: 800; }
 .score strong { font-size: var(--text-xl); font-weight: 800; }
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.metrics > div { padding: 4px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); text-align: center; }
-.metrics small { display: block; color: var(--color-muted); font-size: var(--text-xs); }
+.metrics > div { padding: 4px 8px; border: 1px solid rgba(88, 101, 216, .12); border-radius: 1rem; background: rgba(255, 255, 255, .75); text-align: center; }
+.metrics small { display: block; color: #77829b; font-size: var(--text-xs); font-weight: 850; }
 .metrics strong { margin: 0 4px; font-size: var(--text-xl); font-weight: 800; }
-.metrics span { color: var(--color-muted); font-size: var(--text-xs); }
+.metrics span { color: #929bb0; font-size: var(--text-xs); font-weight: 800; }
 .typingCard { composes: body from "../../game-engine/stage/GameLayout.module.css"; grid-row: 2; width: 100%; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 8px; }
-.cardHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--color-muted); font-size: var(--text-sm); }
-.cardHeader p { margin: 0; text-align: right; }
-.target { min-height: 0; overflow: auto; margin: 0; display: block; align-content: center; color: var(--color-muted); text-align: center; font-size: var(--text-game-prompt); font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
-.target span { color: var(--color-primary); }
+.cardHeader { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #6d7690; font-size: var(--text-sm); }
+.cardHeader > span { flex: 0 0 auto; padding: .32rem .62rem; border-radius: 999px; color: #fff; background: #6973db; font-weight: 900; }
+.cardHeader p { margin: 0; text-align: right; font-weight: 750; }
+.target { min-height: 0; overflow: auto; margin: 0; display: block; align-content: center; color: #a2a8b7; text-align: center; font-size: var(--text-game-prompt); font-weight: 850; line-height: 1.5; letter-spacing: -.025em; overflow-wrap: anywhere; }
+.target span { color: #168bd0; }
 .target b { color: inherit; font: inherit; }
-.target b[data-error="true"] { color: var(--color-danger); text-decoration: underline wavy; text-underline-offset: .28em; }
+.target b[data-error="true"] { color: #d04c5a; text-decoration: underline wavy rgba(208, 76, 90, .45); text-underline-offset: .28em; }
 .inputLabel { composes: footer from "../../game-engine/stage/GameLayout.module.css"; display: grid; gap: 6px; }
-.inputLabel > span { color: var(--color-muted); font-size: var(--text-sm); font-weight: 600; }
-.inputLabel textarea, .inputLabel input { width: 100%; min-width: 0; resize: none; padding: 10px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); color: var(--color-text); background: var(--color-surface); font: inherit; font-size: var(--text-game-card); }
-.inputLabel textarea:focus, .inputLabel input:focus { outline: none; border-color: var(--color-primary); box-shadow: var(--focus-ring); }
-.inputLabel textarea[aria-invalid="true"], .inputLabel input[aria-invalid="true"] { border-color: var(--color-danger); background: var(--color-danger-soft); }
-.feedback { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 12px; border-radius: var(--radius-md); color: var(--color-muted); background: var(--color-surface-muted); font-size: var(--text-sm); font-weight: 600; }
-.feedback[data-tone="error"] { color: var(--color-danger); background: var(--color-danger-soft); }
-.feedback[data-tone="correct"] { color: var(--color-success); background: var(--color-success-soft); }
-.upcoming { min-height: 0; overflow: auto; margin: 0; padding-left: 24px; color: var(--color-muted); }
-.upcoming li { padding: 6px 0; border-top: 1px solid var(--color-border); overflow-wrap: anywhere; }
+.inputLabel > span { color: #626d87; font-size: var(--text-sm); font-weight: 850; }
+.inputLabel textarea, .inputLabel input { width: 100%; min-width: 0; resize: none; padding: 10px 12px; border: 2px solid #d8ddef; border-radius: 1rem; outline: none; color: #202b45; background: #fbfcff; font: inherit; font-size: var(--text-game-card); font-weight: 700; transition: border-color .15s, box-shadow .15s, background .15s; }
+.inputLabel textarea:focus, .inputLabel input:focus { outline: none; border-color: #6d75df; box-shadow: 0 0 0 4px rgba(109, 117, 223, .13); }
+.inputLabel textarea[aria-invalid="true"], .inputLabel input[aria-invalid="true"] { border-color: #dc6672; background: #fffafb; }
+.inputLabel textarea:disabled, .inputLabel input:disabled { color: #657087; background: #f2f4f9; }
+.feedback { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 12px; border-radius: 1rem; color: #68738c; background: #f5f7fb; font-size: var(--text-sm); font-weight: 800; }
+.feedback[data-tone="error"] { color: #b9414d; background: #fff0f2; }
+.feedback[data-tone="correct"] { color: #087d61; background: #e4f8f2; }
+.upcoming { min-height: 0; overflow: auto; margin: 0; padding-left: 24px; color: #68738c; }
+.upcoming li { padding: 6px 0; border-top: 1px solid #e2e6ef; overflow-wrap: anywhere; }
 .tableScroll { min-height: 0; overflow: auto; }
 .ranking { width: 100%; border-collapse: collapse; text-align: left; }
-.ranking th, .ranking td { padding: 8px; border-bottom: 1px solid var(--color-border); white-space: nowrap; }
+.ranking th, .ranking td { padding: 8px; border-bottom: 1px solid #e2e6ef; white-space: nowrap; }
 @media (max-width: 767px) { .game { height: auto; } .typingCard { overflow: visible; grid-template-rows: auto auto auto auto; } .target { min-height: 100px; } .topbar { flex-wrap: wrap; } }
-@media (max-width: 640px) { .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .feedback { flex-wrap: wrap; } }
+@media (max-width: 640px) { .game { border-radius: 1rem; } .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .feedback { flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .inputLabel textarea, .inputLabel input { transition: none; } }
 
 .topbar { composes: hud from "../../game-engine/stage/GameLayout.module.css"; }
 .body { composes: body from "../../game-engine/stage/GameLayout.module.css"; grid-row: 2; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
 .typingCard { grid-row: auto; grid-template-rows: auto minmax(0, 1fr) auto auto auto minmax(0, 1fr); }
-.typingCard > p:not(.target) { margin: 0; font-size: var(--text-sm); }
+.typingCard > p:not(.target) { margin: 0; color: #68738c; font-size: var(--text-sm); font-weight: 750; }
 .body > .typingCard:only-child { grid-row: 1 / -1; display: flex; flex-direction: column; justify-content: center; overflow: auto; }
 @media (max-width: 767px) { .body { overflow: visible; } .typingCard { grid-template-rows: auto auto auto auto auto auto; } }

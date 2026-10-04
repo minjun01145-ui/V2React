@@ -1,47 +1,57 @@
 :root {
   --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --color-bg: #f5f4f0;
+  --color-bg: #f3f5fa;
   --color-surface: #ffffff;
-  --color-surface-muted: #efeee9;
-  --color-surface-subtle: #f9f8f5;
-  --color-text: #1c1d1f;
-  --color-muted: #6a6c70;
-  --color-border: #e2e0da;
-  --color-border-strong: #c9c6be;
+  --color-surface-muted: #eceff7;
+  --color-surface-subtle: #f7f8fc;
+  --color-text: #101a3a;
+  --color-muted: #5d6888;
+  --color-border: #dde2ee;
+  --color-border-strong: #c2c9db;
 
-  --color-primary: #1f6f5c;
-  --color-primary-soft: #e3f1ec;
-  --color-primary-text: #134a3d;
-  --color-primary-hover: #185a4b;
-  --color-danger: #c0392b;
-  --color-danger-soft: #fbecea;
-  --color-danger-text: #9b2c20;
-  --color-danger-badge: #d85860;
-  --color-success: #2f855a;
-  --color-success-soft: #e6f4ec;
-  --color-warning: #b7791f;
-  --color-warning-soft: #fdf3e1;
+  --color-primary: #2338b8;
+  --color-primary-soft: #e7ebff;
+  --color-primary-text: #18267d;
+  --color-primary-hover: #1c2f9e;
+  --color-primary-shadow: #121f6e;
+  --color-danger: #e5383b;
+  --color-danger-soft: #fdeaea;
+  --color-danger-text: #b3191c;
+  --color-danger-badge: #ef5b5e;
+  --color-danger-shadow: #a8161a;
+  --color-success: #16a34a;
+  --color-success-soft: #e5f7ec;
+  --color-success-shadow: #0f7a37;
+  --color-warning: #f59e0b;
+  --color-warning-soft: #fff4dc;
 
-  /* Brand accent (brand mark only) */
-  --color-accent: #ffd967;
-  --color-accent-ink: #3a2e00;
+  /* Brand accent (CTA / active nav / selection) */
+  --color-accent: #ffc933;
+  --color-accent-hover: #ffd458;
+  --color-accent-ink: #1a1640;
+  --color-accent-shadow: #d49b00;
 
   /* Shared layout surfaces (cards, forms, inputs) */
-  --color-ink: #1c1d1f;
-  --color-ink-soft: #3d3f43;
-  --color-ink-muted: #6a6c70;
-  --color-landing-bg: #f5f4f0;
+  --color-ink: #101a3a;
+  --color-ink-soft: #2e3a5e;
+  --color-ink-muted: #5d6888;
+  --color-landing-bg: #f3f5fa;
   --color-landing-surface: #ffffff;
-  --color-landing-border: #e2e0da;
+  --color-landing-border: #dde2ee;
   --color-landing-input-bg: #ffffff;
-  --color-landing-input-focus: #1f6f5c;
-  --color-landing-input-focus-ring: rgba(31, 111, 92, 0.16);
+  --color-landing-input-focus: #2338b8;
+  --color-landing-input-focus-ring: rgba(35, 56, 184, 0.18);
 
-  --shadow-card: 0 1px 2px rgba(28, 29, 31, 0.06);
-  --shadow-pop: 0 8px 24px rgba(28, 29, 31, 0.12);
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --shadow-card: 0 1px 2px rgba(16, 26, 58, 0.06), 0 2px 8px rgba(16, 26, 58, 0.05);
+  --shadow-raised: 0 1px 2px rgba(16, 26, 58, 0.06), 0 10px 30px -12px rgba(16, 26, 58, 0.22);
+  --shadow-pop: 0 14px 36px rgba(16, 26, 58, 0.18);
+  --shadow-tactile: 0 4px 0 rgba(16, 26, 58, 0.12);
+  --shadow-card-tactile: 0 5px 0 rgba(16, 26, 58, 0.12), 0 12px 22px -14px rgba(16, 26, 58, 0.3);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
@@ -52,7 +62,7 @@
   --text-game-card: clamp(1rem, 0.85rem + 1vh, 1.375rem);
   --text-game-hud: var(--text-sm);
   --game-gap: clamp(8px, 1.4vh, 16px);
-  --focus-ring: 0 0 0 3px rgba(31, 111, 92, 0.24);
+  --focus-ring: 0 0 0 3px rgba(35, 56, 184, 0.28);
   --layout-max: 1040px;
   --layout-wide: 1280px;
   --space-1: 0.25rem;
@@ -62,15 +72,13 @@
   --space-5: 1.25rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
-  --color-brand-deep: #17463b;
-  --color-brand-deep-2: #1f5a4b;
-  --color-paper: #f3f1ea;
+  --color-brand-deep: #0f1846;
+  --color-brand-deep-2: #1a2563;
+  --color-paper: #f3f5fa;
   --color-on-brand: #ffffff;
-  --color-on-brand-muted: rgba(255, 255, 255, 0.72);
-  --pattern-dots-light: radial-gradient(rgba(23, 70, 59, 0.07) 1px, transparent 1.5px) 0 0 / 18px 18px;
-  --pattern-dots-dark: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.5px) 0 0 / 18px 18px;
-  --shadow-raised: 0 1px 2px rgba(23, 70, 59, 0.06), 0 12px 32px -12px rgba(23, 70, 59, 0.28);
-  --shadow-tactile: 0 4px 0 rgba(23, 70, 59, 0.16);
-  --color-on-brand-hover-bg: rgba(255, 255, 255, 0.12);
-  --shadow-card-tactile: 0 5px 0 rgba(23, 70, 59, 0.16), 0 12px 22px -14px rgba(23, 70, 59, 0.32);
+  --color-on-brand-muted: rgba(255, 255, 255, 0.68);
+  --color-on-brand-hover-bg: rgba(255, 255, 255, 0.1);
+  /* Deprecated: dotted patterns are no longer used. */
+  --pattern-dots-light: none;
+  --pattern-dots-dark: none;
 }

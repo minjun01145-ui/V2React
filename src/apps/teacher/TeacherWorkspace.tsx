@@ -27,12 +27,14 @@ export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantCo
   return (
     <div className={styles.workspace}>
       <TeacherNav currentView={activeView} tenant={tenant} onLogout={signOutAdmin} />
-      {activeView === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
-      {activeView === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
-      {activeView === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
-      {activeView === TEACHER_VIEW.QUIZ_GAME ? <TeacherQuizGamePage roomId={roomId} /> : null}
-      {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
-      {activeView === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
+      <div className={styles.main}>
+        {activeView === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
+        {activeView === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
+        {activeView === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
+        {activeView === TEACHER_VIEW.QUIZ_GAME ? <TeacherQuizGamePage roomId={roomId} /> : null}
+        {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}
+        {activeView === TEACHER_VIEW.SETTINGS ? <TeacherSettingsPage roomId={roomId} /> : null}
+      </div>
     </div>
   );
 }

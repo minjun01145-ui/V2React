@@ -3,7 +3,10 @@
   min-height: 100vh;
   place-items: center;
   padding: clamp(1.25rem, 4vw, 3.5rem);
-  background: var(--pattern-dots-dark), var(--color-brand-deep);
+  background:
+    radial-gradient(900px 520px at 12% -8%, #2a3a9c 0%, transparent 60%),
+    radial-gradient(700px 480px at 100% 110%, #23307f 0%, transparent 60%),
+    var(--color-brand-deep);
 }
 
 .shell {
@@ -20,34 +23,41 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: clamp(1.5rem, 4vw, 2.5rem);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
+  border: 0;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, .25), 0 30px 60px -20px rgba(0, 0, 0, .5);
+  transform: rotate(-1.5deg);
+  transition: transform 200ms var(--ease-pop);
   text-decoration: none;
 }
+.brand:hover { transform: rotate(0) scale(1.01); }
 .brandMark { width: 100%; height: auto; }
 
 .loginPanel { display: grid; gap: 1.15rem; align-content: center; }
-.form { width: 100%; padding: clamp(1.35rem, 4vw, 2rem); border: 0; border-radius: 20px; background: var(--color-surface); box-shadow: var(--shadow-raised); display: grid; gap: .9rem; }
+.form { width: 100%; padding: clamp(1.35rem, 4vw, 2rem); border: 0; border-radius: 24px; background: var(--color-surface); box-shadow: 0 8px 0 rgba(0, 0, 0, .22), 0 30px 60px -24px rgba(0, 0, 0, .45); display: grid; gap: 1rem; }
 
-.form h2 { margin: .25rem 0 0; font-size: 1.35rem; }
+.form h2 { margin: .25rem 0 0; font-size: 1.5rem; font-weight: 900; letter-spacing: -.02em; }
 
 .field { display: grid; gap: .4rem; }
-.field label { color: var(--color-text); font-size: .8rem; font-weight: 700; }
-.field input { width: 100%; min-height: 2.9rem; padding: 0 .9rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); outline: none; color: var(--color-text); background: var(--color-surface); transition: border-color 150ms ease, box-shadow 150ms ease; }
+.field label { color: var(--color-text); font-size: .8125rem; font-weight: 800; }
+.field input { width: 100%; min-height: 52px; padding: 0 1rem; border: 2px solid var(--color-border); border-radius: 14px; outline: none; color: var(--color-text); background: var(--color-surface-subtle); font-size: 1.0625rem; font-weight: 600; transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease; }
 .field input::placeholder { color: var(--color-muted); }
-.field input:focus { border-color: var(--color-primary); box-shadow: var(--focus-ring); }
+.field input:hover { border-color: var(--color-border-strong); }
+.field input:focus { border-color: var(--color-primary); background: #fff; box-shadow: var(--focus-ring); }
 .field input:disabled { opacity: .6; }
 
-.error { margin: 0; padding: .65rem .75rem; border-radius: var(--radius-sm); color: var(--color-danger-text); background: var(--color-danger-soft); font-size: .82rem; line-height: 1.4; }
+.error { margin: 0; padding: .65rem .75rem; border-radius: 12px; color: var(--color-danger-text); background: var(--color-danger-soft); font-size: .82rem; font-weight: 700; line-height: 1.4; }
 
-.adminLink { justify-self: center; color: var(--color-on-brand); font-size: .8rem; font-weight: 700; text-decoration: none; transition: color 150ms ease; }
-.adminLink:hover { color: var(--color-on-brand); }
+.adminLink { justify-self: center; color: var(--color-on-brand-muted); font-size: .8rem; font-weight: 700; text-decoration: none; transition: color 150ms ease; }
+.adminLink:hover { color: #fff; }
 
 @media (max-width: 760px) {
   .page { align-items: start; padding: 1.5rem 1rem 2rem; }
   .shell { width: min(25rem, 100%); grid-template-columns: 1fr; gap: 1.15rem; }
   .brand { width: min(18rem, 82vw); justify-self: center; border-radius: 1.5rem; }
 }
-@media (prefers-reduced-motion: reduce) { .field input, .adminLink { transition: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .field input, .adminLink { transition: none; }
+  .brand, .brand:hover { transform: none; transition: none; }
+}

@@ -1,7 +1,9 @@
-.panel { display: flex; gap: 0.65rem; align-items: flex-start; margin-bottom: 0.85rem; padding: 0.85rem 1rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-surface); }
-.panel h2 { margin: 0; font-size: 1rem; }
+.panel { display: flex; gap: 0.65rem; align-items: flex-start; margin-bottom: 0.85rem; padding: 14px 16px; border: 0; border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-raised); }
+.panel h2 { margin: 0; font-size: 1rem; font-weight: 800; }
 .panel p { margin: 0.2rem 0 0; color: var(--color-muted); font-size: 0.88rem; }
-.dot { flex: 0 0 auto; width: 0.6rem; height: 0.6rem; margin-top: 0.4rem; border-radius: 999px; background: var(--color-muted); }
-.waiting .dot { background: var(--color-warning); }
-.error { border-color: var(--color-danger-soft); background: var(--color-danger-soft); }
+.dot { flex: 0 0 auto; width: 10px; height: 10px; margin-top: 0.4rem; border-radius: 999px; background: var(--color-muted); }
+.waiting .dot { background: var(--color-warning); animation: status-pulse 1.4s ease-in-out infinite; }
+.error { background: var(--color-danger-soft); box-shadow: inset 0 0 0 2px rgba(229, 56, 59, 0.25); }
 .error .dot { background: var(--color-danger); }
+@keyframes status-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .waiting .dot { animation: none; } }

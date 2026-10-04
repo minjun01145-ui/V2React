@@ -1,5 +1,5 @@
-.card { display: grid; gap: 16px; overflow: hidden; }
+.card { display: grid; gap: 16px; overflow: hidden; border-color: #c4b5fd; background: linear-gradient(145deg, var(--color-surface), #f5f3ff); }
 .studentHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.studentHeader h2 { margin: 0; font-size: var(--text-md); font-weight: 700; }
-.error { margin: 0; color: var(--color-danger-text); font-size: var(--text-sm); font-weight: 600; }
+.studentHeader h2 { margin: 0; font-size: var(--text-md); }
+.error { margin: 0; color: var(--color-danger-text); font-size: var(--text-sm); font-weight: 750; }
 @media (max-width: 480px) { .studentHeader { flex-direction: column; } }

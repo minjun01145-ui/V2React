@@ -5,7 +5,6 @@ const definitions = [
   defineGame({
     id: "typing-escape",
     title: "무궁화 탈출",
-    cover: new URL("./typing-escape/cover.svg", import.meta.url).href,
     category: "typing",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     requiresStoredSet: true,
@@ -26,7 +25,6 @@ const definitions = [
   }),
   defineGame({
     id: "ai-tutor",
-    cover: new URL("./ai-tutor/cover.svg", import.meta.url).href,
     title: "AI 문답",
     category: "quiz",
     supportedSetTypes: ["vocabulary", "reading-chunks", "student-questions"],
@@ -57,7 +55,6 @@ const definitions = [
   }),
   defineGame({
     id: "pokemon-catch",
-    cover: new URL("./pokemon-catch/cover.svg", import.meta.url).href,
     title: "포켓몬 잡기",
     category: "action",
     timing: "timed",
@@ -80,7 +77,6 @@ const definitions = [
   }),
   defineGame({
     id: "sentence-builder",
-    cover: new URL("./sentence-builder/cover.svg", import.meta.url).href,
     title: "문장 조립",
     category: "sentence",
     supportedSetTypes: ["reading-chunks"],
@@ -98,7 +94,6 @@ const definitions = [
   }),
   defineGame({
     id: "cooperative-sentence-builder",
-    cover: new URL("./cooperative-sentence-builder/cover.svg", import.meta.url).href,
     title: "짝꿍 문장 조립",
     category: "sentence",
     supportedSetTypes: ["reading-chunks"],
@@ -109,7 +104,6 @@ const definitions = [
   }),
   defineGame({
     id: "one-on-one-battle",
-    cover: new URL("./one-on-one-battle/cover.svg", import.meta.url).href,
     title: "1:1 대결",
     category: "quiz",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
@@ -143,7 +137,6 @@ const definitions = [
   }),
   defineGame({
     id: "word-uno",
-    cover: new URL("./word-uno/cover.svg", import.meta.url).href,
     title: "단어 우노",
     category: "card",
     timing: "timed",
@@ -166,7 +159,6 @@ const definitions = [
   }),
   defineGame({
     id: "simple-quiz",
-    cover: new URL("./simple-quiz/cover.svg", import.meta.url).href,
     title: "객관식 퀴즈",
     category: "quiz",
     supportedSetTypes: ["vocabulary"],
@@ -192,7 +184,6 @@ const definitions = [
   }),
   defineGame({
     id: "typing",
-    cover: new URL("./typing/cover.svg", import.meta.url).href,
     title: "문장 타자",
     category: "typing",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
@@ -238,7 +229,6 @@ const definitions = [
   }),
   defineGame({
     id: "acid-rain",
-    cover: new URL("./acid-rain/cover.svg", import.meta.url).href,
     title: "산성비",
     category: "typing",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
@@ -248,7 +238,6 @@ const definitions = [
   }),
   defineGame({
     id: "matching",
-    cover: new URL("./matching/cover.svg", import.meta.url).href,
     title: "짝 맞추기",
     category: "card",
     supportedSetTypes: ["vocabulary"],
@@ -259,7 +248,6 @@ const definitions = [
   }),
   defineGame({
     id: "matching-all",
-    cover: new URL("./matching-all/cover.svg", import.meta.url).href,
     title: "짝 맞추기 · 전체",
     category: "card",
     supportedSetTypes: ["vocabulary"],
@@ -270,7 +258,6 @@ const definitions = [
   }),
   defineGame({
     id: "meaning-dash",
-    cover: new URL("./meaning-dash/cover.svg", import.meta.url).href,
     title: "뜻 달리기 (실험)",
     category: "action",
     supportedSetTypes: ["vocabulary"],
@@ -282,7 +269,6 @@ const definitions = [
   defineGame({
     id: "brick-smash",
     title: "벽돌 팡팡",
-    cover: new URL("./brick-smash/cover.svg", import.meta.url).href,
     category: "action",
     supportedSetTypes: ["vocabulary", "reading-chunks"],
     requiresStoredSet: true,
@@ -301,7 +287,6 @@ const definitions = [
   }),
   defineGame({
     id: "chunk-line-up",
-    cover: new URL("./chunk-line-up/cover.svg", import.meta.url).href,
     title: "끊어읽기 줄 세우기",
     category: "action",
     timing: "timed",
@@ -314,7 +299,6 @@ const definitions = [
   }),
   defineGame({
     id: "chunk-jump-race",
-    cover: new URL("./chunk-jump-race/cover.svg", import.meta.url).href,
     title: "끊어읽기 점프",
     category: "action",
     timing: "timed",
@@ -338,7 +322,6 @@ const definitions = [
   defineGame({
     id: "learning-jump-tower",
     title: "학습 점프타워",
-    cover: new URL("./learning-jump-tower/cover.svg", import.meta.url).href,
     category: "action",
     supportedSetTypes: ["vocabulary"],
     requiresStoredSet: true,

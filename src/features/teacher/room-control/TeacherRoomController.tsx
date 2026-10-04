@@ -13,6 +13,7 @@ import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
+import { coverArt, isCoverKey } from "../../../shared/ui/coverArt.ts";
 import ActivityLaunchPanel from "./ActivityLaunchPanel.tsx";
 import styles from "./TeacherRoomController.module.css";
 import { useGameSetup } from "./useGameSetup.ts";
@@ -120,10 +121,11 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const activityTitle = launch.activityKind === "game" ? gameSetup.selectedGame.title
     : launch.activityKind === "quiz" ? launch.quizPlan?.name ?? "퀴즈쇼"
     : launch.activityKind === "questions" ? "질문 만들기" : "학생 질문 AI 문답";
+  const statusArt = isPlaying && session ? (quizGame ? null : isCoverKey(session.gameId) ? coverArt(session.gameId) : null) : isPreparing ? null : launch.activityKind === "game" && isCoverKey(gameSetup.selectedGame.id) ? coverArt(gameSetup.selectedGame.id) : null;
   const actions = isPlaying || isPreparing ? <>
-    {isPreparing ? <Button disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
+    {isPreparing ? <Button variant="accent" disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
     <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetQuizAwareSession)}>대기실로 돌아가기</Button>
-  </> : <Button size="lg" disabled={working || loading || activePlayers.length === 0 || launch.invalidSelection} onClick={() => void launch.start()}>{working ? "처리 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
+  </> : <Button variant="accent" size="lg" disabled={working || loading || activePlayers.length === 0 || launch.invalidSelection} onClick={() => void launch.start()}>{working ? "처리 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
 
   const content = <>
     <RoomStatusBar
@@ -132,14 +134,17 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
       {...(isPreparing ? {} : { title: isPlaying && session ? quizGame ? "퀴즈쇼" : getGame(session.gameId).title : activityTitle })}
       tone={isPlaying ? "playing" : isPreparing ? "preparing" : "waiting"}
       actions={actions}
+      art={statusArt}
     />
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
-    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : <div className={styles.lobbyGrid}>
-      <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
-      {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
-      {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading} launch={launch} /> : null}
-      {!isQuestionActivity ? <LobbyToolsPanel roomId={roomId} players={activePlayers} session={session} disabled={working || loading} typingDisabled={working} /> : null}
+    {isPlaying && session ? (quizGame ? <TeacherQuizGameRuntime roomId={roomId} session={session} quizGame={quizGame} /> : <GameHost role="teacher" roomId={roomId} session={session} />) : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : <div className={styles.lobbyGrid} data-has-side={!isQuestionActivity}>
+      <div className={styles.mainColumn}>
+        <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
+        {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
+        {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading} launch={launch} /> : null}
+      </div>
+      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} players={activePlayers} session={session} disabled={working || loading} typingDisabled={working} /></aside> : null}
     </div>}
   </>;
 

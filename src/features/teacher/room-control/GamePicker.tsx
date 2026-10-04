@@ -1,5 +1,6 @@
 import type { GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
 import CoverTile from "../../../shared/ui/CoverTile.tsx";
+import { coverArt, isCoverKey } from "../../../shared/ui/coverArt.ts";
 import styles from "./GamePicker.module.css";
 
 interface Props {
@@ -42,7 +43,7 @@ export default function GamePicker({ games, selectedId, onSelect, disabled }: Pr
       return <section className={styles.group} key={title} aria-label={title}>
         <h3 className={styles.heading}>{title}</h3>
         <div className={styles.cards}>
-          {group.map(({ game, label }) => <CoverTile key={game.id} title={label} cover={game.cover} selected={selectedId === game.id} disabled={disabled} onClick={() => onSelect(game.id)} />)}
+          {group.map(({ game, label }) => <CoverTile key={game.id} title={label} art={isCoverKey(game.id) ? coverArt(game.id) : null} selected={selectedId === game.id} disabled={disabled} onClick={() => onSelect(game.id)} />)}
         </div>
       </section>;
     })}

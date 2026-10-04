@@ -148,7 +148,7 @@ export default function StudentLoginPage({ roomId, tenant, onAuthenticated }: Pr
 
             {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
-            <Button type="submit" full disabled={submitting}>{submitting ? "확인 중…" : "로그인"}</Button>
+            <Button type="submit" variant="accent" size="lg" full disabled={submitting}>{submitting ? "확인 중…" : "로그인"}</Button>
           </form>
 
           <a className={styles.adminLink} href={teacherUrl(roomId, tenant)}>관리자 페이지</a>

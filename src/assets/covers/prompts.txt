@@ -1,0 +1,69 @@
+게임별 대표 이미지 생성 프롬프트
+================================
+
+사용법
+- 아래 [공통 스타일] 문단 + 게임별 [장면] 문장을 이어 붙여 이미지 생성기에 넣습니다.
+- {BG}에는 게임별 배경색을 넣습니다. (이미지가 없을 때 쓰는 임시 타일 색과 같은 색입니다.)
+- 결과물은 1280x800(16:10) webp로 저장해 이 폴더에 `<파일명>.webp`로 넣으면 다음 빌드부터 자동 반영됩니다.
+- 17개를 같은 세션/같은 시드 계열로 연달아 만들면 그림체가 잘 통일됩니다. 첫 장이 마음에 들면 그 이미지를 참고 이미지로 함께 넣으세요.
+
+[공통 스타일]
+Cute, chunky cartoon game-cover illustration in the style of Blooket "blooks" and mobile-game stickers: one round, adorable original character with big glossy eyes and an exaggerated funky expression, thick dark-navy outlines (#101a3a), flat cel shading with a single soft highlight, simple bold shapes, vivid saturated colors. Solid background color {BG} with a subtle radial light burst behind the character and two or three tiny floating shapes (stars, sparkles, confetti). Centered composition, the character fills about 70% of the image height. No text, no letters, no numbers, no logos, no UI, no watermark, no realistic rendering, no 3D render look. Aspect ratio 16:10.
+
+[게임별 장면]
+typing-escape.webp (무궁화 탈출) — BG #e8456b
+  A tiny runner character frozen mid-tiptoe behind a giant pink hibiscus flower, sneaking with a nervous sweaty grin, little motion lines.
+
+ai-tutor.webp (AI 문답) — BG #6c4ee8
+  A friendly round robot tutor with a screen face and a tiny graduation cap, holding up an empty speech bubble with a question-mark shape.
+
+pokemon-catch.webp (포켓몬 잡기) — BG #f2a900
+  An excited kid character winding up to throw a red-and-white capture ball at a small, original, cute electric creature; sparks and lightning zigzags.
+
+sentence-builder.webp (문장 만들기) — BG #0a9bf0
+  A cheerful jigsaw-puzzle-piece character snapping two other puzzle pieces into place, proud face.
+
+cooperative-sentence-builder.webp (커플 문장 만들기) — BG #f0559b
+  Two best-friend blob characters high-fiving, each holding half of a puzzle piece that forms a heart.
+
+one-on-one-battle.webp (1:1 배틀) — BG #ff5a36
+  Two cute rivals, a fiery orange blob and a cool blue blob, facing off with foam swords, comic sparks between them.
+
+word-uno.webp (단어 우노) — BG #e23b3b
+  A smug card-shaped character fanning a hand of red, yellow, green and blue playing cards, one card flipping in the air (cards have no symbols or text).
+
+simple-quiz.webp (객관식 퀴즈) — BG #2f5bff
+  A big round question-mark character slamming a red buzzer button, one sweat drop, super excited.
+
+typing.webp (문장 타자) — BG #0fb3a3
+  A chunky keyboard character with keycaps for teeth, typing super fast with blurred little hands.
+
+acid-rain.webp (산성비) — BG #5cb82e
+  A nervous little character under a leaf umbrella dodging glowing lime-green raindrops shaped like small blank blocks.
+
+matching.webp (짝 맞추기·일부 카드) — BG #ff9a1f
+  Two cute flashcard characters spotting each other and connecting with a sparkly line, surprised happy faces.
+
+matching-all.webp (짝 맞추기·모든 카드) — BG #f26b1d
+  A big pink brain character juggling many blank flashcards at once, tongue out in concentration.
+
+meaning-dash.webp (달리기) — BG #07b0d6
+  A speedy character in oversized sneakers sprinting on a running track, dust clouds and speed lines.
+
+brick-smash.webp (벽돌 팡팡) — BG #e0562a
+  A tough little hammer character smashing a wall of colorful bricks, brick chunks flying.
+
+chunk-line-up.webp (플랫포머 문장 만들기) — BG #8b4ff0
+  A cute mushroom-hat platformer hero jumping between floating grassy platforms, carrying a blank word block.
+
+chunk-jump-race.webp (점프 문장 만들기) — BG #12b07a
+  A cheeky frog character mid-leap between small floating islands, motion trail behind it.
+
+learning-jump-tower.webp (학습 점프타워) — BG #3b6cf6
+  A little astronaut character rocketing up a tall tower of stacked platforms toward the stars.
+
+lobby-platformer.webp (대기실 점프 타워) — BG #0e9be0
+  A bouncy kangaroo-like blob character springing up a mountain of platforms, huge grin.
+
+solo.webp (혼자하기) — BG #a24ff0
+  A chill character wearing big headphones, studying alone at a tiny desk under a cozy lamp, focused smile.

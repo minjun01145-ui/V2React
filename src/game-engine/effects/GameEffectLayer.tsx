@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import type { ActiveGameEffect } from "./model.ts";
 import styles from "./GameEffectLayer.module.css";
 
-const PARTICLES = Array.from({ length: 12 }, (_, index) => index);
+const PARTICLES = Array.from({ length: 18 }, (_, index) => index);
 
 export function GameEffectLayer({ effect, className }: {
   readonly effect: ActiveGameEffect | null;
@@ -21,8 +21,9 @@ export function GameEffectLayer({ effect, className }: {
     aria-live="assertive"
     aria-atomic="true"
   >
-    <div className={styles.flash} aria-hidden="true" />
-    <div className={styles.particles} aria-hidden="true">
+    <div className={styles.flash} data-part="flash" aria-hidden="true" />
+    <div className={styles.rays} data-part="rays" aria-hidden="true" />
+    <div className={styles.particles} data-part="particles" aria-hidden="true">
       {PARTICLES.map((particle) => <i key={particle} />)}
     </div>
     <div className={styles.burst} role="status">

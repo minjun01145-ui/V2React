@@ -38,7 +38,7 @@ export default function TeacherNav({ currentView, tenant, onLogout }: Props) {
         {secondaryItems.filter(({ view }) => view !== TEACHER_VIEW.AI || tenant.id === PRIMARY_TENANT_ID).map(({ view, label }) => (
           <a className={styles.secondaryLink} href={teacherHref(view)} aria-current={currentView === view ? "page" : undefined} key={view}>{label}</a>
         ))}
-        <Button variant="quiet" size="sm" onClick={() => void onLogout()}>로그아웃</Button>
+        <Button variant="onBrand" size="sm" onClick={() => void onLogout()}>로그아웃</Button>
       </div>
     </nav>
   );

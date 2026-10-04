@@ -1,7 +1,7 @@
-.launchPanel { display: grid; gap: 16px; min-width: 0; }
-.launchTitle { margin: 0; font-size: var(--text-md); font-weight: 700; }
+.launchPanel { display: grid; gap: 18px; min-width: 0; }
+.launchTitle { margin: 0; font-size: 1.25rem; font-weight: 900; letter-spacing: -0.02em; }
 .launchContent { min-width: 0; }
 .questionSetup, .latestQuestionSetup { display: grid; gap: 12px; }
-.questionSetup h2, .latestQuestionSetup h2 { margin: 0; font-size: var(--text-md); font-weight: 700; }
+.questionSetup h2, .latestQuestionSetup h2 { margin: 0; font-size: 1.0625rem; font-weight: 900; }
 .questionControls { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .checkbox { align-self: flex-start; margin: 0; height: 40px; }

@@ -1,3 +1,5 @@
-.workspace { position: relative; min-height: 100dvh; background: var(--pattern-dots-light), var(--color-paper); --page-title-color: var(--color-on-brand); }
-.workspace::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 240px; background: var(--pattern-dots-dark), var(--color-brand-deep); border-radius: 0 0 28px 28px; z-index: 0; }
-.workspace > * { position: relative; z-index: 1; }
+.workspace { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100dvh; background: var(--color-bg); }
+.main { min-width: 0; }
+@media (max-width: 959px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,8 +1,8 @@
-.badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; font-size: var(--text-xs); font-weight: 600; }
+.badge { display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 999px; font-size: var(--text-xs); font-weight: 800; }
 .neutral { background: var(--color-surface-muted); color: var(--color-muted); }
 .primary { background: var(--color-primary-soft); color: var(--color-primary-text); }
-.success { background: var(--color-success-soft); color: var(--color-success); }
-.warning { background: var(--color-warning-soft); color: var(--color-warning); }
+.success { background: var(--color-success-soft); color: #0f7a37; }
+.warning { background: var(--color-warning-soft); color: #9a5b00; }
 .danger { background: var(--color-danger-soft); color: var(--color-danger-text); }
-.accent { background: var(--color-accent); color: var(--color-accent-ink); font-weight: 700; }
+.accent { background: var(--color-accent); color: var(--color-accent-ink); }
 .lg { height: 32px; padding: 0 14px; font-size: var(--text-sm); }

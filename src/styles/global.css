@@ -4,6 +4,11 @@
   background: var(--color-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+::selection {
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
 }
 body {
   background: var(--color-bg);
