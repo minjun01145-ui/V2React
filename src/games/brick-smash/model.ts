@@ -11,8 +11,13 @@ import { activateBrickItem, BRICK_ITEM_EFFECTS, EMPTY_BRICK_BUFFS, type BrickBuf
 export interface BrickQuestion extends MultipleChoiceQuestion<LearningSetQuestionSource> {
   readonly sentence?: { readonly meaning: string; readonly chunks: readonly string[]; readonly chunkIndex: number };
 }
+export type BrickJudgment = "perfect" | "great" | "good";
 export interface BrickDetails extends MultipleChoiceEvaluationDetails {
   readonly buffs?: BrickBuffs;
+  readonly judgment?: BrickJudgment;
+  /** Points per brick before the gold multiplier: speed score + combo bonus. */
+  readonly brickScore?: number;
+  readonly comboBonus?: number;
   readonly removedCount?: number;
   readonly activatedItem?: BrickItemId | null;
   readonly protectedMiss?: boolean;
@@ -46,12 +51,26 @@ export function buildBrickQuestions(set: RuntimeLearningSet, config: Readonly<Re
   }).questions;
 }
 
+// Each brick is worth up to 100 for speed (50 when slow) plus a combo bonus of up to +100.
+export const BRICK_SCORING = { max: 100, min: 50, fastMs: 700, slowMs: 3_500, comboStep: 5, comboBonusMax: 100 } as const;
+
+export function brickSpeedScore(elapsedMs: number): number {
+  const { max, min, fastMs, slowMs } = BRICK_SCORING;
+  const late = Math.min(Math.max((elapsedMs - fastMs) / (slowMs - fastMs), 0), 1);
+  return Math.round(max - (max - min) * late);
+}
+
+export const brickComboBonus = (combo: number) => Math.min(Math.max(combo - 1, 0) * BRICK_SCORING.comboStep, BRICK_SCORING.comboBonusMax);
+export const brickJudgment = (speedScore: number): BrickJudgment => speedScore >= 95 ? "perfect" : speedScore >= 75 ? "great" : "good";
+
 export interface BrickStrikeContext {
   readonly itemAt: (index: number) => BrickItemId | null;
   readonly buffs: BrickBuffs;
   readonly now: number;
+  /** How long the current brick has been waiting for the right answer. */
+  readonly elapsedMs: number;
 }
-const NO_ITEMS: BrickStrikeContext = { itemAt: () => null, buffs: EMPTY_BRICK_BUFFS, now: 0 };
+const NO_ITEMS: BrickStrikeContext = { itemAt: () => null, buffs: EMPTY_BRICK_BUFFS, now: 0, elapsedMs: 0 };
 
 export function strikeBrick(progress: BrickProgress, question: BrickQuestion, optionId: string, context: BrickStrikeContext = NO_ITEMS) {
   const evaluated = evaluateMultipleChoice(question, { optionId }, 1);
@@ -63,14 +82,19 @@ export function strikeBrick(progress: BrickProgress, question: BrickQuestion, op
   let buffs = activateBrickItem(context.buffs, item, context.now);
   if (protectedMiss) buffs = { ...buffs, shield: false };
   const removedCount = correct ? 1 + (buffs.hammer > context.now ? 1 : 0) + (item === "bomb" ? BRICK_ITEM_EFFECTS.bomb.extra : 0) : 0;
+  const combo = correct ? progress.combo + 1 : protectedMiss ? progress.combo : 0;
+  const speedScore = correct ? brickSpeedScore(context.elapsedMs) : 0;
+  const comboBonus = correct ? brickComboBonus(combo) : 0;
+  const brickScore = speedScore + comboBonus;
   const result = createAnswerResult<BrickDetails>({ isCorrect: correct,
-    scoreDelta: removedCount * (buffs.gold > context.now ? 2 : 1),
-    details: { selectedOptionId: optionId, correctOptionId: question.correctOptionId, buffs, removedCount, activatedItem: item, protectedMiss } });
+    scoreDelta: removedCount * brickScore * (buffs.gold > context.now ? 2 : 1),
+    details: { selectedOptionId: optionId, correctOptionId: question.correctOptionId, buffs, removedCount, activatedItem: item, protectedMiss,
+      ...(correct ? { judgment: brickJudgment(speedScore), brickScore, comboBonus } : {}) } });
   const applied = applyResultToProgress(progress, question.id, result);
   const next: BrickProgress = {
     ...applied,
     currentIndex: progress.currentIndex + removedCount,
-    combo: correct ? progress.combo + 1 : protectedMiss ? progress.combo : 0,
+    combo,
     completedItemIds: [],
   };
   return { result, progress: next };

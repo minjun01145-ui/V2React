@@ -26,6 +26,7 @@ export function useBrickSmash({ roomId, session, player, questions, expired }: S
   const saving = useRef(false);
   const blocked = useRef(false);
   const mounted = useRef(true);
+  const brickShownAt = useRef(0);
 
   useEffect(() => {
     mounted.current = true;
@@ -39,6 +40,7 @@ export function useBrickSmash({ roomId, session, player, questions, expired }: S
     setBuffs(buffsRef.current);
     setProgress(current.current);
     initialized.current = true;
+    brickShownAt.current = performance.now();
     setReady(true);
   }, [remote.error, remote.loading, remote.value]);
 
@@ -69,7 +71,9 @@ export function useBrickSmash({ roomId, session, player, questions, expired }: S
     const question = currentBrickQuestion(questions, previousProgress);
     const next = strikeBrick(previousProgress, question, optionId, {
       itemAt: (index) => brickItemAt(session.roundId, index), buffs: buffsRef.current, now: Date.now(),
+      elapsedMs: performance.now() - brickShownAt.current,
     });
+    if (next.result.isCorrect) brickShownAt.current = performance.now();
     buffsRef.current = next.result.details?.buffs ?? EMPTY_BRICK_BUFFS;
     setBuffs(buffsRef.current);
     current.current = next.progress;
