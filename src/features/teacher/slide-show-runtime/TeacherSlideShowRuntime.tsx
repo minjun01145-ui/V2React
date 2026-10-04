@@ -17,9 +17,12 @@ import AwardPanel from "./AwardPanel.tsx";
 import EnginePhasePanel from "./EnginePhasePanel.tsx";
 import ShowLeaderboard from "./ShowLeaderboard.tsx";
 import StudentPickerPanel from "./StudentPickerPanel.tsx";
+import TimerPanel from "./timer/TimerPanel.tsx";
+import { formatTimerSeconds } from "./timer/model.ts";
+import { useCountdownTimer } from "./timer/useCountdownTimer.ts";
 import styles from "./TeacherSlideShowRuntime.module.css";
 
-type SidePanel = "award" | "ranking" | "picker" | null;
+type SidePanel = "award" | "ranking" | "picker" | "timer" | null;
 
 function AnsweringCard({ roomId, session, engine }: { readonly roomId: string; readonly session: GameSession; readonly engine: ActiveSlideEngine }) {
   const clock = useTimedGameClock(session);
@@ -60,9 +63,11 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
   const [error, setError] = useState("");
   const fullscreenRef = useRef<HTMLElement | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  const timer = useCountdownTimer();
   const index = slideShow.currentSlideIndex;
   const slide = slides.get(slideShow.slideIds[index] ?? "");
   const engine = slideShow.engine;
+  const currentEngine = engine?.slideId === slide?.id ? engine : null;
   const lastIndex = slideShow.slideIds.length - 1;
 
   const run = async (action: () => Promise<void>, fallback: string): Promise<void> => {
@@ -119,14 +124,13 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
     </>;
 
   return <section ref={fullscreenRef} className={styles.runtime} data-has-panels={Boolean(panel || engine || error)} aria-label="슬라이드쇼 교사화면">
-    <div className={styles.presenter}>
       <div className={styles.stage}>
         {loadError ? <StatusPanel title="슬라이드를 불러오지 못했습니다" tone="error">{loadError.message}</StatusPanel>
           : loading || !slide ? <StatusPanel title="슬라이드를 불러오는 중" tone="waiting">잠시만 기다려 주세요.</StatusPanel>
           : <SlideViewport
             slide={slide}
-            engineFrame={engine?.slideId === slide.id ? engine.frame : null}
-            engineContent={engine?.slideId === slide.id ? <TeacherEngineContent roomId={roomId} session={session} slideShow={slideShow} engine={engine} /> : null}
+            engineFrame={currentEngine?.frame ?? slide.engine?.frame ?? null}
+            engineContent={currentEngine ? <TeacherEngineContent roomId={roomId} session={session} slideShow={slideShow} engine={currentEngine} /> : slide.engine ? <div className={styles.engineCard}><span>게임엔진</span><strong className={styles.small}>{getGame(slide.engine.round.gameId).title}</strong><em>시작 대기</em></div> : null}
           />}
       </div>
       <div className={styles.controls}>
@@ -140,15 +144,16 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
           <Button variant={panel === "award" ? "primary" : "ghost"} onClick={() => setPanel(panel === "award" ? null : "award")}>점수 주기</Button>
           <Button variant={panel === "ranking" ? "primary" : "ghost"} onClick={() => setPanel(panel === "ranking" ? null : "ranking")}>순위</Button>
           <Button variant={panel === "picker" ? "primary" : "ghost"} onClick={() => setPanel(panel === "picker" ? null : "picker")}>학생 뽑기</Button>
+          <Button className={styles.timerButton} variant={panel === "timer" ? "primary" : "ghost"} onClick={() => setPanel(panel === "timer" ? null : "timer")}>타이머 {formatTimerSeconds(timer.remainingSeconds)}</Button>
           <Button variant="ghost" onClick={() => void toggleFullscreen()}>{fullscreen ? "전체화면 종료" : "전체 화면"}</Button>
         </div>
       </div>
-    </div>
     <div className={styles.panels}>
       {error ? <StatusPanel title="슬라이드쇼 진행 오류" tone="error">{error}</StatusPanel> : null}
       {panel === "award" ? <Card><AwardPanel players={players} awards={slideShow.awards} disabled={working} onAward={(playerIds, points) => run(() => awardShowPoints(roomId, playerIds, points), "점수를 주지 못했습니다.")} /></Card> : null}
       {panel === "ranking" ? <Card><ShowLeaderboard roomId={roomId} slideShow={slideShow} /></Card> : null}
       {panel === "picker" ? <Card><StudentPickerPanel roomId={roomId} players={players} /></Card> : null}
+      {panel === "timer" ? <Card><TimerPanel timer={timer} /></Card> : null}
       {engine ? <EnginePhasePanel roomId={roomId} session={session} engine={engine} onCloseAnswers={() => setShowEnginePhase(roomId, "submissions")} onAwardingChange={setAwarding} /> : null}
     </div>
   </section>;
