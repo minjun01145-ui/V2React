@@ -1,0 +1,107 @@
+import assert from "node:assert/strict";
+import { buildBrickQuestions, brickAt, currentBrickQuestion, strikeBrick } from "../../src/games/brick-smash/model.ts";
+import { activateBrickItem, brickItemAt, BRICK_ITEM_IDS, EMPTY_BRICK_BUFFS, parseBrickBuffs } from "../../src/games/brick-smash/items.ts";
+import { createEmptyProgress } from "../../src/game-engine/progress/index.ts";
+import type { MultipleChoiceEvaluationDetails } from "../../src/game-engine/question-engine/multiple-choice/index.ts";
+import type { LearningSet } from "../../src/learning-sets/types.ts";
+import { getGame } from "../../src/games/registry.ts";
+
+const set: LearningSet = { id: "bricks", name: "단어", type: "vocabulary", itemCount: 3, createdAtMs: 1, updatedAtMs: 1,
+  items: [{ id: "a", sourceText: "apple", meaning: "사과" }, { id: "b", sourceText: "banana", meaning: "바나나" }, { id: "c", sourceText: "cherry", meaning: "체리" }] };
+
+for (const direction of ["source-to-meaning", "meaning-to-source"]) {
+  for (const count of ["2", "3"]) {
+    const questions = buildBrickQuestions(set, { direction, "choice-count": count }, "round");
+    assert.deepEqual(questions, buildBrickQuestions(set, { direction, "choice-count": count }, "round"), "Same round must restore the same brick order");
+    for (const question of questions) {
+      const item = set.items.find((item) => item.id === question.source.itemId)!;
+      assert.equal(question.prompt, direction === "source-to-meaning" ? item.sourceText : item.meaning);
+      assert.equal(question.options.length, Number(count));
+      assert.equal(new Set(question.options.map((option) => option.text)).size, Number(count));
+      assert.equal(question.options.find((option) => option.id === question.correctOptionId)?.text, direction === "source-to-meaning" ? item.meaning : item.sourceText);
+    }
+  }
+}
+const questions = buildBrickQuestions(set, {}, "round");
+let progress = createEmptyProgress<MultipleChoiceEvaluationDetails>();
+for (let i = 0; i < 15; i++) {
+  const question = brickAt(questions, progress.currentIndex);
+  const wrong = question.options.find((option) => option.id !== question.correctOptionId)!;
+  const failed = strikeBrick(progress, question, wrong.id);
+  assert.equal(failed.result.isCorrect, false);
+  assert.equal(failed.progress.currentIndex, i, "Wrong answer must leave the bottom brick in place");
+  assert.equal(failed.progress.score, i);
+  assert.equal(failed.progress.combo, 0);
+  const correct = strikeBrick(failed.progress, question, question.correctOptionId);
+  progress = correct.progress;
+  assert.equal(progress.currentIndex, i + 1);
+  assert.equal(progress.score, i + 1, "Repeated decks must still award one point per brick");
+  assert.equal(progress.correctCount, i + 1);
+  assert.equal(progress.attemptCount, (i + 1) * 2);
+}
+assert.equal(strikeBrick(progress, brickAt(questions, progress.currentIndex), "missing").result.isCorrect, false);
+assert.throws(() => buildBrickQuestions({ ...set, type: "form-changes" }, {}, "round"), /단어 또는 끊어읽기/);
+assert.throws(() => buildBrickQuestions({ ...set, items: set.items.slice(0, 2) }, { "choice-count": "3" }, "round"), /정답이 부족/);
+assert.throws(() => buildBrickQuestions({ ...set, items: set.items.map((item) => ({ ...item, meaning: "같은 뜻" })) }, {}, "round"), /정답이 부족/);
+assert.deepEqual(getGame("brick-smash").supportedSetTypes, ["vocabulary", "reading-chunks"]);
+assert.equal(getGame("brick-smash").handlesOwnTimedBoundary, true);
+assert.equal(buildBrickQuestions(set, { "choice-count": "invalid", direction: null }, "round")[0]?.options.length, 2);
+const first = questions[0]!;
+const correctId = first.correctOptionId;
+const wrongId = first.options.find((option) => option.id !== correctId)!.id;
+const empty = createEmptyProgress<MultipleChoiceEvaluationDetails>();
+const bomb = strikeBrick(empty, first, correctId, { item: "bomb", buffs: EMPTY_BRICK_BUFFS, now: 100 });
+assert.equal(bomb.progress.currentIndex, 4);
+assert.equal(bomb.progress.score, 4);
+assert.equal(bomb.progress.correctCount, 1, "Collateral bricks are not extra correct answers");
+const hammer = activateBrickItem(EMPTY_BRICK_BUFFS, "hammer", 100);
+assert.equal(hammer.hammer, 20_100);
+assert.equal(strikeBrick(empty, first, correctId, { item: null, buffs: hammer, now: 20_099 }).progress.currentIndex, 2);
+assert.equal(strikeBrick(empty, first, correctId, { item: null, buffs: hammer, now: 20_100 }).progress.currentIndex, 1);
+const gold = activateBrickItem(hammer, "gold", 100);
+const stacked = strikeBrick(empty, first, correctId, { item: "bomb", buffs: gold, now: 101 });
+assert.equal(stacked.progress.currentIndex, 5);
+assert.equal(stacked.progress.score, 10);
+assert.equal(strikeBrick(empty, first, correctId, { item: null, buffs: gold, now: 20_100 }).progress.score, 1);
+assert.equal(activateBrickItem(hammer, "hammer", 1_000).hammer, 21_000, "Repicking refreshes duration");
+assert.equal(activateBrickItem(EMPTY_BRICK_BUFFS, "lightning", 100).lightning, 10_100);
+const shield = activateBrickItem(EMPTY_BRICK_BUFFS, "shield", 100);
+const guarded = strikeBrick({ ...empty, combo: 5 }, first, wrongId, { item: "bomb", buffs: shield, now: 200 });
+assert.equal(guarded.progress.combo, 5);
+assert.equal(guarded.progress.currentIndex, 0);
+assert.equal(guarded.progress.score, 0);
+assert.equal(guarded.result.details?.activatedItem, null, "A wrong hit never activates a special brick");
+assert.equal(guarded.result.details?.buffs?.shield, false);
+const unguarded = strikeBrick(guarded.progress, first, wrongId, { item: null, buffs: guarded.result.details!.buffs!, now: 201 });
+assert.equal(unguarded.progress.combo, 0);
+assert.deepEqual(parseBrickBuffs(JSON.parse(JSON.stringify(gold))), gold, "Reconnect restores absolute expiry without extending it");
+assert.deepEqual(parseBrickBuffs({ hammer: Infinity, gold: -1, lightning: "1000", shield: "true" }), EMPTY_BRICK_BUFFS);
+assert.deepEqual(parseBrickBuffs(null), EMPTY_BRICK_BUFFS);
+const drops = Array.from({ length: 45 }, (_, i) => brickItemAt("round", i)).filter(Boolean);
+assert.equal(drops.length, 5);
+assert.deepEqual([...drops].sort(), [...BRICK_ITEM_IDS].sort());
+assert.deepEqual(drops, Array.from({ length: 45 }, (_, i) => brickItemAt("round", i)).filter(Boolean));
+
+const reading: LearningSet = { ...set, type: "reading-chunks", itemCount: 2, items: [
+  { id: "s1", sourceText: "I / like / apples", meaning: "나는 사과를 좋아해요" },
+  { id: "s2", sourceText: "We / can / can / it", meaning: "우리는 그것을 통조림으로 만들 수 있다" },
+] };
+for (const count of ["2", "3"]) {
+  const sentences = buildBrickQuestions(reading, { "choice-count": count, direction: "meaning-to-source" }, "round");
+  let sentenceProgress = empty;
+  for (let i = 0; i < sentences.length * 2; i++) {
+    const question = currentBrickQuestion(sentences, sentenceProgress);
+    const sentence = question.sentence!;
+    assert.equal(question.options.find((option) => option.id === question.correctOptionId)?.text, sentence.chunks[sentence.chunkIndex]);
+    assert.equal(question.options.length, Number(count));
+    assert.equal(new Set(question.options.map((option) => option.text)).size, Number(count), "Duplicate chunks must not create ambiguous options");
+    const wrong = question.options.find((option) => option.id !== question.correctOptionId)!;
+    const retry = strikeBrick(sentenceProgress, question, wrong.id);
+    assert.equal(currentBrickQuestion(sentences, retry.progress).id, question.id);
+    sentenceProgress = strikeBrick(retry.progress, question, question.correctOptionId, { item: "bomb", buffs: hammer, now: 200 }).progress;
+    assert.equal(sentenceProgress.currentIndex, (i + 1) * 5);
+    assert.equal(currentBrickQuestion(sentences, sentenceProgress).id, sentences[(i + 1) % sentences.length]?.id, "Items must not skip sentence chunks");
+  }
+}
+assert.throws(() => buildBrickQuestions({ ...reading, items: [{ id: "bad", sourceText: "no chunks", meaning: "뜻" }] }, {}, "round"), /2개 이상/);
+console.log("brick smash game tests passed");
