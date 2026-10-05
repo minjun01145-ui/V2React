@@ -1,5 +1,6 @@
 :root {
   font-family: var(--font-sans);
+  font-weight: 300;
   color: var(--color-text);
   background: var(--color-bg);
   font-synthesis: none;

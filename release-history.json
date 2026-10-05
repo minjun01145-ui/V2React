@@ -1,11 +1,17 @@
 {
-  "version": "2.00",
+  "version": "2.01",
   "releases": [
     {
       "version": "2.00",
       "kind": "baseline",
       "date": "2026-10-05T09:13:13.238Z",
       "message": "v2.00 재시작 · 벽돌 팡팡 전면 개선"
+    },
+    {
+      "version": "2.01",
+      "kind": "patch",
+      "date": "2026-10-05T10:14:45.648Z",
+      "message": "전체 글씨체 Paperlogy로 변경"
     }
   ]
 }

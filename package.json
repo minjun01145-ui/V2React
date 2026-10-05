@@ -1,7 +1,7 @@
 {
   "name": "minjun-game-v2r",
   "private": true,
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "module",
   "engines": {
     "node": ">=22.12.0"
@@ -56,7 +56,6 @@
     "fabric": "^7.4.0",
     "firebase": "^12.16.0",
     "phaser": "3.90.0",
-    "pretendard": "^1.3.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

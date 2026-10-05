@@ -1,15 +1,15 @@
-export const SLIDE_FONT_FAMILY = "\"Pretendard Variable\", Pretendard, sans-serif";
+export const SLIDE_FONT_FAMILY = "Paperlogy, sans-serif";
 
 /**
- * Canvas text does not trigger web-font loading, and Pretendard is split into
- * unicode-range subsets, so load the glyphs a slide actually uses before drawing it.
+ * Canvas text does not trigger web-font loading, so load the Paperlogy weights
+ * a slide draws before rendering it.
  */
 export async function loadSlideFonts(texts: readonly string[]): Promise<void> {
   const sample = texts.join("");
   if (!sample || typeof document === "undefined" || !document.fonts) return;
   await Promise.all([
-    document.fonts.load(`400 32px "Pretendard Variable"`, sample),
-    document.fonts.load(`800 32px "Pretendard Variable"`, sample),
+    document.fonts.load(`400 32px Paperlogy`, sample),
+    document.fonts.load(`800 32px Paperlogy`, sample),
   ]).catch(() => undefined);
 }
 

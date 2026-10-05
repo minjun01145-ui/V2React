@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { hashString } from "../core/random.ts";
 import { bakeSprite } from "./BakedLayer.ts";
 
-export const FONT_FAMILY = "Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif";
+export const FONT_FAMILY = "Paperlogy, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif";
 export const TEXT_RESOLUTION = 2;
 /** Phaser measures line height from this sample; Hangul must be in it or glyph bottoms get clipped. */
 export const TEXT_METRICS_SAMPLE = "|MÉqgy한글뛿";
