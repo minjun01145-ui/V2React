@@ -5,7 +5,7 @@ import { isRecord } from "../shared/validation.js";
 import { grantGameParticipationCoins } from "./service.js";
 
 export const awardClassroomGameCoins = onDocumentWritten({
-  region: "asia-northeast3", document: "multiplayerSessions/{roomId}", retry: true,
+  region: "asia-northeast3", document: "multiplayerSessions/{roomId}",
 }, async (event) => {
   const after: unknown = event.data?.after.data();
   const before: unknown = event.data?.before.data();
@@ -21,7 +21,7 @@ export const awardClassroomGameCoins = onDocumentWritten({
 // Joining an already running game is also participation. The same receipt deduplicates
 // this event with the round-start event, regardless of delivery order.
 export const awardJoinedGameCoins = onDocumentCreated({
-  region: "asia-northeast3", document: "multiplayerSessions/{roomId}/rounds/{roundId}/participants/{uid}", retry: true,
+  region: "asia-northeast3", document: "multiplayerSessions/{roomId}/rounds/{roundId}/participants/{uid}",
 }, async (event) => {
   const session = await db.collection("multiplayerSessions").doc(event.params.roomId).get();
   const data: unknown = session.data();
