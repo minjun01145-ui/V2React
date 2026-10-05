@@ -94,7 +94,7 @@ export class RaceCourse {
       slot = {
         island: this.scene.add.image(0, 0, islandTexture(this.scene, "normal")).setOrigin(0.5, 0).setDepth(2),
         flag: this.scene.add.image(0, 0, flagTexture(this.scene, 0xf97316)).setOrigin(0, 0).setDepth(2).setVisible(false),
-        label: this.scene.add.text(0, 0, "", { fontFamily: FONT_FAMILY, fontSize: "11px", fontStyle: "bold" })
+        label: this.scene.add.text(0, 0, "", { fontFamily: FONT_FAMILY, fontSize: "11px", fontStyle: "300" })
           .setOrigin(0.5).setDepth(3).setResolution(TEXT_RESOLUTION),
         distance: -1,
       };

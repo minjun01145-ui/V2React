@@ -158,7 +158,7 @@ export class BoardView {
     const text = this.scene.add.text(x + width / 2, centerY, label, {
       fontFamily: FONT_FAMILY,
       fontSize: "14px",
-      fontStyle: "bold",
+      fontStyle: "300",
       color: slot.fixed ? "#5b3a00" : slot.filledBy ? "#063d24" : "#64748b",
       align: "center",
     }).setOrigin(0.5).setDepth(PLATFORM_DEPTH + 1).setResolution(TEXT_RESOLUTION);
@@ -174,7 +174,7 @@ export class BoardView {
       const byline = this.scene.add.text(x + width / 2, y + height - 7, compact(slot.filledLabel, Math.max(4, Math.floor(width / 7))), {
         fontFamily: FONT_FAMILY,
         fontSize: "9px",
-        fontStyle: "bold",
+        fontStyle: "300",
         color: "#e7fff1",
       }).setOrigin(0.5).setDepth(PLATFORM_DEPTH + 1).setResolution(TEXT_RESOLUTION);
       this.nodes.push(byline);
@@ -188,21 +188,21 @@ export class BoardView {
     this.graphics.fillStyle(0x1e3a5f, 0.94).fillRoundedRect(CHUNK_LINE_UP_ROW_LEFT, top, width, PROMPT_HEIGHT, 5);
     this.graphics.fillStyle(0xfacc15, 1).fillRoundedRect(CHUNK_LINE_UP_ROW_LEFT + 4, top + 3, 34, PROMPT_HEIGHT - 6, 4);
     const tag = this.scene.add.text(CHUNK_LINE_UP_ROW_LEFT + 21, top + PROMPT_HEIGHT / 2, floorLabel, {
-      fontFamily: FONT_FAMILY, fontSize: "11px", fontStyle: "bold", color: "#1e3a5f",
+      fontFamily: FONT_FAMILY, fontSize: "11px", fontStyle: "300", color: "#1e3a5f",
     }).setOrigin(0.5).setDepth(PLATFORM_DEPTH + 1).setResolution(TEXT_RESOLUTION);
     // A big wall sign so players climbing past can tell which floor is which.
     const sign = this.scene.add.text(CHUNK_LINE_UP_WALK_LEFT + CHUNK_LINE_UP_LANDING_WIDTH / 2, rowY - 62, floorLabel, {
-      fontFamily: FONT_FAMILY, fontSize: "30px", fontStyle: "900", color: "#1e3a5f",
+      fontFamily: FONT_FAMILY, fontSize: "30px", fontStyle: "300", color: "#1e3a5f",
     }).setOrigin(0.5).setAlpha(0.28).setDepth(-8).setResolution(TEXT_RESOLUTION);
     const signRight = this.scene.add.text(CHUNK_LINE_UP_WALK_RIGHT - CHUNK_LINE_UP_LANDING_WIDTH / 2, rowY - 62, floorLabel, {
-      fontFamily: FONT_FAMILY, fontSize: "30px", fontStyle: "900", color: "#1e3a5f",
+      fontFamily: FONT_FAMILY, fontSize: "30px", fontStyle: "300", color: "#1e3a5f",
     }).setOrigin(0.5).setAlpha(0.28).setDepth(-8).setResolution(TEXT_RESOLUTION);
     this.nodes.push(sign, signRight);
     const text = this.scene.add.text(
       CHUNK_LINE_UP_ROW_LEFT + width / 2,
       top + PROMPT_HEIGHT / 2,
       compact(prompt.replaceAll("/", " "), 80),
-      { fontFamily: FONT_FAMILY, fontSize: "13px", fontStyle: "bold", color: "#f8fafc" },
+      { fontFamily: FONT_FAMILY, fontSize: "13px", fontStyle: "300", color: "#f8fafc" },
     ).setOrigin(0.5).setDepth(PLATFORM_DEPTH + 1).setResolution(TEXT_RESOLUTION);
     this.nodes.push(tag, text);
   }

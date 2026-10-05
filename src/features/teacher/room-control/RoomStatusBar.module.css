@@ -3,14 +3,14 @@
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .thumb > span { font-size: 2rem; line-height: 1; transform: rotate(-6deg); filter: drop-shadow(0 3px 0 rgba(0, 0, 0, 0.2)); }
 .status { flex: 1; min-width: 0; display: grid; gap: 2px; }
-.label { display: inline-flex; align-items: center; gap: 8px; color: var(--color-on-brand-muted); font-size: 0.8125rem; font-weight: 800; }
+.label { display: inline-flex; align-items: center; gap: 8px; color: var(--color-on-brand-muted); font-size: 0.8125rem; font-weight: 300; }
 .dot { width: 9px; height: 9px; border-radius: 50%; background: #9aa6c9; animation: dot-pulse 1.6s ease-in-out infinite; }
 .bar[data-tone="preparing"] .dot { background: var(--color-warning); }
 .bar[data-tone="playing"] .dot { background: #3ddc84; }
-.title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.375rem; font-weight: 900; letter-spacing: -0.02em; }
+.title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.375rem; font-weight: 300; letter-spacing: -0.02em; }
 .count { display: flex; align-items: baseline; gap: 4px; padding: 6px 16px; border-radius: 14px; background: rgba(255, 255, 255, 0.08); }
-.count strong { font-size: 2.25rem; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
-.count span { color: var(--color-on-brand-muted); font-size: 0.8125rem; font-weight: 800; }
+.count strong { font-size: 2.25rem; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+.count span { color: var(--color-on-brand-muted); font-size: 0.8125rem; font-weight: 300; }
 .actions { display: flex; gap: 10px; flex: 0 0 auto; }
 @keyframes dot-pulse {
   0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.35); }

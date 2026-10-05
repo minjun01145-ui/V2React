@@ -138,7 +138,7 @@ export class Effects {
     const text = this.scene.add.text(x, y, value, {
       fontFamily: FONT_FAMILY,
       fontSize: `${size}px`,
-      fontStyle: "900",
+      fontStyle: "300",
       color,
       stroke: "#ffffff",
       strokeThickness: 5,

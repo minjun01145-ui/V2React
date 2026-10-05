@@ -1,6 +1,6 @@
 .content, .embedded { display: grid; gap: 20px; min-width: 0; }
 .embedded { padding: 16px; border: 0; border-radius: 20px; background: #fff; box-shadow: var(--shadow-raised); }
-.embeddedHeader h2 { margin: 0; font-size: var(--text-lg); font-weight: 700; }
+.embeddedHeader h2 { margin: 0; font-size: var(--text-lg); font-weight: 300; }
 .lobbyGrid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
 .lobbyGrid[data-has-side="false"] { grid-template-columns: minmax(0, 1fr); }
 .mainColumn, .sideColumn { display: grid; gap: 20px; min-width: 0; }

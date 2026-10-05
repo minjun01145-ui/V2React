@@ -44,7 +44,7 @@
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 300;
 }
 .stats strong {
   color: #ffd479;
@@ -73,7 +73,7 @@
 .question small {
   display: block;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 300;
   color: #4d6080;
   margin-bottom: 3px;
 }
@@ -129,7 +129,7 @@
   background: #baffdf;
   color: #123726;
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 300;
   cursor: pointer;
   box-shadow: 0 5px 0 #51a580;
 }
@@ -151,7 +151,7 @@
   color: #e9f2ff;
   background: #1d2d46;
   font: inherit;
-  font-weight: 850;
+  font-weight: 300;
   overflow-wrap: anywhere;
   cursor: pointer;
   touch-action: manipulation;
@@ -193,7 +193,7 @@
   border-radius: 12px;
   background: #c1ffe9;
   color: #15523e;
-  font-weight: 900;
+  font-weight: 300;
   animation: pop .22s ease-out;
   pointer-events: none;
   overflow-wrap: anywhere;
@@ -207,7 +207,7 @@
   background: #fff0ef;
   color: #962d38;
   border-radius: 10px;
-  font-weight: 700;
+  font-weight: 300;
 }
 .teacherShell {
   display: grid;

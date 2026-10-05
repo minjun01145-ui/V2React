@@ -113,7 +113,7 @@ export class SlideEditorController {
 
   addText(): void {
     const text = new Textbox("텍스트를 입력하세요", {
-      left: 160, top: 120, width: 640, fontSize: 48, fontWeight: 700,
+      left: 160, top: 120, width: 640, fontSize: 48, fontWeight: 400,
       fontFamily: SLIDE_FONT_FAMILY, fill: DEFAULT_TEXT_COLOR, splitByGrapheme: true,
     });
     this.addAndSelect(text);
@@ -243,7 +243,7 @@ export class SlideEditorController {
     const [a, b, c, d, e, f] = this.canvas.viewportTransform;
     ctx.save();
     ctx.transform(a, b, c, d, e, f);
-    ctx.font = `800 28px ${SLIDE_FONT_FAMILY}`;
+    ctx.font = `300 28px ${SLIDE_FONT_FAMILY}`;
     ctx.fillStyle = ENGINE_FRAME_COLOR;
     ctx.textBaseline = "top";
     ctx.fillText(this.engineLabel ? `문제 엔진 · ${this.engineLabel}` : "문제 엔진", frame.left + 18, frame.top + 16);

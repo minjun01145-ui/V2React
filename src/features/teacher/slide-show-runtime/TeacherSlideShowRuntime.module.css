@@ -10,15 +10,15 @@
 .runtime:fullscreen .stage { height: auto; min-height: 0; }
 .controls { grid-area: controls; display: flex; align-items: center; gap: 12px; overflow-x: auto; padding: 10px 12px; border-radius: 18px; background: #fff; box-shadow: var(--shadow-raised); }
 .nav { display: flex; flex-shrink: 0; align-items: center; gap: 10px; }
-.nav strong { min-width: 72px; font-size: 1.125rem; font-weight: 900; text-align: center; font-variant-numeric: tabular-nums; }
+.nav strong { min-width: 72px; font-size: 1.125rem; font-weight: 300; text-align: center; font-variant-numeric: tabular-nums; }
 .engineControls { display: flex; flex-shrink: 0; justify-content: center; gap: 8px; }
 .tools { display: flex; flex-shrink: 0; margin-left: auto; gap: 6px; }
 .timerButton { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .engineCard { display: grid; place-content: center; gap: 4px; text-align: center; color: #fff; background: linear-gradient(160deg, #2a3cc7, #0f1846); }
-.engineCard span { color: var(--color-on-brand-muted); font-weight: 800; }
-.engineCard strong { font-size: clamp(3rem, 9vw, 7rem); font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+.engineCard span { color: var(--color-on-brand-muted); font-weight: 300; }
+.engineCard strong { font-size: clamp(3rem, 9vw, 7rem); font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
 .engineCard .small { font-size: clamp(1.5rem, 4vw, 3rem); }
-.engineCard em { color: var(--color-accent); font-size: 1.125rem; font-style: normal; font-weight: 900; }
+.engineCard em { color: var(--color-accent); font-size: 1.125rem; font-style: normal; font-weight: 300; }
 .engineCard[data-urgent="true"] strong { color: #ff6b6e; animation: urgent-pulse 1s ease-in-out infinite; }
 .rankingWindow { padding: 12px; overflow: auto; }
 @keyframes urgent-pulse { 50% { transform: scale(1.08); } }

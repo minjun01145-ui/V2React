@@ -10,7 +10,7 @@ export interface EscapeStageState { runners: readonly EscapeRunner[]; selfId: st
 const INK = 0x192a31;
 const START_X = 112;
 const EXIT_X = 1015;
-const textStyle = { fontFamily: FONT_FAMILY, fontStyle: "bold", color: "#fff6d9", resolution: 2, testString: TEXT_METRICS_SAMPLE };
+const textStyle = { fontFamily: FONT_FAMILY, fontStyle: "300", color: "#fff6d9", resolution: 2, testString: TEXT_METRICS_SAMPLE };
 interface Actor {
   id: string; character: BlobActor; bin: Phaser.GameObjects.Image; lid: Phaser.GameObjects.Image;
   tag: Phaser.GameObjects.Text; shadow: Phaser.GameObjects.Ellipse;

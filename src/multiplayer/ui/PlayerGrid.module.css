@@ -12,4 +12,4 @@
 }
 
 .grid[data-size="large"] { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
-.empty { margin: 0; font-size: 1.125rem; font-weight: 800; color: var(--color-muted); text-align: center; padding: 40px 0; }
+.empty { margin: 0; font-size: 1.125rem; font-weight: 300; color: var(--color-muted); text-align: center; padding: 40px 0; }

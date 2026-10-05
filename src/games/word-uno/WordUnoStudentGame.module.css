@@ -2,7 +2,7 @@
 .hud { composes: hud from "../../game-engine/stage/GameLayout.module.css"; display: grid; grid-template-columns: minmax(0, 1fr); justify-content: stretch; gap: 6px; }
 .gameHeader { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 6px 12px; border: 1px solid var(--color-border); border-radius: 1rem; background: var(--color-surface); }
 .gameHeader > div:first-child, .stageBadge, .roundClock { display: grid; gap: .2rem; }
-.gameHeader span, .stageBadge span, .roundClock span { color: var(--color-muted); font-size: .78rem; font-weight: 800; }
+.gameHeader span, .stageBadge span, .roundClock span { color: var(--color-muted); font-size: .78rem; font-weight: 300; }
 .gameHeader strong, .stageBadge strong, .roundClock strong { font-size: 1.15rem; }
 .roundClock strong { font-variant-numeric: tabular-nums; }
 .body { composes: body from "../../game-engine/stage/GameLayout.module.css"; grid-template-rows: minmax(0, 1fr) auto auto; gap: 6px; }
@@ -15,7 +15,7 @@
 .opponentSeat[data-current="true"], .selfSeat[data-current="true"] { transform: translateY(-3px); box-shadow: 0 0 0 3px #fde047, 0 10px 22px #00000038; }
 .seatHeading { display: flex; align-items: center; gap: .45rem; max-width: 100%; }
 .seatHeading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.seatHeading em { font-size: .68rem; font-style: normal; color: #fde68a; font-weight: 900; }
+.seatHeading em { font-size: .68rem; font-style: normal; color: #fde68a; font-weight: 300; }
 .cardBackStack { position: relative; width: 88px; height: 30px; }
 .cardBackStack > span { position: absolute; left: 50%; top: 0; width: 24px; height: 28px; border: 2px solid #f8fafc; border-radius: .42rem; background: repeating-linear-gradient(135deg, #172554 0 6px, #dc2626 6px 12px); box-shadow: 0 3px 8px #0006; }
 .cardBackStack > span:nth-child(1) { transform: translateX(-31px) rotate(-10deg); }
@@ -26,34 +26,34 @@
 .tableCenter { grid-area: table; min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4px; }
 .feltTable { min-height: 0; display: grid; grid-template-columns: 1fr 1fr; align-items: center; justify-items: center; gap: 22px; padding: 12px 18px; border: 8px solid #8b5e3c; border-radius: 46%; background: radial-gradient(circle at 50% 42%, #21885e, #11623f 72%); box-shadow: inset 0 0 28px #052e1db8, 0 8px 18px #0005; }
 .drawPileButton { display: grid; align-content: center; justify-items: center; gap: .08rem; width: 112px; min-height: 158px; padding: 8px; border: 4px solid white; border-radius: 1rem; background: repeating-linear-gradient(135deg, #111827 0 9px, #1e3a8a 9px 18px, #b91c1c 18px 27px); color: white; font: inherit; text-align: center; box-shadow: -5px 5px 0 #e2e8f0, -9px 9px 0 #94a3b8, 0 14px 24px #052e1d7a; cursor: pointer; transform: rotate(-3deg); transition: transform .12s ease, filter .12s ease; }
-.drawPileButton span { font-size: .72rem; font-weight: 900; letter-spacing: .16em; }
+.drawPileButton span { font-size: .72rem; font-weight: 300; letter-spacing: .16em; }
 .drawPileButton strong { font-size: var(--text-xl); line-height: 1; }
-.drawPileButton small { margin-top: .45rem; font-weight: 850; }
+.drawPileButton small { margin-top: .45rem; font-weight: 300; }
 .drawPileButton:hover:not(:disabled) { transform: rotate(-3deg) translateY(-5px); filter: brightness(1.08); }
 .drawPileButton:disabled { cursor: default; filter: grayscale(.35); opacity: .72; }
 
 .cardFace, .emptyCard { display: grid; align-content: center; justify-items: center; gap: .35rem; width: 130px; min-height: 100px; padding: 8px; border: 2px solid #cbd5e1; border-radius: 1rem; background: white; color: var(--color-text); text-align: center; }
 .cardFace strong, .handCard strong { font-size: 1.2rem; overflow-wrap: anywhere; }
 .cardFace small, .handCard small { color: #64748b; }
-.cardFace em, .handCard em { font-style: normal; font-size: .75rem; font-weight: 900; }
-.familyForms { color: #475569; font-size: .72rem; font-weight: 800; line-height: 1.35; }
+.cardFace em, .handCard em { font-style: normal; font-size: .75rem; font-weight: 300; }
+.familyForms { color: #475569; font-size: .72rem; font-weight: 300; line-height: 1.35; }
 .discardArea { display: grid; justify-items: center; gap: 2px; }
-.discardArea > span { color: #dcfce7; font-size: .7rem; font-weight: 900; letter-spacing: .16em; }
+.discardArea > span { color: #dcfce7; font-size: .7rem; font-weight: 300; letter-spacing: .16em; }
 .discardArea .cardFace, .discardArea .emptyCard { width: 118px; min-height: 158px; box-shadow: 0 13px 24px #052e1d70; transform: rotate(3deg); }
 .tableRule { display: grid; gap: 2px; padding: 4px 8px; border-radius: .8rem; background: #ffffffed; color: var(--color-text); }
 .tableRule strong { font-size: .95rem; }
 .tableRule span { color: var(--color-muted); font-size: var(--text-xs); }
 .selfSeat { grid-area: self; justify-self: center; display: flex; align-items: center; min-width: 190px; }
-.selfSeat > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: #fff; color: #111827; font-size: .72rem; font-weight: 950; }
-.selfSeat em { font-style: normal; color: #cbd5e1; font-size: .76rem; font-weight: 800; }
+.selfSeat > span { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 999px; background: #fff; color: #111827; font-size: .72rem; font-weight: 300; }
+.selfSeat em { font-style: normal; color: #cbd5e1; font-size: .76rem; font-weight: 300; }
 
-.actionError { margin: 0; padding: .75rem 1rem; border-radius: .8rem; color: var(--color-danger-text); background: var(--color-danger-soft); font-weight: 800; }
+.actionError { margin: 0; padding: .75rem 1rem; border-radius: .8rem; color: var(--color-danger-text); background: var(--color-danger-soft); font-weight: 300; }
 .wildChooser { display: grid; gap: 4px; padding: 8px; }
 .wildChooser > div { display: flex; gap: .5rem; flex-wrap: wrap; }
 .handSection { composes: footer from "../../game-engine/stage/GameLayout.module.css"; grid-row: 3; display: grid; gap: 4px; }
 .handHeading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .handHeading > div { display: flex; gap: .5rem; align-items: baseline; }
-.handHint { color: var(--color-muted); font-size: .76rem; font-weight: 750; }
+.handHint { color: var(--color-muted); font-size: .76rem; font-weight: 300; }
 .hand { min-width: 0; display: flex; gap: 8px; overflow-x: auto; padding: 10px 2px 8px; }
 .hand[data-shake="true"] { animation: shake .32s ease-in-out; }
 .handCard { display: grid; align-content: center; justify-items: center; gap: .35rem; flex: 0 0 112px; width: 112px; min-height: 150px; padding: 10px; border: 3px solid #cbd5e1; border-radius: 1rem; background: white; color: var(--color-text); font: inherit; font-size: var(--text-game-card); text-align: center; cursor: pointer; box-shadow: inset 0 0 0 2px #ffffffcc, 0 6px 14px #0f172a16; transition: transform .12s ease, box-shadow .12s ease; }
@@ -74,9 +74,9 @@
 .playedCardMotion { background: white; color: var(--color-text); animation: uno-card-play .48s cubic-bezier(.18, .8, .24, 1) both; }
 .playedCardMotion strong { font-size: 1.05rem; overflow-wrap: anywhere; }
 .playedCardMotion small { color: #64748b; }
-.playedCardMotion em { font-size: .72rem; font-style: normal; font-weight: 900; }
+.playedCardMotion em { font-size: .72rem; font-style: normal; font-weight: 300; }
 .drawnCardMotion { background: repeating-linear-gradient(135deg, #111827 0 9px, #1e3a8a 9px 18px, #b91c1c 18px 27px); color: white; animation: uno-card-draw .5s cubic-bezier(.18, .8, .24, 1) both; }
-.drawnCardMotion span { font-size: .68rem; font-weight: 900; letter-spacing: .14em; }
+.drawnCardMotion span { font-size: .68rem; font-weight: 300; letter-spacing: .14em; }
 .drawnCardMotion strong { font-size: 1.3rem; }
 
 .turnEffectLayer { box-sizing: border-box; align-items: start; padding-top: 3rem; }

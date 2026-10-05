@@ -185,7 +185,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.actionHint = this.add.text(0, 0, "", {
       fontFamily: FONT_FAMILY,
       fontSize: "12px",
-      fontStyle: "bold",
+      fontStyle: "300",
       color: "#ffffff",
       backgroundColor: "rgba(15,23,42,.82)",
       padding: { x: 6, y: 3 },

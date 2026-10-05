@@ -47,7 +47,7 @@ class DashScene extends Phaser.Scene {
     this.road = this.add.graphics();
     this.effects = new Effects(this);
     for (let i = 0; i < 3; i++) this.gates.push(this.add.text(0, 0, "", {
-      fontFamily: FONT_FAMILY, fontSize: "14px", fontStyle: "bold", color: "#e7f7ff",
+      fontFamily: FONT_FAMILY, fontSize: "14px", fontStyle: "300", color: "#e7f7ff",
       resolution: 2, testString: TEXT_METRICS_SAMPLE,
     }).setOrigin(.5).setDepth(3));
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
@@ -184,7 +184,7 @@ class DashScene extends Phaser.Scene {
     }
     const words = ["NICE!", "GREAT!", "SUPER!", "AMAZING!"];
     const label = this.add.text(w / 2, h * .36, milestone ? `${impact.combo} COMBO!` : words[(impact.combo - 1) % words.length]!, {
-      fontFamily: FONT_FAMILY, fontSize: `${Math.min(milestone ? 42 : 32, w / 9)}px`, fontStyle: "900",
+      fontFamily: FONT_FAMILY, fontSize: `${Math.min(milestone ? 42 : 32, w / 9)}px`, fontStyle: "300",
       color: milestone ? "#ffdd78" : "#d4fff1", stroke: "#182742", strokeThickness: 6, resolution: 2,
     }).setOrigin(.5).setDepth(40).setScale(.2).setAngle(-8);
     this.tweens.add({ targets: label, scale: 1.15, angle: 3, duration: 220, ease: "Back.Out" });

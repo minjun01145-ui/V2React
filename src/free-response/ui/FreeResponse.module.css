@@ -1,7 +1,7 @@
 .form, .dashboard { display: grid; gap: .8rem; }
 .form h2, .form p, .dashboard h2, .dashboard p { margin: 0; }
 .prompt, .answer { white-space: pre-wrap; overflow-wrap: anywhere; }
-.form label { display: grid; gap: .5rem; font-weight: 700; }
+.form label { display: grid; gap: .5rem; font-weight: 300; }
 .form textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: .8rem; border: 1px solid var(--color-border); border-radius: .6rem; background: var(--color-surface); color: var(--color-text); font: inherit; }
 .form small, .dashboard header span { color: var(--color-muted); }
 .dashboard header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; }

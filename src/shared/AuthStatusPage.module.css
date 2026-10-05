@@ -5,6 +5,6 @@
 .message { margin: 0.6rem 0 0; color: var(--color-muted); font-size: 0.88rem; line-height: 1.5; }
 .error { margin: 1rem 0 0; padding: 0.7rem; border-radius: var(--radius-sm); color: var(--color-danger-text); background: var(--color-danger-soft); font-size: 0.78rem; line-height: 1.45; }
 .loader { display: block; width: 1.5rem; height: 1.5rem; margin: 1.2rem auto 0; border: 3px solid var(--color-border); border-top-color: var(--color-primary); border-radius: 50%; animation: spin 800ms linear infinite; }
-.homeLink { display: inline-block; margin-top: 1rem; color: var(--color-primary); font-size: 0.8rem; font-weight: 700; text-decoration: none; }
+.homeLink { display: inline-block; margin-top: 1rem; color: var(--color-primary); font-size: 0.8rem; font-weight: 300; text-decoration: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .loader { animation-duration: 1800ms; } }

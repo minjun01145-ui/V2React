@@ -41,16 +41,16 @@
   min-width: 0;
 }
 
-.promptBlock > strong { color: #1e3a5f; font-size: 15px; font-weight: 900; }
+.promptBlock > strong { color: #1e3a5f; font-size: 15px; font-weight: 300; }
 .promptBlock > span {
   overflow: hidden;
   color: #102a43;
   font-size: clamp(17px, 2vw, 23px);
-  font-weight: 950;
+  font-weight: 300;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.promptBlock > small { color: #627d98; font-size: 12px; font-weight: 800; }
+.promptBlock > small { color: #627d98; font-size: 12px; font-weight: 300; }
 
 .canvasWrap { position: relative; min-width: 0; }
 
@@ -104,7 +104,7 @@
   background: rgba(255,255,255,.94);
   color: #991b1b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 300;
   text-align: center;
 }
 
@@ -137,7 +137,7 @@
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
 }
 
-.studentHud small { color: #7b8794; font-size: 10px; font-weight: 900; }
+.studentHud small { color: #7b8794; font-size: 10px; font-weight: 300; }
 .studentHud b { color: #1e3a5f; font-size: 21px; line-height: 1; }
 .studentHud > span.podiumRank b { color: #b45309; }
 
@@ -176,7 +176,7 @@
   margin: 0;
   color: #1e3a5f;
   font-size: clamp(14px, 1.8vw, 18px);
-  font-weight: 900;
+  font-weight: 300;
   line-height: 1.3;
 }
 
@@ -197,7 +197,7 @@
   gap: 6px;
   color: #102a43;
   font-size: clamp(20px, 2.8vw, 32px);
-  font-weight: 950;
+  font-weight: 300;
   line-height: 1.15;
 }
 
@@ -236,7 +236,7 @@
   color: #102a43;
   font: inherit;
   font-size: clamp(15px, 1.8vw, 20px);
-  font-weight: 900;
+  font-weight: 300;
   line-height: 1.15;
   cursor: pointer;
   box-shadow: 0 5px 0 #1e3a5f, 0 9px 18px rgba(15, 42, 67, .14);
@@ -295,7 +295,7 @@
   background: rgba(15, 23, 42, .78);
   color: #fff;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 300;
 }
 
 .raceFeedback {
@@ -322,7 +322,7 @@
 }
 
 .deathFeedback strong { font-size: clamp(30px, 4.6vw, 52px); line-height: 1; text-shadow: 0 3px 0 #7f1d1d; }
-.deathFeedback span { font-size: clamp(14px, 2vw, 20px); font-weight: 900; }
+.deathFeedback span { font-size: clamp(14px, 2vw, 20px); font-weight: 300; }
 
 .ranking {
   align-self: start;
@@ -364,7 +364,7 @@
 .rankRow[data-rank="1"] strong { background: #f59e0b; color: #fff; }
 .rankRow[data-rank="2"] strong { background: #94a3b8; color: #fff; }
 .rankRow[data-rank="3"] strong { background: #c2773d; color: #fff; }
-.rankRow span { overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.rankRow span { overflow: hidden; font-weight: 300; text-overflow: ellipsis; white-space: nowrap; }
 .rankRow b { color: #1e3a5f; font-variant-numeric: tabular-nums; }
 
 @keyframes blankPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }

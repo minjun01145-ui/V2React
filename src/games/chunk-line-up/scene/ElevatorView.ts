@@ -40,7 +40,7 @@ export class ElevatorView {
     const label = (): Phaser.GameObjects.Text => scene.add.text(0, 0, "", {
       fontFamily: FONT_FAMILY,
       fontSize: "11px",
-      fontStyle: "bold",
+      fontStyle: "300",
       color: "#f8fafc",
       backgroundColor: "rgba(15,23,42,.82)",
       padding: { x: 5, y: 2 },

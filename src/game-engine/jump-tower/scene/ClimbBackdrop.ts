@@ -75,7 +75,7 @@ export class ClimbBackdrop {
     if (showSign) scene.add.text(CLIMB_WORLD_WIDTH / 2, -46, "점프 타워 · 끝까지 올라가 보자!", {
       fontFamily: FONT_FAMILY,
       fontSize: "14px",
-      fontStyle: "bold",
+      fontStyle: "300",
       color: "#1e3a5f",
       backgroundColor: "#fef3c7",
       padding: { x: 8, y: 4 },

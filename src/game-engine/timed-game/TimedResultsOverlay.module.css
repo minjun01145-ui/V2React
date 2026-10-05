@@ -25,7 +25,7 @@
   animation: popIn 420ms cubic-bezier(.2, .9, .25, 1.2) both;
 }
 
-.kicker { margin: 0; color: #dc2626; font-size: 15px; font-weight: 950; }
+.kicker { margin: 0; color: #dc2626; font-size: 15px; font-weight: 300; }
 .card h1 { margin: 0; color: #1e3a5f; font-size: var(--text-game-card); }
 
 .mine {
@@ -37,7 +37,7 @@
   border-radius: 16px;
   background: linear-gradient(135deg, #fffbeb, #fef3c7);
   color: #92400e;
-  font-weight: 900;
+  font-weight: 300;
 }
 
 .mine strong { color: #b45309; font-size: 44px; line-height: 1; }
@@ -60,7 +60,7 @@
   padding: 10px 14px;
   border-radius: 12px;
   background: #f1f5f9;
-  font-weight: 800;
+  font-weight: 300;
 }
 
 .ranking li[data-self="true"] { outline: 3px solid #f59e0b; background: #fffbeb; }
@@ -79,10 +79,10 @@
 .ranking li[data-rank="2"] b { background: #94a3b8; color: #fff; }
 .ranking li[data-rank="3"] b { background: #c2773d; color: #fff; }
 .ranking li span { overflow: hidden; color: #1e293b; text-overflow: ellipsis; white-space: nowrap; }
-.ranking li em { color: #1e3a5f; font-style: normal; font-weight: 950; }
+.ranking li em { color: #1e3a5f; font-style: normal; font-weight: 300; }
 .selfRow { margin-top: 0; }
 
-.note { margin: 0; color: #64748b; font-size: 12px; font-weight: 800; }
+.note { margin: 0; color: #64748b; font-size: 12px; font-weight: 300; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes popIn { from { opacity: 0; transform: scale(.8); } to { opacity: 1; transform: scale(1); } }

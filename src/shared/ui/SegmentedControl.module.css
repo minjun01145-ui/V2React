@@ -1,5 +1,5 @@
 .group { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 14px; background: var(--color-surface-muted); }
-.option { border: 0; border-radius: 10px; padding: 0 16px; color: var(--color-muted); background: transparent; font-size: var(--text-sm); font-weight: 800; transition: background 120ms ease, color 120ms ease, transform 120ms ease; }
+.option { border: 0; border-radius: 10px; padding: 0 16px; color: var(--color-muted); background: transparent; font-size: var(--text-sm); font-weight: 300; transition: background 120ms ease, color 120ms ease, transform 120ms ease; }
 .md .option { height: 40px; }
 .sm .option { height: 32px; }
 .option:hover:not([aria-pressed="true"]):not(:disabled) { color: var(--color-text); }

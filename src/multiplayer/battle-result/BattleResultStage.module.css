@@ -7,7 +7,7 @@
 .winner { animation: approachBonk 2.2s ease-in-out both; z-index: 2; }
 .loser { animation: topple .55s 1.45s ease-in both; }
 .bat { position: absolute; right: -1.4rem; top: 28%; width: 5.5rem; height: 1rem; border-radius: 999px; background: linear-gradient(90deg, #7a3e16, #d58b45); transform-origin: 10% 50%; animation: swing .45s 1.15s ease-in-out both; }
-.impact { position: absolute; left: 50%; top: 28%; font-weight: 1000; font-size: 2rem; color: #ff5c37; opacity: 0; animation: pop .35s 1.5s ease-out both; z-index: 3; }
+.impact { position: absolute; left: 50%; top: 28%; font-weight: 300; font-size: 2rem; color: #ff5c37; opacity: 0; animation: pop .35s 1.5s ease-out both; z-index: 3; }
 .stage[data-outcome="draw"] .fighter, .stage[data-outcome="joint-win"] .fighter { animation: cheer .58s ease-in-out infinite alternate; }
 .stage[data-outcome="draw"] .fighter:nth-child(2), .stage[data-outcome="joint-win"] .fighter:nth-child(2) { animation-delay: .18s; }
 @keyframes approachBonk { 0%, 35% { transform: translateX(0) scale(.9); } 65%, 100% { transform: translateX(20%) scale(1.08); } }

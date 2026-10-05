@@ -20,7 +20,7 @@
 .buffAnnouncement[data-kind="jump"] { background: linear-gradient(135deg, #22c55e, #16a34a); }
 .buffAnnouncement[data-kind="punch"] { background: linear-gradient(135deg, #ef4444, #dc2626); }
 .buffAnnouncement span { font-size: clamp(30px, 5vw, 48px); line-height: 1; }
-.buffAnnouncement strong { font-size: clamp(22px, 3.6vw, 38px); font-weight: 950; text-shadow: 0 3px 0 rgba(0,0,0,.18); white-space: nowrap; }
+.buffAnnouncement strong { font-size: clamp(22px, 3.6vw, 38px); font-weight: 300; text-shadow: 0 3px 0 rgba(0,0,0,.18); white-space: nowrap; }
 
 .buffChips {
   position: absolute;
@@ -43,7 +43,7 @@
   box-shadow: 0 3px 0 rgba(0,0,0,.16);
   color: #fff;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 300;
 }
 
 .buffChips span[data-kind="jump"] { background: #16a34a; }

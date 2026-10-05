@@ -40,10 +40,10 @@
   text-align: center;
 }
 
-.heightCard small { color: #92400e; font-size: 11px; font-weight: 900; }
-.heightCard strong { color: #9a3412; font-size: 34px; font-weight: 950; line-height: 1; }
+.heightCard small { color: #92400e; font-size: 11px; font-weight: 300; }
+.heightCard strong { color: #9a3412; font-size: 34px; font-weight: 300; line-height: 1; }
 .heightCard strong span { margin-left: 2px; font-size: 16px; }
-.heightCard em { color: #b45309; font-size: 11px; font-style: normal; font-weight: 900; }
+.heightCard em { color: #b45309; font-size: 11px; font-style: normal; font-weight: 300; }
 
 /* "지금 순위" (left) and "역대 순위" (right) share one look. */
 .standings,
@@ -65,7 +65,7 @@
   margin: 0 0 2px;
   color: #1e3a5f;
   font-size: 12px;
-  font-weight: 950;
+  font-weight: 300;
 }
 
 .standings ol,
@@ -87,7 +87,7 @@
   border-radius: 8px;
   color: #1e293b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 300;
   white-space: nowrap;
 }
 
@@ -111,10 +111,10 @@
 .records li:nth-child(3) b { background: #c2773d; color: #fff; }
 
 .standings li span,
-.records li span { overflow: hidden; color: #1e3a5f; font-weight: 950; text-overflow: ellipsis; }
+.records li span { overflow: hidden; color: #1e3a5f; font-weight: 300; text-overflow: ellipsis; }
 
-.records p { margin: 2px 0; color: #64748b; font-size: 11px; font-weight: 800; }
-.records small { color: #92400e; font-size: 11px; font-weight: 900; text-align: right; }
+.records p { margin: 2px 0; color: #64748b; font-size: 11px; font-weight: 300; }
+.records small { color: #92400e; font-size: 11px; font-weight: 300; text-align: right; }
 
 .hudRight {
   display: grid;
@@ -137,7 +137,7 @@
   color: #fff;
   font: inherit;
   font-size: 13px;
-  font-weight: 900;
+  font-weight: 300;
   cursor: pointer;
 }
 
@@ -153,7 +153,7 @@
   background: rgba(255,255,255,.94);
   color: #991b1b;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 300;
 }
 
 .controlsHint {
@@ -170,7 +170,7 @@
   background: rgba(15,23,42,.62);
   color: #f1f5f9;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 300;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -207,7 +207,7 @@
   color: white;
   font: inherit;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 300;
   touch-action: none;
   user-select: none;
   pointer-events: auto;

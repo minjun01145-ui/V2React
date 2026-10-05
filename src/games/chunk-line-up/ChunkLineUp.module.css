@@ -60,7 +60,7 @@
   background: rgba(255,255,255,.94);
   color: #991b1b;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 300;
   text-align: center;
 }
 
@@ -101,7 +101,7 @@
 .scoreHud small {
   color: #7b8794;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 300;
   line-height: 1;
   letter-spacing: .02em;
 }
@@ -144,7 +144,7 @@
   background: rgba(15,23,42,.62);
   color: #f1f5f9;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 300;
   white-space: nowrap;
   pointer-events: none;
 }
@@ -185,7 +185,7 @@
 .elevatorDestination > span {
   color: #627d98;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 300;
 }
 
 .elevatorDestination > div {
@@ -204,7 +204,7 @@
   color: #17324d;
   font: inherit;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 300;
   line-height: 1.25;
   text-align: left;
   overflow-wrap: anywhere;
@@ -238,7 +238,7 @@
   color: #115e59;
   box-shadow: 0 5px 14px rgba(15,42,67,.14);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 300;
   pointer-events: none;
   animation: feedbackPop 280ms ease-out both;
 }
@@ -256,7 +256,7 @@
   transform: translateX(-50%);
   border-radius: 999px;
   box-shadow: 0 5px 14px rgba(15,42,67,.14);
-  font-weight: 900;
+  font-weight: 300;
   pointer-events: none;
 }
 
@@ -272,7 +272,7 @@
   background: rgba(255,255,255,.9);
   color: #991b1b;
   font-size: 9px;
-  font-weight: 900;
+  font-weight: 300;
   pointer-events: none;
 }
 
@@ -327,7 +327,7 @@
   color: white;
   font: inherit;
   font-size: 16px;
-  font-weight: 900;
+  font-weight: 300;
   touch-action: none;
   user-select: none;
   pointer-events: auto;
@@ -375,7 +375,7 @@
 .teacherHud span {
   color: #627d98;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 300;
 }
 
 .teacherHud > :last-child {
@@ -436,7 +436,7 @@
   color: white;
   font: inherit;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 300;
   cursor: pointer;
   pointer-events: auto;
 }
@@ -491,7 +491,7 @@
   overflow: hidden;
   color: #1e293b;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 300;
   line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -510,7 +510,7 @@
   border-radius: 4px;
   font-size: 9.5px;
   font-style: normal;
-  font-weight: 800;
+  font-weight: 300;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

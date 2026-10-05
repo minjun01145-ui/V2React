@@ -62,7 +62,7 @@
   background: #f3f6fa;
   text-align: center;
   font-size: .98rem;
-  font-weight: 850;
+  font-weight: 300;
 }
 
 .banner[data-role="attacker"] {
@@ -82,7 +82,7 @@
   margin: -.28rem auto 0;
   color: #66778a;
   font-size: .72rem;
-  font-weight: 700;
+  font-weight: 300;
   text-align: center;
 }
 
@@ -94,7 +94,7 @@
   color: #765300;
   text-align: center;
   font-size: .86rem;
-  font-weight: 850;
+  font-weight: 300;
 }
 
 .panel {
@@ -122,7 +122,7 @@
 .panelHeading small {
   color: #62758a;
   font-size: .72rem;
-  font-weight: 750;
+  font-weight: 300;
   text-align: right;
 }
 
@@ -137,7 +137,7 @@
   background: #eaf2ff;
   text-align: center;
   font-size: clamp(1.05rem, 2.4vw, 1.65rem);
-  font-weight: 850;
+  font-weight: 300;
   line-height: 1.3;
 }
 
@@ -265,7 +265,7 @@
 .inkOverlay p {
   margin: 0;
   color: #d9e0e7;
-  font-weight: 750;
+  font-weight: 300;
 }
 
 .teacher {
@@ -283,7 +283,7 @@
 .teacherHeader span {
   color: #55708d;
   font-size: .78rem;
-  font-weight: 800;
+  font-weight: 300;
   letter-spacing: .1em;
 }
 
@@ -328,14 +328,14 @@
 .standing dt {
   color: #64758a;
   font-size: .7rem;
-  font-weight: 800;
+  font-weight: 300;
   letter-spacing: .08em;
 }
 
 .standing dd {
   margin: .1rem 0 0;
   font-size: 1.5rem;
-  font-weight: 900;
+  font-weight: 300;
 }
 
 .status {

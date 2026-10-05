@@ -1,9 +1,9 @@
 .editor { display: grid; gap: 12px; min-width: 0; }
 .topBar { display: flex; gap: 12px; align-items: center; }
-.nameInput { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: 14px; background: #fff; color: var(--color-text); font: inherit; font-size: 1.25rem; font-weight: 800; }
+.nameInput { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 2px solid var(--color-border); border-radius: 14px; background: #fff; color: var(--color-text); font: inherit; font-size: 1.25rem; font-weight: 300; }
 .nameInput:focus { border-color: var(--color-primary); outline: none; box-shadow: var(--focus-ring); }
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px; border-radius: 16px; background: #fff; box-shadow: var(--shadow-raised); }
-.background { display: inline-flex; align-items: center; gap: 6px; padding-left: 8px; font-size: var(--text-sm); font-weight: 800; }
+.background { display: inline-flex; align-items: center; gap: 6px; padding-left: 8px; font-size: var(--text-sm); font-weight: 300; }
 .background input { width: 40px; height: 32px; padding: 2px; border: 2px solid var(--color-border); border-radius: 8px; background: #fff; cursor: pointer; }
 .spacer { flex: 1; }
 .workspace { display: grid; grid-template-columns: 168px minmax(0, 1fr) 280px; gap: 14px; align-items: start; }
@@ -12,5 +12,5 @@
 .railColumn > ol { min-height: 0; overflow-y: auto; }
 .stage { position: sticky; top: 12px; aspect-ratio: 16 / 9; max-height: calc(100dvh - 160px); min-width: 0; }
 .inspector { display: grid; gap: 12px; min-width: 0; }
-.error { margin: 0; padding: 10px 12px; border-radius: 12px; color: var(--color-danger-text); background: var(--color-danger-soft); font-weight: 800; }
+.error { margin: 0; padding: 10px 12px; border-radius: 12px; color: var(--color-danger-text); background: var(--color-danger-soft); font-weight: 300; }
 @media (max-width: 999px) { .workspace { grid-template-columns: 140px minmax(0, 1fr); } .stage { position: static; } .inspector { grid-column: 1 / -1; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: start; } }

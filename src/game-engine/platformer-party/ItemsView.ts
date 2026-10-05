@@ -44,7 +44,7 @@ export class ItemsView {
           icon: this.scene.add.text(item.x, item.y, ITEM_STYLE[item.kind].icon, {
             fontFamily: FONT_FAMILY,
             fontSize: "15px",
-            fontStyle: "bold",
+            fontStyle: "300",
             color: "#ffffff",
           }).setOrigin(0.5).setDepth(16).setResolution(TEXT_RESOLUTION),
         };

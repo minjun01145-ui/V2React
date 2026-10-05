@@ -1,4 +1,4 @@
 .clock { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 42; pointer-events: none; }
-.respawn { position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); z-index: 45; padding: 16px 24px; border: 3px solid white; border-radius: 18px; background: #1e3a5fe8; color: white; font-size: 24px; font-weight: 900; }
+.respawn { position: absolute; top: 55%; left: 50%; transform: translate(-50%, -50%); z-index: 45; padding: 16px 24px; border: 3px solid white; border-radius: 18px; background: #1e3a5fe8; color: white; font-size: 24px; font-weight: 300; }
 @media (max-width: 640px) { .clock { left: auto; right: 62px; transform: none; } }
 .teacherStage { position: relative; width: 100%; height: min(75vh, 760px); min-height: 480px; overflow: hidden; border-radius: 16px; }

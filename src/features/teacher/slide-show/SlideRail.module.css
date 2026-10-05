@@ -1,6 +1,6 @@
 .rail { display: grid; gap: 10px; margin: 0; padding: 4px 6px 4px 0; list-style: none; }
 .item { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; align-items: start; width: 100%; padding: 0; border: 0; background: transparent; color: var(--color-muted); text-align: left; cursor: pointer; }
-.number { padding-top: 2px; font-size: var(--text-sm); font-weight: 900; text-align: right; }
+.number { padding-top: 2px; font-size: var(--text-sm); font-weight: 300; text-align: right; }
 .thumb { aspect-ratio: 16 / 9; border-radius: 8px; outline: 3px solid transparent; outline-offset: 2px; transition: outline-color 120ms ease, transform 120ms var(--ease-pop); }
 .item:hover:not(:disabled) .thumb { transform: translateY(-2px); }
 .item[aria-current="true"] { color: var(--color-primary); }

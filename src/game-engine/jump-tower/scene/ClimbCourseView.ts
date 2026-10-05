@@ -197,7 +197,7 @@ export class ClimbCourseView {
       : null;
     const label = platform.label !== undefined
       ? this.scene.add.text(centreX, platform.y + 20, platform.label, {
-        fontFamily: FONT_FAMILY, fontSize: "13px", fontStyle: "bold", color: platform.style?.labelColor ?? "#1e3a5f",
+        fontFamily: FONT_FAMILY, fontSize: "13px", fontStyle: "300", color: platform.style?.labelColor ?? "#1e3a5f",
         backgroundColor: platform.style?.labelBackground ?? "#ffffff", padding: { x: 6, y: 4 }, align: "center",
         wordWrap: { width: platform.width - 12, useAdvancedWrap: true },
       }).setOrigin(0.5, 0).setDepth(6).setResolution(TEXT_RESOLUTION)
@@ -205,7 +205,7 @@ export class ClimbCourseView {
       ? this.scene.add.text(centreX, platform.y + 8, `${platform.index}층`, {
         fontFamily: FONT_FAMILY,
         fontSize: "11px",
-        fontStyle: "bold",
+        fontStyle: "300",
         color: "#5b3a00",
       }).setOrigin(0.5, 0.5).setDepth(6).setResolution(TEXT_RESOLUTION)
       : null;

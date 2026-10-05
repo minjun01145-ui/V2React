@@ -71,7 +71,7 @@ export class BlobActor {
     this.tag = scene.add.text(0, BLOB_TAG_Y, "", {
       fontFamily: FONT_FAMILY,
       fontSize: self ? "13px" : "10px",
-      fontStyle: "bold",
+      fontStyle: "300",
       // Remote names are tinted with their body colour so a tag is easy to match to its runner.
       color: self ? "#7c2d12" : `#${shade(color, -0.55).toString(16).padStart(6, "0")}`,
       backgroundColor: self ? "#fef3c7" : "rgba(255,255,255,.88)",
