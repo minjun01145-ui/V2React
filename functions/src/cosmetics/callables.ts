@@ -4,7 +4,7 @@ import { requireAdminTenant, requireRegularStudent } from "../shared/auth.js";
 import { isRecord } from "../shared/validation.js";
 import { buyCharacterItem, editNextShop, ensureShop, initializeCharacter, saveCharacter, shopResponse } from "./service.js";
 
-const options = { region: "asia-northeast3", enforceAppCheck: false } as const;
+const options = { region: "asia-northeast3", enforceAppCheck: false, invoker: "public" } as const;
 export const initializeStudentCharacter = onCall(options, async (request) => {
   const student = await requireRegularStudent(request);
   await initializeCharacter(student.studentAccountId);
