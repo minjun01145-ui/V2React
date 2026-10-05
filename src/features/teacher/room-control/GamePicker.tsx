@@ -27,6 +27,7 @@ const GROUPS = [
     ["pokemon-catch", "포켓몬 잡기"],
     ["meaning-dash", "달리기"],
     ["brick-smash", "벽돌 팡팡"],
+    ["word-ninja", "단어 닌자"],
     ["chunk-line-up", "플랫포머 문장 만들기"],
     ["chunk-jump-race", "점프 문장 만들기"],
   ] },

@@ -22,6 +22,7 @@ const PLACEHOLDERS = {
   "matching-all": { emoji: "🧠", color: "#f26b1d" },
   "meaning-dash": { emoji: "🏃", color: "#07b0d6" },
   "brick-smash": { emoji: "🧱", color: "#e0562a" },
+  "word-ninja": { emoji: "🍉", color: "#1fa85a" },
   "chunk-line-up": { emoji: "🍄", color: "#8b4ff0" },
   "chunk-jump-race": { emoji: "🐸", color: "#12b07a" },
   "learning-jump-tower": { emoji: "🚀", color: "#3b6cf6" },

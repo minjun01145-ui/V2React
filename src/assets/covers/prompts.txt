@@ -53,6 +53,9 @@ meaning-dash.webp (달리기) — BG #07b0d6
 brick-smash.webp (벽돌 팡팡) — BG #e0562a
   A tough little hammer character smashing a wall of colorful bricks, brick chunks flying.
 
+word-ninja.webp (단어 닌자) — BG #1fa85a
+  A tiny round ninja with a headband slashing a flying watermelon in half with a glowing blade, juice droplets and fruit halves spinning away.
+
 chunk-line-up.webp (플랫포머 문장 만들기) — BG #8b4ff0
   A cute mushroom-hat platformer hero jumping between floating grassy platforms, carrying a blank word block.
 
