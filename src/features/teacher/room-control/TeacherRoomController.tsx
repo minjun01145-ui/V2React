@@ -31,8 +31,6 @@ const DrawingBoard = lazy(() => import("../../../collaborative-drawing/DrawingBo
 
 type RoomAction = (roomId: string) => Promise<void>;
 
-const PREPARE_DEADLINE_MS = 8_000;
-
 interface Props {
   readonly roomId: string;
   readonly embedded?: boolean;
@@ -71,28 +69,17 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const readyCount = countExpectedReady(expectedPlayerIds, readiness);
   const expectedCount = new Set(expectedPlayerIds).size;
 
-  const allReady = isPreparing && expectedCount > 0 && readyCount === expectedCount;
   useEffect(() => {
-    if (!isPreparing || !preparingRoundId) return undefined;
-    const finalize = (): void => {
-      if (finalizingRound.current === preparingRoundId) return;
-      finalizingRound.current = preparingRoundId;
-      setWorking(true);
-      void finalizeSessionStart(roomId, preparingRoundId).catch(async (startError: unknown) => {
-        console.error(startError);
-        finalizingRound.current = null;
-        await showMessage({ title: "게임을 시작하지 못했습니다", message: toErrorMessage(startError, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
-      }).finally(() => setWorking(false));
-    };
-    if (allReady) {
-      finalize();
-      return undefined;
-    }
-    // Readiness only warms the game up; a slow student or a lagging readiness feed must not hold the class.
-    // Students still loading join the playing round on their own.
-    const timer = window.setTimeout(finalize, PREPARE_DEADLINE_MS);
-    return () => window.clearTimeout(timer);
-  }, [allReady, isPreparing, preparingRoundId, roomId, showMessage]);
+    if (!isPreparing || !preparingRoundId || expectedCount === 0 || readyCount !== expectedCount) return;
+    if (finalizingRound.current === preparingRoundId) return;
+    finalizingRound.current = preparingRoundId;
+    setWorking(true);
+    void finalizeSessionStart(roomId, preparingRoundId).catch(async (startError: unknown) => {
+      console.error(startError);
+      finalizingRound.current = null;
+      await showMessage({ title: "게임을 시작하지 못했습니다", message: toErrorMessage(startError, "잠시 후 다시 시도해 주세요."), tone: "error", blurBackground: false });
+    }).finally(() => setWorking(false));
+  }, [expectedCount, isPreparing, preparingRoundId, readyCount, roomId, showMessage]);
 
   const startGame = (id: string): Promise<void> => {
     return startRegularGameSession(id, { gameId: gameSetup.selectedGame.id, gameConfig: gameSetup.buildGameConfig() });
