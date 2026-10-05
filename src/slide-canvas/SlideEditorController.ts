@@ -28,7 +28,10 @@ interface ControllerEvents {
 const DEFAULT_TEXT_COLOR = "#101a3a";
 const DEFAULT_SHAPE_FILL = "#ffc933";
 const DEFAULT_STROKE = "#101a3a";
-const ENGINE_FRAME_COLOR = "#2338b8";
+const SELECTION_COLOR = "#2338b8";
+const ENGINE_ACCENT = "#ffc933";
+const ENGINE_ACCENT_DEEP = "#d49b00";
+const ENGINE_INK = "#1a1640";
 
 export function emptySlideCanvas(background = "#ffffff"): string {
   return JSON.stringify({ objects: [], background });
@@ -52,7 +55,7 @@ export class SlideEditorController {
 
   constructor(element: HTMLCanvasElement, events: ControllerEvents) {
     this.events = events;
-    this.canvas = new Canvas(element, { preserveObjectStacking: true, selectionColor: "rgba(35,56,184,.08)", selectionBorderColor: ENGINE_FRAME_COLOR });
+    this.canvas = new Canvas(element, { preserveObjectStacking: true, selectionColor: "rgba(35,56,184,.08)", selectionBorderColor: SELECTION_COLOR });
     const changed = (): void => { if (!this.loading) this.events.onChange(); };
     const selection = (): void => this.events.onSelectionChange(this.selectedStyle());
     this.canvas.on("object:added", changed);
@@ -219,7 +222,7 @@ export class SlideEditorController {
   private placeEngineFrame(frame: SlideFrame): void {
     const rect = new Rect({
       left: frame.x, top: frame.y, width: frame.width, height: frame.height,
-      fill: "rgba(35,56,184,0.10)", stroke: ENGINE_FRAME_COLOR, strokeWidth: 3, strokeDashArray: [14, 10],
+      fill: "rgba(255,201,51,0.16)", stroke: ENGINE_ACCENT_DEEP, strokeWidth: 4, strokeDashArray: [16, 10], rx: 18, ry: 18,
       strokeUniform: true, lockRotation: true, excludeFromExport: true, objectCaching: false,
     });
     rect.setControlsVisibility({ mtr: false });
@@ -243,10 +246,20 @@ export class SlideEditorController {
     const [a, b, c, d, e, f] = this.canvas.viewportTransform;
     ctx.save();
     ctx.transform(a, b, c, d, e, f);
-    ctx.font = `300 28px ${SLIDE_FONT_FAMILY}`;
-    ctx.fillStyle = ENGINE_FRAME_COLOR;
-    ctx.textBaseline = "top";
-    ctx.fillText(this.engineLabel ? `문제 엔진 · ${this.engineLabel}` : "문제 엔진", frame.left + 18, frame.top + 16);
+    const label = `⚡ ${this.engineLabel ? `문제 엔진 · ${this.engineLabel}` : "문제 엔진"}`;
+    ctx.font = `400 28px ${SLIDE_FONT_FAMILY}`;
+    ctx.textBaseline = "middle";
+    const width = ctx.measureText(label).width + 36;
+    ctx.fillStyle = ENGINE_ACCENT_DEEP;
+    ctx.beginPath();
+    ctx.roundRect(frame.left + 16, frame.top + 20, width, 48, 24);
+    ctx.fill();
+    ctx.fillStyle = ENGINE_ACCENT;
+    ctx.beginPath();
+    ctx.roundRect(frame.left + 16, frame.top + 16, width, 48, 24);
+    ctx.fill();
+    ctx.fillStyle = ENGINE_INK;
+    ctx.fillText(label, frame.left + 34, frame.top + 41);
     ctx.restore();
   }
 

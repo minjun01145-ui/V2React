@@ -1,2 +1,2 @@
 .container { display: grid; place-items: center; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; }
-.board { overflow: hidden; border-radius: 6px; background: #fff; box-shadow: 0 0 0 1px rgba(16, 26, 58, 0.08), 0 14px 34px -16px rgba(16, 26, 58, 0.4); }
+.board { overflow: hidden; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px rgba(16, 26, 58, 0.08), 0 6px 0 rgba(16, 26, 58, 0.1), 0 24px 44px -18px rgba(16, 26, 58, 0.5); }

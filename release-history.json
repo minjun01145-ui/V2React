@@ -1,5 +1,5 @@
 {
-  "version": "2.21",
+  "version": "2.22",
   "releases": [
     {
       "version": "2.00",
@@ -60,6 +60,12 @@
       "kind": "patch",
       "date": "2026-10-05T14:20:52.450Z",
       "message": "글씨체를 Noto Sans KR로 교체해 선명도 개선"
+    },
+    {
+      "version": "2.22",
+      "kind": "patch",
+      "date": "2026-10-05T14:45:10.279Z",
+      "message": "슬라이드쇼 디자인 개편, 벽돌 팡팡 색 조화"
     }
   ]
 }

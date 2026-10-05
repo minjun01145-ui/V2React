@@ -118,8 +118,9 @@ export default function TeacherSlideShowPage({ roomId }: { readonly roomId: stri
       : shows.length === 0
         ? <p className={styles.empty}>아직 만든 슬라이드쇼가 없어요</p>
         : <div className={styles.grid}>{shows.map((show) => <button type="button" className={styles.card} key={show.id} onClick={() => void loadShow(show)} disabled={busy}>
+          <span className={styles.cover} aria-hidden="true"><i /><i /><i /><b>{show.slideCount}장</b></span>
           <strong>{show.name}</strong>
-          <span>{show.slideCount}장 · {dateFormat.format(show.updatedAtMs)}</span>
+          <span className={styles.date}>{dateFormat.format(show.updatedAtMs)}</span>
         </button>)}</div>}
   </PageShell>;
 }

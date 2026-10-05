@@ -42,7 +42,7 @@ function Brick({ brick, className, style }: { readonly brick: StageBrick; readon
 }
 
 function Hammer({ golden, defineGradient = true }: { readonly golden: boolean; readonly defineGradient?: boolean }) {
-  const head = golden ? ["#fff6df", "#ffc83d", "#e0a800"] : ["#fff6df", "#ffb36b", "#d9692a"];
+  const head = golden ? ["#fff6df", "#ffc83d", "#e0a800"] : ["#ffffff", "#8fa2ff", "#2338b8"];
   const id = golden ? "brick-hammer-golden" : "brick-hammer-normal";
   return <svg viewBox="0 0 200 200" aria-hidden="true">
     {defineGradient && <defs>
@@ -51,7 +51,7 @@ function Hammer({ golden, defineGradient = true }: { readonly golden: boolean; r
       </linearGradient>
     </defs>}
     <rect x="87" y="58" width="28" height="132" rx="12" fill="#ffd23f" stroke="#16205a" strokeWidth="7" />
-    <rect x="88" y="142" width="26" height="45" rx="10" fill="#ff5c8a" />
+    <rect x="88" y="142" width="26" height="45" rx="10" fill="#fff6df" />
     <path d="M91 150h20m-20 13h20m-20 13h20" stroke="#16205a" strokeWidth="6" />
     <rect x="15" y="18" width="170" height="70" rx="22" fill={`url(#${id})`} stroke="#16205a" strokeWidth="8" />
     <rect x="36" y="22" width="14" height="62" rx="5" fill="#16205a" />
