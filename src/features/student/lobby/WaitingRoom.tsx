@@ -18,6 +18,7 @@ import StudentSoloExperience from "../solo/StudentSoloExperience.tsx";
 import type { StudentIdentity } from "../../../auth/types.ts";
 import type { Player } from "../../../multiplayer/types.ts";
 import { canEnterSolo } from "../solo/model.ts";
+import { useReloadOnNewDeployment } from "../../../app/useReloadOnNewDeployment.ts";
 
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
@@ -55,6 +56,9 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   const requiredActivityActive = Boolean(activity?.phase === "active" && targeted);
   const soloAllowed = canEnterSolo(session.status, requiredActivityActive);
   const authoring = useStudentQuestionSubmission(roomId, targeted && activity ? activity.runId : null, uid);
+  const authoringOpen = Boolean(activity && (targeted && activity.phase === "active" && authoring.loading
+    || shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)));
+  useReloadOnNewDeployment(!authoringOpen && !soloOpen && !drawingOpen && !typingOpen && !platformerOpen && !shopOpen);
 
   useEffect(() => {
     if (!nickname || !nicknameGrade || resolvingDuplicateNickname.current) return;
