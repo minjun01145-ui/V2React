@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../shared/firebase.js";
 import { tenantAccountId, tenantStudentKey, type TenantId } from "../shared/tenant.js";
 import { isRecord, normalizePersonName } from "../shared/validation.js";
-import { parseBalance } from "../cosmetics/model.js";
+import { parseBalance } from "./model.js";
 
 export const GAME_PARTICIPATION_COINS = 10;
 export const walletDocument = (accountId: string) => db.collection("studentGameData").doc(accountId).collection("wallet").doc("v2coins");

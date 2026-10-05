@@ -1,6 +1,7 @@
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { requireAdminTenant, requireRegularStudent } from "../shared/auth.js";
+import { TENANT_IDS } from "../shared/tenant.js";
 import { isRecord } from "../shared/validation.js";
 import { buyCharacterItem, editNextShop, ensureShop, initializeCharacter, saveCharacter, shopResponse } from "./service.js";
 
@@ -42,5 +43,5 @@ export const updateNextCharacterShop = onCall(options, async (request) => {
   return editNextShop(admin.tenantId, data.week, data.itemId, data.mode as "auto" | "exclude" | "feature", data.price as number | null);
 });
 export const publishWeeklyCharacterShop = onSchedule({ region: "asia-northeast3", schedule: "0 0 * * 1", timeZone: "Asia/Seoul", retryCount: 3 }, async () => {
-  await Promise.all([ensureShop("minjun"), ensureShop("hana")]);
+  await Promise.all(TENANT_IDS.map((tenantId) => ensureShop(tenantId)));
 });

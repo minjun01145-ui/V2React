@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { mock } from "node:test";
-import { CATALOG, CATEGORIES, DEFAULT_APPEARANCE, DEFAULT_ITEM_IDS, automaticPrice, parseAppearance, parseBalance, parseShopState, publishShop, selectWeeklyItems, shopWeek, updateOverrides } from "../lib/cosmetics/model.js";
+import { CATALOG, CATEGORIES, DEFAULT_APPEARANCE, DEFAULT_ITEM_IDS, automaticPrice, parseAppearance, parseShopState, publishShop, selectWeeklyItems, shopWeek, updateOverrides } from "../lib/cosmetics/model.js";
+import { parseBalance } from "../lib/coins/model.js";
 
 assert.equal(shopWeek(Date.parse("2026-10-04T14:59:59Z")), "2026-09-28");
 assert.equal(shopWeek(Date.parse("2026-10-04T15:00:00Z")), "2026-10-05");

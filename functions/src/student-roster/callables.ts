@@ -3,7 +3,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { requireAdminTenant } from "../shared/auth.js";
 import { adminAuth, db } from "../shared/firebase.js";
 import { isRecord, parseRosterInput, parseStudentCredentials } from "../shared/validation.js";
-import { effectiveTenantId, parseTenantId, tenantAccountId, tenantStudentKey, type TenantId } from "../shared/tenant.js";
+import { PRIMARY_TENANT_ID, effectiveTenantId, parseTenantId, tenantAccountId, tenantStudentKey, type TenantId } from "../shared/tenant.js";
 
 const callableOptions = { region: "asia-northeast3", enforceAppCheck: false } as const;
 
@@ -33,9 +33,9 @@ export const listStudents = onCall(callableOptions, async (request) => {
   const configuredPins = new Set(credentials.docs.map((doc) => doc.id));
   const prefix = `${tenantId}--`;
   return {
-    students: roster.docs.filter((doc) => tenantId === "minjun" ? /^[0-9]+$/.test(doc.id) : doc.id.startsWith(prefix)).map((doc) => {
+    students: roster.docs.filter((doc) => tenantId === PRIMARY_TENANT_ID ? /^[0-9]+$/.test(doc.id) : doc.id.startsWith(prefix)).map((doc) => {
       const raw: unknown = doc.data();
-      const studentNumber = tenantId === "minjun" ? doc.id : doc.id.slice(prefix.length);
+      const studentNumber = tenantId === PRIMARY_TENANT_ID ? doc.id : doc.id.slice(prefix.length);
       return {
         studentNumber,
         displayName: isRecord(raw) && typeof raw.displayName === "string" ? raw.displayName : "",

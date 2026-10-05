@@ -3,7 +3,8 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
 import type { TenantId } from "../shared/tenant.js";
 import { walletDocument } from "../coins/service.js";
-import { CATALOG, DEFAULT_APPEARANCE, DEFAULT_ITEM_IDS, assertOwnedAppearance, automaticPrice, catalogItem, parseAppearance, parseBalance, parseOwnedItems, parseShopState, publishShop, purchase, selectWeeklyItems, shopWeek, updateOverrides, type Appearance, type ShopState } from "./model.js";
+import { parseBalance } from "../coins/model.js";
+import { CATALOG, DEFAULT_APPEARANCE, DEFAULT_ITEM_IDS, assertOwnedAppearance, automaticPrice, catalogItem, parseAppearance, parseOwnedItems, parseShopState, publishShop, purchase, selectWeeklyItems, shopWeek, updateOverrides, type Appearance, type ShopState } from "./model.js";
 
 export const wardrobeDocument = (accountId: string) => db.collection("studentGameData").doc(accountId).collection("wardrobe").doc("profile");
 const avatarDocument = (accountId: string) => db.collection("studentGameData").doc(accountId).collection("cosmetics").doc("profile");

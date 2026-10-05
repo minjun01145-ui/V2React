@@ -51,10 +51,6 @@ export function parseOwnedItems(value: unknown): number[] {
   }
   return [...new Set([...DEFAULT_ITEM_IDS, ...value])];
 }
-export function parseBalance(value: unknown): number {
-  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) throw new Error("V2코인 잔액을 확인할 수 없습니다.");
-  return value;
-}
 export function purchase(balance: number, owned: readonly number[], itemId: number, price: number) {
   if (owned.includes(itemId)) return { balance, ownedItemIds: [...owned], purchased: false };
   if (balance < price) throw new Error("V2코인이 부족합니다.");

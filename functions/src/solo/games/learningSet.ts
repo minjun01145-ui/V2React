@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { HttpsError } from "firebase-functions/v2/https";
 import { isRecord } from "../../shared/validation.js";
-import type { TenantId } from "../../shared/tenant.js";
+import { belongsToTenant, type TenantId } from "../../shared/tenant.js";
 import { soloGameRules, type SoloGameId } from "../registry.js";
 
 export interface SoloLearningItem {
@@ -32,8 +32,7 @@ export function verifySoloLearningSet(input: {
   const minimums = rules.minimumItems as Readonly<Record<string, number>>;
   const supportedSetTypes: readonly string[] = rules.supportedSetTypes;
   if (!isRecord(input.metadata)
-    || (input.metadata.tenantId !== undefined && input.metadata.tenantId !== input.tenantId)
-    || (input.tenantId !== "minjun" && input.metadata.tenantId !== input.tenantId)
+    || !belongsToTenant(input.metadata.tenantId, input.tenantId)
     || typeof input.metadata.type !== "string"
     || !supportedSetTypes.includes(input.metadata.type)
     || !isRecord(input.content)

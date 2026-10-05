@@ -3,7 +3,7 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
 import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { isRecord } from "../shared/validation.js";
-import { parseTenantId, type TenantId } from "../shared/tenant.js";
+import { belongsToTenant, parseTenantId, type TenantId } from "../shared/tenant.js";
 import {
   applySimpleQuizAnswer,
   emptySimpleQuizAuthoritativeState,
@@ -139,8 +139,7 @@ function parseVerifiedSimpleQuizSet(
   content: unknown,
 ): readonly SimpleQuizSetItem[] {
   if (!isRecord(metadata) || metadata.type !== "vocabulary"
-    || (metadata.tenantId !== undefined && metadata.tenantId !== tenantId)
-    || (tenantId !== "minjun" && metadata.tenantId !== tenantId)
+    || !belongsToTenant(metadata.tenantId, tenantId)
     || !isRecord(content) || !Array.isArray(content.items) || content.items.length < 5) {
     throw new HttpsError("failed-precondition", "선택한 단어 세트를 찾을 수 없거나 심플퀴즈 조건을 충족하지 않습니다.");
   }
