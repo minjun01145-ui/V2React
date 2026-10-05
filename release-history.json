@@ -1,5 +1,5 @@
 {
-  "version": "2.20",
+  "version": "2.21",
   "releases": [
     {
       "version": "2.00",
@@ -54,6 +54,12 @@
       "kind": "feature",
       "date": "2026-10-05T14:16:41.509Z",
       "message": "새 게임: 단어 닌자"
+    },
+    {
+      "version": "2.21",
+      "kind": "patch",
+      "date": "2026-10-05T14:20:52.450Z",
+      "message": "글씨체를 Noto Sans KR로 교체해 선명도 개선"
     }
   ]
 }

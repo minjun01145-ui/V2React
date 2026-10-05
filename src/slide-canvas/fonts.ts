@@ -1,15 +1,15 @@
-export const SLIDE_FONT_FAMILY = "SeoulCyber, sans-serif";
+export const SLIDE_FONT_FAMILY = "'Noto Sans KR', sans-serif";
 
 /**
- * Canvas text does not trigger web-font loading, so load the SeoulCyber weights
+ * Canvas text does not trigger web-font loading, so load the Noto Sans KR weights
  * a slide draws before rendering it.
  */
 export async function loadSlideFonts(texts: readonly string[]): Promise<void> {
   const sample = texts.join("");
   if (!sample || typeof document === "undefined" || !document.fonts) return;
   await Promise.all([
-    document.fonts.load(`400 32px SeoulCyber`, sample),
-    document.fonts.load(`800 32px SeoulCyber`, sample),
+    document.fonts.load(`400 32px "Noto Sans KR"`, sample),
+    document.fonts.load(`800 32px "Noto Sans KR"`, sample),
   ]).catch(() => undefined);
 }
 
