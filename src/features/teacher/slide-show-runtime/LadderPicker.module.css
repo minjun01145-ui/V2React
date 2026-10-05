@@ -3,7 +3,7 @@
 .scroll { overflow-x: auto; border-radius: 12px; background: var(--color-bg); }
 .ladder { display: block; max-width: none; height: auto; margin: auto; }
 .rail { stroke: #a5afc6; stroke-width: 3; }
-.start, .winningStart, .name { text-anchor: middle; fill: var(--color-text); font: 300 14px Paperlogy, sans-serif; }
+.start, .winningStart, .name { text-anchor: middle; fill: var(--color-text); font: 100 14px SeoulCyber, sans-serif; }
 .winningStart { fill: #b54400; font-size: 24px; }
 .start { fill: #72809e; font-size: 20px; }
 .path { fill: none; stroke: #dc6500; stroke-width: 6; stroke-linecap: round; stroke-linejoin: round; }

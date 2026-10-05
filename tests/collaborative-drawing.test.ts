@@ -1,14 +1,20 @@
 import assert from "node:assert/strict";
-import { authorHue, availableSlot, BOARD_HEIGHT, BOARD_WIDTH, hitTestStroke, MAX_STROKE_POINTS, MAX_STROKES_PER_AUTHOR, packPoints, parseStroke, simplifyStroke, sortStrokes, strokeId, unpackPoints, type DrawingPoint, type DrawingStroke } from "../src/collaborative-drawing/model.ts";
+import { authorHue, availableSlot, inkColor, strokeColor, BOARD_HEIGHT, BOARD_WIDTH, hitTestStroke, MAX_STROKE_POINTS, MAX_STROKES_PER_AUTHOR, packPoints, parseStroke, simplifyStroke, sortStrokes, strokeId, unpackPoints, type DrawingPoint, type DrawingStroke } from "../src/collaborative-drawing/model.ts";
 
 const line = (slot = 0, overrides: Partial<DrawingStroke> = {}): DrawingStroke => ({
-  id: strokeId("alice", slot), authorId: "alice", slot, label: "파란 고래", hue: authorHue("alice"), width: 6,
+  id: strokeId("alice", slot), authorId: "alice", slot, label: "파란 고래", hue: authorHue("alice"), color: null, width: 6,
   points: [{ x: 100, y: 100 }, { x: 200, y: 100 }], generation: 0, createdAt: 1000, ...overrides,
 });
 const raw = { by: "alice", s: 0, l: "파란 고래", c: 123, w: 6, p: packPoints(line().points), g: 0, t: 1000 };
 assert.equal(parseStroke("alice_0", raw)?.label, "파란 고래");
+assert.equal(parseStroke("alice_0", raw)?.color, null, "strokes without k keep the author's own color");
+assert.equal(parseStroke("alice_0", { ...raw, k: 3 })?.color, 3);
+assert.equal(parseStroke("alice_0", { ...raw, w: 1 })?.width, 1, "thin pens are accepted");
+assert.equal(parseStroke("alice_0", { ...raw, w: 2 })?.width, 2);
+assert.equal(strokeColor({ hue: 10, color: null }), inkColor(10));
+assert.equal(strokeColor({ hue: 10, color: 0 }), "#1f2430");
 assert.equal(parseStroke("bob_0", raw), null, "author cannot be attributed to another student's ID");
-for (const invalid of [null, [], { ...raw, s: 80 }, { ...raw, s: -1 }, { ...raw, s: 1.5 }, { ...raw, c: 360 }, { ...raw, w: 999 }, { ...raw, l: "x".repeat(41) }, { ...raw, g: NaN }, { ...raw, t: Infinity }, { ...raw, by: "bad/name" }, { ...raw, p: "1,2" }, { ...raw, p: "123456".repeat(193) }]) {
+for (const invalid of [null, [], { ...raw, s: 80 }, { ...raw, s: -1 }, { ...raw, s: 1.5 }, { ...raw, c: 360 }, { ...raw, w: 999 }, { ...raw, k: 10 }, { ...raw, k: -1 }, { ...raw, k: 1.5 }, { ...raw, k: "red" }, { ...raw, l: "x".repeat(41) }, { ...raw, g: NaN }, { ...raw, t: Infinity }, { ...raw, by: "bad/name" }, { ...raw, p: "1,2" }, { ...raw, p: "123456".repeat(193) }]) {
   assert.equal(parseStroke("alice_0", invalid), null, "untrusted data must be bounded and valid");
 }
 

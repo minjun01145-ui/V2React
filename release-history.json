@@ -1,5 +1,5 @@
 {
-  "version": "2.05",
+  "version": "2.10",
   "releases": [
     {
       "version": "2.00",
@@ -36,6 +36,12 @@
       "kind": "patch",
       "date": "2026-10-05T11:26:26.123Z",
       "message": "캐릭터 상점 internal 오류 수정"
+    },
+    {
+      "version": "2.10",
+      "kind": "feature",
+      "date": "2026-10-05T13:19:18.483Z",
+      "message": "서울사이버대학체, 그림판 색·얇은 펜·지우개, 점프 단어 모드"
     }
   ]
 }

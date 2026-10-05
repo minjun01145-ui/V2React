@@ -3,6 +3,7 @@ import {
   advanceChunkJumpCursor,
   buildChunkJumpCourse,
   chunkJumpChoices,
+  chunkJumpDirection,
   chunkJumpShowsMeaning,
   chunkJumpStep,
   initialChunkJumpCursor,
@@ -59,5 +60,37 @@ assert.equal(chunkJumpShowsMeaning(null), false);
 assert.equal(chunkJumpShowsMeaning({}), false, "off by default");
 assert.equal(chunkJumpShowsMeaning({ "chunk-jump-meaning": "off" }), false);
 assert.equal(chunkJumpShowsMeaning({ "chunk-jump-meaning": "on" }), true);
+
+assert.equal(course.kind, "sentences");
+const vocabulary: RuntimeLearningSet = {
+  id: "words-1",
+  name: "단어",
+  type: "vocabulary",
+  itemCount: 4,
+  items: [
+    { id: "w1", sourceText: "apple", meaning: "사과" },
+    { id: "w2", sourceText: "river", meaning: "강" },
+    { id: "w3", sourceText: "cloud", meaning: "구름" },
+    { id: "w4", sourceText: "empty", meaning: " " },
+  ],
+};
+const words = buildChunkJumpCourse(vocabulary);
+assert.equal(words.kind, "words");
+assert.equal(words.sentences.length, 3, "items without a meaning are skipped");
+let wordCursor = initialChunkJumpCursor();
+assert.deepEqual(chunkJumpStep(words, wordCursor).currentChunks, ["apple"]);
+assert.equal(chunkJumpStep(words, wordCursor).answer, "사과");
+const wordChoices = chunkJumpChoices(words, wordCursor, "round:student-a");
+assert.equal(wordChoices.length, 3);
+assert(wordChoices.includes("사과"));
+assert(wordChoices.every((choice) => ["사과", "강", "구름"].includes(choice)), "word choices come from the same side");
+wordCursor = advanceChunkJumpCursor(words, wordCursor);
+assert.equal(chunkJumpStep(words, wordCursor).answer, "강", "one correct answer moves to the next word");
+const reversed = buildChunkJumpCourse(vocabulary, "meaning-to-source");
+assert.deepEqual(chunkJumpStep(reversed, initialChunkJumpCursor()).currentChunks, ["사과"]);
+assert(chunkJumpChoices(reversed, initialChunkJumpCursor(), "seed").every((choice) => ["apple", "river", "cloud"].includes(choice)));
+assert.equal(chunkJumpDirection({ direction: "meaning-to-source" }), "meaning-to-source");
+assert.equal(chunkJumpDirection({}), "source-to-meaning");
+assert.throws(() => buildChunkJumpCourse({ ...vocabulary, items: [{ id: "x", sourceText: "", meaning: "뜻" }] }));
 
 console.log("chunk jump race model test passed");

@@ -1,10 +1,10 @@
-import { inkColor, type DrawingPoint, type DrawingStroke } from "./model.ts";
+import { strokeColor, type DrawingPoint, type DrawingStroke } from "./model.ts";
 
-export function drawLine(context: CanvasRenderingContext2D, points: readonly DrawingPoint[], hue: number, width: number): void {
+export function drawLine(context: CanvasRenderingContext2D, points: readonly DrawingPoint[], color: string, width: number): void {
   const first = points[0];
   if (!first) return;
-  context.strokeStyle = inkColor(hue);
-  context.fillStyle = inkColor(hue);
+  context.strokeStyle = color;
+  context.fillStyle = color;
   context.lineWidth = width;
   context.lineCap = "round";
   context.lineJoin = "round";
@@ -22,7 +22,7 @@ export function drawLine(context: CanvasRenderingContext2D, points: readonly Dra
 export function drawStrokes(context: CanvasRenderingContext2D, strokes: readonly DrawingStroke[], selectedAuthor: string | null): void {
   for (const stroke of strokes) {
     context.globalAlpha = selectedAuthor && stroke.authorId !== selectedAuthor ? 0.18 : 1;
-    drawLine(context, stroke.points, stroke.hue, stroke.width);
+    drawLine(context, stroke.points, strokeColor(stroke), stroke.width);
   }
   context.globalAlpha = 1;
 }

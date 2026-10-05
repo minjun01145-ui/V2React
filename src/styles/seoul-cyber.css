@@ -1,0 +1,3 @@
+/* 서울사이버대학체 (free for everyone; selling it is prohibited): https://www.iscu.ac.kr/01_aboutcollege/06_07_fonts.asp — woff2 built from the hinted TTF release. */
+@font-face { font-family: "SeoulCyber"; font-weight: 100; font-style: normal; font-display: swap; src: url("../assets/fonts/seoul-cyber/SeoulCyber-1Thin.woff2") format("woff2"); }
+@font-face { font-family: "SeoulCyber"; font-weight: 700; font-style: normal; font-display: swap; src: url("../assets/fonts/seoul-cyber/SeoulCyber-5Bold.woff2") format("woff2"); }

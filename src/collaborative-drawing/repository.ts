@@ -61,7 +61,7 @@ export function connectDrawingBoard(scope: DrawingScope, handlers: DrawingHandle
       if (closed) throw new Error("그림판이 닫혔습니다.");
       const changes: Record<string, unknown> = { [`writers/${livePathSegment(authorId, "authorId")}`]: { t: serverTimestamp(), g: batch[0]!.generation } };
       for (const stroke of batch) changes[`strokes/${stroke.id}`] = {
-        by: stroke.authorId, s: stroke.slot, l: stroke.label, c: stroke.hue, w: stroke.width,
+        by: stroke.authorId, s: stroke.slot, l: stroke.label, c: stroke.hue, ...(stroke.color === null ? {} : { k: stroke.color }), w: stroke.width,
         p: packPoints(stroke.points), g: stroke.generation, t: serverTimestamp(),
       };
       await update(board, changes);

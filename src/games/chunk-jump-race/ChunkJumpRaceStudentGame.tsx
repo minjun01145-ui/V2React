@@ -17,6 +17,7 @@ import {
   buildChunkJumpCourse,
   CHUNK_JUMP_RESPAWN_PENALTY,
   chunkJumpChoices,
+  chunkJumpDirection,
   chunkJumpShowsMeaning,
   chunkJumpStep,
   initialChunkJumpCursor,
@@ -69,12 +70,13 @@ function saveRaceProgress(key: string, progress: StoredRaceProgress): void {
 export default function ChunkJumpRaceStudentGame({ roomId, session, player }: StudentGameModuleProps) {
   const learningSet = useChunkJumpRaceSet(session);
   const participants = useRoundParticipants(roomId, session.roundId);
-  const course = useMemo(() => learningSet.set ? buildChunkJumpCourse(learningSet.set) : null, [learningSet.set]);
+  const direction = chunkJumpDirection(session.gameConfig);
+  const course = useMemo(() => learningSet.set ? buildChunkJumpCourse(learningSet.set, direction) : null, [direction, learningSet.set]);
 
   if (!session.expectedPlayerIds.includes(player.id)) return <StatusPanel title="다음 게임을 기다려 주세요" tone="waiting">이미 시작된 레이스에는 중간 참가할 수 없습니다.</StatusPanel>;
-  if (learningSet.loading || participants.loading) return <StatusPanel title="점프 레이스 준비 중">끊어읽기 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
+  if (learningSet.loading || participants.loading) return <StatusPanel title="점프 레이스 준비 중">학습 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
   if (learningSet.error) return <StatusPanel title="학습 세트 오류" tone="error">{learningSet.error.message}</StatusPanel>;
-  if (!course) return <StatusPanel title="학습 세트 오류" tone="error">점프 레이스에 사용할 끊어읽기 세트가 없습니다.</StatusPanel>;
+  if (!course) return <StatusPanel title="학습 세트 오류" tone="error">점프 레이스에 사용할 학습 세트가 없습니다.</StatusPanel>;
 
   const expectedIds = new Set(session.expectedPlayerIds);
   const labels = new Map(participants.value
@@ -113,7 +115,8 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     [course, cursor, distance, playerId, roundId],
   );
   const ownRank = Math.max(1, standings.findIndex((standing) => standing.playerId === playerId) + 1);
-  const showMeaning = chunkJumpShowsMeaning(session.gameConfig);
+  const words = course.kind === "words";
+  const showMeaning = !words && chunkJumpShowsMeaning(session.gameConfig);
   const expired = clock.expired;
 
   useEffect(() => () => {
@@ -124,7 +127,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
     if (busy || expired) return;
     if (choice === step.answer) {
       if (controllerRef.current?.jumpForward()) {
-        const completesSentence = cursor.chunkIndex + 1 >= step.sentence.chunks.length - 1;
+        const completesSentence = !words && cursor.chunkIndex + 1 >= step.sentence.chunks.length - 1;
         completedSentenceRef.current = completesSentence
           ? { text: step.sentence.chunks.join(" / "), meaning: step.sentence.meaning }
           : null;
@@ -192,7 +195,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
       <TimedGameStatus session={session} compact />
       <FullscreenToggle target={shellRef} />
     </div>
-    <div className={styles.skyQuestion} aria-label="다음 끊어읽기 조각 선택">
+    <div className={styles.skyQuestion} aria-label={words ? "정답 선택" : "다음 끊어읽기 조각 선택"}>
       <div className={styles.skyPrompt}>
         {showMeaning ? <p className={styles.skyMeaning}><b>뜻</b>{step.sentence.meaning}</p> : null}
         <strong>
@@ -216,7 +219,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
       <span>{CHUNK_JUMP_RESPAWN_PENALTY}칸 아래에서 리스폰됩니다.</span>
     </div> : null}
     {expired ? <TimedResultsOverlay
-      title="끊어읽기 점프 결과"
+      title={words ? "점프 레이스 결과" : "끊어읽기 점프 결과"}
       unit="칸"
       entries={standings.map((standing) => ({ id: standing.playerId, label: standing.label, value: standing.distance }))}
       selfId={playerId}

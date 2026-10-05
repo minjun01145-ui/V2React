@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import Button from "../shared/ui/Button.tsx";
 import { usePopup } from "../shared/popup/index.ts";
-import DrawingCanvas from "./DrawingCanvas.tsx";
-import { authorHue, BRUSH_WIDTHS, inkColor, MAX_PENDING_STROKES, MAX_STROKES_PER_AUTHOR, type DrawingAuthor, type DrawingScope } from "./model.ts";
+import DrawingCanvas, { type DrawingTool } from "./DrawingCanvas.tsx";
+import { authorHue, BRUSH_WIDTHS, INK_COLORS, inkColor, MAX_PENDING_STROKES, MAX_STROKES_PER_AUTHOR, type DrawingAuthor, type DrawingScope } from "./model.ts";
 import { clearDrawingBoard } from "./repository.ts";
 import { useDrawingBoard } from "./useDrawingBoard.ts";
 import styles from "./DrawingBoard.module.css";
@@ -18,7 +18,8 @@ interface Props {
 export default function DrawingBoard({ scope, author = null, participants, canClearBoard = false, onExit }: Props) {
   const board = useDrawingBoard(scope, author);
   const [width, setWidth] = useState<number>(6);
-  const [inspecting, setInspecting] = useState(!author);
+  const [tool, setTool] = useState<DrawingTool>(author ? "pen" : "inspect");
+  const [color, setColor] = useState<number | null>(null);
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -26,7 +27,9 @@ export default function DrawingBoard({ scope, author = null, participants, canCl
   useEffect(() => { setSelectedAuthor(null); setActionError(null); }, [board.generation]);
   const ownStrokes = board.strokes.filter((stroke) => stroke.authorId === author?.id);
   const hue = author ? authorHue(author.id) : 220;
+  const penColor = color === null ? inkColor(hue) : INK_COLORS[color]!.value;
   const canDraw = Boolean(author && board.ready && board.connected && !board.error && !working && ownStrokes.length < MAX_STROKES_PER_AUTHOR && board.pendingCount < MAX_PENDING_STROKES);
+  const canErase = Boolean(author && board.ready && board.connected && !board.error && !working && ownStrokes.length > 0);
   const savedAuthors = new Map(board.strokes.map((stroke) => [stroke.authorId, { id: stroke.authorId, label: stroke.label }]));
   for (const participant of participants) savedAuthors.set(participant.id, participant);
   if (author) savedAuthors.set(author.id, author);
@@ -65,12 +68,21 @@ export default function DrawingBoard({ scope, author = null, participants, canCl
     </header>
     <div className={styles.toolbar}>
       <div className={styles.toolGroup}>
-        {author ? <button className={styles.tool} type="button" aria-pressed={!inspecting} disabled={!canDraw} onClick={() => setInspecting(false)}><span aria-hidden="true">✎</span>{penLabel}</button> : null}
-        <button className={styles.tool} type="button" aria-pressed={inspecting} onClick={() => setInspecting(true)}>작성자 보기</button>
+        {author ? <>
+          <button className={styles.tool} type="button" aria-pressed={tool === "pen"} disabled={!canDraw} onClick={() => setTool("pen")}><span aria-hidden="true">✎</span>{penLabel}</button>
+          <button className={styles.tool} type="button" aria-pressed={tool === "eraser"} disabled={!canErase} onClick={() => setTool("eraser")}><span aria-hidden="true">⌫</span>지우개</button>
+        </> : null}
+        <button className={styles.tool} type="button" aria-pressed={tool === "inspect"} onClick={() => setTool("inspect")}>작성자 보기</button>
       </div>
+      {author ? <div className={styles.toolGroup} aria-label="펜 색">
+        <button type="button" className={styles.swatch} aria-label="내 색" aria-pressed={color === null} onClick={() => { setColor(null); setTool("pen"); }}><span style={{ background: inkColor(hue) }} /></button>
+        {INK_COLORS.map((ink, index) => <button key={ink.value} type="button" className={styles.swatch} aria-label={ink.label} aria-pressed={color === index} onClick={() => { setColor(index); setTool("pen"); }}>
+          <span style={{ background: ink.value }} />
+        </button>)}
+      </div> : null}
       {author ? <div className={styles.toolGroup} aria-label="펜 굵기">
-        {BRUSH_WIDTHS.map((brush, index) => <button key={brush} type="button" className={styles.brush} aria-label={["얇은 펜", "보통 펜", "굵은 펜"][index]} aria-pressed={width === brush} onClick={() => setWidth(brush)}>
-          <span style={{ width: brush + 5, height: brush + 5, background: inkColor(hue) }} />
+        {BRUSH_WIDTHS.map((brush, index) => <button key={brush} type="button" className={styles.brush} aria-label={["가장 얇은 펜", "아주 얇은 펜", "얇은 펜", "보통 펜", "굵은 펜"][index]} aria-pressed={width === brush} onClick={() => { setWidth(brush); setTool("pen"); }}>
+          <span style={{ width: brush + 5, height: brush + 5, background: penColor }} />
         </button>)}
       </div> : null}
       <div className={styles.actions}>
@@ -82,8 +94,10 @@ export default function DrawingBoard({ scope, author = null, participants, canCl
       </div>
     </div>
     <div className={styles.paper}>
-      <DrawingCanvas strokes={board.strokes} generation={board.generation} canDraw={canDraw} inspecting={inspecting} hue={hue} width={width} selectedAuthor={selectedAuthor}
-        onStroke={(points, brush) => { if (!board.addStroke(points, brush)) setActionError("이 선을 저장하지 못했습니다. 연결과 내 그림 한도를 확인해 주세요."); }} />
+      <DrawingCanvas strokes={board.strokes} generation={board.generation} tool={tool} canDraw={canDraw} canErase={canErase} color={penColor} width={width}
+        eraserAuthorId={author?.id ?? null} selectedAuthor={selectedAuthor} onSelectAuthor={setSelectedAuthor}
+        onStroke={(points, brush) => { if (!board.addStroke(points, brush, color)) setActionError("이 선을 저장하지 못했습니다. 연결과 내 그림 한도를 확인해 주세요."); }}
+        onErase={(ids) => run(() => board.erase(ids))} />
       {!board.ready ? <div className={styles.loading}>그림판 불러오는 중…</div> : null}
     </div>
     <footer className={styles.footer}>

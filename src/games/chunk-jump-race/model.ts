@@ -18,6 +18,7 @@ export interface ChunkJumpSentence {
 }
 
 export interface ChunkJumpCourse {
+  readonly kind: "sentences" | "words";
   readonly sentences: readonly ChunkJumpSentence[];
   readonly chunkPool: readonly string[];
 }
@@ -33,7 +34,24 @@ export interface ChunkJumpStep {
   readonly answer: string;
 }
 
-export function buildChunkJumpCourse(set: RuntimeLearningSet): ChunkJumpCourse {
+export type ChunkJumpDirection = "source-to-meaning" | "meaning-to-source";
+
+export function chunkJumpDirection(gameConfig: Readonly<Record<string, unknown>> | null | undefined): ChunkJumpDirection {
+  return gameConfig?.direction === "meaning-to-source" ? "meaning-to-source" : "source-to-meaning";
+}
+
+export function buildChunkJumpCourse(set: RuntimeLearningSet, direction: ChunkJumpDirection = "source-to-meaning"): ChunkJumpCourse {
+  if (set.type === "vocabulary") {
+    // A word is a two-chunk "sentence": the prompt stands, the answer is the jump.
+    const sentences = set.items.flatMap((item) => {
+      const source = item.sourceText.trim();
+      const meaning = item.meaning.trim();
+      if (!source || !meaning) return [];
+      return [{ id: item.id, meaning: "", chunks: direction === "meaning-to-source" ? [meaning, source] : [source, meaning] }];
+    });
+    if (sentences.length === 0) throw new Error("점프 레이스에 사용할 단어가 없습니다.");
+    return { kind: "words", sentences, chunkPool: [...new Set(sentences.map((sentence) => sentence.chunks[1]!))] };
+  }
   const canonical = adaptReadingChunksToSequence(set);
   const sentences = canonical.questions.map((question) => ({
     id: question.id,
@@ -42,7 +60,7 @@ export function buildChunkJumpCourse(set: RuntimeLearningSet): ChunkJumpCourse {
   }));
   if (sentences.length === 0) throw new Error("점프 레이스에 사용할 끊어읽기 문장이 없습니다.");
   const chunkPool = [...new Set(sentences.flatMap((sentence) => sentence.chunks))];
-  return { sentences, chunkPool };
+  return { kind: "sentences", sentences, chunkPool };
 }
 
 export function initialChunkJumpCursor(): ChunkJumpCursor {

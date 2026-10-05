@@ -19,7 +19,7 @@ export function useDrawingBoard(scope: DrawingScope, author: DrawingAuthor | nul
   const authorRef = useRef(author);
   authorRef.current = author;
   const actions = useRef<{
-    add(points: readonly DrawingPoint[], width: number): boolean;
+    add(points: readonly DrawingPoint[], width: number, color: number | null): boolean;
     flush(): Promise<boolean>;
     erase(ids: readonly string[]): Promise<void>;
   } | null>(null);
@@ -102,7 +102,7 @@ export function useDrawingBoard(scope: DrawingScope, author: DrawingAuthor | nul
     };
 
     actions.current = {
-      add(points, width) {
+      add(points, width, color) {
         const currentAuthor = authorRef.current;
         if (!currentAuthor || !ready || !connected || error || pending.size >= MAX_PENDING_STROKES) return false;
         const slot = availableSlot(visible(), currentAuthor.id);
@@ -112,7 +112,7 @@ export function useDrawingBoard(scope: DrawingScope, author: DrawingAuthor | nul
         const stroke: DrawingStroke = {
           id: strokeId(currentAuthor.id, slot), authorId: currentAuthor.id, slot,
           label: currentAuthor.label.trim().slice(0, 40) || "학생", hue: authorHue(currentAuthor.id),
-          width, points: compact, generation, createdAt: Date.now(),
+          color, width, points: compact, generation, createdAt: Date.now(),
         };
         pending.set(stroke.id, stroke);
         notify();
@@ -120,6 +120,9 @@ export function useDrawingBoard(scope: DrawingScope, author: DrawingAuthor | nul
       },
       flush,
       async erase(ids) {
+        // Wait for just-drawn strokes to save so they can be erased right away.
+        if (pending.size || sending) await flush();
+        if (pending.size || sending) await flush();
         if (!connected || !ready || pending.size || sending) throw new Error("그림 저장이 끝난 후 다시 시도해 주세요.");
         await connection.erase(ids, generation, authorRef.current!.id);
         lastCommitAt = Date.now();
@@ -145,7 +148,7 @@ export function useDrawingBoard(scope: DrawingScope, author: DrawingAuthor | nul
 
   return {
     ...state,
-    addStroke: (points: readonly DrawingPoint[], width: number) => actions.current?.add(points, width) ?? false,
+    addStroke: (points: readonly DrawingPoint[], width: number, color: number | null) => actions.current?.add(points, width, color) ?? false,
     flush: () => actions.current?.flush() ?? Promise.resolve(false),
     erase: (ids: readonly string[]) => actions.current?.erase(ids) ?? Promise.reject(new Error("그림판 연결을 기다려 주세요.")),
   };

@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { installDeploymentRecovery } from "../../app/installDeploymentRecovery.ts";
 import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
-import "../../styles/paperlogy.css";
+import "../../styles/seoul-cyber.css";
 import "../../styles/tokens.css";
 import "../../styles/reset.css";
 import "../../styles/global.css";

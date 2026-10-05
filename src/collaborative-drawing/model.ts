@@ -4,7 +4,13 @@ export const MAX_STROKES_PER_AUTHOR = 80;
 export const MAX_STROKE_POINTS = 192;
 export const MAX_PENDING_STROKES = 8;
 export const DRAWING_BATCH_MS = 800;
-export const BRUSH_WIDTHS = [3, 6, 10] as const;
+export const BRUSH_WIDTHS = [1, 2, 3, 6, 10] as const;
+export const INK_COLORS = [
+  { value: "#1f2430", label: "검정" }, { value: "#e5484d", label: "빨강" }, { value: "#f76b15", label: "주황" },
+  { value: "#f5b400", label: "노랑" }, { value: "#30a46c", label: "초록" }, { value: "#0ea5e9", label: "하늘" },
+  { value: "#2563eb", label: "파랑" }, { value: "#7c3aed", label: "보라" }, { value: "#e93d82", label: "분홍" },
+  { value: "#8d5a3b", label: "갈색" },
+] as const;
 
 export interface DrawingScope {
   readonly roomId: string;
@@ -27,6 +33,8 @@ export interface DrawingStroke {
   readonly slot: number;
   readonly label: string;
   readonly hue: number;
+  /** Index into INK_COLORS; null draws in the author's own hue. */
+  readonly color: number | null;
   readonly width: number;
   readonly points: readonly DrawingPoint[];
   readonly generation: number;
@@ -41,6 +49,10 @@ export function authorHue(id: string): number {
 
 export function inkColor(hue: number): string {
   return `hsl(${hue} 72% 42%)`;
+}
+
+export function strokeColor(stroke: Pick<DrawingStroke, "hue" | "color">): string {
+  return stroke.color === null ? inkColor(stroke.hue) : INK_COLORS[stroke.color]!.value;
 }
 
 export function strokeId(authorId: string, slot: number): string {
@@ -106,16 +118,17 @@ export function unpackPoints(value: unknown): readonly DrawingPoint[] | null {
 export function parseStroke(id: string, value: unknown): DrawingStroke | null {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
-  const { by, s, l, c, w, g, t } = raw;
+  const { by, s, l, c, k, w, g, t } = raw;
   const points = unpackPoints(raw.p);
   if (typeof by !== "string" || !by || by.length > 128 || /[.#$\/[\]]/.test(by)
     || typeof s !== "number" || !Number.isInteger(s) || s < 0 || s >= MAX_STROKES_PER_AUTHOR || id !== strokeId(by, s)
     || typeof l !== "string" || !l.trim() || l.length > 40
     || typeof c !== "number" || !Number.isInteger(c) || c < 0 || c >= 360
+    || (k !== undefined && (typeof k !== "number" || !Number.isInteger(k) || k < 0 || k >= INK_COLORS.length))
     || typeof w !== "number" || !(BRUSH_WIDTHS as readonly number[]).includes(w)
     || typeof g !== "number" || !Number.isSafeInteger(g) || g < 0
     || typeof t !== "number" || !Number.isSafeInteger(t) || t <= 0 || !points) return null;
-  return { id, authorId: by, slot: s, label: l, hue: c, width: w, points, generation: g, createdAt: t };
+  return { id, authorId: by, slot: s, label: l, hue: c, color: k === undefined ? null : k as number, width: w, points, generation: g, createdAt: t };
 }
 
 export function sortStrokes(strokes: readonly DrawingStroke[]): DrawingStroke[] {

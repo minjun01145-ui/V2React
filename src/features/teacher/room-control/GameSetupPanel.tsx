@@ -13,7 +13,6 @@ interface Props {
 export function GameSetupPanel({ setup, disabled }: Props) {
   const { availableGames, selectedGame, compatibleSets, selectedSetId, timedMode, setError, invalidSet, minimumSetItemCount } = setup;
   return <div className={styles.gameSetup}>
-    <GamePicker games={availableGames} selectedId={selectedGame.id} onSelect={setup.selectGame} disabled={disabled} />
     <div className={styles.pickerControls}>
       <Field label="학습 세트"><Select value={selectedSetId} onChange={(event) => setup.selectSet(event.target.value)} disabled={disabled}><option value="" disabled={selectedGame.requiresStoredSet}>{selectedGame.requiresStoredSet ? "저장된 세트를 선택하세요" : "내장 데모 세트"}</option>{compatibleSets.map((set) => <option value={set.id} key={set.id}>{set.name} ({set.itemCount}개)</option>)}</Select></Field>
       {selectedGame.settings.map((setting) => <Field key={setting.key} label={setting.label}><Select value={setup.settingValues[setting.key] ?? setting.defaultValue} onChange={(event) => setup.selectSetting(setting.key, event.target.value)} disabled={disabled}>{setting.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}</Select></Field>)}
@@ -22,5 +21,6 @@ export function GameSetupPanel({ setup, disabled }: Props) {
     </div>
     {setError ? <p className={styles.setError}>{setError}</p> : null}
     {invalidSet ? <p className={styles.setError}>{selectedGame.requiresStoredSet && !setup.selectedSet ? `${selectedGame.title}을(를) 위해 저장된 학습 세트를 선택해 주세요.` : `${selectedGame.title}을(를) 위해 이 세트에는 ${minimumSetItemCount}개 이상의 문항이 필요합니다.`}</p> : null}
+    <GamePicker games={availableGames} selectedId={selectedGame.id} onSelect={setup.selectGame} disabled={disabled} />
   </div>;
 }

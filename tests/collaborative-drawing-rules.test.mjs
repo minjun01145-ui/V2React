@@ -48,11 +48,12 @@ try {
   await reject(alice, { generation: 100 });
   await reject(alice, { "writers/alice": null });
   await new Promise((resolve) => setTimeout(resolve, 650));
-  for (const invalid of [changes(80), changes(1, { p: "123456".repeat(193) }), changes(1, { p: "abc123" }), changes(1, { by: "bob" }), changes(1, { g: 1 }), changes(1, { extra: true }), changes(1, { w: 999 })]) await reject(alice, invalid);
+  for (const invalid of [changes(80), changes(1, { p: "123456".repeat(193) }), changes(1, { p: "abc123" }), changes(1, { by: "bob" }), changes(1, { g: 1 }), changes(1, { extra: true }), changes(1, { w: 999 }), changes(1, { k: 10 })]) await reject(alice, invalid);
   const batch = { "writers/alice": { t: serverTimestamp(), g: 0 } };
-  for (let slot = 1; slot < 80; slot++) batch[`strokes/alice_${slot}`] = stroke(slot);
+  for (let slot = 1; slot < 80; slot++) batch[`strokes/alice_${slot}`] = stroke(slot, slot === 1 ? { k: 2, w: 1 } : {});
   await update(ref(alice, boardPath), batch);
   assert.equal(Object.keys((await get(ref(alice, `${boardPath}/strokes`))).val()).length, 80);
+  assert.equal((await get(ref(bob, `${boardPath}/strokes/alice_1/k`))).val(), 2, "palette colors and thin pens are accepted");
   await update(ref(alice, boardPath), { "writers/alice": { t: serverTimestamp(), g: 0 }, "strokes/alice_0": null });
   assert.equal((await get(ref(bob, `${boardPath}/strokes/alice_0`))).exists(), false, "own undo must propagate to classmates");
   await adminRequest(boardPath, "PUT", { generation: 1 });
