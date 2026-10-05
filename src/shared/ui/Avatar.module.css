@@ -1,0 +1,4 @@
+.avatar { display: block; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.fallback { display: grid; width: 100%; height: 100%; place-items: center; font-size: 2rem; }
+.failure { display: grid; grid-template-rows: minmax(0, 1fr) auto; width: 100%; height: 100%; text-align: center; }
+.failure > span { font-size: .7rem; line-height: 1.3; }

@@ -1,0 +1,23 @@
+import assert from "node:assert/strict";
+import { DEFAULT_CHARACTER_APPEARANCE, parseCharacterAppearance } from "../src/characters/appearance.ts";
+import { mapleCharacterUrl, mapleItemIconUrl, previewCharacterItem } from "../src/characters/maple.ts";
+
+const appearance = DEFAULT_CHARACTER_APPEARANCE;
+assert.deepEqual(parseCharacterAppearance(appearance), appearance);
+assert.equal(parseCharacterAppearance(null), null);
+assert.equal(parseCharacterAppearance({ ...appearance, items: { ...appearance.items, top: 1000000 } }), null);
+assert.equal(parseCharacterAppearance({ ...appearance, items: { ...appearance.items, hair: null } }), null);
+assert.equal(parseCharacterAppearance({ ...appearance, items: { ...appearance.items, hat: "1000000" } }), null);
+assert.equal(parseCharacterAppearance({ ...appearance, skinId: "2000" }), null);
+assert.equal(parseCharacterAppearance({ ...appearance, items: { ...appearance.items, extra: 1000000 } }), null);
+const preview = previewCharacterItem(appearance, "hat", 1000000);
+assert.equal(appearance.items.hat, null, "preview must not mutate the saved outfit");
+assert.equal(preview.items.hat, 1000000);
+assert.deepEqual(parseCharacterAppearance(preview), preview);
+assert.equal(previewCharacterItem(preview, "hat", null).items.hat, null);
+const url = new URL(mapleCharacterUrl(preview));
+assert.equal(url.origin, "https://maplestory.io");
+assert.ok(url.pathname.includes("1000000"));
+assert.ok(!url.pathname.includes("null"));
+assert.equal(mapleItemIconUrl(1000000), "https://maplestory.io/api/GMS/214/item/1000000/icon");
+console.log("character appearance validation and isolated preview tests passed");

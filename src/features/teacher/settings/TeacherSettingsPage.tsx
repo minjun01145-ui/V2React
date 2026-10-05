@@ -2,6 +2,7 @@ import { appConfig } from "../../../config/appConfig.ts";
 import PageShell from "../../../shared/PageShell.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import styles from "./TeacherSettingsPage.module.css";
+import CharacterShopManagement from "./CharacterShopManagement.tsx";
 
 export default function TeacherSettingsPage({ roomId: _roomId }: { readonly roomId: string }) {
   return (
@@ -12,6 +13,7 @@ export default function TeacherSettingsPage({ roomId: _roomId }: { readonly room
           <div><dt>기본 게임</dt><dd>{appConfig.defaultGameId}</dd></div>
         </dl>
       </Card>
+      <CharacterShopManagement />
     </PageShell>
   );
 }

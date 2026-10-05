@@ -1,3 +1,5 @@
+import type { CharacterAppearance, MapleAvatar } from "../../characters/appearance.ts";
+
 export interface EquippedCharacterAvatar {
   readonly kind: "character";
   readonly characterId: string;
@@ -11,7 +13,12 @@ export interface EquippedPokemonAvatar {
   readonly fallbackSpriteUrl: string | null;
 }
 
-export type EquippedAvatar = EquippedCharacterAvatar | EquippedPokemonAvatar;
+export type EquippedAvatar = EquippedCharacterAvatar | EquippedPokemonAvatar | MapleAvatar;
+
+export interface StudentWardrobe {
+  readonly appearance: CharacterAppearance;
+  readonly ownedItemIds: readonly number[];
+}
 
 export interface StudentCosmetics {
   readonly equippedAvatar: EquippedAvatar | null;

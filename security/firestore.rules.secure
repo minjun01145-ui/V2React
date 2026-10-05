@@ -134,6 +134,10 @@ service cloud.firestore {
 
     function validPlayerAvatar(avatar) {
       return avatar is map && (
+        (avatar.keys().hasOnly(["kind", "appearance"])
+          && avatar.kind == "maple"
+          && avatar == get(/databases/$(database)/documents/studentGameData/$(rosterKey())/cosmetics/profile).data.avatar)
+        ||
         (avatar.keys().hasOnly(["kind", "characterId"])
           && avatar.kind == "character"
           && avatar.characterId is string
@@ -438,6 +442,27 @@ service cloud.firestore {
       allow create, update: if ownsStudentGameData(accountId)
         && validStudentCosmetics(request.resource.data);
       allow delete: if isAdminForStudentAccount(accountId);
+    }
+
+    // Wallet, ownership and saved Maple appearances are changed only by authenticated callables.
+    match /studentGameData/{accountId}/wardrobe/{documentId} {
+      allow read: if ownsStudentGameData(accountId) || isAdminForStudentAccount(accountId);
+      allow write: if false;
+      match /purchases/{itemId} {
+        allow read: if ownsStudentGameData(accountId) || isAdminForStudentAccount(accountId);
+        allow write: if false;
+      }
+    }
+    match /studentGameData/{accountId}/wallet/{documentId} {
+      allow read: if ownsStudentGameData(accountId) || isAdminForStudentAccount(accountId);
+      allow write: if false;
+      match /rewards/{rewardId} {
+        allow read: if ownsStudentGameData(accountId) || isAdminForStudentAccount(accountId);
+        allow write: if false;
+      }
+    }
+    match /tenants/{tenantId}/characterShop/{documentId} {
+      allow read, write: if false;
     }
 
     match /studentGameData/{accountId}/randomNicknames/{rollId} {

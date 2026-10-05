@@ -8,6 +8,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase/firebaseClient.ts";
 import { isCharacterId } from "../../characters/catalog.ts";
+import { parseCharacterAppearance } from "../../characters/appearance.ts";
 import {
   EMPTY_STUDENT_COSMETICS,
   type EquippedAvatar,
@@ -19,6 +20,10 @@ const cosmeticsDocument = (accountId: string) => doc(db, "studentGameData", acco
 
 function parseCosmetics(data: DocumentData | undefined): StudentCosmetics {
   if (!data) return EMPTY_STUDENT_COSMETICS;
+  if (data.equippedKind === "maple") {
+    const appearance = parseCharacterAppearance(data.avatar?.appearance);
+    return { equippedAvatar: appearance ? { kind: "maple", appearance } : null };
+  }
   if (data.equippedKind === "pokemon"
     && typeof data.equippedPokemonCaptureId === "string"
     && typeof data.equippedPokemonName === "string"
@@ -80,5 +85,6 @@ export async function equipPokemon(accountId: string, pokemon: EquippedPokemonAv
 
 export function equippedAvatarKey(avatar: EquippedAvatar | null): string | null {
   if (!avatar) return null;
+  if (avatar.kind === "maple") return `maple:${JSON.stringify(avatar.appearance)}`;
   return avatar.kind === "character" ? `character:${avatar.characterId}` : `pokemon:${avatar.captureId}`;
 }

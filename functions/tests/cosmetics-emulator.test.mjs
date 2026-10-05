@@ -1,0 +1,84 @@
+// Integration against isolated Auth, Firestore and Functions emulators only.
+import assert from "node:assert/strict";
+import { initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
+import { getAuth } from "firebase-admin/auth";
+import { CATALOG, DEFAULT_APPEARANCE } from "../lib/cosmetics/model.js";
+
+assert.ok(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST && process.env.CHARACTER_FUNCTIONS_EMULATOR, "All three emulator endpoints are required.");
+for (const key of ["FIRESTORE_EMULATOR_HOST", "FIREBASE_AUTH_EMULATOR_HOST", "CHARACTER_FUNCTIONS_EMULATOR"]) assert.match(process.env[key], /^(127\.0\.0\.1|localhost):\d+$/, "Integration tests only allow local emulator endpoints.");
+const projectId = "demo-character";
+const app = initializeApp({ projectId });
+const db = getFirestore(app);
+const auth = getAuth(app);
+await db.recursiveDelete(db.doc("studentGameData/101"));
+await db.recursiveDelete(db.doc("studentGameData/hana--101"));
+const authOrigin = `http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}`;
+const functionsOrigin = `http://${process.env.CHARACTER_FUNCTIONS_EMULATOR}/${projectId}/asia-northeast3`;
+await db.doc("studentRoster/101").set({ studentNumber: "101", displayName: "캐릭터학생", active: true, tenantId: "minjun" });
+await db.doc("studentRoster/hana--101").set({ studentNumber: "101", displayName: "캐릭터학생", active: true, tenantId: "hana" });
+const anonymous = await fetch(`${authOrigin}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ returnSecureToken: true }) }).then((response) => response.json());
+const uid = anonymous.localId;
+const call = async (name, data, token = anonymous.idToken) => {
+  const response = await fetch(`${functionsOrigin}/${name}`, { method: "POST", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ data }) });
+  const result = await response.json();
+  if (result.error) throw Object.assign(new Error(result.error.message), { code: result.error.status });
+  return result.result;
+};
+await assert.rejects(call("initializeStudentCharacter", {}, null), (error) => error.code === "UNAUTHENTICATED");
+await assert.rejects(call("initializeStudentCharacter", {}), (error) => error.code === "PERMISSION_DENIED");
+await call("completeStudentLogin", { studentNumber: "101", name: "캐릭터학생", pin: "1234", tenantId: "minjun" });
+const refreshed = await fetch(`${authOrigin}/securetoken.googleapis.com/v1/token?key=fake`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "refresh_token", refresh_token: anonymous.refreshToken }) }).then((response) => response.json());
+const token = refreshed.id_token;
+await call("initializeStudentCharacter", {}, token);
+assert.deepEqual((await db.doc("studentGameData/101/wardrobe/profile").get()).data().appearance, DEFAULT_APPEARANCE);
+const shop = await call("getCharacterShop", {}, token);
+const item = shop.items.find((entry) => entry.onSale && entry.price === 10);
+const appearance = { ...DEFAULT_APPEARANCE, items: { ...DEFAULT_APPEARANCE.items, [item.category]: item.itemId } };
+await assert.rejects(call("saveStudentCharacter", { appearance }, token), /먼저 구매/);
+await assert.rejects(call("purchaseCharacterItem", { itemId: item.itemId, expectedPrice: 10 }, token), /부족/);
+const session = db.doc("multiplayerSessions/character-emulator");
+await session.set({ tenantId: "minjun", roomId: "character-emulator", status: "waiting", gameId: "simple-quiz", roundId: null });
+await session.collection("rounds").doc("r1").collection("participants").doc(uid).set({ playerId: uid, studentNumber: "101", displayName: "캐릭터학생" });
+await session.update({ status: "playing", roundId: "r1" });
+const until = Date.now() + 20_000;
+while ((await db.doc("studentGameData/101/wallet/v2coins").get()).data().balance !== 10) {
+  assert.ok(Date.now() < until, "round-start trigger must award participation coins");
+  await new Promise((resolve) => setTimeout(resolve, 100));
+}
+const results = await Promise.all(Array.from({ length: 5 }, () => call("purchaseCharacterItem", { itemId: item.itemId, expectedPrice: 10, accountId: "hana--101" }, token)));
+assert.equal(results.filter((result) => result.purchased).length, 1, "real Firestore retries must debit once across concurrent requests");
+assert.equal((await db.doc("studentGameData/101/wallet/v2coins").get()).data().balance, 0);
+await call("saveStudentCharacter", { appearance }, token);
+await call("initializeStudentCharacter", {}, token);
+assert.deepEqual((await db.doc("studentGameData/101/cosmetics/profile").get()).data().avatar, { kind: "maple", appearance });
+assert.equal((await db.doc("studentGameData/hana--101/wardrobe/profile").get()).exists, false);
+
+// Firestore's emulator accepts these unsigned test tokens. Rules still see all claims.
+const base = `http://${process.env.FIRESTORE_EMULATOR_HOST}/v1/projects/${projectId}/databases/(default)/documents`;
+const jwt = (claims) => `${Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url")}.${Buffer.from(JSON.stringify({ sub: uid, user_id: uid, aud: projectId, iss: `https://securetoken.google.com/${projectId}`, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 3600, firebase: { sign_in_provider: "anonymous" }, ...claims })).toString("base64url")}.`;
+const rulesToken = jwt({ role: "student", tenantId: "minjun", studentNumber: "101", displayName: "캐릭터학생" });
+const encode = (value) => value === null ? { nullValue: null } : typeof value === "string" ? { stringValue: value } : typeof value === "number" ? { integerValue: String(value) } : typeof value === "boolean" ? { booleanValue: value } : Array.isArray(value) ? { arrayValue: { values: value.map(encode) } } : { mapValue: { fields: Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, encode(entry)])) } };
+const read = (path, authToken = rulesToken) => fetch(`${base}/${path}`, { headers: { Authorization: `Bearer ${authToken}` } });
+const patch = (path, data) => fetch(`${base}/${path}`, { method: "PATCH", headers: { Authorization: `Bearer ${rulesToken}`, "Content-Type": "application/json" }, body: JSON.stringify({ fields: encode(data).mapValue.fields }) });
+assert.equal((await read("studentGameData/101/wardrobe/profile")).status, 200);
+assert.equal((await read("studentGameData/hana--101/wardrobe/profile")).status, 403);
+assert.equal((await patch("studentGameData/101/wallet/v2coins", { balance: 99999 })).status, 403);
+assert.equal((await patch("studentGameData/101/wardrobe/profile", { appearance, ownedItemIds: CATALOG.map((entry) => entry.itemId) })).status, 403);
+assert.equal((await patch("studentGameData/101/cosmetics/profile", { equippedKind: "maple", avatar: { kind: "maple", appearance }, updatedAtMs: Date.now() })).status, 403);
+assert.equal((await patch("tenants/minjun/characterShop/state", { prices: { [item.itemId]: 1 } })).status, 403);
+await session.update({ status: "waiting", roundId: null });
+await session.collection("players").doc(uid).set({ playerId: uid, studentNumber: "101", displayName: "캐릭터학생", nickname: null, joinedAtMs: Date.now(), lastSeenAtMs: Date.now(), state: "waiting" });
+const playerValue = (await session.collection("players").doc(uid).get()).data();
+assert.equal((await patch(`multiplayerSessions/character-emulator/players/${uid}`, { ...playerValue, avatar: { kind: "maple", appearance } })).status, 200, "saved outfit can be synchronized to the lobby");
+const otherHat = CATALOG.find((entry) => entry.category === "hat" && entry.itemId !== item.itemId).itemId;
+assert.equal((await patch(`multiplayerSessions/character-emulator/players/${uid}`, { ...playerValue, avatar: { kind: "maple", appearance: { ...appearance, items: { ...appearance.items, hat: otherHat } } } })).status, 403, "students cannot broadcast unsaved/unowned outfits");
+const teacher = await auth.getUser("character-teacher").catch(() => auth.createUser({ uid: "character-teacher", email: "teacher@character.test", password: "CharacterTest123!" }));
+await db.doc(`admins/${teacher.uid}`).set({ active: true, tenantId: "minjun" });
+const teacherAuth = await fetch(`${authOrigin}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: "teacher@character.test", password: "CharacterTest123!", returnSecureToken: true }) }).then((response) => response.json());
+const adminShop = await call("getNextCharacterShop", {}, teacherAuth.idToken);
+const updated = await call("updateNextCharacterShop", { week: adminShop.next.week, itemId: item.itemId, mode: "feature", price: 15 }, teacherAuth.idToken);
+assert.ok(updated.nextFeaturedIds.includes(item.itemId));
+assert.equal(updated.next.prices[item.itemId], 15);
+console.log("Auth + Functions + Firestore: game reward trigger, concurrent purchase, persistence, teacher management and client tampering rules passed");
+await db.terminate();

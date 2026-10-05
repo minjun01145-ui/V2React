@@ -9,6 +9,7 @@ import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
 import { PopupProvider } from "../../shared/popup/index.ts";
 import { tenantConfigFromLocation } from "../../tenant/config.ts";
 import { APP_VERSION } from "../../app/version.ts";
+import { StudentCharacterProvider } from "../../student-data/cosmetics/StudentCharacterProvider.tsx";
 
 function StudentAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType<typeof tenantConfigFromLocation>> }) {
   const roomId = getRoomIdFromLocation();
@@ -24,14 +25,14 @@ function StudentAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType
   }
   if (!identity) return <StudentLoginPage roomId={roomId} tenant={tenant} onAuthenticated={setClaimedIdentity} />;
 
-  return <StudentPage
+  return <StudentCharacterProvider key={identity.uid} identity={identity}><StudentPage
     roomId={roomId}
     identity={identity}
     onChangeStudent={async () => {
       setClaimedIdentity(null);
       await clearStudentLogin();
     }}
-  />;
+  /></StudentCharacterProvider>;
 }
 
 export default function StudentApp() {

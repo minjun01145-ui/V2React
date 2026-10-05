@@ -1,6 +1,7 @@
 import type { SessionStatus } from "./constants.ts";
 import type { LatestStudentQuestionResult, StudentQuestionActivity } from "../student-question-activity/types.ts";
 import type { TenantId } from "../tenant/scope.ts";
+import type { EquippedAvatar } from "../student-data/cosmetics/types.ts";
 
 export interface Player {
   readonly id: string;
@@ -32,15 +33,7 @@ export interface GameSession {
   readonly latestStudentQuestionResult?: LatestStudentQuestionResult | null;
 }
 
-export type PlayerAvatar =
-  | { readonly kind: "character"; readonly characterId: string }
-  | {
-      readonly kind: "pokemon";
-      readonly captureId: string;
-      readonly name: string;
-      readonly spriteUrl: string;
-      readonly fallbackSpriteUrl: string | null;
-    };
+export type PlayerAvatar = EquippedAvatar;
 
 export type ActiveGameSession = GameSession & {
   readonly status: "playing";

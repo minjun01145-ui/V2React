@@ -41,6 +41,16 @@ npm test --prefix functions
 - `tests/`, `scripts/`: 테스트와 기존 검사·도구.
 - `.github/workflows/`: CI와 Firebase 배포.
 
+## 캐릭터 꾸미기 · 상점
+
+학생 대기실의 **캐릭터 상점** 카드나 프로필의 같은 이름 버튼에서 아이템을 미리 보고 구매한 뒤 **캐릭터 저장**으로 코디를 저장합니다. 기본 코디는 자동 지급되며, 기존 학생 작품·포켓몬 장착도 유지됩니다. 교사가 시작한 수업 게임에 참가하면 라운드마다 V2코인 10개가 지급됩니다. 새로 로그인해도 같은 학생 계정의 코인·보유 아이템·저장한 코디를 사용합니다.
+
+신상은 한국 시간 월요일 0시에 자동 공개됩니다. 교사는 **설정 → 다음 주 신상**에서 후보 제외·지정과 가격 변경을 저장할 수 있습니다. 변경은 다음 주부터 적용되고, 신상 기간이 지난 아이템도 일반 상점에 남습니다. 예약 실행이 지연되면 상점 조회 시 같은 주간 공개 로직이 실행됩니다.
+
+[MapleStory.IO API](https://maplestory.io/swagger/V3/swagger.json)의 GMS/214 아이템 목록을 작은 메타데이터 카탈로그로 보관하고, 아이콘과 캐릭터 합성 이미지를 API에서 불러옵니다. 카탈로그 갱신은 `node scripts/sync-character-catalog.mjs`로 수행합니다. Firebase에는 이미지 대신 아이템 ID·코디·보유 목록을 저장합니다. 이번 기능을 운영하려면 Hosting과 함께 Functions 및 Firestore Rules도 배포해야 합니다.
+
+캐릭터 검증은 `npm run test:characters`와 `npm run test:characters --prefix functions`로 실행합니다. 실제 Auth·Functions·Firestore 통합 검증은 `firebase emulators:start --only auth,firestore,functions --project demo-character`로 에뮬레이터를 시작하고, 콘솔에 표시된 로컬 포트로 `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, `CHARACTER_FUNCTIONS_EMULATOR`를 지정한 뒤 `npm run test:characters:emulator --prefix functions`로 실행합니다.
+
 ## 버전 기록
 
 현재 기준 버전은 **v2.00**입니다. `npm ci` 또는 `npm install`이 Git hook을 설치합니다. 커밋할 때 일반 변경은 0.01씩 올리고, 새 `src/games/` 게임 디렉터리 추가는 다음 0.1 경계로 올립니다. 큰 기능 변경은 PowerShell에서 `$env:V2R_RELEASE = 'feature'`를 설정한 뒤 커밋하고 `Remove-Item Env:V2R_RELEASE`로 해제합니다. 예를 들어 v2.05 다음 기능 추가는 **v2.10**입니다. 필요하면 `V2R_RELEASE_NOTE`로 변경 제목을 설정한 뒤 커밋하고 해제합니다. v3.00 전환은 자동으로 진행하지 않습니다.

@@ -4,14 +4,16 @@ import styles from "./LobbyActivityTiles.module.css";
 interface Props {
   readonly disabled?: boolean;
   readonly soloDisabled?: boolean;
+  readonly onShop?: () => void;
   readonly onSolo?: () => void;
   readonly onSentence?: () => void;
   readonly onAcidRain?: () => void;
   readonly onPlatformer?: () => void;
   readonly onDrawing?: () => void;
 }
-export default function LobbyActivityTiles({ disabled = false, soloDisabled = false, onSolo, onSentence, onAcidRain, onPlatformer, onDrawing }: Props) {
+export default function LobbyActivityTiles({ disabled = false, soloDisabled = false, onShop, onSolo, onSentence, onAcidRain, onPlatformer, onDrawing }: Props) {
   const tiles = [
+    { title: "캐릭터 상점", art: coverArt("character-shop"), onClick: onShop, disabled },
     { title: "혼자하기", art: coverArt("solo"), onClick: onSolo, disabled: disabled || soloDisabled },
     { title: "문장 타자", art: coverArt("typing"), onClick: onSentence, disabled },
     { title: "산성비", art: coverArt("acid-rain"), onClick: onAcidRain, disabled },

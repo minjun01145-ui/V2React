@@ -47,6 +47,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   const [platformerOpen, setPlatformerOpen] = useState(false);
   const [drawingOpen, setDrawingOpen] = useState(false);
   const [soloOpen, setSoloOpen] = useState(false);
+  const [shopOpen, setShopOpen] = useState(false);
   const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
   const typingConfig = savedTypingConfig ?? createWaitingTypingConfig(typingDemoSet.id);
   const activity = session.classroomActivity;
@@ -123,9 +124,12 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
           nickname={nickname}
           nicknameGrade={nicknameGrade}
           initialAvatar={avatar}
+          open={shopOpen}
+          onOpen={() => setShopOpen(true)}
+          onClose={() => setShopOpen(false)}
         />
       </Card>
-      <LobbyActivityTiles soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} onDrawing={() => setDrawingOpen(true)} />
+      <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} onDrawing={() => setDrawingOpen(true)} />
       </div>
       <div className={styles.right}>
       <Card className={styles.card}>

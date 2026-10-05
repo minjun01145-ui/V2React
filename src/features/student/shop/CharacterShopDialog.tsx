@@ -5,8 +5,9 @@ import type { StoredCapturedPokemon } from "../../../student-data/pokemon-catch/
 import Button from "../../../shared/ui/Button.tsx";
 import CharacterPreview from "./CharacterPreview.tsx";
 import styles from "./CharacterShop.module.css";
+import WardrobeShopPanel from "./WardrobeShopPanel.tsx";
 
-type ShopTab = "characters" | "pokemon";
+type ShopTab = "wardrobe" | "characters" | "pokemon";
 
 interface Props {
   readonly open: boolean;
@@ -23,7 +24,7 @@ interface Props {
 function CapturedPokemonImage({ pokemon }: { readonly pokemon: StoredCapturedPokemon }) {
   const [source, setSource] = useState(pokemon.spriteUrl);
   useEffect(() => setSource(pokemon.spriteUrl), [pokemon.spriteUrl]);
-  return <img className={styles.pokemonSprite} src={source} alt={`${pokemon.nickname ?? pokemon.name} 포켓몬`} onError={() => {
+  return <img className={styles.pokemonSprite} src={source} loading="lazy" alt={`${pokemon.nickname ?? pokemon.name} 포켓몬`} onError={() => {
     if (pokemon.fallbackSpriteUrl && source !== pokemon.fallbackSpriteUrl) setSource(pokemon.fallbackSpriteUrl);
   }} />;
 }
@@ -33,7 +34,7 @@ export default function CharacterShopDialog({
   onClose, onEquipCharacter, onEquipPokemon,
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const [tab, setTab] = useState<ShopTab>("characters");
+  const [tab, setTab] = useState<ShopTab>("wardrobe");
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -45,7 +46,7 @@ export default function CharacterShopDialog({
   }, [open]);
 
   useEffect(() => {
-    if (!open) { setMessage(null); setTab("characters"); }
+    if (!open) { setMessage(null); setTab("wardrobe"); }
   }, [open]);
 
   const equipCharacter = async (character: CharacterCatalogItem): Promise<void> => {
@@ -76,19 +77,20 @@ export default function CharacterShopDialog({
   return <dialog aria-labelledby="character-shop-title" className={styles.dialog} ref={dialogRef} onCancel={onClose} onClose={onClose} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <div className={styles.shop}>
       <header className={styles.header}>
-        <h2 id="character-shop-title">캐릭터 상점</h2>
+        <h2 id="character-shop-title">캐릭터 꾸미기 · 상점</h2>
         <button className={styles.close} type="button" aria-label="상점 닫기" onClick={onClose}>×</button>
       </header>
 
       <div className={styles.tabs} role="tablist" aria-label="상점 목록">
-        <button type="button" role="tab" aria-selected={tab === "characters"} onClick={() => setTab("characters")}>학생 캐릭터</button>
+        <button type="button" role="tab" aria-selected={tab === "wardrobe"} onClick={() => setTab("wardrobe")}>내 코디</button>
+        <button type="button" role="tab" aria-selected={tab === "characters"} onClick={() => setTab("characters")}>학생 작품</button>
         <button type="button" role="tab" aria-selected={tab === "pokemon"} onClick={() => setTab("pokemon")}>잡은 포켓몬 <span>{captures.length}</span></button>
       </div>
 
       {error ? <p className={styles.notice} role="alert">{error.message}</p> : null}
       {message ? <p className={styles.notice} role="status">{message}</p> : null}
 
-      {tab === "characters" ? <div className={styles.grid} aria-busy={charactersLoading} role="tabpanel">
+      {tab === "wardrobe" ? <div role="tabpanel"><WardrobeShopPanel /></div> : tab === "characters" ? <div className={styles.grid} aria-busy={charactersLoading} role="tabpanel">
         {CHARACTER_CATALOG.map((character) => {
           const equipped = equippedAvatar?.kind === "character" && equippedAvatar.characterId === character.id;
           const busy = busyKey === `character:${character.id}`;

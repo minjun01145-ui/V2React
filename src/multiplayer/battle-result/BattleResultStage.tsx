@@ -1,19 +1,10 @@
-import { findCharacter } from "../../characters/catalog.ts";
-import { useCharacterStandFrame } from "../../shared/useCharacterStandFrame.ts";
+import Avatar from "../../shared/ui/Avatar.tsx";
 import type { PlayerAvatar } from "../types.ts";
 import styles from "./BattleResultStage.module.css";
 
 export interface BattleResultPlayer {
   readonly nickname: string;
   readonly avatar: PlayerAvatar | null;
-}
-
-function Avatar({ player }: { readonly player: BattleResultPlayer }) {
-  const character = player.avatar?.kind === "character" ? findCharacter(player.avatar.characterId) : null;
-  const frame = useCharacterStandFrame(character?.standFrames ?? null);
-  if (frame) return <img src={frame} alt={`${player.nickname} 캐릭터`} draggable={false} />;
-  if (player.avatar?.kind === "pokemon") return <img src={player.avatar.spriteUrl} alt={`${player.nickname} 포켓몬`} />;
-  return <span aria-label="장착 캐릭터 없음">?</span>;
 }
 
 export default function BattleResultStage({ outcome, players }: {
@@ -31,7 +22,7 @@ export default function BattleResultStage({ outcome, players }: {
       className={`${styles.fighter} ${isKnockout ? index === 0 ? styles.winner : styles.loser : ""}`}
       key={`${player.nickname}:${index}`}
     >
-      <div className={styles.avatar}><Avatar player={player} /></div>
+      <div className={styles.avatar}><Avatar avatar={player.avatar} label={`${player.nickname} 캐릭터`} /></div>
       <strong>{player.nickname}</strong>
       {isKnockout && index === 0 ? <i className={styles.bat} aria-hidden="true" /> : null}
     </div>)}

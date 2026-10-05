@@ -8,6 +8,8 @@ export { finalizeStudentQuestionRun, getStudentQuestionAuthoringHelp, onStudentQ
 export { enableCooperativeHardMode, ensureCooperativeRound, expireCooperativeTurn, refreshCooperativeMatch, submitCooperativeSentence } from "./cooperative-sentence/callables.js";
 export { ensureBattleRound, expireBattlePhase, issueBattleQuestion, refreshBattleMatch, submitBattleAnswer, useBattleItem } from "./battle/callables.js";
 export { consumeStudentItem, getStudentItemInventory } from "./items/callables.js";
+export { initializeStudentCharacter, getCharacterShop, purchaseCharacterItem, saveStudentCharacter, getNextCharacterShop, updateNextCharacterShop, publishWeeklyCharacterShop } from "./cosmetics/callables.js";
+export { awardClassroomGameCoins, awardJoinedGameCoins } from "./coins/triggers.js";
 export { grantAcidRainItem } from "./acid-rain-items/callables.js";
 export { completeTypingPractice } from "./typing-practice/callables.js";
 export { startSoloRun, submitSoloAnswer, finishSoloRun, abandonSoloRun } from "./solo/callables.js";

@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
 import type { StudentIdentity } from "../../../auth/types.ts";
 import { findCharacter } from "../../../characters/catalog.ts";
-import { updatePlayerAvatar } from "../../../multiplayer/repository.ts";
 import { usePokemonCatchData } from "../../../student-data/pokemon-catch/usePokemonCatchData.ts";
-import { useStudentCosmetics } from "../../../student-data/cosmetics/useStudentCosmetics.ts";
+import { useStudentCharacter } from "../../../student-data/cosmetics/StudentCharacterProvider.tsx";
 import type { EquippedPokemonAvatar } from "../../../student-data/cosmetics/types.ts";
 import type { NicknameGrade, PlayerAvatar } from "../../../multiplayer/types.ts";
 import { displayLabel } from "../../../multiplayer/types.ts";
 import Button from "../../../shared/ui/Button.tsx";
-import CharacterPreview from "./CharacterPreview.tsx";
+import Avatar from "../../../shared/ui/Avatar.tsx";
 import CharacterShopDialog from "./CharacterShopDialog.tsx";
 import NicknameChangeButton from "../profile/NicknameChangeButton.tsx";
 import styles from "./CharacterShop.module.css";
@@ -19,51 +17,35 @@ interface Props {
   readonly nickname: string | null;
   readonly nicknameGrade: NicknameGrade | null;
   readonly initialAvatar: PlayerAvatar | null;
+  readonly open: boolean;
+  readonly onOpen: () => void;
+  readonly onClose: () => void;
 }
 
-export default function CharacterShop({ identity, roomId, nickname, nicknameGrade, initialAvatar }: Props) {
-  const [open, setOpen] = useState(false);
-  const { cosmetics, loading, error, equipStudentCharacter, equipCapturedPokemon } = useStudentCosmetics(identity);
+export default function CharacterShop({ identity, roomId, nickname, nicknameGrade, initialAvatar, open, onOpen, onClose }: Props) {
+  const { cosmetics, balance, loading, error, equipStudentCharacter, equipCapturedPokemon, reload } = useStudentCharacter();
   const pokemonData = usePokemonCatchData(identity);
   const equippedAvatar = cosmetics.equippedAvatar;
   const displayedAvatar = loading || error ? initialAvatar : equippedAvatar;
   const equippedCharacter = displayedAvatar?.kind === "character" ? findCharacter(displayedAvatar.characterId) : null;
   const equippedPokemon = displayedAvatar?.kind === "pokemon" ? displayedAvatar : null;
-  const equippedName = equippedCharacter?.name ?? equippedPokemon?.name ?? null;
-  const hasVisibleAvatar = Boolean(equippedCharacter || equippedPokemon);
+  const equippedName = displayedAvatar?.kind === "maple" ? "내 코디" : equippedCharacter?.name ?? equippedPokemon?.name ?? null;
+  const hasVisibleAvatar = Boolean(displayedAvatar);
   const currentNickname = displayLabel(identity.displayName, nickname);
-
-  useEffect(() => {
-    if (loading || error) return;
-    void updatePlayerAvatar(roomId, identity.uid, equippedAvatar).catch(console.error);
-  }, [equippedAvatar, error, identity.uid, loading, roomId]);
 
   const equipCharacter = async (characterId: string): Promise<void> => {
     await equipStudentCharacter(characterId);
-    await updatePlayerAvatar(roomId, identity.uid, { kind: "character", characterId });
   };
 
   const equipPokemon = async (pokemon: EquippedPokemonAvatar): Promise<void> => {
     await equipCapturedPokemon(pokemon);
-    await updatePlayerAvatar(roomId, identity.uid, pokemon);
   };
 
   return (
     <>
       <section className={styles.profile} aria-labelledby="student-profile-title">
         <div className={styles.profileStage} data-empty={hasVisibleAvatar ? undefined : "true"}>
-          {equippedCharacter ? <CharacterPreview character={equippedCharacter} size="small" /> : null}
-          {equippedPokemon ? (
-            <img
-              className={styles.currentPokemon}
-              src={equippedPokemon.spriteUrl}
-              alt={`${equippedPokemon.name} 포켓몬`}
-              onError={(event) => {
-                const fallback = equippedPokemon.fallbackSpriteUrl;
-                if (fallback && event.currentTarget.src !== fallback) event.currentTarget.src = fallback;
-              }}
-            />
-          ) : null}
+          {hasVisibleAvatar ? <Avatar avatar={displayedAvatar} label={equippedName ?? "내 캐릭터"} /> : null}
           {!hasVisibleAvatar ? <span className={styles.emptyAvatar} aria-hidden="true">?</span> : null}
         </div>
 
@@ -85,13 +67,16 @@ export default function CharacterShop({ identity, roomId, nickname, nicknameGrad
               <dt>장착 캐릭터</dt>
               <dd title={equippedName ?? undefined}>{loading && !hasVisibleAvatar ? "불러오는 중…" : equippedName ?? "미설정"}</dd>
             </div>
+            <div><dt>V2코인</dt><dd>{balance === null ? "확인 중…" : balance.toLocaleString()}</dd></div>
           </dl>
         </div>
 
         <div className={styles.profileAction}>
-          <Button variant="ghost" onClick={() => setOpen(true)}>캐릭터 바꾸기</Button>
+          <Button onClick={onOpen}>캐릭터 상점</Button>
+          {error ? <Button size="sm" variant="ghost" onClick={reload}>다시 불러오기</Button> : null}
         </div>
       </section>
+      {error ? <p role="alert">{error.message}</p> : null}
 
       {open ? (
         <CharacterShopDialog
@@ -101,7 +86,7 @@ export default function CharacterShop({ identity, roomId, nickname, nicknameGrad
           captures={pokemonData.captures}
           pokemonLoading={pokemonData.loading}
           error={error ?? pokemonData.error}
-          onClose={() => setOpen(false)}
+          onClose={onClose}
           onEquipCharacter={equipCharacter}
           onEquipPokemon={equipPokemon}
         />

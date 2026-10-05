@@ -25,6 +25,7 @@ import { parseNicknameGrade, resolveSessionStartedAtMs, type GameSession, type J
 import { parseLatestStudentQuestionResult, parseStudentQuestionActivity } from "../student-question-activity/codec.ts";
 import { currentTenantConfig } from "../tenant/config.ts";
 import { effectiveTenantId } from "../tenant/scope.ts";
+import { parseCharacterAppearance } from "../characters/appearance.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -61,6 +62,10 @@ function parseGameConfig(value: unknown): Readonly<Record<string, unknown>> | nu
 
 function parsePlayerAvatar(value: unknown): PlayerAvatar | null {
   if (!isRecord(value)) return null;
+  if (value.kind === "maple") {
+    const appearance = parseCharacterAppearance(value.appearance);
+    return appearance ? { kind: "maple", appearance } : null;
+  }
   if (value.kind === "character" && typeof value.characterId === "string" && value.characterId) {
     return { kind: "character", characterId: value.characterId };
   }

@@ -3,6 +3,7 @@ import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../../firebase/firebaseClient.ts";
 import { MULTIPLAYER_COLLECTION } from "../constants.ts";
 import type { PlayerAvatar } from "../types.ts";
+import { parseCharacterAppearance } from "../../characters/appearance.ts";
 import type { CooperativeAssignment, CooperativeExpireResult, CooperativeRoundState, CooperativeSubmitResult, CooperativeTeam, RevealedPartner } from "./types.ts";
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
@@ -10,6 +11,10 @@ function text(value: unknown): string { return typeof value === "string" ? value
 function integer(value: unknown): number { return typeof value === "number" && Number.isInteger(value) ? value : 0; }
 function avatar(value: unknown): PlayerAvatar | null {
   if (!isRecord(value)) return null;
+  if (value.kind === "maple") {
+    const appearance = parseCharacterAppearance(value.appearance);
+    return appearance ? { kind: "maple", appearance } : null;
+  }
   if (value.kind === "character" && typeof value.characterId === "string") return { kind: "character", characterId: value.characterId };
   if (value.kind === "pokemon" && typeof value.captureId === "string" && typeof value.name === "string" && typeof value.spriteUrl === "string") {
     return { kind: "pokemon", captureId: value.captureId, name: value.name, spriteUrl: value.spriteUrl, fallbackSpriteUrl: typeof value.fallbackSpriteUrl === "string" ? value.fallbackSpriteUrl : null };

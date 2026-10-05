@@ -4,6 +4,7 @@ import { db, functions } from "../../firebase/firebaseClient.ts";
 import { parseSharedItemInventory, type SharedItemInventory } from "../../items/inventory.ts";
 import { MULTIPLAYER_COLLECTION } from "../constants.ts";
 import type { PlayerAvatar } from "../types.ts";
+import { parseCharacterAppearance } from "../../characters/appearance.ts";
 import type { BattleActionResult, BattleAssignment, BattleProfile, BattleResult, BattleStanding } from "./types.ts";
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -17,6 +18,10 @@ function integer(value: unknown): number {
 }
 function avatar(value: unknown): PlayerAvatar | null {
   if (!record(value)) return null;
+  if (value.kind === "maple") {
+    const appearance = parseCharacterAppearance(value.appearance);
+    return appearance ? { kind: "maple", appearance } : null;
+  }
   if (value.kind === "character" && typeof value.characterId === "string") {
     return { kind: "character", characterId: value.characterId };
   }
