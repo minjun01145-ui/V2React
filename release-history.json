@@ -1,5 +1,5 @@
 {
-  "version": "2.01",
+  "version": "2.02",
   "releases": [
     {
       "version": "2.00",
@@ -12,6 +12,12 @@
       "kind": "patch",
       "date": "2026-10-05T10:14:45.648Z",
       "message": "전체 글씨체 Paperlogy로 변경"
+    },
+    {
+      "version": "2.02",
+      "kind": "patch",
+      "date": "2026-10-05T10:24:48.395Z",
+      "message": "기본 글씨 굵기 Paperlogy 2 ExtraLight로 변경"
     }
   ]
 }
