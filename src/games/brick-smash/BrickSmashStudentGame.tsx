@@ -4,6 +4,7 @@ import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameCloc
 import { useLearningSet } from "../../learning-sets/useLearningSet.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import StatusPanel from "../../shared/StatusPanel.tsx";
+import { ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { buildBrickQuestions } from "./model.ts";
 import { useBrickSmash } from "./useBrickSmash.ts";
 import BrickSmashPlay from "./BrickSmashPlay.tsx";
@@ -21,8 +22,8 @@ function LoadedGame(props: StudentGameModuleProps & { readonly set: RuntimeLearn
   const questions = useMemo(() => buildBrickQuestions(props.set, props.session.gameConfig ?? {}, props.session.roundId), [props.set, props.session.gameConfig, props.session.roundId]);
   const game = useBrickSmash({ ...props, questions, expired: clock.expired });
   if (!game.ready && !game.error) return <StatusPanel title="벽돌 준비 중">진행 기록을 불러오고 있습니다.</StatusPanel>;
-  return <BrickSmashPlay questions={questions} progress={game.progress} blocked={game.blocked}
+  return <ImmersiveStage><BrickSmashPlay questions={questions} progress={game.progress} blocked={game.blocked}
     seed={props.session.roundId} buffs={game.buffs}
     remainingMs={clock.remainingMs} expired={clock.expired} pending={game.pending} error={game.error}
-    onStrike={game.strike} onRetry={() => void game.retry()} />;
+    onStrike={game.strike} onRetry={() => void game.retry()} /></ImmersiveStage>;
 }

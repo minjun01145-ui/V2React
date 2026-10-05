@@ -4,10 +4,11 @@ import { formatClock } from "../../game-engine/timed-game/clock.ts";
 import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { useGameEffectEngine } from "../../game-engine/effects/useGameEffectEngine.ts";
 import { createLearningCompletion } from "../../game-engine/effects/model.ts";
+import { FullscreenToggle } from "../../game-engine/stage/ImmersiveStage.tsx";
 import { brickAt, currentBrickQuestion, type BrickDetails, type BrickProgress, type BrickQuestion } from "./model.ts";
 import { brickItemAt, BRICK_ITEMS, BRICK_ITEM_EFFECTS, BRICK_TIMED_ITEM_IDS, type BrickBuffs, type BrickItemId } from "./items.ts";
 import { useHammerSound } from "./useHammerSound.ts";
-import BrickStage, { BLAST_STEP_MS, Judgment, type Impact, type StageBrick } from "./BrickStage.tsx";
+import BrickStage, { BLAST_STEP_MS, burst, type Impact, type StageBrick } from "./BrickStage.tsx";
 import styles from "./BrickSmash.module.css";
 
 const VISIBLE_BRICKS = 5;
@@ -39,11 +40,6 @@ function useRollingNumber(target: number) {
   return shown;
 }
 
-function PaddedNumber({ value, digits }: { readonly value: number; readonly digits: number }) {
-  const text = String(value);
-  return <><span className={styles.zeros}>{"0".repeat(Math.max(0, digits - text.length))}</span>{text}</>;
-}
-
 export default function BrickSmashPlay({ questions, progress, seed, buffs, blocked, remainingMs, expired, pending, error, onStrike, onRetry }: {
   readonly questions: readonly BrickQuestion[];
   readonly progress: BrickProgress;
@@ -69,6 +65,7 @@ export default function BrickSmashPlay({ questions, progress, seed, buffs, block
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const stunTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  const section = useRef<HTMLElement>(null);
   const playSound = useHammerSound();
   const effects = useGameEffectEngine();
   const [now, setNow] = useState(Date.now);
@@ -102,9 +99,9 @@ export default function BrickSmashPlay({ questions, progress, seed, buffs, block
     setImpact(hit);
     setImpacts((previous) => [...previous.slice(-5), hit]);
     buttons.current[lane]?.animate(result.isCorrect
-      ? [{ transform: "translateY(6px)", filter: "brightness(1.8)" }, { transform: "none", filter: "none" }]
+      ? [{ transform: "translateY(8px) scale(.97)", filter: "brightness(1.35)" }, { transform: "none", filter: "none" }]
       : [{ transform: "translateX(-8px)" }, { transform: "translateX(7px)" }, { transform: "translateX(-4px)" }, { transform: "none" }],
-    { duration: result.isCorrect ? 200 : 320, easing: "ease-out" });
+    { duration: result.isCorrect ? 220 : 320, easing: "ease-out" });
     const stun = !result.isCorrect && !protectedMiss;
     nextHitAt.current = performance.now() + (stun ? MISS_COOLDOWN_MS : HIT_COOLDOWN_MS);
     if (stunTimer.current) clearTimeout(stunTimer.current);
@@ -143,32 +140,33 @@ export default function BrickSmashPlay({ questions, progress, seed, buffs, block
   const activeTimed = expired ? [] : BRICK_TIMED_ITEM_IDS.filter((id) => buffs[id] > now);
   const bannerItem = banner ? BRICK_ITEMS[banner.item] : null;
 
-  return <section className={styles.game} aria-label="벽돌 팡팡" data-tier={comboTier(progress.combo)} data-gold={gold} data-sentence={Boolean(sentence)}>
+  return <section ref={section} className={styles.game} aria-label="벽돌 팡팡" data-tier={comboTier(progress.combo)} data-gold={gold} data-sentence={Boolean(sentence)}>
     <GameEffectLayer effect={effects.activeEffect} className={styles.announcement} />
     <header className={styles.header}>
       <h1>벽돌<span>팡팡</span></h1>
       <div className={styles.clock} role="timer" data-low={!expired && remainingMs !== null && remainingMs <= 10_000}>{expired ? "FINISH" : formatClock(remainingMs)}</div>
-      <button className={styles.sound} type="button" aria-pressed={!muted} aria-label={muted ? "효과음 켜기" : "효과음 끄기"} onClick={() => setMuted(!muted)}>
+      <button className={styles.iconButton} type="button" aria-pressed={!muted} aria-label={muted ? "효과음 켜기" : "효과음 끄기"} onClick={() => setMuted(!muted)}>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4Z" fill="currentColor" />{muted ? <path d="m16 9 5 6m0-6-5 6" stroke="currentColor" strokeWidth="2" /> : <path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" strokeWidth="2" fill="none" />}</svg>
       </button>
+      <FullscreenToggle target={section} className={styles.iconButton} />
     </header>
 
-    <div className={styles.scorebar}>
+    <div className={styles.topRow}>
       <div className={styles.score}>
         <span>SCORE</span>
-        <strong aria-label={`${progress.score}점`}><PaddedNumber value={shownScore} digits={7} /></strong>
+        <strong aria-label={`${progress.score}점`}>{shownScore.toLocaleString()}</strong>
         {gold && <em className={styles.multiplier}>×2</em>}
       </div>
-      <div className={styles.bricks}><span>BRICKS</span><strong><PaddedNumber value={progress.currentIndex} digits={3} /></strong></div>
-    </div>
+      <div className={styles.bricks}><span>BRICKS</span><strong>{progress.currentIndex}</strong></div>
 
-    <div className={styles.buffs} aria-label="적용 중인 아이템">
-      {activeTimed.map((id) => {
-        const left = buffs[id] - now;
-        return <span key={id} className={styles.buff} data-item={id} style={{ "--left": Math.min(1, left / BRICK_ITEM_EFFECTS[id].durationMs) } as CSSProperties}>
-          <i aria-hidden="true">{BRICK_ITEMS[id].emoji}</i>{BRICK_ITEMS[id].name}<b>{id === "hammer" ? "2개씩" : "점수 ×2"}</b><small>{Math.ceil(left / 1_000)}</small>
-        </span>;
-      })}
+      <div className={styles.buffs} aria-label="적용 중인 아이템">
+        {activeTimed.map((id) => {
+          const left = buffs[id] - now;
+          return <span key={id} className={styles.buff} data-item={id} style={{ "--left": Math.min(1, left / BRICK_ITEM_EFFECTS[id].durationMs) } as CSSProperties}>
+            <i aria-hidden="true">{BRICK_ITEMS[id].emoji}</i>{BRICK_ITEMS[id].name}<b>{id === "hammer" ? "2개씩" : "점수 ×2"}</b>
+          </span>;
+        })}
+      </div>
     </div>
 
     {sentence && <div className={styles.sentence} aria-label="조립할 문장">
@@ -181,16 +179,21 @@ export default function BrickSmashPlay({ questions, progress, seed, buffs, block
     </div>}
 
     <div className={styles.arena}>
+      {progress.combo >= 10 && <div className={styles.fever} aria-hidden="true" />}
       <BrickStage bricks={Array.from({ length: VISIBLE_BRICKS }, (_, offset) => brickAtIndex(progress.currentIndex + offset))}
         impact={impact} impacts={impacts} golden={gold} twin={buffs.hammer > now} shielded={shielded} timerKey={progress.correctCount}
-        onImpactDone={(id) => setImpacts((previous) => previous.filter((item) => item.id !== id))} />
+        onImpactDone={(id) => {
+          setImpacts((previous) => previous.filter((item) => item.id !== id));
+          setImpact((current) => current?.id === id ? null : current);
+        }} />
       <div className={styles.combo} data-active={progress.combo >= 2} aria-label={`${progress.combo} 콤보`}>
+        {progress.combo >= 2 && <i className={styles.comboAura} aria-hidden="true" />}
         <span>COMBO</span>
         <strong key={`combo-${progress.attemptCount}`}>{progress.combo}</strong>
       </div>
-      {impact?.correct && <Judgment key={`judge-${impact.id}`} hit={impact} />}
       {milestone && <div key={milestone.id} className={styles.milestone} onAnimationEnd={(event) => { if (event.target === event.currentTarget) setMilestone(null); }} aria-hidden="true">
-        <i /><strong>{milestone.combo}</strong><span>COMBO</span>
+        <i className={styles.rays} /><strong>{milestone.combo}</strong><span>COMBO</span>
+        {burst(24, 340, milestone.id).map((style, index) => <i key={index} className={styles.confetti} data-color={index % 4} style={style} />)}
       </div>}
       {banner && bannerItem && <div key={banner.id} className={styles.banner} data-item={banner.item} role="status" onAnimationEnd={(event) => { if (event.target === event.currentTarget) setBanner(null); }}>
         <i aria-hidden="true">{bannerItem.emoji}</i>
@@ -208,11 +211,11 @@ export default function BrickSmashPlay({ questions, progress, seed, buffs, block
       : <div className={styles.deck} data-shielded={shielded}>
         {shielded && <div className={styles.dome} aria-label="보호막 1회"><span>SHIELD</span></div>}
         {shieldBreak !== null && <div key={shieldBreak} className={styles.domeBreak} aria-hidden="true" onAnimationEnd={(event) => { if (event.target === event.currentTarget) setShieldBreak(null); }}>
-          {Array.from({ length: 12 }, (_, i) => <i key={i} style={{ "--i": i } as CSSProperties} />)}
+          {burst(12, 180, shieldBreak).map((style, index) => <i key={index} style={{ ...style, "--top": `${15 + index % 4 * 20}%` } as CSSProperties} />)}
         </div>}
         <div className={styles.controls} data-count={question.options.length} data-stunned={stunned}>
           {question.options.map((option, index) => <button key={index} ref={(element) => { buttons.current[index] = element; }} type="button"
-            className={styles.answer} disabled={blocked} onClick={() => strike(option.id, index)}>
+            className={styles.answer} data-lane={index} disabled={blocked} onClick={() => strike(option.id, index)}>
             <kbd>{index + 1}</kbd><span>{option.text}</span>
           </button>)}
         </div>

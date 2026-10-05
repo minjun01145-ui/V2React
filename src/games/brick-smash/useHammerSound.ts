@@ -24,7 +24,8 @@ export function useHammerSound() {
         const now = audio.currentTime;
         const tones = sound === "hit"
           // The crack climbs with the combo so a streak sounds like it is heating up.
-          ? [...TONES.hit, [620 + Math.min(combo, 20) * 40, 300, 0.01, 0.08, 0.06, "sine"] as const]
+          ? [...TONES.hit, [620 + Math.min(combo, 20) * 40, 300, 0.01, 0.08, 0.06, "sine"] as const,
+            ...(combo >= 2 ? [[1046 + Math.min(combo, 24) * 22, 1046 + Math.min(combo, 24) * 22, 0.05, 0.12, 0.05, "triangle"] as const] : [])]
           : TONES[sound];
         for (const [frequency, endFrequency, delay, duration, volume, type] of tones) {
           const oscillator = audio.createOscillator();
