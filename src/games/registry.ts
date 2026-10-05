@@ -258,7 +258,7 @@ const definitions = [
   }),
   defineGame({
     id: "meaning-dash",
-    title: "뜻 달리기 (실험)",
+    title: "뜻 달리기",
     category: "action",
     supportedSetTypes: ["vocabulary"],
     requiresStoredSet: true,

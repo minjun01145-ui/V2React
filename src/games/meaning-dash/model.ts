@@ -8,8 +8,28 @@ export const MEANING_DASH_FIRST_GATE_Y = 7;
 export const MEANING_DASH_GATE_SPACING = 6;
 export const MEANING_DASH_RUN_SPEED = 2.2;
 export const MEANING_DASH_SLOW_SPEED = 0.9;
-export const MEANING_DASH_LANE_SPEED = 3.6;
+export const MEANING_DASH_LANE_SPEED = 9;
 export const MEANING_DASH_WRONG_SLOW_MS = 1_300;
+
+export interface DashImpact {
+  readonly gateIndex: number;
+  readonly correct: boolean;
+  readonly lane: 0 | 1 | 2;
+  readonly prompt: string;
+  readonly answer: string;
+  readonly combo: number;
+  readonly points: number;
+}
+
+export function meaningDashReward(correct: boolean, previousCombo: number) {
+  const combo = correct ? previousCombo + 1 : 0;
+  return { combo, points: correct ? 100 + Math.min(combo - 1, 10) * 10 : 0 };
+}
+
+/** Keep at least two seconds to read each gate, even during a long streak. */
+export function meaningDashSpeed(combo: number): number {
+  return MEANING_DASH_RUN_SPEED + Math.min(combo, 8) * 0.1;
+}
 
 export interface MeaningDashQuestion {
   readonly id: string;

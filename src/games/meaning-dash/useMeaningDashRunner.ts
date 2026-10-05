@@ -16,6 +16,9 @@ import {
   meaningDashLaneX,
   meaningDashQuestionForGate,
   nearestMeaningDashLane,
+  meaningDashReward,
+  meaningDashSpeed,
+  type DashImpact,
   type MeaningDashCourse,
 } from "./model.ts";
 
@@ -78,6 +81,10 @@ export function useMeaningDashRunner(input: {
   const [feedback, setFeedback] = useState("");
   const [saveError, setSaveError] = useState<Error | null>(null);
   const [ready, setReady] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [started, setStarted] = useState(false);
+  const [impact, setImpact] = useState<DashImpact | null>(null);
+  const startAtRef = useRef<number | null>(null);
   const runnerRef = useRef<MeaningDashRunnerState>(INITIAL_RUNNER);
   const progressRef = useRef<GameProgress<DashDetails>>(createEmptyProgress());
   const targetLaneRef = useRef<0 | 1 | 2>(1);
@@ -109,7 +116,7 @@ export function useMeaningDashRunner(input: {
   }, [session.roundId]);
 
   useEffect(() => {
-    if (remoteProgress.loading || initializedRoundRef.current === session.roundId) return;
+    if (remoteProgress.loading || remoteProgress.error || initializedRoundRef.current === session.roundId) return;
     const hydrated = normalizeProgress<DashDetails>(remoteProgress.value, Number.MAX_SAFE_INTEGER);
     const y = hydrated.currentIndex > 0 ? meaningDashGateY(hydrated.currentIndex - 1) + 0.15 : 0;
     const nextRunner = { ...INITIAL_RUNNER, y };
@@ -119,7 +126,7 @@ export function useMeaningDashRunner(input: {
     setRunner(nextRunner);
     initializedRoundRef.current = session.roundId;
     setReady(true);
-  }, [remoteProgress.loading, remoteProgress.value, session.roundId]);
+  }, [remoteProgress.loading, remoteProgress.error, remoteProgress.value, session.roundId]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -133,11 +140,12 @@ export function useMeaningDashRunner(input: {
     const question = meaningDashQuestionForGate(course, gateIndex);
     const correct = selectedLane === question.correctLane;
     const previous = progressRef.current;
+    const reward = meaningDashReward(correct, previous.combo);
     const gateItemId = `meaning-dash-gate-${gateIndex}`;
     const details: DashDetails = { gateIndex, selectedLane, correctLane: question.correctLane };
     const result = createAnswerResult({
       isCorrect: correct,
-      scoreDelta: correct ? 100 : 0,
+      scoreDelta: reward.points,
       feedback: correct ? "정답!" : `정답: ${question.choices[question.correctLane]}`,
       details,
     });
@@ -145,14 +153,16 @@ export function useMeaningDashRunner(input: {
     const nextProgress: GameProgress<DashDetails> = {
       ...applied,
       currentIndex: gateIndex + 1,
-      combo: correct ? previous.combo + 1 : 0,
+      combo: reward.combo,
     };
     progressRef.current = nextProgress;
     setProgress(nextProgress);
+    setImpact({ gateIndex, correct, lane: selectedLane, prompt: question.prompt,
+      answer: question.choices[question.correctLane], combo: reward.combo, points: reward.points });
     setFeedback(result.feedback ?? "");
     if (!correct) slowUntilRef.current = Date.now() + MEANING_DASH_WRONG_SLOW_MS;
     if (feedbackTimerRef.current !== null) window.clearTimeout(feedbackTimerRef.current);
-    feedbackTimerRef.current = window.setTimeout(() => setFeedback(""), 1_100);
+    feedbackTimerRef.current = window.setTimeout(() => setFeedback(""), 1_800);
 
     const submission = {
       roomId,
@@ -203,12 +213,22 @@ export function useMeaningDashRunner(input: {
     const tick = (now: number): void => {
       const elapsedSeconds = Math.min(Math.max((now - lastAt) / 1_000, 0), 0.05);
       lastAt = now;
+      if (startAtRef.current === null || document.hidden) {
+        animationFrame = requestAnimationFrame(tick);
+        return;
+      }
+      const remaining = Math.ceil((startAtRef.current - now) / 1000);
+      setCountdown(remaining > 0 ? remaining : 0);
+      if (remaining > 0) {
+        animationFrame = requestAnimationFrame(tick);
+        return;
+      }
       const current = runnerRef.current;
       const targetX = meaningDashLaneX(targetLaneRef.current);
       const nextX = approach(current.x, targetX, MEANING_DASH_LANE_SPEED * elapsedSeconds);
       const speed = saveBlockedRef.current
         ? 0
-        : Date.now() < slowUntilRef.current ? MEANING_DASH_SLOW_SPEED : MEANING_DASH_RUN_SPEED;
+        : Date.now() < slowUntilRef.current ? MEANING_DASH_SLOW_SPEED : meaningDashSpeed(progressRef.current.combo);
       const nextY = current.y + speed * elapsedSeconds;
       const next: MeaningDashRunnerState = {
         x: nextX,
@@ -235,6 +255,11 @@ export function useMeaningDashRunner(input: {
     return () => cancelAnimationFrame(animationFrame);
   }, [publish, ready, recordGate]);
 
+  const selectLane = useCallback((lane: 0 | 1 | 2): void => {
+    targetLaneRef.current = lane;
+    setRunner((current) => ({ ...current, lane }));
+  }, []);
+
   const moveLane = useCallback((direction: -1 | 1): void => {
     const next = Math.max(0, Math.min(2, targetLaneRef.current + direction)) as 0 | 1 | 2;
     targetLaneRef.current = next;
@@ -246,6 +271,12 @@ export function useMeaningDashRunner(input: {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent): void => {
       if (event.target instanceof Element && event.target.closest("input, textarea, select, [contenteditable='true']")) return;
+      if (event.repeat) return;
+      if (["Digit1", "Digit2", "Digit3"].includes(event.code)) {
+        event.preventDefault();
+        selectLane((Number(event.code.slice(-1)) - 1) as 0 | 1 | 2);
+        return;
+      }
       const action = movementAction(event.code, event.key);
       if (action === "left") {
         event.preventDefault();
@@ -257,7 +288,7 @@ export function useMeaningDashRunner(input: {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [moveLane]);
+  }, [moveLane, selectLane]);
 
   const nextQuestion = useMemo(
     () => meaningDashQuestionForGate(course, Math.max(progress.currentIndex, 0)),
@@ -271,6 +302,16 @@ export function useMeaningDashRunner(input: {
     saveError: saveError ?? remoteProgress.error,
     ready: readyForRound,
     nextQuestion,
+    impact,
+    started,
+    countdown,
+    selectLane,
+    start: () => {
+      if (startAtRef.current !== null) return;
+      startAtRef.current = performance.now() + 3000;
+      setCountdown(3);
+      setStarted(true);
+    },
     moveLeft: () => moveLane(-1),
     moveRight: () => moveLane(1),
   };
