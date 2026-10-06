@@ -1,11 +1,13 @@
 import "./fabricSetup.ts";
-import { Canvas, Circle, FabricImage, Line, Rect, Textbox, Triangle, type FabricObject } from "fabric";
+import { Canvas, Circle, Control, controlsUtils, FabricImage, Line, Rect, Textbox, Triangle, type FabricObject } from "fabric";
 import { SLIDE_HEIGHT, SLIDE_WIDTH, type SlideFrame } from "../slide-show/types.ts";
 import { collectSlideTexts, loadSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
+import { UndoHistory } from "./undoHistory.ts";
 
 export type SlideShapeKind = "rect" | "circle" | "triangle" | "line";
 export type SlideObjectKind = "text" | "shape" | "line" | "image" | "engine";
 export type SlideArrangeAction = "front" | "forward" | "backward" | "back";
+export type SlideTextAlign = "left" | "center" | "right";
 
 /** Editable properties of the selected object, in the form the property panel shows them. */
 export interface SlideObjectStyle {
@@ -16,6 +18,7 @@ export interface SlideObjectStyle {
   readonly strokeWidth: number;
   readonly fontSize: number;
   readonly bold: boolean;
+  readonly textAlign: SlideTextAlign;
 }
 
 export type SlideObjectStylePatch = Partial<Omit<SlideObjectStyle, "kind">>;
@@ -43,6 +46,54 @@ function hexColor(value: unknown, fallback: string): string {
   return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
 }
 
+function textAlignOf(value: unknown): SlideTextAlign {
+  return value === "center" || value === "right" ? value : "left";
+}
+
+function renderMoveGrip(ctx: CanvasRenderingContext2D, left: number, top: number): void {
+  ctx.save();
+  ctx.translate(left, top);
+  ctx.fillStyle = SELECTION_COLOR;
+  ctx.beginPath();
+  ctx.arc(0, 0, 13, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+    ctx.moveTo(0, 0);
+    ctx.lineTo(dx * 8, dy * 8);
+    ctx.moveTo(dx * 8 - dy * 3 - dx * 3, dy * 8 - dx * 3 - dy * 3);
+    ctx.lineTo(dx * 8, dy * 8);
+    ctx.lineTo(dx * 8 + dy * 3 - dx * 3, dy * 8 + dx * 3 - dy * 3);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A grip under a text box that drags it, also while its text is being edited (where dragging selects text). */
+const MOVE_GRIP = new Control({
+  x: 0, y: 0.5, offsetY: 30, sizeX: 30, sizeY: 30, cursorStyle: "move", actionName: "drag",
+  actionHandler: controlsUtils.dragHandler, render: renderMoveGrip,
+});
+
+/**
+ * A text box grows by width (side handles) or by font size (corners); it never stretches its glyphs,
+ * and it can always be moved with its grip.
+ */
+function prepareTextbox(text: Textbox): void {
+  text.controls = { ...text.controls, moveGrip: MOVE_GRIP };
+  text.setControlsVisibility({ mt: false, mb: false });
+}
+
+/** Turns a corner drag (a scale) into a larger font and wider box, so the text stays crisp and unstretched. */
+function bakeTextboxScale(text: Textbox): void {
+  if (text.scaleX === 1 && text.scaleY === 1) return;
+  text.set({ fontSize: Math.max(8, Math.round(text.fontSize * text.scaleY)), width: text.width * text.scaleX, scaleX: 1, scaleY: 1 });
+  text.setCoords();
+}
+
 /**
  * Wraps a Fabric canvas with the handful of slide-editing operations the editor UI needs.
  * The engine window is a regular Fabric rectangle excluded from export, so it can be
@@ -54,20 +105,36 @@ export class SlideEditorController {
   private engineFrame: Rect | null = null;
   private engineLabel = "";
   private loading = false;
+  /** Slide content only; the engine window belongs to the slide's engine settings, not to undo. */
+  private readonly history = new UndoHistory<string>();
+  private restoring = false;
+  private recordScheduled = false;
 
   constructor(element: HTMLCanvasElement, events: ControllerEvents) {
     this.events = events;
     this.canvas = new Canvas(element, { preserveObjectStacking: true, selectionColor: "rgba(35,56,184,.08)", selectionBorderColor: SELECTION_COLOR });
-    const changed = (): void => { if (!this.loading) this.events.onChange(); };
+    const changed = (): void => { if (!this.loading && !this.restoring) this.edited(); };
     const selection = (): void => this.events.onSelectionChange(this.selectedStyle());
     this.canvas.on("object:added", ({ target }) => {
+      if (target instanceof Textbox) prepareTextbox(target);
       if (target !== this.engineFrame) this.keepEngineFrameOnTop();
       changed();
     });
     this.canvas.on("object:removed", changed);
-    this.canvas.on("text:changed", changed);
+    // Typing saves the slide as it goes but becomes one undo step when editing ends.
+    this.canvas.on("text:changed", () => { if (!this.loading && !this.restoring) this.events.onChange(); });
+    this.canvas.on("text:editing:exited", changed);
+    // Fabric hides the handles and locks a text box while editing; keep it resizable and movable.
+    // (Assigned directly: Fabric's set() during editing only changes the values restored on exit.)
+    this.canvas.on("text:editing:entered", ({ target }) => {
+      target.hasControls = true;
+      target.lockMovementX = false;
+      target.lockMovementY = false;
+      this.canvas.requestRenderAll();
+    });
     this.canvas.on("object:modified", ({ target }) => {
       if (target === this.engineFrame) this.normalizeEngineFrame();
+      if (target instanceof Textbox) bakeTextboxScale(target);
       changed();
       selection();
     });
@@ -99,10 +166,19 @@ export class SlideEditorController {
       if (frame) this.placeEngineFrame(frame);
       this.canvas.discardActiveObject();
       this.canvas.requestRenderAll();
+      this.history.reset(this.serialize());
     } finally {
       this.loading = false;
     }
     this.events.onSelectionChange(null);
+  }
+
+  undo(): Promise<void> {
+    return this.step("undo");
+  }
+
+  redo(): Promise<void> {
+    return this.step("redo");
   }
 
   serialize(): string {
@@ -116,7 +192,7 @@ export class SlideEditorController {
   setBackground(color: string): void {
     this.canvas.backgroundColor = color;
     this.canvas.requestRenderAll();
-    this.events.onChange();
+    this.edited();
   }
 
   addText(): void {
@@ -163,7 +239,7 @@ export class SlideEditorController {
     else this.canvas.sendObjectToBack(target);
     this.keepEngineFrameOnTop();
     this.canvas.requestRenderAll();
-    this.events.onChange();
+    this.edited();
   }
 
   updateSelection(patch: SlideObjectStylePatch): void {
@@ -177,10 +253,11 @@ export class SlideEditorController {
     if (target instanceof Textbox) {
       if (patch.fontSize !== undefined) target.set({ fontSize: patch.fontSize });
       if (patch.bold !== undefined) target.set({ fontWeight: patch.bold ? 800 : 400 });
+      if (patch.textAlign !== undefined) target.set({ textAlign: patch.textAlign });
     }
     target.setCoords();
     this.canvas.requestRenderAll();
-    this.events.onChange();
+    this.edited();
     this.events.onSelectionChange(this.selectedStyle());
   }
 
@@ -210,14 +287,56 @@ export class SlideEditorController {
     this.canvas.requestRenderAll();
   }
 
-  /** Deletes the selection with the Delete key unless a text box is being edited. */
+  /**
+   * Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y undo and redo (matched by key position, so they also work
+   * with the Korean keyboard layout). Delete removes the selection unless text is being edited.
+   */
   handleKeyDown(event: KeyboardEvent): void {
+    if ((event.ctrlKey || event.metaKey) && !event.altKey && (event.code === "KeyZ" || event.code === "KeyY")) {
+      event.preventDefault();
+      void (event.code === "KeyY" || event.shiftKey ? this.redo() : this.undo());
+      return;
+    }
     if (event.key !== "Delete" && event.key !== "Backspace") return;
     const active = this.canvas.getActiveObject();
     if (!active || (active instanceof Textbox && active.isEditing)) return;
     event.preventDefault();
     if (active === this.engineFrame) this.events.onEngineDelete();
     else this.deleteSelection();
+  }
+
+  /** Every user edit: save the slide and record one undo step (several events of one action collapse). */
+  private edited(): void {
+    this.events.onChange();
+    if (this.recordScheduled) return;
+    this.recordScheduled = true;
+    queueMicrotask(() => {
+      this.recordScheduled = false;
+      if (!this.loading && !this.restoring) this.history.push(this.serialize());
+    });
+  }
+
+  private async step(direction: "undo" | "redo"): Promise<void> {
+    if (this.loading || this.restoring) return;
+    // Finish a text edit first so it becomes the latest step, then capture anything not yet recorded.
+    const active = this.canvas.getActiveObject();
+    if (active instanceof Textbox && active.isEditing) active.exitEditing();
+    this.history.push(this.serialize());
+    const snapshot = direction === "undo" ? this.history.undo() : this.history.redo();
+    if (snapshot === null) return;
+    this.restoring = true;
+    const frame = this.getEngineFrame();
+    try {
+      this.engineFrame = null;
+      await this.canvas.loadFromJSON(JSON.parse(snapshot) as Record<string, unknown>);
+      if (frame) this.placeEngineFrame(frame);
+      this.canvas.discardActiveObject();
+      this.canvas.requestRenderAll();
+    } finally {
+      this.restoring = false;
+    }
+    this.events.onChange();
+    this.events.onSelectionChange(null);
   }
 
   private addAndSelect(object: FabricObject): void {
@@ -292,6 +411,7 @@ export class SlideEditorController {
       strokeWidth: target.strokeWidth,
       fontSize: target instanceof Textbox ? target.fontSize : 0,
       bold: target instanceof Textbox ? Number(target.fontWeight) >= 700 || target.fontWeight === "bold" : false,
+      textAlign: target instanceof Textbox ? textAlignOf(target.textAlign) : "left",
     };
   }
 }

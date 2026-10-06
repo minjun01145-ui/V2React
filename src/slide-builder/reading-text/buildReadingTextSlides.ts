@@ -15,6 +15,8 @@ export interface ReadingTextSlidesResult {
 
 export type BuildProgress = (message: string) => void;
 
+type PlacedChunk = ChunkPlacement & { readonly meaning: string | null };
+
 /**
  * Builds a reading-text (본문) deck: for every textbook page holding the set's sentences, one
  * slide with the zoomed page, then one slide per reading chunk with that chunk boxed.
@@ -36,11 +38,17 @@ export async function buildReadingTextSlides(file: File, items: readonly Learnin
     const sentences = items.map((item) => splitChunks(item.sourceText));
     const alignments = alignSentences(words, sentences);
     const missingSentences = items.filter((_, index) => !alignments[index]!.found).map((item) => item.sourceText.replaceAll("/", " ").replace(/\s+/g, " ").trim());
-    const chunks = alignments.flatMap((alignment) => alignment.chunks.filter((chunk): chunk is ChunkPlacement => chunk !== null && chunk.words.length > 0));
+    // A chunk's meaning is the matching "/" part of the item's meaning, when both split the same way.
+    const chunks = alignments.flatMap((alignment, itemIndex) => {
+      const meanings = splitChunks(items[itemIndex]!.meaning);
+      return alignment.chunks.flatMap((chunk, chunkIndex): PlacedChunk[] => chunk && chunk.words.length > 0
+        ? [{ ...chunk, meaning: meanings.length === alignment.chunks.length ? meanings[chunkIndex]! : null }]
+        : []);
+    });
     if (chunks.length === 0) throw new Error("세트의 문장을 PDF에서 찾지 못했습니다. 세트와 같은 과의 PDF인지 확인해 주세요.");
 
     // Pages in the order the set reaches them; each keeps the chunks found on it.
-    const pages = new Map<number, ChunkPlacement[]>();
+    const pages = new Map<number, PlacedChunk[]>();
     for (const chunk of chunks) pages.set(chunk.page, [...(pages.get(chunk.page) ?? []), chunk]);
 
     const canvases: string[] = [];
@@ -56,7 +64,8 @@ export async function buildReadingTextSlides(file: File, items: readonly Learnin
         // Each passage opens on its zoomed page without boxes, as in a hand-made 본문 deck.
         if (viewIndex === 0) canvases.push(readingSlideCanvas(picture, view.crop, []));
         for (const index of view.chunks) {
-          canvases.push(readingSlideCanvas(picture, view.crop, lineBoxes(pageChunks[index]!.words).map((box) => toSlideBox(box, view.crop))));
+          const chunk = pageChunks[index]!;
+          canvases.push(readingSlideCanvas(picture, view.crop, lineBoxes(chunk.words).map((box) => toSlideBox(box, view.crop)), chunk.meaning));
         }
       }
     }

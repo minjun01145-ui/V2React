@@ -1,4 +1,5 @@
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "../../slide-show/types.ts";
+import { SLIDE_FONT_FAMILY } from "../../slide-canvas/fonts.ts";
 import type { PdfWord } from "./textMatching.ts";
 
 /** Rectangle in PDF page units (or slide units for slide boxes). */
@@ -22,6 +23,10 @@ const TARGET_EM = 40;
 const WORD_BOX_EM = 1.15;
 /** Share of the slide width kept free on each side of the longest line. */
 const SIDE_MARGIN = 0.04;
+/** Meaning caption: white on black, just above or below the chunk box. */
+const CAPTION_FONT_SIZE = 30;
+const CAPTION_GAP = 6;
+const CAPTION_MARGIN = 8;
 const BOX_FILL = "rgba(255,0,0,0.15)";
 const BOX_STROKE = "#5b9bd5";
 
@@ -137,8 +142,38 @@ export function toSlideBox(box: Box, crop: Box): Box {
   return { x: frame.x + (box.x - crop.x) * frame.scale, y: frame.y + (box.y - crop.y) * frame.scale, width: box.width * frame.scale, height: box.height * frame.scale };
 }
 
-/** Fabric canvas JSON: the page image as a fixed backdrop plus the translucent chunk boxes. */
-export function readingSlideCanvas(image: SlideImage, crop: Box, boxes: readonly Box[]): string {
+export interface CaptionPlacement extends Box {
+  readonly fontSize: number;
+}
+
+/** Rough rendered width: Hangul and other wide glyphs take about an em, Latin about half. */
+function estimatedTextWidth(text: string, fontSize: number): number {
+  return [...text].reduce((sum, char) => sum + (char.charCodeAt(0) >= 0x1100 ? 1 : 0.58), 0) * fontSize;
+}
+
+/**
+ * Where a chunk's meaning goes on the slide (slide units): under the chunk's last line when it
+ * fits, otherwise above its first line, kept inside the slide.
+ */
+export function captionPlacement(boxes: readonly Box[], text: string): CaptionPlacement {
+  const fontSize = CAPTION_FONT_SIZE;
+  const maxWidth = SLIDE_WIDTH - CAPTION_MARGIN * 2;
+  const natural = estimatedTextWidth(text, fontSize) + fontSize;
+  const width = Math.min(maxWidth, Math.max(fontSize * 3, natural));
+  const height = Math.ceil(natural / width) * fontSize * 1.2;
+  const first = boxes[0]!;
+  const last = boxes[boxes.length - 1]!;
+  const below = last.y + last.height + CAPTION_GAP;
+  const y = below + height <= SLIDE_HEIGHT - CAPTION_MARGIN ? below : Math.max(CAPTION_MARGIN, first.y - CAPTION_GAP - height);
+  const x = Math.min(SLIDE_WIDTH - CAPTION_MARGIN - width, Math.max(CAPTION_MARGIN, first.x));
+  return { x, y, width, height, fontSize };
+}
+
+/**
+ * Fabric canvas JSON: the page image as a fixed backdrop plus the translucent chunk boxes and,
+ * when given, the chunk's meaning as an ordinary (editable) text box.
+ */
+export function readingSlideCanvas(image: SlideImage, crop: Box, boxes: readonly Box[], meaning: string | null = null): string {
   const frame = imageFrame(crop);
   const backdrop = {
     type: "Image", originX: "left", originY: "top", left: frame.x, top: frame.y, src: image.src,
@@ -149,5 +184,13 @@ export function readingSlideCanvas(image: SlideImage, crop: Box, boxes: readonly
     type: "Rect", originX: "left", originY: "top", left: box.x, top: box.y, width: box.width, height: box.height,
     fill: BOX_FILL, stroke: BOX_STROKE, strokeWidth: 2, strokeUniform: true,
   }));
-  return JSON.stringify({ objects: [backdrop, ...marks], background: "#ffffff" });
+  const caption = meaning && boxes.length > 0 ? (() => {
+    const place = captionPlacement(boxes, meaning);
+    return [{
+      type: "Textbox", originX: "left", originY: "top", left: place.x, top: place.y, width: place.width, text: meaning,
+      fontSize: place.fontSize, fontWeight: 400, fontFamily: SLIDE_FONT_FAMILY, fill: "#ffffff", backgroundColor: "#000000",
+      textAlign: "center", splitByGrapheme: true,
+    }];
+  })() : [];
+  return JSON.stringify({ objects: [backdrop, ...marks, ...caption], background: "#ffffff" });
 }

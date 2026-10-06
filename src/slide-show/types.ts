@@ -4,7 +4,8 @@ export const SLIDE_SHOW_SCHEMA_VERSION = 1 as const;
 export const SLIDE_WIDTH = 1280;
 export const SLIDE_HEIGHT = 720;
 
-export const MAX_SLIDES = 100;
+/** Every slide is its own document, so the cap only bounds the slide order list and editor load. */
+export const MAX_SLIDES = 300;
 /** Serialized canvas (including embedded images) must fit in one Firestore document. */
 export const MAX_SLIDE_CANVAS_BYTES = 900_000;
 

@@ -1,5 +1,6 @@
 import type { SlideArrangeAction, SlideObjectStyle, SlideObjectStylePatch } from "../../../slide-canvas/SlideEditorController.ts";
 import Button from "../../../shared/ui/Button.tsx";
+import SegmentedControl from "../../../shared/ui/SegmentedControl.tsx";
 import styles from "./ObjectStylePanel.module.css";
 
 interface Props {
@@ -8,6 +9,8 @@ interface Props {
   readonly onArrange: (action: SlideArrangeAction) => void;
   readonly onDelete: () => void;
 }
+
+const ALIGNMENTS = [{ id: "left", label: "왼쪽" }, { id: "center", label: "가운데" }, { id: "right", label: "오른쪽" }] as const;
 
 const TITLES: Readonly<Record<SlideObjectStyle["kind"], string>> = {
   text: "글상자", shape: "도형", line: "선", image: "그림", engine: "문제 엔진 창",
@@ -33,6 +36,7 @@ export default function ObjectStylePanel({ style, onChange, onArrange, onDelete 
     <div className={styles.grid}>
       {hasFill ? <ColorField label={style.kind === "text" ? "글씨 색" : "채우기 색"} value={style.fill} onChange={(fill) => onChange({ fill })} /> : null}
       {style.kind === "text" ? <NumberField label="글씨 크기" value={style.fontSize} min={8} max={240} onChange={(fontSize) => onChange({ fontSize })} /> : null}
+      {style.kind === "text" ? <div className={`${styles.field} ${styles.wide}`}><span>정렬</span><SegmentedControl options={ALIGNMENTS} value={style.textAlign} onChange={(textAlign) => onChange({ textAlign })} ariaLabel="글 정렬" size="sm" /></div> : null}
       {style.kind === "text" ? <label className={styles.field}><span>굵게</span><button type="button" className={styles.toggle} aria-pressed={style.bold} onClick={() => onChange({ bold: !style.bold })}>B</button></label> : null}
       {hasStroke ? <ColorField label={style.kind === "line" ? "선 색" : "테두리 색"} value={style.stroke} onChange={(stroke) => onChange({ stroke })} /> : null}
       {hasStroke ? <NumberField label={style.kind === "line" ? "선 두께" : "테두리 두께"} value={style.strokeWidth} min={0} max={40} onChange={(strokeWidth) => onChange({ strokeWidth })} /> : null}

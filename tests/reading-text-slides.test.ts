@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { lineBoxes, passageWords, planPageViews, readingSlideCanvas, toSlideBox, type Box } from "../src/slide-builder/reading-text/slideLayout.ts";
+import { captionPlacement, lineBoxes, passageWords, planPageViews, readingSlideCanvas, toSlideBox, type Box } from "../src/slide-builder/reading-text/slideLayout.ts";
 import { alignSentences, normalizeToken, splitChunks, type PdfWord } from "../src/slide-builder/reading-text/textMatching.ts";
 
 /** Lays words out like a textbook page: one entry per line, `size` units per character. */
@@ -80,5 +80,17 @@ assert.ok(slideBox.x >= 0 && slideBox.x + slideBox.width <= 1280 && slideBox.y >
 const canvas = JSON.parse(readingSlideCanvas({ src: "data:image/webp;base64,AAAA", width: 1600, height: 900 }, crop, [slideBox])) as { objects: { type: string; selectable?: boolean }[] };
 assert.deepEqual(canvas.objects.map((object) => object.type), ["Image", "Rect"]);
 assert.equal(canvas.objects[0]!.selectable, false, "the page image stays put while editing the boxes");
+
+// Meaning captions sit just below the chunk, or above it when the chunk is at the bottom of the slide.
+const midBoxes = [{ x: 100, y: 300, width: 400, height: 50 }];
+const below = captionPlacement(midBoxes, "나는 간다");
+assert.ok(below.y >= 350 && below.y < 370 && below.x === 100, "the meaning goes right under the chunk");
+const bottomBoxes = [{ x: 1000, y: 600, width: 260, height: 60 }, { x: 40, y: 660, width: 300, height: 50 }];
+const above = captionPlacement(bottomBoxes, "학교에");
+assert.ok(above.y + above.height <= 600, "a chunk at the bottom gets its meaning above its first line");
+assert.ok(above.x + above.width <= 1280, "the caption stays on the slide");
+const withMeaning = JSON.parse(readingSlideCanvas({ src: "data:image/webp;base64,AAAA", width: 1600, height: 900 }, crop, [slideBox], "나는 간다")) as { objects: { type: string; text?: string; fill?: string; backgroundColor?: string }[] };
+assert.deepEqual(withMeaning.objects.map((object) => object.type), ["Image", "Rect", "Textbox"]);
+assert.deepEqual([withMeaning.objects[2]!.text, withMeaning.objects[2]!.fill, withMeaning.objects[2]!.backgroundColor], ["나는 간다", "#ffffff", "#000000"]);
 
 console.log("reading text slide tests passed");
