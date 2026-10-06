@@ -121,6 +121,8 @@ export function inputEscape(state: EscapeProgress, target: string, value: string
   const current = advanceEscape(state, start, now);
   const phase = phaseAt(start, now);
   if (!phase.active || now < current.stunnedUntil || !target) return current;
+  // Erasing is not running: it never exposes the runner, even while the guard watches.
+  if (typingKeys(value, options).length < typingKeys(current.input, options).length) return { ...current, input: value };
   if (phase.watching) return value === current.input ? current : hit({ ...current, lastInputAt: now }, phase.cycle, now);
   const typing = escapeTypingState(target, value, options);
   const delta = Math.max(0, typing.strokes - current.strokes);

@@ -81,6 +81,14 @@ const redInput = inputEscape({ ...initialProgress(), input: "c", strokes: 1, dis
 assert.equal(redInput.hits, 1);
 assert.equal(advanceEscape(redInput, start, shotAt + 100 + DEATH_MS).distance, 0);
 assert.equal(redInput.input, "", "typing while watched is shot and erased");
+const watchedTyping = { ...initialProgress(), input: "ca", strokes: 2, distance: STEP * 2, lastInputAt: start + 10 };
+const erased = inputEscape(watchedTyping, "cat", "c", start, shotAt + 100);
+assert.equal(erased.hits, 0, "backspace while watched is not movement");
+assert.equal(erased.input, "c");
+assert.equal(erased.distance, STEP * 2);
+assert.equal(inputEscape(erased, "cat", "ca", start, shotAt + 200).distance, STEP * 2, "retyping erased letters never moves twice");
+assert.equal(inputEscape(erased, "cat", "ca", start, shotAt + 200).hits, 1, "but typing again while watched is still shot");
+assert.equal(inputEscape({ ...initialProgress(), input: "한", strokes: 3 }, "한글", "하", start, shotAt + 100).hits, 0, "erasing a Korean final consonant is safe too");
 
 const finished = inputEscape({ ...initialProgress(), distance: FINISH - STEP, input: "c", strokes: 1 }, "cat", "ca", start, start + 100);
 assert.equal(finished.distance, 0, "escaping starts the next lap at once");

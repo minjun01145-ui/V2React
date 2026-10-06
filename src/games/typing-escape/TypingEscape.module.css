@@ -24,7 +24,7 @@
 .success { color: #e2ff74; }
 .failure { color: #fff2d5; }
 .failure strong { color: #ff8466; }
-.typing { width: min(1000px, 100%); margin: 0 auto; flex-shrink: 0; border: 3px solid #080f17; background: var(--paper); color: var(--ink); box-shadow: 4px 4px 0 #080f17; padding: 10px 16px 13px; box-sizing: border-box; }
+.typing { width: min(1200px, 100%); margin: 0 auto; flex-shrink: 0; border: 3px solid #080f17; background: var(--paper); color: var(--ink); box-shadow: 4px 4px 0 #080f17; padding: 10px 16px 13px; box-sizing: border-box; }
 .typingTop { display: flex; align-items: center; gap: 14px; font-size: 14px; font-weight: 300; }
 .inputStatus { min-width: 80px; color: #275f40; }
 .watching .inputStatus, .hit .inputStatus { color: #a32d24; }
@@ -49,7 +49,9 @@
 .feedSelf { outline: 3px solid #fff; }
 .distance { flex: 1; height: 9px; background: #d4cda9; border: 2px solid var(--ink); }
 .distance span { display: block; height: 100%; background: #59872e; transition: width .08s linear; }
-.prompt { font-size: clamp(20px, 2.6vw, 30px); font-weight: 300; text-align: center; padding: 10px 3px; overflow-wrap: anywhere; white-space: pre-wrap; max-height: 80px; overflow: auto; line-height: 1.4; }
+.prompt { font-size: clamp(20px, 2.6vw, 30px); font-weight: 300; text-align: center; padding: 10px 3px; overflow-wrap: anywhere; white-space: pre-wrap; line-height: 1.35; }
+.promptLong { font-size: clamp(16px, 1.9vw, 24px); }
+.promptLonger { font-size: clamp(14px, 1.45vw, 19px); padding: 6px 3px; }
 .prompt mark { background: transparent; color: #65944c; }
 .nextLetter { text-decoration: underline; text-decoration-color: #d55330; text-decoration-thickness: 3px; text-underline-offset: 5px; }
 .typing input { width: 100%; box-sizing: border-box; padding: 8px 13px; background: #fffdf2; border: 2px solid var(--ink); border-radius: 0; color: var(--ink); font: inherit; font-size: 22px; outline-offset: 3px; }
@@ -71,5 +73,5 @@
 @keyframes feed { 0% { opacity: 0; transform: translateX(-30px); } 8% { opacity: 1; transform: translateX(0); } 85% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes syllable { from { transform: translateY(3px) scale(.97); } to { transform: translateY(0) scale(1); } }
 @keyframes outcome { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-15deg) scale(1.7); } 18% { opacity: 1; transform: translate(-50%, -50%) rotate(-8deg) scale(1); } 85% { opacity: 1; } 100% { opacity: .1; transform: translate(-50%, -65%) rotate(-8deg) scale(.95); } }
-@media (max-width: 600px) { .game { padding: 8px; min-height: 100%; gap: 8px; justify-content: center; } .header { gap: 8px; flex-wrap: wrap; } .header h2 { font-size: 22px; } .score { gap: 6px; } .score > span { font-size: 11px; } .score strong { font-size: 24px; } .clock { font-size: 20px; padding: 3px 7px; min-width: 42px; } .sound { font-size: 10px; padding: 5px; } .arena { max-width: 100%; min-height: 200px; } .chant { top: 9px; padding: 6px 10px; gap: 6px; font-size: 17px; max-width: 94%; box-sizing: border-box; } .signal { width: 10px; height: 10px; } .feed { bottom: 6px; max-width: 60%; } .typing { padding: 9px; } .typing input { font-size: 18px; } .typingTop { gap: 8px; font-size: 12px; } .prompt { font-size: 22px; } }
+@media (max-width: 600px) { .game { padding: 8px; min-height: 100%; gap: 8px; justify-content: center; } .header { gap: 8px; flex-wrap: wrap; } .header h2 { font-size: 22px; } .score { gap: 6px; } .score > span { font-size: 11px; } .score strong { font-size: 24px; } .clock { font-size: 20px; padding: 3px 7px; min-width: 42px; } .sound { font-size: 10px; padding: 5px; } .arena { max-width: 100%; min-height: 200px; } .chant { top: 9px; padding: 6px 10px; gap: 6px; font-size: 17px; max-width: 94%; box-sizing: border-box; } .signal { width: 10px; height: 10px; } .feed { bottom: 6px; max-width: 60%; } .typing { padding: 9px; } .typing input { font-size: 18px; } .typingTop { gap: 8px; font-size: 12px; } .prompt { font-size: 22px; } .promptLong { font-size: 18px; } .promptLonger { font-size: 15px; } }
 @media (prefers-reduced-motion: reduce) { .chant strong, .outcome, .death strong, .death b, .hit, .redLight, .feed li { animation: none; } .distance span { transition: none; } }

@@ -156,13 +156,13 @@ export function EscapeGameView({ selfId, runners, progress, phase, now, remainin
     {(error || audio.error) && <div role="alert" className={styles.error}>{error ?? audio.error}</div>}
     {selfId && !expired && <div className={styles.typing}>
       <div className={styles.typingTop}><strong className={styles.inputStatus}>{inputStatus}</strong><div className={styles.distance} aria-label={`탈출까지 ${FINISH - progress.distance}%`}><span style={{ width: `${progress.distance}%` }} /></div><b>{progress.distance}%</b></div>
-      <div className={styles.prompt}><mark>{target.slice(0, comparison.prefix)}</mark><span className={styles.nextLetter}>{nextLetter}</span>{target.slice(comparison.prefix + nextLetter.length)}</div>
+      <div className={`${styles.prompt} ${target.length > 70 ? styles.promptLonger : target.length > 35 ? styles.promptLong : ""}`}><mark>{target.slice(0, comparison.prefix)}</mark><span className={styles.nextLetter}>{nextLetter}</span>{target.slice(comparison.prefix + nextLetter.length)}</div>
       <input ref={input} aria-label="제시된 단어 또는 문장 입력" autoFocus autoComplete="off" autoCapitalize="off" spellCheck={false}
         value={progress.input} aria-invalid={comparison.hasError} disabled={!connected || !!error || !phase.active} readOnly={hit}
         placeholder={hit ? inputStatus : "입력"} maxLength={10_000}
         onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()}
         onCompositionStart={() => { composing.current = true; }}
-        onKeyDown={e => { if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key.length === 1 || e.key === "Process" || e.key === "Backspace" || e.key === "Delete")) onActivity(); }}
+        onKeyDown={e => { if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key.length === 1 || e.key === "Process")) onActivity(); }}
         onCompositionEnd={e => {
           if (!composing.current) return;
           composing.current = false; committedComposition.current = e.currentTarget.value; onInput(e.currentTarget.value);
