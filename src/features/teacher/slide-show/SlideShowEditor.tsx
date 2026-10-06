@@ -22,6 +22,8 @@ export interface SlideShowDraft {
 
 interface Props {
   readonly initial: SlideShowDraft;
+  /** A generated deck is unsaved from the start, so it can be saved without editing first. */
+  readonly initiallyDirty?: boolean;
   readonly sets: readonly LearningSetSummary[];
   readonly busy: boolean;
   readonly onSave: (draft: SlideShowDraft) => Promise<void>;
@@ -50,7 +52,7 @@ function engineLabel(round: SlideEngineRound | undefined): string {
   return round ? getGame(round.gameId).title : "";
 }
 
-export default function SlideShowEditor({ initial, sets, busy, onSave, onDirtyChange }: Props) {
+export default function SlideShowEditor({ initial, initiallyDirty = false, sets, busy, onSave, onDirtyChange }: Props) {
   const [name, setName] = useState(initial.name);
   const [slides, setSlides] = useState<readonly Slide[]>(initial.slides);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -58,7 +60,7 @@ export default function SlideShowEditor({ initial, sets, busy, onSave, onDirtyCh
   const [selection, setSelection] = useState<SlideObjectStyle | null>(null);
   const [background, setBackground] = useState("#ffffff");
   const [error, setError] = useState("");
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(initiallyDirty);
   const [importing, setImporting] = useState(false);
   const commitTimer = useRef<number | null>(null);
   const imageInput = useRef<HTMLInputElement | null>(null);

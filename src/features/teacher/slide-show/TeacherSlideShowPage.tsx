@@ -7,10 +7,11 @@ import PageShell from "../../../shared/PageShell.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
+import ReadingTextBuilder from "./auto-build/ReadingTextBuilder.tsx";
 import SlideShowEditor, { newSlide, type SlideShowDraft } from "./SlideShowEditor.tsx";
 import styles from "./TeacherSlideShowPage.module.css";
 
-type OpenShow = { readonly saved: SlideShow | null; readonly draft: SlideShowDraft };
+type OpenShow = { readonly saved: SlideShow | null; readonly draft: SlideShowDraft; readonly generated?: boolean };
 
 const dateFormat = new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
@@ -18,6 +19,7 @@ export default function TeacherSlideShowPage({ roomId }: { readonly roomId: stri
   const [shows, setShows] = useState<readonly SlideShowSummary[]>([]);
   const [sets, setSets] = useState<readonly LearningSetSummary[]>([]);
   const [open, setOpen] = useState<OpenShow | null>(null);
+  const [building, setBuilding] = useState(false);
   // Remounts the editor whenever a different show (or a fresh one) is opened.
   const [editorKey, setEditorKey] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -43,6 +45,7 @@ export default function TeacherSlideShowPage({ roomId }: { readonly roomId: stri
   });
 
   const openEditor = (next: OpenShow): void => {
+    setBuilding(false);
     setOpen(next);
     setDirty(false);
     setEditorKey((key) => key + 1);
@@ -107,14 +110,25 @@ export default function TeacherSlideShowPage({ roomId }: { readonly roomId: stri
     }
   };
 
+  const startBuilding = async (): Promise<void> => {
+    if (!(await confirmDiscard())) return;
+    setOpen(null);
+    setDirty(false);
+    setBuilding(true);
+  };
+
   const actions = open
     ? <><Button variant="ghost" onClick={() => void closeEditor()} disabled={busy}>목록</Button>{open.saved ? <Button variant="quiet" onClick={() => void remove()} disabled={busy}>삭제</Button> : null}</>
-    : <Button variant="accent" onClick={() => void createShow()} disabled={busy}>새 슬라이드쇼</Button>;
+    : building
+      ? <Button variant="ghost" onClick={() => setBuilding(false)}>목록</Button>
+      : <><Button variant="ghost" onClick={() => void startBuilding()} disabled={busy}>본문 PPT 만들기</Button><Button variant="accent" onClick={() => void createShow()} disabled={busy}>새 슬라이드쇼</Button></>;
 
   return <PageShell title="슬라이드쇼" width="wide" roomId={roomId} actions={actions}>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
     {open
-      ? <SlideShowEditor key={editorKey} initial={open.draft} sets={sets} busy={busy} onSave={save} onDirtyChange={setDirty} />
+      ? <SlideShowEditor key={editorKey} initial={open.draft} initiallyDirty={open.generated === true} sets={sets} busy={busy} onSave={save} onDirtyChange={setDirty} />
+      : building
+        ? <ReadingTextBuilder sets={sets} onBuilt={(draft) => openEditor({ saved: null, draft, generated: true })} />
       : shows.length === 0
         ? <p className={styles.empty}>아직 만든 슬라이드쇼가 없어요</p>
         : <div className={styles.grid}>{shows.map((show) => <button type="button" className={styles.card} key={show.id} onClick={() => void loadShow(show)} disabled={busy}>

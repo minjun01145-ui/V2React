@@ -14,8 +14,8 @@ export interface EncodedImage {
  * Inserted pictures are embedded in the slide document, so they are downscaled to the
  * given size (the whole slide by default) and re-encoded before they ever reach Firestore.
  */
-export async function encodeSlideImage(blob: Blob, maxWidth = SLIDE_WIDTH, maxHeight = SLIDE_HEIGHT): Promise<EncodedImage> {
-  const bitmap = await createImageBitmap(blob);
+export async function encodeSlideImage(source: ImageBitmapSource, maxWidth = SLIDE_WIDTH, maxHeight = SLIDE_HEIGHT): Promise<EncodedImage> {
+  const bitmap = await createImageBitmap(source);
   try {
     const scale = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
     const canvas = document.createElement("canvas");
