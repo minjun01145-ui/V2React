@@ -1,5 +1,5 @@
 import "./fabricSetup.ts";
-import { Canvas, Circle, Control, controlsUtils, FabricImage, Line, Rect, Textbox, Triangle, type FabricObject } from "fabric";
+import { ActiveSelection, Canvas, Circle, Control, controlsUtils, FabricImage, Line, Rect, Textbox, Triangle, util, type FabricObject, type TMat2D } from "fabric";
 import { SLIDE_HEIGHT, SLIDE_WIDTH, type SlideFrame } from "../slide-show/types.ts";
 import { collectSlideTexts, loadSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
 import { UndoHistory } from "./undoHistory.ts";
@@ -19,6 +19,8 @@ export interface SlideObjectStyle {
   readonly fontSize: number;
   readonly bold: boolean;
   readonly textAlign: SlideTextAlign;
+  /** Text box background colour, or null for none. */
+  readonly background: string | null;
 }
 
 export type SlideObjectStylePatch = Partial<Omit<SlideObjectStyle, "kind">>;
@@ -33,6 +35,14 @@ interface ControllerEvents {
 const DEFAULT_TEXT_COLOR = "#101a3a";
 const DEFAULT_SHAPE_FILL = "#ffc933";
 const DEFAULT_STROKE = "#101a3a";
+/** Copies and duplicates land this far down-right of the original, in slide units. */
+const PASTE_OFFSET = 24;
+
+/** An object copied in the editor: its JSON plus, for part of a multi-selection, its slide transform. */
+interface CopiedObject {
+  readonly data: Record<string, unknown>;
+  readonly transform: TMat2D | null;
+}
 const SELECTION_COLOR = "#2338b8";
 const ENGINE_ACCENT = "#ffc933";
 const ENGINE_ACCENT_DEEP = "#d49b00";
@@ -109,6 +119,9 @@ export class SlideEditorController {
   private readonly history = new UndoHistory<string>();
   private restoring = false;
   private recordScheduled = false;
+  /** Kept across slides, so objects can be copied from one slide to another. */
+  private copied: readonly CopiedObject[] = [];
+  private pasteCount = 0;
 
   constructor(element: HTMLCanvasElement, events: ControllerEvents) {
     this.events = events;
@@ -230,6 +243,49 @@ export class SlideEditorController {
     this.canvas.requestRenderAll();
   }
 
+  /** Remembers the selected objects for pasting; returns whether anything was copied. */
+  copySelection(): boolean {
+    const active = this.canvas.getActiveObject();
+    if (!active || (active instanceof Textbox && active.isEditing)) return false;
+    const objects = this.canvas.getActiveObjects().filter((item) => item !== this.engineFrame);
+    if (objects.length === 0) return false;
+    // Objects of a multi-selection store positions relative to it; keep their slide transform too.
+    this.copied = objects.map((item) => ({ data: item.toObject(), transform: item.group ? item.calcTransformMatrix() : null }));
+    this.pasteCount = 0;
+    return true;
+  }
+
+  hasCopied(): boolean {
+    return this.copied.length > 0;
+  }
+
+  /** Adds the copied objects again, each paste a step further down-right, and selects them. */
+  async pasteCopied(): Promise<void> {
+    if (this.copied.length === 0) return;
+    this.pasteCount += 1;
+    const offset = PASTE_OFFSET * this.pasteCount;
+    const objects = await util.enlivenObjects<FabricObject>(this.copied.map((item) => item.data));
+    objects.forEach((object, index) => {
+      const transform = this.copied[index]?.transform;
+      if (transform) util.applyTransformToObject(object, transform);
+      object.set({ left: object.left + offset, top: object.top + offset });
+      object.setCoords();
+    });
+    this.canvas.discardActiveObject();
+    this.canvas.add(...objects);
+    this.canvas.setActiveObject(objects.length === 1 ? objects[0]! : new ActiveSelection(objects, { canvas: this.canvas }));
+    this.canvas.requestRenderAll();
+  }
+
+  /** Copy and paste in one go, without touching what was copied before. */
+  async duplicateSelection(): Promise<void> {
+    const previous = { copied: this.copied, pasteCount: this.pasteCount };
+    if (!this.copySelection()) return;
+    await this.pasteCopied();
+    this.copied = previous.copied;
+    this.pasteCount = previous.pasteCount;
+  }
+
   arrange(action: SlideArrangeAction): void {
     const target = this.canvas.getActiveObject();
     if (!target) return;
@@ -254,6 +310,7 @@ export class SlideEditorController {
       if (patch.fontSize !== undefined) target.set({ fontSize: patch.fontSize });
       if (patch.bold !== undefined) target.set({ fontWeight: patch.bold ? 800 : 400 });
       if (patch.textAlign !== undefined) target.set({ textAlign: patch.textAlign });
+      if (patch.background !== undefined) target.set({ backgroundColor: patch.background ?? "" });
     }
     target.setCoords();
     this.canvas.requestRenderAll();
@@ -412,6 +469,7 @@ export class SlideEditorController {
       fontSize: target instanceof Textbox ? target.fontSize : 0,
       bold: target instanceof Textbox ? Number(target.fontWeight) >= 700 || target.fontWeight === "bold" : false,
       textAlign: target instanceof Textbox ? textAlignOf(target.textAlign) : "left",
+      background: target instanceof Textbox && target.backgroundColor ? hexColor(target.backgroundColor, "#ffffff") : null,
     };
   }
 }

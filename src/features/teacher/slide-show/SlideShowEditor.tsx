@@ -13,7 +13,7 @@ import { engineSetIssue, newSlideEngine } from "./engineDraft.ts";
 import ObjectStylePanel from "./ObjectStylePanel.tsx";
 import SlideEnginePanel from "./SlideEnginePanel.tsx";
 import SlideRail from "./SlideRail.tsx";
-import { useImagePaste } from "./useImagePaste.ts";
+import { useSlideClipboard } from "./useSlideClipboard.ts";
 import styles from "./SlideShowEditor.module.css";
 
 export interface SlideShowDraft {
@@ -66,7 +66,7 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
   const commitTimer = useRef<number | null>(null);
   const imageInput = useRef<HTMLInputElement | null>(null);
   const pptxInput = useRef<HTMLInputElement | null>(null);
-  useImagePaste(controller, setError);
+  useSlideClipboard(controller, setError);
   const current = slides[currentIndex];
   const currentId = current?.id;
 
@@ -270,7 +270,7 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
             <label className={styles.customColor} aria-label="직접 고르기"><input type="color" value={background} onChange={(event) => changeBackground(event.target.value)} disabled={!controller} /></label>
           </div>
         </section>
-        {selection ? <ObjectStylePanel style={selection} onChange={(patch) => controller?.updateSelection(patch)} onArrange={(action) => controller?.arrange(action)} onDelete={() => controller?.deleteSelection()} /> : null}
+        {selection ? <ObjectStylePanel style={selection} onChange={(patch) => controller?.updateSelection(patch)} onArrange={(action) => controller?.arrange(action)} onDuplicate={() => void controller?.duplicateSelection()} onDelete={() => controller?.deleteSelection()} /> : null}
         {current?.engine ? <SlideEnginePanel round={current.engine.round} sets={sets} disabled={busy} issue={engineIssue} onChange={setEngineRound} onRemove={removeEngine} /> : null}
       </aside>
     </div>
