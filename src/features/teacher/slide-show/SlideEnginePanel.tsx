@@ -1,3 +1,4 @@
+import { settingAppliesToSet } from "../../../game-engine/contracts/gameDefinition.ts";
 import { getGame } from "../../../games/registry.ts";
 import { readMatchingCardMode } from "../../../games/matching/config.ts";
 import type { LearningSetSummary } from "../../../learning-sets/types.ts";
@@ -25,6 +26,7 @@ export default function SlideEnginePanel({ round: storedRound, sets, disabled, i
   const candidates = compatibleSets(round, sets);
   const source = round.source;
   const readingChunks = source.kind === "custom" && source.setType === "reading-chunks";
+  const setType = source.kind === "custom" ? source.setType : source.kind === "stored-set" ? candidates.find((set) => set.id === source.setId)?.type ?? null : null;
   const setSource = (next: SlideEngineSource): void => onChange({ ...round, source: next });
   const updateItems = (update: (items: Extract<SlideEngineSource, { kind: "custom" }>["items"]) => Extract<SlideEngineSource, { kind: "custom" }>["items"]): void => {
     if (source.kind === "custom") setSource({ ...source, items: update(source.items) });
@@ -49,7 +51,7 @@ export default function SlideEnginePanel({ round: storedRound, sets, disabled, i
         {game.supportedSetTypes.includes("vocabulary") ? <option value="vocabulary">단어·뜻</option> : null}
         {game.supportedSetTypes.includes("reading-chunks") ? <option value="reading-chunks">문장 조각·뜻</option> : null}
       </Select></Field> : null}
-      {game.settings.map((setting) => <Field label={setting.label} key={setting.key}><Select value={round.gameConfig[setting.key] ?? setting.defaultValue} onChange={(event) => onChange({ ...round, gameConfig: { ...round.gameConfig, [setting.key]: event.target.value } })} disabled={disabled}>
+      {game.settings.filter((setting) => settingAppliesToSet(setting, setType)).map((setting) => <Field label={setting.label} key={setting.key}><Select value={round.gameConfig[setting.key] ?? setting.defaultValue} onChange={(event) => onChange({ ...round, gameConfig: { ...round.gameConfig, [setting.key]: event.target.value } })} disabled={disabled}>
         {setting.options.map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
       </Select></Field>)}
     </div>

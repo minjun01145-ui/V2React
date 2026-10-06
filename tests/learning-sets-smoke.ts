@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { parseLearningSet } from "../src/learning-sets/codec.ts";
+import { chunksToWords, sentenceTextKey, splitSentenceWords } from "../src/learning-sets/sentenceWords.ts";
 import { LEARNING_SET_TYPE, isLearningSetType, learningSetTypeLabel } from "../src/learning-sets/types.ts";
 import { parseLearningSetPaste, serializeLearningSetItems, validateLearningSetName } from "../src/learning-sets/validation.ts";
 
@@ -65,5 +66,13 @@ assert.deepEqual(parseLearningSet("set-1", { name: "필수 단어", type: "vocab
 });
 assert.equal(parseLearningSet("forms", { name: "비교급", type: "form-changes", itemCount: 4, createdAtMs: 1, updatedAtMs: 2 }, { items: formChanges })?.items[3]?.form3, "the best");
 assert.equal(parseLearningSet("bad-forms", { name: "비교급", type: "form-changes", itemCount: 1, createdAtMs: 1, updatedAtMs: 2 }, { items: [{ id: "x", sourceText: "fast", meaning: "빠른" }] }), null);
+
+// Shared word engine: chunked sentences break into ordered words; the key ignores case, spacing and edge punctuation.
+assert.deepEqual(chunksToWords(["I am", "a middle school student."]), ["I", "am", "a", "middle", "school", "student."]);
+assert.deepEqual(splitSentenceWords("  Don't   stop!  "), ["Don't", "stop!"]);
+assert.equal(sentenceTextKey("I  am"), sentenceTextKey("i am"));
+assert.equal(sentenceTextKey("student."), sentenceTextKey("student"));
+assert.notEqual(sentenceTextKey("I am"), sentenceTextKey("I"));
+assert.equal(sentenceTextKey("?"), "?");
 
 console.log("learning set parser tests passed");

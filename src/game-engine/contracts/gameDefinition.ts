@@ -38,6 +38,12 @@ export interface GameSelectSetting {
   readonly label: string;
   readonly defaultValue: string;
   readonly options: readonly { readonly value: string; readonly label: string }[];
+  /** Shown only when the selected set has one of these types; omitted means every set. */
+  readonly setTypes?: readonly string[];
+}
+
+export function settingAppliesToSet(setting: GameSelectSetting, setType: string | null): boolean {
+  return !setting.setTypes || (setType !== null && setting.setTypes.includes(setType));
 }
 
 export interface GameQuizQuestionInput {

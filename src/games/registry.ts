@@ -284,8 +284,10 @@ const definitions = [
     preloadPlayerProgress: true,
     handlesOwnTimedBoundary: true,
     settings: [
-      { kind: "select", key: "direction", label: "단어 세트 출제 방향", defaultValue: "source-to-meaning",
+      { kind: "select", key: "direction", label: "출제 방향", defaultValue: "source-to-meaning", setTypes: ["vocabulary"],
         options: [{ value: "source-to-meaning", label: "단어 → 뜻 고르기" }, { value: "meaning-to-source", label: "뜻 → 단어 고르기" }] },
+      { kind: "select", key: "brick-unit", label: "버튼 단위", defaultValue: "chunk", setTypes: ["reading-chunks"],
+        options: [{ value: "chunk", label: "끊어읽기 단위" }, { value: "word", label: "단어 단위" }] },
       { kind: "select", key: "choice-count", label: "버튼 수", defaultValue: "2",
         options: [{ value: "2", label: "2개" }, { value: "3", label: "3개" }] },
     ],

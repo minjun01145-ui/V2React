@@ -4,6 +4,7 @@ import { shuffled } from "../../game-engine/core/random.ts";
 import { applyResultToProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import { adaptLearningSetToMultipleChoice } from "../../learning-sets/multipleChoiceAdapter.ts";
 import { adaptReadingChunksToSequence } from "../../learning-sets/sentenceSequenceAdapter.ts";
+import { chunksToWords, sentenceTextKey } from "../../learning-sets/sentenceWords.ts";
 import type { LearningSetQuestionSource } from "../../learning-sets/multipleChoiceTypes.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import { activateBrickItem, BRICK_ITEM_EFFECTS, EMPTY_BRICK_BUFFS, type BrickBuffs, type BrickItemId } from "./items.ts";
@@ -24,17 +25,24 @@ export interface BrickDetails extends MultipleChoiceEvaluationDetails {
 }
 export type BrickProgress = GameProgress<BrickDetails>;
 
+/** Game setting: reading sets are assembled per chunk (default) or per word. */
+export const BRICK_UNIT_KEY = "brick-unit";
+
 export function buildBrickQuestions(set: RuntimeLearningSet, config: Readonly<Record<string, unknown>>, seed: string): readonly BrickQuestion[] {
   const count = config["choice-count"] === "3" ? 3 : 2;
   if (set.type === "reading-chunks") {
     const canonical = adaptReadingChunksToSequence(set);
-    const pool = [...new Set(canonical.questions.flatMap((question) => question.tokens.map((token) => token.text)))];
-    return canonical.questions.flatMap((question, itemIndex) => {
+    const sentenceUnits = canonical.questions.map((question) => {
       const chunks = question.tokens.map((token) => token.text);
+      return config[BRICK_UNIT_KEY] === "word" ? chunksToWords(chunks) : chunks;
+    });
+    // Wrong buttons come from the whole set, one per distinct text.
+    const pool = [...new Map(sentenceUnits.flat().map((text) => [sentenceTextKey(text), text])).values()];
+    return canonical.questions.flatMap((question, itemIndex) => {
+      const chunks = sentenceUnits[itemIndex]!;
       return chunks.map((answer, chunkIndex): BrickQuestion => {
         const id = `${question.id}:brick:${chunkIndex}`;
-        // Prefer chunks in this sentence; fill short sentences from the set.
-        const candidates = [...new Set([...shuffled(chunks, `${seed}:${id}:local`), ...shuffled(pool, `${seed}:${id}:pool`)])].filter((text) => text !== answer);
+        const candidates = shuffled(pool, `${seed}:${id}:pool`).filter((text) => sentenceTextKey(text) !== sentenceTextKey(answer));
         const options = [{ id: `${id}:correct`, text: answer }, ...candidates.slice(0, count - 1).map((text, i) => ({ id: `${id}:wrong:${i}`, text }))];
         return { id, kind: "multiple-choice", prompt: question.prompt, direction: CHOICE_DIRECTION.RIGHT_TO_LEFT,
           correctOptionId: `${id}:correct`, options: shuffled(options, `${seed}:${id}:choices`),
@@ -74,7 +82,10 @@ const NO_ITEMS: BrickStrikeContext = { itemAt: () => null, buffs: EMPTY_BRICK_BU
 
 export function strikeBrick(progress: BrickProgress, question: BrickQuestion, optionId: string, context: BrickStrikeContext = NO_ITEMS) {
   const evaluated = evaluateMultipleChoice(question, { optionId }, 1);
-  const correct = evaluated.isCorrect;
+  const selected = question.options.find((option) => option.id === optionId);
+  const answer = question.options.find((option) => option.id === question.correctOptionId);
+  // A wrong button with the same text as the answer (the same word from another sentence) also counts.
+  const correct = evaluated.isCorrect || Boolean(selected && answer && sentenceTextKey(selected.text) === sentenceTextKey(answer.text));
   const protectedMiss = !correct && context.buffs.shield;
   // Every brick the hammer itself hits pays out its item; blast debris cannot hold one (see brickItemAt).
   const hammered = correct ? context.buffs.hammer > context.now ? 2 : 1 : 0;

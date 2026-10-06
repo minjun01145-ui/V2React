@@ -5,6 +5,7 @@ import { createEmptyProgress } from "../../src/game-engine/progress/index.ts";
 import type { MultipleChoiceEvaluationDetails } from "../../src/game-engine/question-engine/multiple-choice/index.ts";
 import type { LearningSet } from "../../src/learning-sets/types.ts";
 import { getGame } from "../../src/games/registry.ts";
+import { settingAppliesToSet } from "../../src/game-engine/contracts/gameDefinition.ts";
 
 const set: LearningSet = { id: "bricks", name: "단어", type: "vocabulary", itemCount: 3, createdAtMs: 1, updatedAtMs: 1,
   items: [{ id: "a", sourceText: "apple", meaning: "사과" }, { id: "b", sourceText: "banana", meaning: "바나나" }, { id: "c", sourceText: "cherry", meaning: "체리" }] };
@@ -127,4 +128,28 @@ const fast = strikeBrick({ ...empty, combo: 10 }, first, correctId, { itemAt: ()
 assert.equal(fast.result.scoreDelta, (100 + 50) * 2 * 2, "Double hammer bricks and gold both multiply the per-brick score");
 assert.equal(fast.result.details?.judgment, "perfect");
 assert.equal(strikeBrick({ ...empty, combo: 10 }, first, wrongId).result.scoreDelta, 0);
+// Reading sets: word buttons follow the sentence word by word; wrong buttons come from the whole set.
+const school: LearningSet = { ...set, type: "reading-chunks", itemCount: 2, items: [
+  { id: "m1", sourceText: "I am / a middle school student.", meaning: "나는 중학생이다" },
+  { id: "m2", sourceText: "She likes / green apples", meaning: "그녀는 풋사과를 좋아한다" },
+] };
+const words = buildBrickQuestions(school, { "brick-unit": "word", "choice-count": "3" }, "round");
+assert.deepEqual(words.filter((question) => question.source.itemId === "m1").map((question) => question.options.find((option) => option.id === question.correctOptionId)?.text),
+  ["I", "am", "a", "middle", "school", "student."]);
+assert.deepEqual(words[0]?.sentence?.chunks, ["I", "am", "a", "middle", "school", "student."]);
+const chunkUnits = buildBrickQuestions(school, { "brick-unit": "chunk" }, "round");
+assert.deepEqual(chunkUnits.filter((question) => question.source.itemId === "m1").map((question) => question.options.find((option) => option.id === question.correctOptionId)?.text), ["I am", "a middle school student."]);
+const otherSentenceWords = new Set(["She", "likes", "green", "apples"]);
+assert.ok(words.some((question) => question.source.itemId === "m1" && question.options.some((option) => otherSentenceWords.has(option.text))), "Wrong buttons may come from other sentences");
+for (const question of words) {
+  const correctText = question.options.find((option) => option.id === question.correctOptionId)!.text.toLowerCase().replace(/\.$/, "");
+  assert.ok(question.options.filter((option) => option.id !== question.correctOptionId).every((option) => option.text.toLowerCase().replace(/\.$/, "") !== correctText), "A wrong button never repeats the answer");
+}
+// The same text from another sentence counts as the answer.
+const twin = { ...words[0]!, options: [...words[0]!.options, { id: "other-sentence-I", text: "I" }] };
+assert.equal(strikeBrick(empty, twin, "other-sentence-I").result.isCorrect, true);
+// Teachers see the direction only for word sets and the button unit only for reading sets.
+const visible = (setType: string) => getGame("brick-smash").settings.filter((setting) => settingAppliesToSet(setting, setType)).map((setting) => setting.key);
+assert.deepEqual(visible("vocabulary"), ["direction", "choice-count"]);
+assert.deepEqual(visible("reading-chunks"), ["brick-unit", "choice-count"]);
 console.log("brick smash game tests passed");
