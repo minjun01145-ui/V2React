@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { useTimedGameClock } from "../../../game-engine/timed-game/useTimedGameClock.ts";
-import { getGame } from "../../../games/registry.ts";
-import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
-import { useRoundProgress } from "../../../multiplayer/game-progress/hooks.ts";
-import { useRoundParticipants } from "../../../multiplayer/hooks.ts";
 import type { GameSession, Player } from "../../../multiplayer/types.ts";
 import { awardShowPoints, closeShowEngine, goToShowSlide, setShowEnginePhase, startShowSlideEngine } from "../../../slide-show/multiplayerService.ts";
-import type { ActiveSlideEngine, SlideShowSessionState } from "../../../slide-show/types.ts";
+import type { SlideShowSessionState } from "../../../slide-show/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import Button from "../../../shared/ui/Button.tsx";
@@ -15,39 +10,16 @@ import SlideViewport from "../../slide-show-runtime/SlideViewport.tsx";
 import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
 import AwardPanel from "./AwardPanel.tsx";
 import EnginePhasePanel from "./EnginePhasePanel.tsx";
+import SlideInkLayer from "./ink/SlideInkLayer.tsx";
 import ShowLeaderboard from "./ShowLeaderboard.tsx";
 import StudentPickerPanel from "./StudentPickerPanel.tsx";
+import TeacherEngineWindow from "./TeacherEngineWindow.tsx";
 import TimerPanel from "./timer/TimerPanel.tsx";
 import { formatTimerSeconds } from "./timer/model.ts";
 import { useCountdownTimer } from "./timer/useCountdownTimer.ts";
 import styles from "./TeacherSlideShowRuntime.module.css";
 
 type SidePanel = "award" | "ranking" | "picker" | "timer" | null;
-
-function AnsweringCard({ roomId, session, engine }: { readonly roomId: string; readonly session: GameSession; readonly engine: ActiveSlideEngine }) {
-  const clock = useTimedGameClock(session);
-  const participants = useRoundParticipants(roomId, engine.roundId);
-  const progress = useRoundProgress(roomId, engine.roundId);
-  const done = progress.value.filter((item) => item.completedAtMs !== null || item.attemptCount > 0).length;
-  const seconds = clock.remainingMs === null ? null : Math.ceil(clock.remainingMs / 1_000);
-  return <div className={styles.engineCard} data-urgent={seconds !== null && seconds <= 5}>
-    <span>{getGame(engine.round.gameId).title}</span>
-    <strong>{seconds ?? "—"}</strong>
-    <em>참여 {done}/{participants.value.length}</em>
-  </div>;
-}
-
-function TeacherEngineContent({ roomId, session, slideShow, engine }: {
-  readonly roomId: string;
-  readonly session: GameSession;
-  readonly slideShow: SlideShowSessionState;
-  readonly engine: ActiveSlideEngine;
-}) {
-  if (session.status === SESSION_STATUS.PREPARING) return <div className={styles.engineCard}><span>{getGame(engine.round.gameId).title}</span><strong className={styles.small}>학생 접속 확인 중</strong></div>;
-  if (engine.phase === "answering") return <AnsweringCard roomId={roomId} session={session} engine={engine} />;
-  if (engine.phase === "submissions") return <div className={styles.engineCard}><span>{getGame(engine.round.gameId).title}</span><strong className={styles.small}>제출 마감!</strong></div>;
-  return <div className={styles.rankingWindow}><ShowLeaderboard roomId={roomId} slideShow={slideShow} /></div>;
-}
 
 /** Presenter view: the projected slide, navigation, the slide's question engine and show scoring. */
 export default function TeacherSlideShowRuntime({ roomId, session, slideShow, players }: {
@@ -114,8 +86,7 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
     }
   };
 
-  const engineControls = !engine
-    ? slide?.engine ? <Button variant="accent" onClick={() => void run(() => startShowSlideEngine(roomId), "문제를 시작하지 못했습니다.")} disabled={working}>문제 시작</Button> : null
+  const engineControls = !engine ? null
     : <>
       {engine.phase === "submissions" ? <Button variant="accent" onClick={() => void run(() => setShowEnginePhase(roomId, "results"), "결과를 열지 못했습니다.")} disabled={working || awarding}>결과 보기</Button> : null}
       {engine.phase === "results"
@@ -130,7 +101,16 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
           : <SlideViewport
             slide={slide}
             engineFrame={currentEngine?.frame ?? slide.engine?.frame ?? null}
-            engineContent={currentEngine ? <TeacherEngineContent roomId={roomId} session={session} slideShow={slideShow} engine={currentEngine} /> : slide.engine ? <div className={styles.engineCard}><span>게임엔진</span><strong className={styles.small}>{getGame(slide.engine.round.gameId).title}</strong><em>시작 대기</em></div> : null}
+            engineContent={slide.engine ? <TeacherEngineWindow
+              roomId={roomId}
+              session={session}
+              slideShow={slideShow}
+              round={currentEngine?.round ?? slide.engine.round}
+              engine={currentEngine}
+              starting={working}
+              onStart={() => void run(() => startShowSlideEngine(roomId), "문제를 시작하지 못했습니다.")}
+            /> : null}
+            annotation={(scale) => <SlideInkLayer key={slide.id} scale={scale} />}
           />}
       </div>
       <div className={styles.controls}>

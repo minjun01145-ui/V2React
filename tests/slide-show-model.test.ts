@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { usesFiniteQuestionSequence } from "../src/game-engine/question-engine/sessionConfig.ts";
 import { createCumulativeLeaderboard, createShowLeaderboard } from "../src/features/slide-show-runtime/cumulativeLeaderboard.ts";
+import { fittedEngineFrame } from "../src/features/slide-show-runtime/engineWindowFrame.ts";
 import type { RoundProgressRecord } from "../src/multiplayer/game-progress/types.ts";
 import type { RoundParticipant } from "../src/multiplayer/round-participants/model.ts";
 import { slideEngineGameConfig } from "../src/slide-show/engineConfig.ts";
@@ -84,5 +85,11 @@ const showBoard = createShowLeaderboard([
 ], { late: 150, a: -20 });
 assert.deepEqual(showBoard.map((entry) => [entry.playerId, entry.score, entry.rank]), [["late", 150, 1], ["a", 80, 2]], "teacher awards count for students who never answered an engine");
 assert.deepEqual(createShowLeaderboard([], {}), []);
+
+// A small engine window must not clip a game's controls (free response's submit button).
+const smallFrame = { x: 900, y: 500, width: 300, height: 180 };
+assert.deepEqual(fittedEngineFrame(engineSlide.engine!.frame, 1), engineSlide.engine!.frame, "a roomy window keeps its authored place");
+assert.deepEqual(fittedEngineFrame(smallFrame, 1), { x: 0, y: 0, width: 1280, height: 720 }, "a cramped window grows to the whole slide");
+assert.deepEqual(fittedEngineFrame(engineSlide.engine!.frame, 0.3), { x: 0, y: 0, width: 1280, height: 720 }, "on a phone-sized slide the window uses the whole slide");
 
 console.log("slide show model tests passed");

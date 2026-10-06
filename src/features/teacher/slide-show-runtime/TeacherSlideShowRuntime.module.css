@@ -15,17 +15,8 @@
 .engineControls { display: flex; flex-shrink: 0; justify-content: center; gap: 8px; }
 .tools { display: flex; flex-shrink: 0; margin-left: auto; gap: 6px; }
 .timerButton { font-variant-numeric: tabular-nums; white-space: nowrap; }
-.engineCard { display: grid; place-content: center; gap: 4px; text-align: center; color: #fff; background: linear-gradient(160deg, #2a3cc7, #0f1846); }
-.engineCard span { color: var(--color-on-brand-muted); font-weight: 300; }
-.engineCard strong { font-size: clamp(3rem, 9vw, 7rem); font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
-.engineCard .small { font-size: clamp(1.5rem, 4vw, 3rem); }
-.engineCard em { color: var(--color-accent); font-size: 1.125rem; font-style: normal; font-weight: 300; }
-.engineCard[data-urgent="true"] strong { color: #ff6b6e; animation: urgent-pulse 1s ease-in-out infinite; }
-.rankingWindow { padding: 12px; overflow: auto; }
-@keyframes urgent-pulse { 50% { transform: scale(1.08); } }
 @media (max-width: 700px) {
   .runtime:fullscreen[data-has-panels="true"] { grid-template-areas: "stage" "panels" "controls"; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 40%) auto; gap: 8px; padding: 8px; }
   .runtime:fullscreen:has([data-picker-mode="ladder"]) { grid-template-rows: minmax(0, 1fr) minmax(0, 60%) auto; }
   .runtime:fullscreen .controls { gap: 4px; padding: 6px; }
 }
-@media (prefers-reduced-motion: reduce) { .engineCard[data-urgent="true"] strong { animation: none; } }
