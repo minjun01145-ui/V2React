@@ -119,6 +119,7 @@ export function climbFloorAt(feetY: number): number {
 export const CLIMB_ITEM_WINDOW_MS = 25_000;
 const ITEM_EVERY = 5;
 const ITEM_OFFSET = 3;
+const CLIMB_ITEM_KINDS: readonly PartyItemKind[] = [...PARTY_ITEM_KINDS, "dash", "star"];
 
 /**
  * Every 5th platform holds an item that respawns each 25 s window. Only the
@@ -140,7 +141,7 @@ export function climbItemsAt(seed: string, nowMs: number, nearFloor: number, rad
 
 function climbItemKind(seed: string, index: number, window: number): PartyItemKind {
   const random = createSeededRandom(`climb:${seed}:item:${index}:${window}`);
-  return PARTY_ITEM_KINDS[Math.floor(random() * PARTY_ITEM_KINDS.length)] ?? "speed";
+  return CLIMB_ITEM_KINDS[Math.floor(random() * CLIMB_ITEM_KINDS.length)] ?? "speed";
 }
 
 export function climbItemKindOf(seed: string, id: string): PartyItemKind | null {

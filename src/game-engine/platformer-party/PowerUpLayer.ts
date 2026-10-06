@@ -43,6 +43,13 @@ export class PowerUpLayer {
     return (this.localBuffs.get(kind) ?? 0) > this.options.nowMs();
   }
 
+  /** Whether any player, local or remote, currently holds `kind`. */
+  playerHas(playerId: string, kind: PartyItemKind): boolean {
+    if (playerId === this.options.localPlayerId) return this.has(kind);
+    const nowMs = this.options.nowMs();
+    return (this.tracker.buffs(playerId, nowMs).get(kind) ?? 0) > nowMs;
+  }
+
   /** `local` is the local player's body centre, or null when it cannot pick things up. */
   update(time: number, local: { readonly x: number; readonly y: number } | null): void {
     const nowMs = this.options.nowMs();

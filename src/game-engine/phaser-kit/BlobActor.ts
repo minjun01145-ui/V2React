@@ -38,6 +38,8 @@ export class BlobActor {
   private readonly pupils: readonly [Phaser.GameObjects.Arc, Phaser.GameObjects.Arc];
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private readonly fist: Phaser.GameObjects.Arc;
+  private readonly halo: Phaser.GameObjects.Ellipse;
+  private glowing = false;
   private punchStartedAt = -Infinity;
   private recoilStartedAt = -Infinity;
   private recoilDirection = 1;
@@ -67,6 +69,7 @@ export class BlobActor {
       scene.add.circle(-6, -29, 3, 0x111827),
       scene.add.circle(8, -29, 3, 0x111827),
     ];
+    this.halo = scene.add.ellipse(0, -22, 58, 60, 0xfde047, 0.45).setVisible(false);
     this.fist = scene.add.circle(0, -18, 7, shade(color, -0.25)).setStrokeStyle(2, shade(color, -0.6)).setVisible(false);
     this.tag = scene.add.text(0, BLOB_TAG_Y, "", {
       fontFamily: FONT_FAMILY,
@@ -80,6 +83,7 @@ export class BlobActor {
     }).setOrigin(0.5).setResolution(TEXT_RESOLUTION);
     this.container = scene.add.container(0, 0, [
       this.shadow,
+      this.halo,
       ...this.feet,
       this.body,
       ...this.eyes,
@@ -187,6 +191,22 @@ export class BlobActor {
     this.shadow.setY(height);
     this.shadow.setScale(grounded ? 1 : Math.max(0.45, 0.8 - height / 300), 1).setAlpha(grounded ? 0.18 : 0.1);
     return landed;
+  }
+
+  /** Super-star look: a pulsing halo and rainbow body while `active`. */
+  setStarGlow(active: boolean, time: number): void {
+    if (!active) {
+      if (this.glowing) {
+        this.glowing = false;
+        this.halo.setVisible(false);
+        this.body.clearTint();
+      }
+      return;
+    }
+    this.glowing = true;
+    const color = Phaser.Display.Color.HSLToColor((time / 600) % 1, 1, 0.75).color;
+    this.body.setTint(color);
+    this.halo.setVisible(true).setFillStyle(color, 0.35 + Math.sin(time / 90) * 0.15).setScale(1 + Math.sin(time / 120) * 0.08);
   }
 
   flash(color: number): void {

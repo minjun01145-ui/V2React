@@ -19,6 +19,8 @@
 
 .buffAnnouncement[data-kind="jump"] { background: linear-gradient(135deg, #22c55e, #16a34a); }
 .buffAnnouncement[data-kind="punch"] { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.buffAnnouncement[data-kind="dash"] { background: linear-gradient(135deg, #38bdf8, #0284c7); }
+.buffAnnouncement[data-kind="star"] { background: linear-gradient(135deg, #facc15, #f472b6, #a78bfa); }
 .buffAnnouncement span { font-size: clamp(30px, 5vw, 48px); line-height: 1; }
 .buffAnnouncement strong { font-size: clamp(22px, 3.6vw, 38px); font-weight: 300; text-shadow: 0 3px 0 rgba(0,0,0,.18); white-space: nowrap; }
 
@@ -48,6 +50,8 @@
 
 .buffChips span[data-kind="jump"] { background: #16a34a; }
 .buffChips span[data-kind="punch"] { background: #dc2626; }
+.buffChips span[data-kind="dash"] { background: #0284c7; }
+.buffChips span[data-kind="star"] { background: linear-gradient(135deg, #eab308, #ec4899); }
 .buffChips b { min-width: 22px; padding: 0 5px; border-radius: 999px; background: rgba(0,0,0,.2); text-align: center; }
 
 @keyframes buffPop {

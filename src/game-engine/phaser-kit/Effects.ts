@@ -91,6 +91,18 @@ export class Effects {
     this.floatText(x, y - 20, powered ? "쾅!" : "퍽!", powered ? "#dc2626" : "#ea580c", powered ? 24 : 18);
   }
 
+  /** Rocket burst under a dashing double jump. */
+  dashBurst(x: number, y: number): void {
+    this.impact.explode(14, x, y);
+    this.dust.explode(10, x, y);
+  }
+
+  /** A fading speed line left behind a player shooting upwards. */
+  dashStreak(x: number, y: number): void {
+    const line = this.scene.add.rectangle(x + Phaser.Math.Between(-10, 10), y, 4, 46, 0x7dd3fc, 0.75).setDepth(17);
+    this.scene.tweens.add({ targets: line, alpha: 0, scaleY: 1.8, duration: 260, onComplete: () => line.destroy() });
+  }
+
   pickup(x: number, y: number): void {
     this.stars.explode(12, x, y);
     this.impact.explode(8, x, y);

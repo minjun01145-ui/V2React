@@ -31,6 +31,9 @@ const DROP_THROUGH_MS = 240;
 const VIEW_HEIGHT = 620;
 const SHATTER_EVENT = "tower-shatter";
 const RESPAWN_MS = 2_000;
+/** Rising faster than this with the dash item leaves speed lines. */
+const DASH_STREAK_SPEED = -650;
+const DASH_STREAK_MS = 45;
 
 export interface ClimbStanding {
   readonly playerId: string;
@@ -86,6 +89,9 @@ export default class ClimbScene extends Phaser.Scene {
   private dropUntil = 0;
   private knockedUntil = 0;
   private punchReadyAt = 0;
+  /** Star item: next time each touched player can be hit again. */
+  private readonly starHitReadyAt = new Map<string, number>();
+  private readonly lastStreakAt = new Map<string, number>();
   private floor = 0;
   private best = 0;
   private nextStandingsAt = 0;
@@ -329,7 +335,12 @@ export default class ClimbScene extends Phaser.Scene {
       this.effects.jumpPuff(body.center.x, body.bottom);
     } else {
       const jumpVelocity = takeJump(this.jump, grounded, input.jumpQueued, time);
-      if (jumpVelocity !== null) {
+      if (jumpVelocity !== null && this.jump.used === 2 && this.powerUps?.has("dash")) {
+        // Straight up: drop the sideways speed so the dash reads as a vertical launch.
+        body.setVelocity(0, BUFF_EFFECT.dash.doubleJumpVelocity);
+        this.effects.dashBurst(body.center.x, body.bottom);
+        this.cameras.main.shake(80, 0.003);
+      } else if (jumpVelocity !== null) {
         body.setVelocityY(jumpVelocity * (this.powerUps?.has("jump") ? BUFF_EFFECT.jump.jumpMultiplier : 1));
         this.effects.jumpPuff(body.center.x, body.bottom);
       }
@@ -346,7 +357,33 @@ export default class ClimbScene extends Phaser.Scene {
         this.options.onHeight(this.floor, this.best);
       }
     }
+    if (this.powerUps?.has("star")) this.starTouches(time);
     this.options.publish({ x: body.center.x, y: body.center.y, vx: body.velocity.x, vy: body.velocity.y });
+  }
+
+  /** Anyone touching the star player gets punched away, with a per-victim pause between hits. */
+  private starTouches(time: number): void {
+    const { x, y } = this.body.center;
+    for (const frame of this.lastFrames) {
+      if (frame.playerId === this.options.localPlayer.id || !this.remotes.get(frame.playerId)?.container.visible) continue;
+      if (Math.abs(frame.x - x) > CLIMB_PLAYER_WIDTH + 6 || Math.abs(frame.y - y) > CLIMB_PLAYER_HEIGHT - 4) continue;
+      if (time < (this.starHitReadyAt.get(frame.playerId) ?? 0)) continue;
+      this.starHitReadyAt.set(frame.playerId, time + BUFF_EFFECT.star.hitIntervalMs);
+      const direction = frame.x >= x ? 1 : -1;
+      this.actor.punch(time, direction);
+      this.options.publishEvent(PUNCH_EVENT, frame.playerId, encodePunch(direction, true));
+      this.effects.punchHit(frame.x, frame.y - 6, true);
+      this.remotes.get(frame.playerId)?.recoil(time, direction);
+    }
+  }
+
+  /** Item looks that everyone sees: the star glow and dash speed lines. */
+  private buffLook(actor: BlobActor, playerId: string, x: number, feetY: number, vy: number, time: number): void {
+    actor.setStarGlow(this.powerUps?.playerHas(playerId, "star") ?? false, time);
+    if (vy > DASH_STREAK_SPEED || (this.lastStreakAt.get(playerId) ?? -Infinity) > time - DASH_STREAK_MS) return;
+    if (!this.powerUps?.playerHas(playerId, "dash")) return;
+    this.lastStreakAt.set(playerId, time);
+    this.effects.dashStreak(x, feetY + 10);
   }
 
   private shatter(): void {
@@ -393,6 +430,7 @@ export default class ClimbScene extends Phaser.Scene {
       vx: this.body.velocity.x,
       vy: this.body.velocity.y,
     }, time, delta);
+    if (this.options.mode !== "teacher") this.buffLook(this.actor, localId, this.body.center.x, this.body.bottom, this.body.velocity.y, time);
     this.powerUps?.trail(localId, this.body.center.x, this.body.bottom, this.body.velocity.x, time);
     const visible = new Set<string>();
     for (const frame of this.lastFrames) {
@@ -411,6 +449,7 @@ export default class ClimbScene extends Phaser.Scene {
       const respawnAt = this.remoteRespawns.get(frame.playerId) ?? 0;
       actor.container.setVisible(this.options.nowMs() >= respawnAt);
       if (this.options.nowMs() >= respawnAt) this.remoteRespawns.delete(frame.playerId);
+      this.buffLook(actor, frame.playerId, frame.x, feetY, frame.vy, time);
       this.powerUps?.trail(frame.playerId, frame.x, feetY, frame.vx, time);
     }
     for (const [id, actor] of this.remotes) {
@@ -418,6 +457,8 @@ export default class ClimbScene extends Phaser.Scene {
       actor.destroy();
       this.remotes.delete(id);
       this.remoteRespawns.delete(id);
+      this.starHitReadyAt.delete(id);
+      this.lastStreakAt.delete(id);
     }
   }
 

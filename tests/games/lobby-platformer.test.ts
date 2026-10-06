@@ -62,3 +62,9 @@ assert.notDeepEqual(
 );
 
 console.log("lobby platformer tests passed");
+
+const climbKinds = new Set<string>();
+for (let window = 0; window < 40; window += 1) {
+  for (const item of climbItemsAt("room-a", window * 25_000, 40)) climbKinds.add(item.kind);
+}
+assert(climbKinds.has("dash") && climbKinds.has("star"), "the lobby tower drops the dash and star items too");

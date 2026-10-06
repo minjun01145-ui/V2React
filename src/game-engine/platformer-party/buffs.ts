@@ -4,8 +4,9 @@
  * first-come claims, and buffs are derived from those claims.
  */
 
-export type PartyItemKind = "speed" | "jump" | "punch";
+export type PartyItemKind = "speed" | "jump" | "punch" | "dash" | "star";
 
+/** Items every party platformer drops; "dash" and "star" are lobby jump tower extras. */
 export const PARTY_ITEM_KINDS: readonly PartyItemKind[] = ["speed", "jump", "punch"];
 export const BUFF_DURATION_MS = 30_000;
 /** Items float this far above the surface they rest on. */
@@ -15,18 +16,26 @@ export const BUFF_EFFECT = {
   speed: { runMultiplier: 2 },
   jump: { jumpMultiplier: 1.32 },
   punch: { powered: true },
+  /** The second jump becomes a straight-up rocket. */
+  dash: { doubleJumpVelocity: -1_080 },
+  /** Touching the glowing player is a punch, at most twice a second per victim. */
+  star: { hitIntervalMs: 500 },
 } as const;
 
 export const ITEM_LABEL: Readonly<Record<PartyItemKind, string>> = {
   speed: "이동속도 2배",
   jump: "슈퍼 점프",
   punch: "펀치 강화",
+  dash: "2단 점프 강화",
+  star: "무적 밀치기",
 };
 
 export const ITEM_STYLE: Readonly<Record<PartyItemKind, { readonly color: number; readonly icon: string }>> = {
   speed: { color: 0xf59e0b, icon: "⚡" },
   jump: { color: 0x22c55e, icon: "⤒" },
   punch: { color: 0xef4444, icon: "✊" },
+  dash: { color: 0x0ea5e9, icon: "🚀" },
+  star: { color: 0xeab308, icon: "★" },
 };
 
 export interface PartyItem {
