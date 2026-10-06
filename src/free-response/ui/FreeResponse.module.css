@@ -13,6 +13,5 @@
 .response[data-awarded="true"] { border-color: var(--color-primary); background: var(--color-primary-soft); }
 .response b { margin-top: auto; padding-top: .5rem; color: var(--color-primary); }
 .identity { display: grid; gap: .25rem; }
-.identity small { color: var(--color-muted); }
 .answer { line-height: 1.6; }
 .error { color: var(--color-danger); }

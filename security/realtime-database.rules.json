@@ -38,6 +38,22 @@
         }
       }
     },
+    "slideReactions": {
+      "v1": {
+        "$tenantId": {
+          "$roomId": {
+            ".read": "auth != null && auth.token.tenantId === $tenantId && auth.token.role !== 'student' && auth.token.firebase.sign_in_provider !== 'anonymous'",
+            "$playerId": {
+              ".write": "auth != null && auth.uid === $playerId && auth.token.role === 'student' && auth.token.tenantId === $tenantId && newData.exists() && (!data.exists() || data.child('t').val() <= now - 800)",
+              ".validate": "newData.hasChildren(['e', 't'])",
+              "e": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 6 && newData.val() % 1 === 0" },
+              "t": { ".validate": "newData.isNumber() && newData.val() === now" },
+              "$other": { ".validate": false }
+            }
+          }
+        }
+      }
+    },
     "liveWorld": {
       "v2": {
         "$tenantId": {

@@ -8,6 +8,7 @@ import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import SlideViewport from "../../slide-show-runtime/SlideViewport.tsx";
 import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
+import AudienceRow from "./audience/AudienceRow.tsx";
 import AwardPanel from "./AwardPanel.tsx";
 import EnginePhasePanel from "./EnginePhasePanel.tsx";
 import SlideInkLayer from "./ink/SlideInkLayer.tsx";
@@ -112,6 +113,7 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
             /> : null}
             annotation={(scale) => <SlideInkLayer key={slide.id} scale={scale} />}
           />}
+        <AudienceRow roomId={roomId} players={players} />
       </div>
       <div className={styles.controls}>
         <div className={styles.nav}>

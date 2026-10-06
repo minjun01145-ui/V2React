@@ -6,7 +6,7 @@
 .runtime:fullscreen .panels { min-height: 0; overflow: auto; }
 .runtime:fullscreen[data-has-panels="false"] .panels { display: none; }
 .runtime:fullscreen:has([data-picker-mode="ladder"]) { grid-template-areas: "stage" "panels" "controls"; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 55%) auto; }
-.stage { grid-area: stage; height: clamp(320px, calc(100dvh - 260px), 760px); min-width: 0; padding: 14px; border-radius: 24px; background: radial-gradient(ellipse at 50% 0%, #22307a, var(--color-brand-deep) 75%); box-shadow: 0 6px 0 #070d2e, inset 0 0 0 1px rgba(255, 255, 255, 0.06); box-sizing: border-box; }
+.stage { grid-area: stage; display: grid; grid-template-rows: minmax(0, 1fr) auto; height: clamp(320px, calc(100dvh - 260px), 760px); min-width: 0; padding: 14px; border-radius: 24px; background: radial-gradient(ellipse at 50% 0%, #22307a, var(--color-brand-deep) 75%); box-shadow: 0 6px 0 #070d2e, inset 0 0 0 1px rgba(255, 255, 255, 0.06); box-sizing: border-box; }
 .runtime:fullscreen .stage { height: auto; min-height: 0; padding: 0; background: none; box-shadow: none; }
 .controls { grid-area: controls; display: flex; align-items: center; gap: 12px; overflow-x: auto; padding: 10px 12px; border-radius: 18px; background: var(--color-brand-deep); box-shadow: 0 5px 0 #070d2e; }
 .runtime:fullscreen .controls { background: rgba(7, 13, 46, 0.7); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }

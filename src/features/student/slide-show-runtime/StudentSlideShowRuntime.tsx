@@ -11,6 +11,7 @@ import StatusPanel from "../../../shared/StatusPanel.tsx";
 import SlideViewport from "../../slide-show-runtime/SlideViewport.tsx";
 import { useMyShowScore } from "../../slide-show-runtime/useMyShowScore.ts";
 import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
+import ReactionBar from "./ReactionBar.tsx";
 import styles from "./StudentSlideShowRuntime.module.css";
 
 /** Celebrates points the teacher hands out, using the same effect layer as the games. */
@@ -64,5 +65,6 @@ export default function StudentSlideShowRuntime({ roomId, session, player, slide
         : loading || !slide ? <StatusPanel title="슬라이드를 불러오는 중" tone="waiting">잠시만 기다려 주세요.</StatusPanel>
         : <SlideViewport slide={slide} engineFrame={engine?.frame ?? null} engineContent={engineContent} />}
     </div>
+    <ReactionBar roomId={roomId} playerId={player.id} />
   </section>;
 }

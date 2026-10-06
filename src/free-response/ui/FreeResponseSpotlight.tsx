@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { FREE_RESPONSE_AWARD_POINTS, type FreeResponseRow } from "../types.ts";
 import styles from "./FreeResponseSpotlight.module.css";
 
@@ -8,8 +8,10 @@ const TEXT_SCALES = [0.75, 1, 1.25, 1.5, 2] as const;
  * Projects submitted answers one at a time in large type over the whole screen. Rendered in place
  * (not through a portal) so it also shows while the presenter view is in browser fullscreen.
  */
-export default function FreeResponseSpotlight({ rows, onAward, busyPlayerId, disabled, onClose }: {
+export default function FreeResponseSpotlight({ rows, showNicknames, nicknameToggle, onAward, busyPlayerId, disabled, onClose }: {
   readonly rows: readonly FreeResponseRow[];
+  readonly showNicknames: boolean;
+  readonly nicknameToggle: ReactNode;
   readonly onAward: (playerId: string) => void;
   readonly busyPlayerId: string | null;
   readonly disabled: boolean;
@@ -39,6 +41,7 @@ export default function FreeResponseSpotlight({ rows, onAward, busyPlayerId, dis
   return <div className={styles.overlay} role="dialog" aria-modal="true" aria-label="답안 크게 보기">
     <header className={styles.bar}>
       <strong>{submitted.length === 0 ? "제출된 답안 없음" : `${Math.min(index, last) + 1} / ${submitted.length}`}</strong>
+      {nicknameToggle}
       <div className={styles.zoom}>
         <button type="button" aria-label="글씨 작게" onClick={() => setScaleIndex((value) => Math.max(0, value - 1))} disabled={scaleIndex === 0}>가−</button>
         <button type="button" aria-label="글씨 크게" onClick={() => setScaleIndex((value) => Math.min(TEXT_SCALES.length - 1, value + 1))} disabled={scaleIndex === TEXT_SCALES.length - 1}>가+</button>
@@ -46,7 +49,7 @@ export default function FreeResponseSpotlight({ rows, onAward, busyPlayerId, dis
       <button type="button" className={styles.close} onClick={onClose}>닫기</button>
     </header>
     {current ? <main className={styles.stage}>
-      <p className={styles.name}>{current.nickname || current.displayName}<small>{current.studentNumber} · {current.displayName}</small></p>
+      {showNicknames && current.nickname ? <p className={styles.name}>{current.nickname}</p> : null}
       <p className={styles.answer} style={{ fontSize: `calc(clamp(1.75rem, 4vw, 3.5rem) * ${TEXT_SCALES[scaleIndex]})` }}>{current.response!.answer}</p>
     </main> : <main className={styles.stage} />}
     <footer className={styles.bar}>
