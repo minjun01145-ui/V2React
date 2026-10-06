@@ -129,7 +129,7 @@ function promptFor(type: GeneratedLearningSetType): string {
       "자료는 교사가 이미 / 기호로 끊어 둔 영어 문장과 한국어 뜻이다. 교사가 끊은 그대로 옮겨 적기만 한다.",
       "영어 문장의 단어, 문장부호, / 위치를 절대 바꾸지 않는다. / 를 새로 넣거나 빼거나 옮기지 않는다.",
       "한국어 뜻도 자료에 적힌 그대로 옮긴다. 자료에 뜻이 없는 문장만 영어 덩어리와 같은 수의 / 를 넣어 직역한다.",
-      "영어와 뜻이 다른 줄이나 다른 칸에 있으면 같은 문장끼리 짝지어 한 항목으로 만든다. 문장 번호, 머리글, 쪽 번호, / 가 없는 영어 문장은 제외한다.",
+      "영어와 뜻이 다른 줄이나 다른 칸에 있으면 같은 문장끼리 짝지어 한 항목으로 만든다. 문장 번호, 머리글, 쪽 번호는 제외하고, / 가 없는 문장도 그대로 한 항목으로 둔다.",
       '형식: {"suggestedName":"짧은 세트 이름","items":[{"sourceText":"I go / to school / every day.","meaning":"나는 간다 / 학교에 / 매일"}]}',
     ].join("\n");
   }
@@ -184,7 +184,7 @@ export function parseGeneratedLearningSetReply(reply: string, type: GeneratedLea
     if (type === "reading-chunks") {
       const sourceChunks = sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean);
       const meaningChunks = meaning.split("/").map((chunk) => chunk.trim()).filter(Boolean);
-      if (sourceChunks.length < 2 || (meaning.includes("/") && sourceChunks.length !== meaningChunks.length)) {
+      if (meaning.includes("/") && sourceChunks.length !== meaningChunks.length) {
         throw new LearningSetGenerationError("AI가 만든 끊어읽기 덩어리 수가 맞지 않습니다.");
       }
       if (comparableSource && !comparableSource.includes(comparableText(sourceText))) {

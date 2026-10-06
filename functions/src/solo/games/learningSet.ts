@@ -70,8 +70,11 @@ export function verifySoloLearningSet(input: {
   if (fingerprintLearningSet(input.metadata.type, items) !== input.setFingerprint) {
     throw new HttpsError("failed-precondition", "학습 세트가 바뀌었습니다. 세트를 다시 선택해 주세요.");
   }
-  if (input.gameId === "sentence-builder" && items.some((item) => item.sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean).length < 2)) {
-    throw new HttpsError("failed-precondition", "문장 만들기는 문장 조각이 두 개 이상인 세트만 사용할 수 있습니다.");
+  if (input.gameId === "sentence-builder") {
+    // Sentences not split by / are skipped, matching the client's sentence adapter.
+    const sentences = items.filter((item) => item.sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean).length >= 2);
+    if (sentences.length < 1) throw new HttpsError("failed-precondition", "문장 만들기는 / 로 두 조각 이상 나눈 문장이 있는 세트만 사용할 수 있습니다.");
+    return { type: input.metadata.type, items: sentences };
   }
   return { type: input.metadata.type, items };
 }

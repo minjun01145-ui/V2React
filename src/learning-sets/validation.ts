@@ -69,8 +69,8 @@ function validateItem(sourceText: string, meaning: string, type: LearningSetType
     return;
   }
   if (type === LEARNING_SET_TYPE.READING_CHUNKS) {
+    // A sentence without / is kept for the passage; sentence-ordering games skip it.
     const chunks = sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean);
-    if (chunks.length < 2) throw new Error(`${lineNumber}번째 줄: 끊어읽기 문장은 두 조각 이상이 되도록 / 기호로 나눠 주세요.`);
     if (meaning.includes("/")) {
       const meaningChunks = meaning.split("/").map((chunk) => chunk.trim()).filter(Boolean);
       if (meaningChunks.length !== chunks.length) throw new Error(`${lineNumber}번째 줄: 영어와 뜻의 덩어리 수를 같게 맞춰 주세요.`);

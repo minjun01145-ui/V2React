@@ -29,7 +29,7 @@ function chunkPairs(set: RuntimeLearningSet): readonly MultipleChoicePair<Learni
   return set.items.flatMap((item, itemIndex) => {
     const sourceChunks = item.sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean);
     const meaningChunks = item.meaning.split("/").map((chunk) => chunk.trim()).filter(Boolean);
-    if (sourceChunks.length < 2 || sourceChunks.length !== meaningChunks.length) {
+    if (sourceChunks.length !== meaningChunks.length) {
       throw new Error(`${itemIndex + 1}번째 문항은 영어와 뜻의 덩어리 수가 같아야 합니다.`);
     }
     return sourceChunks.map((sourceChunk, chunkIndex) => ({

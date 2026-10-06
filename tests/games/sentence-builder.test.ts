@@ -49,7 +49,18 @@ assert.throws(() => adaptReadingChunksSet({
   id: "bad",
   type: "reading-chunks",
   items: [{ korean: "잘못된 문항", chunks: ["only-one"] }],
-}), /2개 이상/);
+}), /두 조각 이상/);
+
+// Unsplit passage sentences are skipped; the remaining questions keep their original item index.
+const mixed = adaptReadingChunksSet({
+  id: "mixed",
+  type: "reading-chunks",
+  items: [
+    { id: "a", sourceText: "What did they say?", meaning: "그들은 무엇이라고 말했는가?" },
+    { id: "b", sourceText: "There were / four eyewitnesses.", meaning: "있었다 / 네 명의 목격자가." },
+  ],
+});
+assert.deepEqual(mixed.questions.map((item) => [item.id, item.source.itemIndex]), [["b", 1]]);
 
 assert.throws(() => adaptReadingChunksSet({
   id: "duplicate",

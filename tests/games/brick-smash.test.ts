@@ -109,7 +109,7 @@ for (const count of ["2", "3"]) {
     assert.equal(currentBrickQuestion(sentences, sentenceProgress).id, sentences[(i + 1) % sentences.length]?.id, "Items must not skip sentence chunks");
   }
 }
-assert.throws(() => buildBrickQuestions({ ...reading, items: [{ id: "bad", sourceText: "no chunks", meaning: "뜻" }] }, {}, "round"), /2개 이상/);
+assert.throws(() => buildBrickQuestions({ ...reading, items: [{ id: "bad", sourceText: "no chunks", meaning: "뜻" }] }, {}, "round"), /두 조각 이상/);
 // Speed: instant answers earn 100, slow ones never drop below 50.
 assert.equal(brickSpeedScore(0), 100);
 assert.equal(brickSpeedScore(700), 100);

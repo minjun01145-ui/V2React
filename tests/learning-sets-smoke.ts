@@ -17,7 +17,11 @@ assert.equal(serializeLearningSetItems(words), "apple\t사과\nclassroom\t교실
 
 const reading = parseLearningSetPaste("I go / to school.\t나는 학교에 간다.", LEARNING_SET_TYPE.READING_CHUNKS);
 assert.equal(reading[0]?.sourceText, "I go / to school.");
-assert.throws(() => parseLearningSetPaste("I go to school.\t나는 학교에 간다.", LEARNING_SET_TYPE.READING_CHUNKS), /기호로 나눠/);
+// Regression: a passage sentence the teacher did not split ("What did they say?") blocked the whole set.
+assert.deepEqual(
+  parseLearningSetPaste("There were / four eyewitnesses.\t있었다 / 네 명의 목격자가.\nWhat did they say?\t그들은 무엇이라고 말했는가?", LEARNING_SET_TYPE.READING_CHUNKS).map((item) => item.sourceText),
+  ["There were / four eyewitnesses.", "What did they say?"],
+);
 assert.throws(() => parseLearningSetPaste("I go / to school.\t나는 / 학교에 / 간다.", LEARNING_SET_TYPE.READING_CHUNKS), /덩어리 수/);
 // Regression: a comma inside a chunked sentence was taken as the column separator.
 assert.deepEqual(

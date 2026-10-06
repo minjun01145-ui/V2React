@@ -31,7 +31,8 @@ function storedTeam(value: unknown): StoredTeam | null {
 }
 function questionItems(value: unknown): readonly Record<string, unknown>[] {
   if (!isRecord(value) || !Array.isArray(value.items)) throw new HttpsError("failed-precondition", "학습 세트 문항을 찾을 수 없습니다.");
-  return value.items.filter(isRecord);
+  // Sentences not split by / are skipped, matching the client's sentence adapter.
+  return value.items.filter(isRecord).filter((item) => string(item.sourceText).split("/").filter((chunk) => chunk.trim()).length >= 2);
 }
 function expectedTokenIds(item: Record<string, unknown>, fallbackIndex: number): { readonly questionId: string; readonly ids: readonly string[] } {
   const questionId = string(item.id) || `sentence-${fallbackIndex + 1}`;

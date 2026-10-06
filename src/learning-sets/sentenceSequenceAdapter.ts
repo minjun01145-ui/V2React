@@ -18,15 +18,17 @@ export function adaptReadingChunksToSequence(set: unknown): SequenceQuestionSet 
   const items = set.items ?? set.questions ?? set.entries;
   if (!Array.isArray(items)) throw new Error("끊어읽기 세트에는 items(또는 questions) 배열이 필요합니다.");
   const setId = firstText(set.id) || "reading-chunks-set";
-  const questions: SequenceQuestion[] = items.map((rawItem, index) => {
+  // Sentences not split by / cannot be put in order, so they are skipped (the servers skip the same ones).
+  const questions: SequenceQuestion[] = items.flatMap((rawItem, index): SequenceQuestion[] => {
     if (!isRecord(rawItem)) throw new Error(`${index + 1}번 문항 데이터가 올바르지 않습니다.`);
     const questionId = firstText(rawItem.id) || `sentence-${index + 1}`;
     const prompt = firstText(rawItem.promptKo, rawItem.korean, rawItem.ko, rawItem.translation, rawItem.meaning);
     const chunks = extractChunks(rawItem);
     if (!prompt) throw new Error(`${index + 1}번 문항의 한글 뜻이 없습니다.`);
-    if (chunks.length < 2) throw new Error(`${index + 1}번 문항은 끊어읽기 조각이 2개 이상 필요합니다.`);
+    if (chunks.length < 2) return [];
     const tokens = chunks.map((text, tokenIndex) => ({ id: `${questionId}:chunk:${tokenIndex}`, text, order: tokenIndex }));
-    return { id: questionId, kind: "sequence", prompt, tokens, expectedTokenIds: tokens.map((token) => token.id), source: { setId, itemIndex: index } };
+    return [{ id: questionId, kind: "sequence", prompt, tokens, expectedTokenIds: tokens.map((token) => token.id), source: { setId, itemIndex: index } }];
   });
+  if (questions.length < 1) throw new Error("끊어읽기 세트에 / 로 두 조각 이상 나눈 문장이 필요합니다.");
   return validateCanonicalQuestionSet({ id: setId, title: firstText(set.title, set.name) || "끊어읽기 문장 조립", type: "reading-chunks", questions });
 }
