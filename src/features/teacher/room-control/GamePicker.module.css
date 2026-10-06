@@ -4,5 +4,7 @@
 .heading::before { content: ""; width: 6px; height: 18px; border-radius: 3px; background: var(--group-color, var(--color-primary)); }
 .group:nth-of-type(1) { --group-color: var(--color-primary); }
 .group:nth-of-type(2) { --group-color: #0fb3a3; }
-.group:nth-of-type(3) { --group-color: #ff5a36; }
+.group:nth-of-type(4) { --group-color: #ff5a36; }
+.group.workInProgress { --group-color: #9ca3af; }
+.workInProgress .cards { filter: grayscale(1); }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px; }

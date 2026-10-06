@@ -32,11 +32,13 @@ try {
   const pickerProps = { games: listGames().filter((game) => game.supportedSetTypes.length > 0), selectedId: "matching", onSelect: () => {}, disabled: false };
   const picker = renderToStaticMarkup(createElement(GamePicker, pickerProps));
   const groups = [...picker.matchAll(/<section\b[^>]*aria-label="([^"]+)"[^>]*>([\s\S]*?)<\/section>/g)];
-  assert.deepEqual(groups.map((group) => group[1]), ["학습", "타자", "게임"]);
+  assert.deepEqual(groups.map((group) => group[1]), ["학습", "타자", "1:1대전", "게임", "작업 중 게임"]);
   const expectedLabels = [
     ["AI 문답", "객관식 퀴즈", "짝 맞추기", "문장 만들기"],
     ["문장 타자", "산성비", "무궁화 탈출"],
-    ["학습 점프타워", "1:1 배틀", "단어 우노", "커플 문장 만들기", "포켓몬 잡기", "스케이팅", "벽돌 팡팡", "단어 닌자", "플랫포머 문장 만들기", "점프 문장 만들기"],
+    ["1:1 배틀", "커플 문장 만들기"],
+    ["단어 우노", "포켓몬 잡기", "스케이팅", "벽돌 팡팡", "단어 닌자", "점프 문장 만들기"],
+    ["학습 점프타워", "플랫포머 문장 만들기"],
   ];
   groups.forEach((group, index) => {
     const labels = [...group[2].matchAll(/<button\b[^>]*>[\s\S]*?<span[^>]*>([^<]+)<\/span><\/button>/g)].map((match) => match[1]);
@@ -47,6 +49,12 @@ try {
   const selectedButtons = [...picker.matchAll(/<button[^>]*aria-pressed="true"[^>]*>([\s\S]*?)<\/button>/g)];
   assert.equal(selectedButtons.length, 1);
   assert.ok(selectedButtons[0][1].includes("짝 맞추기"), "the unified matching choice is selected");
+  for (const selectedId of ["learning-jump-tower", "chunk-line-up"]) {
+    const markup = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, selectedId }));
+    const workInProgress = markup.match(/<section\b[^>]*aria-label="작업 중 게임"[^>]*>([\s\S]*?)<\/section>/)?.[1];
+    assert.ok(workInProgress?.includes('aria-pressed="true"'), "작업 중 게임도 선택 상태를 표시합니다.");
+    assert.ok(!workInProgress.includes('disabled=""'), "회색 게임도 계속 선택할 수 있습니다.");
+  }
   const disabledPicker = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, disabled: true }));
   assert.equal((disabledPicker.match(/ disabled=""/g) ?? []).length, expectedLabels.flat().length, "all game choices remain disabled while starting");
   const subset = renderToStaticMarkup(createElement(GamePicker, { ...pickerProps, games: pickerProps.games.filter((game) => game.id === "typing") }));

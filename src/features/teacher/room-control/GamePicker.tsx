@@ -18,17 +18,21 @@ const GROUPS = [
     ["sentence-builder", "문장 만들기"],
   ] },
   { title: "타자", games: [["typing", "문장 타자"], ["acid-rain", "산성비"], ["typing-escape", "무궁화 탈출"]] },
-  { title: "게임", games: [
-    ["learning-jump-tower", "학습 점프타워"],
+  { title: "1:1대전", games: [
     ["one-on-one-battle", "1:1 배틀"],
-    ["word-uno", "단어 우노"],
     ["cooperative-sentence-builder", "커플 문장 만들기"],
+  ] },
+  { title: "게임", games: [
+    ["word-uno", "단어 우노"],
     ["pokemon-catch", "포켓몬 잡기"],
     ["meaning-dash", "스케이팅"],
     ["brick-smash", "벽돌 팡팡"],
     ["word-ninja", "단어 닌자"],
-    ["chunk-line-up", "플랫포머 문장 만들기"],
     ["chunk-jump-race", "점프 문장 만들기"],
+  ] },
+  { title: "작업 중 게임", games: [
+    ["learning-jump-tower", "학습 점프타워"],
+    ["chunk-line-up", "플랫포머 문장 만들기"],
   ] },
 ] as const;
 
@@ -47,7 +51,7 @@ export default function GamePicker({ games, selectedId, onSelect, disabled }: Pr
           .map((game) => ({ game, label: game.title })));
       }
       if (group.length === 0) return null;
-      return <section className={styles.group} key={title} aria-label={title}>
+      return <section className={`${styles.group} ${title === "작업 중 게임" ? styles.workInProgress : ""}`} key={title} aria-label={title}>
         <h3 className={styles.heading}>{title}</h3>
         <div className={styles.cards}>
           {group.map(({ game, label }) => <CoverTile key={game.id} title={label} art={isCoverKey(game.id) ? coverArt(game.id) : null} selected={selectedId === game.id} disabled={disabled} onClick={() => onSelect(game.id)} />)}
