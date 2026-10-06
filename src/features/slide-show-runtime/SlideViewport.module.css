@@ -1,4 +1,4 @@
-.engineWindow { display: grid; overflow: auto; border-radius: 14px; background: var(--color-bg); box-shadow: 0 0 0 3px var(--color-brand-deep), 0 18px 40px -16px rgba(15, 24, 70, 0.55); animation: engine-window-in 320ms var(--ease-pop) both; }
+.engineWindow { display: grid; overflow: hidden auto; border-radius: 14px; background: var(--color-bg); box-shadow: 0 0 0 3px var(--color-brand-deep), 0 18px 40px -16px rgba(15, 24, 70, 0.55); animation: engine-window-in 320ms var(--ease-pop) both; }
 /* Games keep a usable height and scroll inside the window instead of clipping their controls. */
 .engineWindow > * { min-width: 0; min-height: 300px; }
 @keyframes engine-window-in { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }

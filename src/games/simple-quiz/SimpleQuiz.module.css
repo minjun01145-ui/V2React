@@ -24,5 +24,6 @@
 
 .prompt { --text-game-card: var(--text-game-prompt); }
 
-.options { grid-auto-rows: minmax(min-content, 1fr); overflow: auto; }
-.option { overflow: auto; }
+/* Rows already grow to fit long text. The padding gives hover, press, entry and answer animations room,
+   so a moving card never creates a scrollbar that would reflow (and jiggle) the whole grid. */
+.options { grid-auto-rows: minmax(min-content, 1fr); overflow: hidden auto; padding: 6px 6px 16px; }
