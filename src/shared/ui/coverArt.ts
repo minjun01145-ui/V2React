@@ -20,7 +20,7 @@ const PLACEHOLDERS = {
   "acid-rain": { emoji: "☔", color: "#5cb82e" },
   "matching": { emoji: "🎴", color: "#ff9a1f" },
   "matching-all": { emoji: "🧠", color: "#f26b1d" },
-  "meaning-dash": { emoji: "🏃", color: "#07b0d6" },
+  "meaning-dash": { emoji: "⛸️", color: "#07b0d6" },
   "brick-smash": { emoji: "🧱", color: "#e0562a" },
   "word-ninja": { emoji: "🍉", color: "#1fa85a" },
   "chunk-line-up": { emoji: "🍄", color: "#8b4ff0" },

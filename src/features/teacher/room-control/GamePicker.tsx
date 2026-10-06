@@ -25,7 +25,7 @@ const GROUPS = [
     ["word-uno", "단어 우노"],
     ["cooperative-sentence-builder", "커플 문장 만들기"],
     ["pokemon-catch", "포켓몬 잡기"],
-    ["meaning-dash", "달리기"],
+    ["meaning-dash", "스케이팅"],
     ["brick-smash", "벽돌 팡팡"],
     ["word-ninja", "단어 닌자"],
     ["chunk-line-up", "플랫포머 문장 만들기"],

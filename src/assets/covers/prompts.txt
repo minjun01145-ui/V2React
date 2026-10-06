@@ -47,8 +47,8 @@ matching.webp (짝 맞추기·일부 카드) — BG #ff9a1f
 matching-all.webp (짝 맞추기·모든 카드) — BG #f26b1d
   A big pink brain character juggling many blank flashcards at once, tongue out in concentration.
 
-meaning-dash.webp (달리기) — BG #07b0d6
-  A speedy character in oversized sneakers sprinting on a running track, dust clouds and speed lines.
+meaning-dash.webp (스케이팅) — BG #07b0d6
+  A cheerful character on ice skates gliding fast across a shiny rink, ice sparkles and speed lines.
 
 brick-smash.webp (벽돌 팡팡) — BG #e0562a
   A tough little hammer character smashing a wall of colorful bricks, brick chunks flying.

@@ -43,6 +43,8 @@ export class BlobActor {
   private punchStartedAt = -Infinity;
   private recoilStartedAt = -Infinity;
   private recoilDirection = 1;
+  /** Set for an up (−1) or down (1) jab; null for the usual forward jab. */
+  private punchVertical: number | null = null;
   private stride = 0;
   private facing = 1;
   private squashUntil = 0;
@@ -110,7 +112,14 @@ export class BlobActor {
   /** Quick jab in `direction` (−1 left, 1 right). */
   punch(time: number, direction: number): void {
     this.punchStartedAt = time;
+    this.punchVertical = null;
     this.facing = direction < 0 ? -1 : 1;
+  }
+
+  /** Quick jab straight up (−1) or down (1), for games that shove sideways on screen. */
+  punchVertically(time: number, direction: number): void {
+    this.punchStartedAt = time;
+    this.punchVertical = direction < 0 ? -1 : 1;
   }
 
   setTag(text: string): void {
@@ -140,7 +149,9 @@ export class BlobActor {
     if (Math.abs(pose.vx) > 20 && !punching) this.facing = Math.sign(pose.vx);
     if (punching) {
       const reach = Math.sin(Math.PI * punchAge / PUNCH_MS);
-      this.fist.setVisible(true).setPosition(this.facing * (14 + reach * 22), -18 - reach * 2).setScale(0.8 + reach * 0.4);
+      if (this.punchVertical === null) this.fist.setPosition(this.facing * (14 + reach * 22), -18 - reach * 2);
+      else this.fist.setPosition(this.facing * 6, -20 + this.punchVertical * (16 + reach * 22));
+      this.fist.setVisible(true).setScale(0.8 + reach * 0.4);
     } else if (this.fist.visible) {
       this.fist.setVisible(false);
     }

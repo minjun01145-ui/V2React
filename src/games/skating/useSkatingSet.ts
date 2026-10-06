@@ -6,6 +6,6 @@ function configuredSetId(session: ActiveGameSession): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-export function useMeaningDashSet(session: ActiveGameSession) {
+export function useSkatingSet(session: ActiveGameSession) {
   return useLearningSet(configuredSetId(session), session.roundId);
 }

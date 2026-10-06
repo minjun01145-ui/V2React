@@ -261,14 +261,15 @@ const definitions = [
     loadTeacher: () => import("./matching-all/MatchingAllTeacherModule.tsx"),
   }),
   defineGame({
+    // The id predates the skating redesign; stored rounds and progress still use it.
     id: "meaning-dash",
-    title: "뜻 달리기",
+    title: "스케이팅",
     category: "action",
     supportedSetTypes: ["vocabulary"],
     requiresStoredSet: true,
     minimumSetItemCount: 3,
-    loadStudent: () => import("./meaning-dash/MeaningDashStudentGame.tsx"),
-    loadTeacher: () => import("./meaning-dash/MeaningDashTeacherGame.tsx"),
+    loadStudent: () => import("./skating/SkatingStudentGame.tsx"),
+    loadTeacher: () => import("./skating/SkatingTeacherGame.tsx"),
   }),
   defineGame({
     id: "brick-smash",
