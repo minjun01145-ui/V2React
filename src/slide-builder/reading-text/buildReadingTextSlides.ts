@@ -1,7 +1,7 @@
 import type { LearningSetItem } from "../../learning-sets/types.ts";
 import { MAX_SLIDES } from "../../slide-show/types.ts";
 import { openPdf, readPageWords, renderPageCrop, type PdfPageSize } from "./pdfPages.ts";
-import { cropAround, lineBoxes, passageWords, readingSlideCanvas, toSlideBox } from "./slideLayout.ts";
+import { lineBoxes, passageWords, planPageViews, readingSlideCanvas, toSlideBox } from "./slideLayout.ts";
 import { alignSentences, splitChunks, type ChunkPlacement, type PdfWord } from "./textMatching.ts";
 
 export interface ReadingTextSlidesResult {
@@ -44,16 +44,21 @@ export async function buildReadingTextSlides(file: File, items: readonly Learnin
     for (const chunk of chunks) pages.set(chunk.page, [...(pages.get(chunk.page) ?? []), chunk]);
 
     const canvases: string[] = [];
-    let index = 0;
+    let pageIndex = 0;
     for (const [pageNumber, pageChunks] of pages) {
-      index += 1;
-      progress(`슬라이드 만드는 중… ${index}/${pages.size}쪽`);
-      const matched = pageChunks.flatMap((chunk) => chunk.words);
-      const crop = cropAround(passageWords(matched, words.filter((word) => word.page === pageNumber)), sizes.get(pageNumber)!);
-      const image = await renderPageCrop(pdf, pageNumber, crop);
-      const picture = { src: image.dataUrl, width: image.width, height: image.height };
-      canvases.push(readingSlideCanvas(picture, crop, []));
-      for (const chunk of pageChunks) canvases.push(readingSlideCanvas(picture, crop, lineBoxes(chunk.words).map((box) => toSlideBox(box, crop))));
+      pageIndex += 1;
+      progress(`슬라이드 만드는 중… ${pageIndex}/${pages.size}쪽`);
+      const passage = passageWords(pageChunks.flatMap((chunk) => chunk.words), words.filter((word) => word.page === pageNumber));
+      const views = planPageViews(pageChunks.map((chunk) => chunk.words), passage, sizes.get(pageNumber)!);
+      for (const [viewIndex, view] of views.entries()) {
+        const image = await renderPageCrop(pdf, pageNumber, view.crop);
+        const picture = { src: image.dataUrl, width: image.width, height: image.height };
+        // Each passage opens on its zoomed page without boxes, as in a hand-made 본문 deck.
+        if (viewIndex === 0) canvases.push(readingSlideCanvas(picture, view.crop, []));
+        for (const index of view.chunks) {
+          canvases.push(readingSlideCanvas(picture, view.crop, lineBoxes(pageChunks[index]!.words).map((box) => toSlideBox(box, view.crop))));
+        }
+      }
     }
     return { canvases: canvases.slice(0, MAX_SLIDES), missingSentences, truncated: canvases.length > MAX_SLIDES };
   } finally {

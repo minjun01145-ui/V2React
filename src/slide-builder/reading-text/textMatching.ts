@@ -51,15 +51,23 @@ function tokensOf(chunks: readonly string[]): Token[] {
   return chunks.flatMap((chunk, index) => chunk.split(/\s+/).map(normalizeToken).filter(Boolean).map((value) => ({ value, chunk: index })));
 }
 
+/** Next word of a sentence: on the same page and on the same or a neighbouring line. */
+function follows(previous: PdfWord, next: PdfWord): boolean {
+  const lineHeight = previous.y1 - previous.y0;
+  return next.page === previous.page && Math.abs((next.y0 + next.y1) / 2 - (previous.y0 + previous.y1) / 2) <= lineHeight * 3;
+}
+
 /** Greedy in-order match of tokens[from..] starting at word index `start`; returns word index per token or -1. */
-function matchFrom(words: readonly string[], tokens: readonly Token[], from: number, start: number): { readonly hits: number[]; readonly score: number } {
+function matchFrom(words: readonly PdfWord[], normalized: readonly string[], tokens: readonly Token[], from: number, start: number): { readonly hits: number[]; readonly score: number } {
   const hits = tokens.map(() => -1);
   let position = start;
+  let previous: PdfWord | null = null;
   let score = 0;
   for (let index = from; index < tokens.length; index += 1) {
-    const limit = Math.min(words.length, position + LOOKAHEAD + 1);
+    const limit = Math.min(normalized.length, position + LOOKAHEAD + 1);
     for (let candidate = position; candidate < limit; candidate += 1) {
-      if (words[candidate] === tokens[index]!.value) {
+      if (normalized[candidate] === tokens[index]!.value && (!previous || follows(previous, words[candidate]!))) {
+        previous = words[candidate]!;
         hits[index] = candidate;
         position = candidate + 1;
         score += 1;
@@ -91,7 +99,7 @@ export function alignSentences(words: readonly PdfWord[], sentences: readonly (r
     let best: { readonly hits: number[]; readonly score: number; readonly start: number } | null = null;
     for (let anchor = 0; anchor < Math.min(ANCHOR_TOKENS, tokens.length); anchor += 1) {
       for (const start of positions.get(tokens[anchor]!.value) ?? []) {
-        const result = matchFrom(normalized, tokens, anchor, start);
+        const result = matchFrom(words, normalized, tokens, anchor, start);
         const better = !best || result.score > best.score
           || (result.score === best.score && (start >= cursor) && (best.start < cursor || start < best.start));
         if (better) best = { ...result, start };

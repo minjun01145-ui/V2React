@@ -16,9 +16,12 @@ export interface SlideImage {
   readonly height: number;
 }
 
-const SLIDE_RATIO = SLIDE_WIDTH / SLIDE_HEIGHT;
-/** Space kept around the text block, as a share of its larger side. */
-const CROP_MARGIN = 0.1;
+/** Body text size on the slide (slide px per em), about what the teacher's own 본문 slides use. */
+const TARGET_EM = 40;
+/** Height of a PDF word box in em; must match how pdfPages measures words. */
+const WORD_BOX_EM = 1.15;
+/** Share of the slide width kept free on each side of the longest line. */
+const SIDE_MARGIN = 0.04;
 const BOX_FILL = "rgba(255,0,0,0.15)";
 const BOX_STROKE = "#5b9bd5";
 
@@ -48,25 +51,60 @@ export function passageWords(matched: readonly PdfWord[], pageWords: readonly Pd
   return [...result];
 }
 
+export interface PageSize {
+  readonly width: number;
+  readonly height: number;
+}
+
+/** One zoomed 16:9 view of a page and the chunks (indexes into the page's chunk list) shown on it. */
+export interface PageView {
+  readonly crop: Box;
+  readonly chunks: readonly number[];
+}
+
+function median(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)] ?? 0;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 /**
- * The part of the page that frames the given text with a margin: 16:9 whenever the page allows,
- * otherwise as close as possible without cutting the text (the slide then letterboxes it).
+ * Zooms into the passage like a hand-made 본문 slide: body text at about TARGET_EM slide pixels
+ * (less only when a full line would not fit across the slide). The view stays put while the
+ * chunks advance and slides down the passage only when the next chunk falls outside it.
  */
-export function cropAround(words: readonly PdfWord[], page: { readonly width: number; readonly height: number }): Box {
-  const text = union(words);
-  const margin = Math.max(text.width, text.height) * CROP_MARGIN;
-  let width = Math.min(page.width, text.width + margin * 2);
-  let height = Math.min(page.height, text.height + margin * 2);
-  if (width / height > SLIDE_RATIO) height = Math.min(page.height, width / SLIDE_RATIO);
-  else width = Math.min(page.width, height * SLIDE_RATIO);
-  const centerX = text.x + text.width / 2;
-  const centerY = text.y + text.height / 2;
-  return {
-    x: Math.min(page.width - width, Math.max(0, centerX - width / 2)),
-    y: Math.min(page.height - height, Math.max(0, centerY - height / 2)),
-    width,
-    height,
-  };
+export function planPageViews(chunks: readonly (readonly PdfWord[])[], passage: readonly PdfWord[], page: PageSize): PageView[] {
+  const em = median(passage.map((word) => (word.y1 - word.y0) / WORD_BOX_EM));
+  const block = union(passage);
+  const scale = Math.max(SLIDE_WIDTH / page.width, SLIDE_HEIGHT / page.height,
+    Math.min(TARGET_EM / em, SLIDE_WIDTH * (1 - 2 * SIDE_MARGIN) / block.width));
+  const width = SLIDE_WIDTH / scale;
+  const height = SLIDE_HEIGHT / scale;
+  const lead = em * 1.6;
+  const pad = em * 0.8;
+  const passageFits = block.height + lead * 2 <= height;
+  const baseX = block.width <= width ? block.x + block.width / 2 - width / 2 : block.x - em;
+
+  const views: { crop: Box; chunks: number[] }[] = [];
+  chunks.forEach((words, index) => {
+    const box = union(words);
+    const current = views[views.length - 1];
+    if (current && box.x - pad >= current.crop.x && box.y - pad >= current.crop.y
+      && box.x + box.width + pad <= current.crop.x + width && box.y + box.height + pad <= current.crop.y + height) {
+      current.chunks.push(index);
+      return;
+    }
+    let y = passageFits ? block.y + block.height / 2 - height / 2 : views.length === 0 ? block.y - lead : box.y - lead;
+    // Do not scroll past the end of the passage, and always keep the chunk itself in view.
+    if (!passageFits) y = Math.min(y, block.y + block.height + lead - height);
+    y = Math.min(Math.max(y, box.y + box.height + pad - height), box.y - pad);
+    const x = Math.min(Math.max(baseX, box.x + box.width + pad - width), box.x - pad);
+    views.push({ crop: { x: clamp(x, 0, page.width - width), y: clamp(y, 0, page.height - height), width, height }, chunks: [index] });
+  });
+  return views;
 }
 
 /** One padded box per text line the words cover, in PDF page units. */
