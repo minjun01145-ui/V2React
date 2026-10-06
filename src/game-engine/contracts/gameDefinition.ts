@@ -58,6 +58,7 @@ export interface GameDefinition {
   readonly timing: GameTiming;
   readonly minimumSetItemCount: number;
   readonly minimumSetItemCountByType: Readonly<Record<string, number>>;
+  readonly minimumSetItemCountForConfig?: (config: Readonly<Record<string, unknown>>) => number;
   readonly requiresStoredSet: boolean;
   readonly settings: readonly GameSelectSetting[];
   readonly preloadPlayerProgress: boolean;
@@ -142,6 +143,6 @@ export function defineGame(definition: GameDefinitionInput): Readonly<GameDefini
   });
 }
 
-export function minimumSetItemCountForType(game: GameDefinition, setType: string): number {
-  return game.minimumSetItemCountByType[setType] ?? game.minimumSetItemCount;
+export function minimumSetItemCountForType(game: GameDefinition, setType: string, config: Readonly<Record<string, unknown>> = {}): number {
+  return game.minimumSetItemCountForConfig?.(config) ?? game.minimumSetItemCountByType[setType] ?? game.minimumSetItemCount;
 }

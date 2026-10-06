@@ -1,5 +1,6 @@
 import { minimumSetItemCountForType, type GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
 import { getGame, listGames } from "../../../games/registry.ts";
+import { readMatchingCardMode } from "../../../games/matching/config.ts";
 import type { LearningSetSummary } from "../../../learning-sets/types.ts";
 import type { SlideEngine, SlideEngineCustomItem, SlideEngineRound, SlideFrame } from "../../../slide-show/types.ts";
 
@@ -42,14 +43,15 @@ export function compatibleSets(round: SlideEngineRound, sets: readonly LearningS
 /** Checks that need the teacher's learning sets, which the domain validation cannot see. */
 export function engineSetIssue(round: SlideEngineRound, sets: readonly LearningSetSummary[]): string | null {
   const game = getGame(round.gameId);
+  const config = round.gameId === "matching-all" ? { ...round.gameConfig, "matching-cards": readMatchingCardMode(round.gameConfig, round.gameId) } : round.gameConfig;
   const source = round.source;
   if (source.kind === "stored-set") {
     const set = sets.find((item) => item.id === source.setId);
     if (game.requiresStoredSet && !set) return "학습 세트를 선택해 주세요.";
-    if (set && set.itemCount < minimumSetItemCountForType(game, set.type)) return `${game.title}에 필요한 문항 수가 부족합니다.`;
+    if (set && set.itemCount < minimumSetItemCountForType(game, set.type, config)) return `${game.title}에 필요한 문항 수가 부족합니다.`;
   } else if (source.kind === "custom") {
     if (!game.supportsFiniteQuizQuestions || !game.supportedSetTypes.includes(source.setType)) return "이 엔진은 선택한 직접 출제 형식을 지원하지 않습니다.";
-    if (source.items.length < minimumSetItemCountForType(game, source.setType)) return `${game.title}에 필요한 문항 수가 부족합니다.`;
+    if (source.items.length < minimumSetItemCountForType(game, source.setType, config)) return `${game.title}에 필요한 문항 수가 부족합니다.`;
   }
   return null;
 }

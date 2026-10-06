@@ -14,7 +14,7 @@ import { adaptLearningSetToPairMatching } from "../../learning-sets/pairMatching
 import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
 import { persistGameAttempt, type GameAttemptSubmission } from "../../multiplayer/game-progress/repository.ts";
 import type { ActiveGameSession, Player } from "../../multiplayer/types.ts";
-import { ALL_MATCHING_BASE_SCORE, ALL_MATCHING_PAIR_COUNT, allMatchingRoundResult, createAllMatchingBoard, nextUsedPairIds } from "./engine.ts";
+import { ALL_MATCHING_BASE_SCORE, ALL_MATCHING_PAIR_COUNT, allMatchingRoundResult, createAllMatchingBoard, nextUsedPairIds } from "./allEngine.ts";
 
 interface MatchingAllDetails {
   readonly combo: number;

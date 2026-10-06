@@ -1,4 +1,5 @@
 import { getGame } from "../../../games/registry.ts";
+import { readMatchingCardMode } from "../../../games/matching/config.ts";
 import type { LearningSetSummary } from "../../../learning-sets/types.ts";
 import type { SlideEngineRound, SlideEngineSource } from "../../../slide-show/types.ts";
 import Button from "../../../shared/ui/Button.tsx";
@@ -16,7 +17,10 @@ interface Props {
   readonly onRemove: () => void;
 }
 
-export default function SlideEnginePanel({ round, sets, disabled, issue, onChange, onRemove }: Props) {
+export default function SlideEnginePanel({ round: storedRound, sets, disabled, issue, onChange, onRemove }: Props) {
+  const round = storedRound.gameId === "matching" || storedRound.gameId === "matching-all"
+    ? { ...storedRound, gameId: "matching", gameConfig: { ...storedRound.gameConfig, "matching-cards": readMatchingCardMode(storedRound.gameConfig, storedRound.gameId) } }
+    : storedRound;
   const game = getGame(round.gameId);
   const candidates = compatibleSets(round, sets);
   const source = round.source;

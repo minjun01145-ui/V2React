@@ -2,6 +2,8 @@ import { useLearningSet } from "../../learning-sets/useLearningSet.ts";
 import type { LearningSet, RuntimeLearningSet } from "../../learning-sets/types.ts";
 import type { ActiveGameSession } from "../../multiplayer/types.ts";
 import { matchingDemoSet } from "./demoSet.ts";
+import { matchingAllDemoSet } from "./allDemoSet.ts";
+import { readMatchingCardMode } from "./config.ts";
 
 function configuredSetId(session: ActiveGameSession): string | null {
   const value = session.gameConfig?.setId;
@@ -16,8 +18,9 @@ export function useMatchingSet(session: ActiveGameSession): {
   const inlineSet = session.gameConfig?.set;
   const setId = inlineSet ? null : configuredSetId(session);
   const remote = useLearningSet(setId, session.roundId);
+  const demoSet = readMatchingCardMode(session.gameConfig, session.gameId) === "all" ? matchingAllDemoSet : matchingDemoSet;
   return {
-    set: (inlineSet as LearningSet | undefined) ?? remote.set ?? (setId ? null : matchingDemoSet),
+    set: (inlineSet as LearningSet | undefined) ?? remote.set ?? (setId ? null : demoSet),
     loading: Boolean(setId) && remote.loading,
     error: remote.error,
   };

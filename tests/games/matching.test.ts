@@ -3,6 +3,31 @@ import { isMatchingPair } from "../../src/game-engine/pair-matching/index.ts";
 import { countVisiblePairs, createMatchingBoard, matchingComboResult, refillMatchingBoard } from "../../src/games/matching/engine.ts";
 import { adaptLearningSetToPairMatching } from "../../src/learning-sets/pairMatchingAdapter.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
+import { minimumSetItemCountForType } from "../../src/game-engine/contracts/gameDefinition.ts";
+import { readMatchingCardMode } from "../../src/games/matching/config.ts";
+import { getGame, listGames } from "../../src/games/registry.ts";
+import { engineRoundForGame, engineSetIssue } from "../../src/features/teacher/slide-show/engineDraft.ts";
+
+const game = getGame("matching");
+assert.equal(listGames().filter((entry) => entry.id === "matching" || entry.id === "matching-all").length, 1);
+assert.equal(getGame("matching-all"), game, "기존 모든 카드 세션도 통합 게임을 불러와야 합니다.");
+assert.equal(game.settings[0]?.defaultValue, "all");
+assert.equal(readMatchingCardMode({ "matching-cards": "all" }), "all");
+assert.equal(readMatchingCardMode({ "matching-cards": "partial" }), "partial");
+assert.equal(readMatchingCardMode(null), "partial", "옵션이 없는 기존 일부 카드 세션은 규칙을 유지해야 합니다.");
+assert.equal(readMatchingCardMode(null, "matching-all"), "all");
+for (const value of ["invalid", true, 4, {}, null]) {
+  assert.equal(readMatchingCardMode({ "matching-cards": value }), "partial", "잘못된 외부 옵션은 기존 규칙으로 처리합니다.");
+}
+assert.equal(minimumSetItemCountForType(game, "vocabulary", { "matching-cards": "all" }), 4);
+assert.equal(minimumSetItemCountForType(game, "vocabulary", { "matching-cards": "partial" }), 6);
+const round = engineRoundForGame("matching", []);
+assert.equal(round.gameConfig["matching-cards"], "all", "새 슬라이드도 모든 카드를 기본으로 사용합니다.");
+const shortSet = { id: "short", name: "4개 세트", type: LEARNING_SET_TYPE.VOCABULARY, itemCount: 4, createdAtMs: 1, updatedAtMs: 1 };
+const shortRound = { ...round, source: { kind: "stored-set" as const, setId: shortSet.id } };
+assert.equal(engineSetIssue(shortRound, [shortSet]), null);
+assert.ok(engineSetIssue({ ...shortRound, gameConfig: { "matching-cards": "partial" } }, [shortSet]));
+assert.equal(engineSetIssue({ ...shortRound, gameId: "matching-all", gameConfig: {} }, [shortSet]), null);
 
 const vocabularySet: LearningSet = {
   id: "matching-test",

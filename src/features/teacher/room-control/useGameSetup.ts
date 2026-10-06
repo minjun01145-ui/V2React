@@ -57,7 +57,7 @@ export function useGameSetup(refreshKey: string | null = null): GameSetupState {
   const compatibleSets = useMemo(() => sets.filter((set) => selectedGame.supportedSetTypes.includes(set.type)), [selectedGame, sets]);
   const selectedSet = useMemo(() => compatibleSets.find((set) => set.id === selectedSetId) ?? null, [compatibleSets, selectedSetId]);
   const minimumSetItemCount = selectedSet
-    ? minimumSetItemCountForType(selectedGame, selectedSet.type)
+    ? minimumSetItemCountForType(selectedGame, selectedSet.type, settingValues)
     : selectedGame.minimumSetItemCount;
   const invalidSet = (selectedGame.requiresStoredSet && !selectedSet)
     || Boolean(selectedSet && selectedSet.itemCount < minimumSetItemCount);

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ALL_MATCHING_BASE_SCORE, allMatchingRoundResult, createAllMatchingBoard, nextUsedPairIds } from "../../src/games/matching-all/engine.ts";
+import { ALL_MATCHING_BASE_SCORE, allMatchingRoundResult, createAllMatchingBoard, nextUsedPairIds } from "../../src/games/matching/allEngine.ts";
 import { adaptLearningSetToPairMatching } from "../../src/learning-sets/pairMatchingAdapter.ts";
 import { LEARNING_SET_TYPE, type LearningSet } from "../../src/learning-sets/types.ts";
 

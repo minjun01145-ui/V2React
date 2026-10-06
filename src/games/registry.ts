@@ -1,5 +1,6 @@
 
 import { defineGame, type GameDefinition } from "../game-engine/contracts/gameDefinition.ts";
+import { matchingMinimumSetItemCount } from "./matching/config.ts";
 
 const definitions = [
   defineGame({
@@ -246,19 +247,20 @@ const definitions = [
     category: "card",
     supportedSetTypes: ["vocabulary"],
     minimumSetItemCount: 6,
+    minimumSetItemCountForConfig: matchingMinimumSetItemCount,
     preloadPlayerProgress: true,
+    settings: [{
+      kind: "select",
+      key: "matching-cards",
+      label: "카드 구성",
+      defaultValue: "all",
+      options: [
+        { value: "all", label: "모든 카드" },
+        { value: "partial", label: "일부 카드" },
+      ],
+    }],
     loadStudent: () => import("./matching/MatchingStudentModule.tsx"),
     loadTeacher: () => import("./matching/MatchingTeacherModule.tsx"),
-  }),
-  defineGame({
-    id: "matching-all",
-    title: "짝 맞추기 · 전체",
-    category: "card",
-    supportedSetTypes: ["vocabulary"],
-    minimumSetItemCount: 4,
-    preloadPlayerProgress: true,
-    loadStudent: () => import("./matching-all/MatchingAllStudentModule.tsx"),
-    loadTeacher: () => import("./matching-all/MatchingAllTeacherModule.tsx"),
   }),
   defineGame({
     // The id predates the skating redesign; stored rounds and progress still use it.
@@ -375,7 +377,7 @@ const fallbackGame: GameDefinition = (() => {
 })();
 
 export function getGame(gameId: string): GameDefinition {
-  return registry.get(gameId) ?? fallbackGame;
+  return registry.get(gameId === "matching-all" ? "matching" : gameId) ?? fallbackGame;
 }
 
 export function findGameForSetType(setType: string): GameDefinition | null {

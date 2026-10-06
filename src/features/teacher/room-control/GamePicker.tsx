@@ -14,8 +14,7 @@ const GROUPS = [
   { title: "학습", games: [
     ["ai-tutor", "AI 문답"],
     ["simple-quiz", "객관식 퀴즈"],
-    ["matching-all", "짝 맞추기(모든 카드)"],
-    ["matching", "짝 맞추기(일부 카드)"],
+    ["matching", "짝 맞추기"],
     ["sentence-builder", "문장 만들기"],
   ] },
   { title: "타자", games: [["typing", "문장 타자"], ["acid-rain", "산성비"], ["typing-escape", "무궁화 탈출"]] },

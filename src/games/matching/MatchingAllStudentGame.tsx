@@ -46,7 +46,7 @@ export default function MatchingAllStudentGame({ roomId, session, player, set, d
   return <main className={`${styles.gameShell} ${embedded ? styles.embedded : ""}`}>
     <GameEffectLayer effect={effects.activeEffect} />
     <header className={styles.topbar}>
-      <div><h1>짝맞추기 · 모든카드</h1></div>
+      <div><h1>짝 맞추기</h1></div>
       <div className={styles.topMetrics}><div className={styles.stats}>
         <div><small>완성한 판</small><strong>{game.progress.correctCount}</strong></div>
         <div><small>판 콤보</small><strong>{game.combo}</strong></div>

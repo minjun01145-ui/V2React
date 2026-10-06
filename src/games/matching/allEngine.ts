@@ -10,7 +10,7 @@ export function createAllMatchingBoard(
   recentlyUsedPairIds: readonly string[],
   seed: string,
 ): readonly PairMatchingCard[] {
-  if (pairs.length < ALL_MATCHING_PAIR_COUNT) throw new Error("짝 맞추기 · 전체에는 단어가 4개 이상 필요합니다.");
+  if (pairs.length < ALL_MATCHING_PAIR_COUNT) throw new Error("모든 카드 짝 맞추기에는 단어가 4개 이상 필요합니다.");
   const recentlyUsed = new Set(recentlyUsedPairIds);
   const freshPairs = pairs.filter((pair) => !recentlyUsed.has(pair.id));
   const candidates = freshPairs.length >= ALL_MATCHING_PAIR_COUNT ? freshPairs : pairs;
