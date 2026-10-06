@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { useEffect, useRef } from "react";
 import { BlobActor } from "../../game-engine/phaser-kit/BlobActor.ts";
 import { FONT_FAMILY, TEXT_METRICS_SAMPLE } from "../../game-engine/phaser-kit/art.ts";
-import { FINISH } from "./model.ts";
+import { FINISH, WORD_JUMP } from "./model.ts";
 import styles from "./TypingEscape.module.css";
 
 export interface EscapeRunner { id: string; label: string; distance: number; escapes: number; hits: number; hidden: boolean; hit: boolean }
@@ -10,11 +10,14 @@ export interface EscapeStageState { runners: readonly EscapeRunner[]; selfId: st
 const INK = 0x192a31;
 const START_X = 112;
 const EXIT_X = 1015;
+const LEAP_MS = 420;
+const ZOOM = 1.3;
 const textStyle = { fontFamily: FONT_FAMILY, fontStyle: "300", color: "#fff6d9", resolution: 2, testString: TEXT_METRICS_SAMPLE };
 interface Actor {
   id: string; character: BlobActor; bin: Phaser.GameObjects.Image; lid: Phaser.GameObjects.Image;
   tag: Phaser.GameObjects.Text; shadow: Phaser.GameObjects.Ellipse;
   x: number; y: number; distance: number; hits: number; escapes: number; stepAt: number;
+  leapAt: number; leapFrom: number;
 }
 
 class EscapeScene extends Phaser.Scene {
@@ -24,6 +27,9 @@ class EscapeScene extends Phaser.Scene {
   private gun!: Phaser.GameObjects.Image;
   private spotlight!: Phaser.GameObjects.Graphics;
   private lamp!: Phaser.GameObjects.Arc;
+  private selfRing!: Phaser.GameObjects.Ellipse;
+  private selfArrow!: Phaser.GameObjects.Triangle;
+  private cameraX = START_X;
   private wasWatching = false;
   private reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   constructor(read: () => EscapeStageState) { super("escape"); this.read = read; }
@@ -97,6 +103,8 @@ class EscapeScene extends Phaser.Scene {
       art.fillStyle(0x9fba99).fillRect(8, 12, 36, 5).fillRect(10, 17, 5, 30);
       for (const x of [20, 28, 36]) art.fillStyle(0x3d574f).fillRect(x, 20, 3, 25);
     });
+    this.selfRing = this.add.ellipse(0, 0, 78, 20, 0xe2ff83, .55).setStrokeStyle(3, 0xe2ff83).setVisible(false);
+    this.selfArrow = this.add.triangle(0, 0, 0, 0, 26, 0, 13, 18, 0xe2ff83).setStrokeStyle(3, INK).setOrigin(.5, 1).setDepth(71).setVisible(false);
     this.texture("escape-lid", 56, 16, art => {
       art.fillStyle(INK).fillRect(1, 7, 54, 9).fillRect(20, 0, 16, 7);
       art.fillStyle(0xa2b99b).fillRect(4, 8, 48, 4).fillRect(23, 3, 10, 4);
@@ -171,6 +179,11 @@ class EscapeScene extends Phaser.Scene {
     this.pop(EXIT_X - 20, actor.y - 70, "+100", "#dfff83");
     if (local && !this.reducedMotion) this.cameras.main.flash(100, 218, 248, 161);
   }
+  private leap(actor: Actor, time: number) {
+    actor.leapAt = time; actor.leapFrom = actor.x;
+    this.pop(actor.x, actor.y - 100, "완료!", "#fff27a");
+    this.burst(actor.x, actor.y - 10, [0xfff27a, 0xf5efcf, 0xc6ed65], 12);
+  }
   override update(time: number, delta: number) {
     const state = this.read();
     if (!this.guard) return;
@@ -202,36 +215,58 @@ class EscapeScene extends Phaser.Scene {
         character.container.setScale(scale * 1.35);
         actor = { id: runner.id, character,
           bin: this.add.image(targetX, y, "escape-bin").setOrigin(.5, 1), lid: this.add.image(targetX, y - 47, "escape-lid").setOrigin(.5, 1),
-          tag: this.add.text(targetX, y - 74, "", { ...textStyle, fontSize: local ? "17px" : "13px", stroke: "#192a31", strokeThickness: 4 }).setOrigin(.5, 1),
+          tag: this.add.text(targetX, y - 74, "", local
+            ? { ...textStyle, fontSize: "18px", color: "#192a31", backgroundColor: "#e2ff83", padding: { x: 7, y: 3 } }
+            : { ...textStyle, fontSize: "13px", stroke: "#192a31", strokeThickness: 4 }).setOrigin(.5, 1),
           shadow: this.add.ellipse(targetX, y, 42, 7, INK, .2),
-          x: targetX, y, distance: runner.distance, hits: runner.hits, escapes: runner.escapes, stepAt: -1000 };
+          x: targetX, y, distance: runner.distance, hits: runner.hits, escapes: runner.escapes, stepAt: -1000, leapAt: -1000, leapFrom: targetX };
         this.actors.set(runner.id, actor);
       }
       if (runner.hits > actor.hits) this.shoot(actor, local);
       if (runner.escapes > actor.escapes) this.celebrate(actor, local);
-      if (runner.distance > actor.distance && runner.distance < FINISH) {
+      // Strokes move at most a few steps per frame; a bigger forward jump is a completed word.
+      if (runner.distance - actor.distance >= WORD_JUMP) this.leap(actor, time);
+      else if (runner.distance > actor.distance) {
         actor.stepAt = time;
         if (!this.reducedMotion) this.burst(actor.x - 14, y - 3, [0xd8d1a6, 0xf5efcf], 3);
       }
       const reset = runner.distance < actor.distance;
-      actor.x = reset ? targetX : Phaser.Math.Linear(actor.x, targetX, Math.min(1, delta / 65));
+      const leapAge = (time - actor.leapAt) / LEAP_MS;
+      const leaping = leapAge < 1 && !reset && !runner.hit;
+      actor.x = reset ? targetX : leaping ? Phaser.Math.Linear(actor.leapFrom, targetX, Phaser.Math.Easing.Cubic.Out(leapAge))
+        : Phaser.Math.Linear(actor.x, targetX, Math.min(1, delta / 65));
+      if (reset) actor.leapAt = -1000;
       actor.y = y; actor.distance = runner.distance; actor.hits = runner.hits; actor.escapes = runner.escapes;
-      const moving = !runner.hidden && !runner.hit && runner.distance < FINISH;
-      const visible = !runner.hit && runner.distance < FINISH;
+      const moving = leaping || (!runner.hidden && !runner.hit);
+      // A shot runner's bin lies toppled where they fell until the countdown sends them back.
+      const dead = runner.hit;
       const step = time - actor.stepAt;
-      const hop = moving && step < 150 && !this.reducedMotion ? Math.sin(step / 150 * Math.PI) * 10 : 0;
-      actor.character.update({ x: actor.x, feetY: y - hop, vx: moving ? 200 : 0, vy: 0, groundY: y }, time, delta);
-      actor.character.container.setScale(scale * 1.35).setDepth(y / 10 + 10).setVisible(visible && moving);
-      actor.bin.setPosition(actor.x, y).setScale(scale).setDepth(y / 10 + 11).setVisible(visible && !moving);
-      actor.lid.setPosition(actor.x, y - 47 * scale).setScale(scale).setAngle(moving ? -18 : 0).setDepth(y / 10 + 12).setVisible(visible && !moving);
-      actor.shadow.setPosition(actor.x, y).setScale(scale).setDepth(6).setVisible(visible && !moving);
-      actor.tag.setText(`${local ? "▼ " : ""}${runner.label}${runner.escapes ? ` · ${runner.escapes}` : ""}`)
-        .setPosition(actor.x, y - 66 * scale - hop).setDepth(70).setColor(local ? "#e2ff83" : "#fff6d9");
+      const hop = leaping && !this.reducedMotion ? Math.sin(leapAge * Math.PI) * 90
+        : moving && step < 150 && !this.reducedMotion ? Math.sin(step / 150 * Math.PI) * 10 : 0;
+      const alpha = state.selfId && !local ? .6 : 1;
+      actor.character.update({ x: actor.x, feetY: y - hop, vx: moving ? 200 : 0, vy: leaping ? -200 : 0, groundY: y, alpha }, time, delta);
+      actor.character.container.setScale(scale * 1.35).setDepth(local ? 60 : y / 10 + 10).setVisible(!dead && moving);
+      actor.bin.setPosition(actor.x, y).setScale(scale).setAlpha(dead ? alpha * .7 : alpha).setAngle(dead ? 90 : 0)
+        .setDepth(local ? 61 : y / 10 + 11).setVisible(!moving);
+      actor.lid.setPosition(actor.x, y - 47 * scale).setScale(scale).setAlpha(alpha).setAngle(moving ? -18 : 0).setDepth(local ? 62 : y / 10 + 12).setVisible(!dead && !moving);
+      actor.shadow.setPosition(actor.x, y).setScale(scale).setDepth(6).setVisible(!moving);
+      actor.tag.setText(local ? `나 · ${runner.label}${runner.escapes ? ` · ${runner.escapes}` : ""}` : `${runner.label}${runner.escapes ? ` · ${runner.escapes}` : ""}`)
+        .setPosition(actor.x, y - 66 * scale - hop).setDepth(local ? 72 : 70).setAlpha(alpha);
+      if (local) {
+        const bob = this.reducedMotion ? 0 : Math.sin(time / 160) * 5;
+        this.selfArrow.setPosition(actor.x, y - 66 * scale - hop - 34 + bob).setVisible(true);
+        this.selfRing.setPosition(actor.x, y + 2).setDepth(7).setAlpha(.6 + Math.sin(time / 200) * .3).setVisible(true);
+        this.cameraX = Phaser.Math.Linear(this.cameraX, actor.x, Math.min(1, delta / 300));
+      }
       const labels = labelsByRow.get(y) ?? [];
       const showLabel = local || !labels.some(x => Math.abs(x - actor.x) < 86);
       actor.tag.setVisible(showLabel);
       if (showLabel) labelsByRow.set(y, [...labels, actor.x]);
     });
+    const camera = this.cameras.main;
+    if (state.selfId) camera.setBounds(0, 0, 1120, 560).setZoom(ZOOM).centerOn(this.cameraX, 560);
+    else camera.setZoom(1).centerOn(560, 280);
+    if (!state.runners.some(r => r.id === state.selfId)) { this.selfArrow.setVisible(false); this.selfRing.setVisible(false); }
   }
 }
 

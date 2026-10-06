@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { StudentGameModuleProps, TeacherGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
+import type { TypingComparisonOptions } from "../../game-engine/typing/types.ts";
 import { adaptLearningSetToTyping } from "../../game-engine/typing/typingAdapter.ts";
 import { readTimedGameConfig } from "../../game-engine/timed-game/config.ts";
 import { ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
@@ -40,7 +41,9 @@ function Runtime({ props, targets, players }: { props: Props; targets: readonly 
   const label = props.role === "student" ? displayLabel(props.player.displayName, props.player.nickname) : "교사";
   const duration = readTimedGameConfig(session.gameConfig).durationMs;
   const end = duration !== null && session.startedAtMs !== null ? session.startedAtMs + duration : null;
-  const race = useEscapeRace(props.roomId, session.roundId, selfId, label, session.startedAtMs, end, targets);
+  const options: TypingComparisonOptions = { ignoreCase: session.gameConfig?.["ignore-case"] === "yes",
+    ignorePunctuation: session.gameConfig?.["ignore-punctuation"] === "yes" };
+  const race = useEscapeRace(props.roomId, session.roundId, selfId, label, session.startedAtMs, end, targets, options);
   const expired = end !== null && race.now >= end;
   const now = expired ? end! : race.now;
   const phase = phaseAt(session.startedAtMs, now);
@@ -54,20 +57,51 @@ function Runtime({ props, targets, players }: { props: Props; targets: readonly 
       hidden: local ? hiddenAt(race.progress, now) : frame?.vy !== 1,
       hit: local ? now < race.progress.stunnedUntil : frame?.vy === -1 };
   });
+  const finished = targets[(race.progress.question + targets.length - 1) % targets.length]!;
   const content = <EscapeGameView selfId={selfId} runners={runners} progress={race.progress} phase={phase} now={now}
     remaining={end === null ? null : Math.max(0, Math.ceil((end - race.now) / 1000))} expired={expired}
-    target={targets[race.progress.question % targets.length]!} connected={race.connected} error={race.error?.message ?? null}
+    target={targets[race.progress.question % targets.length]!} options={options}
+    completedText={/\s/.test(finished.trim()) ? "한 문장 완료!" : "한 단어 완료!"}
+    connected={race.connected} error={race.error?.message ?? null}
     onInput={race.input} onActivity={race.activity} />;
   return props.role === "student" ? <ImmersiveStage>{content}</ImmersiveStage> : content;
+}
+
+const FEED_MS = 3_500;
+type FeedItem = { key: string; at: number; text: string; hit: boolean; self: boolean };
+function subject(name: string) {
+  const last = name.at(-1) ?? "";
+  const code = last.charCodeAt(0) - 0xac00;
+  // Digits follow their Korean reading: 이, 사, 오, 구 end in a vowel.
+  if (/\d/.test(last)) return `${name}${"2459".includes(last) ? "가" : "이"}`;
+  return code >= 0 && code < 11_172 ? `${name}${code % 28 ? "이" : "가"}` : `${name}이(가)`;
+}
+/** Announces escapes and deaths; a jump of more than one is a reconnect catching up, not an event. */
+function useEscapeFeed(runners: readonly EscapeRunner[], selfId: string | null, now: number) {
+  const seen = useRef(new Map<string, { hits: number; escapes: number }>());
+  const [feed, setFeed] = useState<readonly FeedItem[]>([]);
+  useEffect(() => {
+    const events: FeedItem[] = [];
+    for (const runner of runners) {
+      const before = seen.current.get(runner.id);
+      seen.current.set(runner.id, { hits: runner.hits, escapes: runner.escapes });
+      if (!before) continue;
+      const self = runner.id === selfId;
+      if (runner.escapes === before.escapes + 1) events.push({ key: `${runner.id}:e${runner.escapes}`, at: now, text: `${runner.label} 탈출 성공!!`, hit: false, self });
+      if (runner.hits === before.hits + 1) events.push({ key: `${runner.id}:h${runner.hits}`, at: now, text: `${subject(runner.label)} 죽었습니다!`, hit: true, self });
+    }
+    if (events.length) setFeed(items => [...items.filter(item => now - item.at < FEED_MS), ...events].slice(-5));
+  }, [runners, selfId, now]);
+  return feed.filter(item => now - item.at < FEED_MS);
 }
 
 export interface EscapeGameViewProps {
   selfId: string | null; runners: readonly EscapeRunner[]; progress: EscapeProgress;
   phase: ReturnType<typeof phaseAt>; now: number; remaining: number | null; expired: boolean;
-  target: string; connected: boolean; error: string | null;
+  target: string; options: TypingComparisonOptions; completedText: string; connected: boolean; error: string | null;
   onInput: (value: string, composing?: boolean) => void; onActivity: () => void;
 }
-export function EscapeGameView({ selfId, runners, progress, phase, now, remaining, expired, target, connected, error, onInput, onActivity }: EscapeGameViewProps) {
+export function EscapeGameView({ selfId, runners, progress, phase, now, remaining, expired, target, options, completedText, connected, error, onInput, onActivity }: EscapeGameViewProps) {
   const audio = useEscapeAudio(selfId === null, phase.active && !expired, phase,
     selfId === null ? runners.reduce((sum, runner) => sum + runner.hits, 0) : progress.hits,
     selfId === null ? runners.reduce((sum, runner) => sum + runner.escapes, 0) : progress.escapes);
@@ -75,20 +109,26 @@ export function EscapeGameView({ selfId, runners, progress, phase, now, remainin
   const committedComposition = useRef<string | null>(null);
   const input = useRef<HTMLInputElement>(null);
   const hit = now < progress.stunnedUntil;
-  const escaped = progress.distance >= FINISH;
-  const comparison = escapeTypingState(target, progress.input);
+  const countdown = Math.ceil((progress.stunnedUntil - now) / 1000);
+  const escaped = now < progress.escapedUntil;
+  const completed = now < progress.completedUntil;
+  const comparison = escapeTypingState(target, progress.input, options);
   const nextLetter = [...target.slice(comparison.prefix)][0] ?? "";
   const watching = phase.watching && !expired;
+  const warning = phase.active && !expired && !watching && phase.syllable === 9;
+  const feed = useEscapeFeed(runners, selfId, now);
   const standings = [...runners].sort((a, b) => b.escapes - a.escapes || a.label.localeCompare(b.label, "ko"));
   useEffect(() => {
-    if (connected && phase.active && !expired) input.current?.focus();
-  }, [connected, phase.active, expired]);
-  useEffect(() => {
+    // Blurring ends any IME composition so the erased answer cannot reappear.
     composing.current = false;
     committedComposition.current = null;
+    if (progress.hits) input.current?.blur();
   }, [progress.hits]);
-  const inputStatus = expired ? "경기 종료" : !connected ? "연결 중…" : !phase.active ? "출발 준비" : hit ? "발각! 재출발 대기" : escaped ? `탈출! +${ESCAPE_POINTS}` : watching ? "꼼짝 마!" : "달려!";
-  return <div className={`${styles.game} ${watching ? styles.watching : ""} ${hit ? styles.hit : ""}`}>
+  useEffect(() => {
+    if (connected && phase.active && !expired && !hit) input.current?.focus();
+  }, [connected, phase.active, expired, hit]);
+  const inputStatus = expired ? "경기 종료" : !connected ? "연결 중…" : !phase.active ? "출발 준비" : hit ? `${countdown}초 뒤 출발` : watching ? "멈춰!" : escaped ? `탈출! +${ESCAPE_POINTS}` : "달려!";
+  return <div className={`${styles.game} ${watching ? styles.watching : ""} ${warning ? styles.warning : ""} ${selfId && hit ? styles.hit : ""}`}>
     <header className={styles.header}>
       <h2>무궁화 <span>탈출</span></h2>
       {selfId && <div className={styles.score}><span>탈출 {progress.escapes}회</span><strong>{escapeScore(progress)}<small>점</small></strong></div>}
@@ -98,20 +138,28 @@ export function EscapeGameView({ selfId, runners, progress, phase, now, remainin
     <div className={styles.arena}>
       <div className={styles.chant} role="status" aria-live="off">
         <i className={styles.signal} aria-hidden="true" />
-        <strong key={`${phase.cycle}:${phase.beat}:${watching}`}>{expired ? "경기 종료!" : !phase.active ? "출발 준비!" : watching ? "꼼짝 마!!" : `${phase.text}${phase.syllable === 9 ? "!!!" : phase.beatMs > 600 ? "…" : ""}`}</strong>
+        <strong key={`${phase.cycle}:${phase.beat}:${watching}`}>{expired ? "경기 종료!" : !phase.active ? "출발 준비!" : watching ? "멈춰!! 움직이면 쏜다!" : `${phase.text}${phase.syllable === 9 ? "!!!" : phase.beatMs > 600 ? "…" : ""}`}</strong>
       </div>
       <EscapeStage runners={runners} selfId={selfId} watching={watching} cycle={phase.cycle} active={phase.active && !expired} />
-      {selfId && !expired && (hit || escaped) && <div className={`${styles.outcome} ${escaped ? styles.success : styles.failure}`} role="status" key={hit ? `hit:${progress.hits}` : `escape:${progress.escapes}`}>
-        <strong>{hit ? "발각!!" : "탈출!!"}</strong><span>{hit ? "다시 출발!" : `+${ESCAPE_POINTS}점`}</span>
+      {watching && <div className={styles.redLight} aria-hidden="true" />}
+      {selfId && hit && !expired && <div className={styles.hurt} key={progress.hits} aria-hidden="true" />}
+      {selfId && !expired && hit && <div className={styles.death} role="status">
+        <strong>죽었습니다!</strong><b key={countdown}>{countdown}</b>
       </div>}
+      {selfId && !expired && !hit && (escaped || completed) && <div className={`${styles.outcome} ${escaped ? styles.success : styles.leap}`} role="status"
+        key={escaped ? `escape:${progress.escapes}` : `leap:${progress.question}`}>
+        <strong>{escaped ? "탈출 성공!!" : completedText}</strong><span>{escaped ? `+${ESCAPE_POINTS}점` : "점프!"}</span>
+      </div>}
+      {!expired && feed.length > 0 && <ol className={styles.feed} aria-live="polite">{feed.map(item =>
+        <li key={item.key} className={`${item.hit ? styles.feedHit : styles.feedEscape} ${item.self ? styles.feedSelf : ""}`}>{item.text}</li>)}</ol>}
     </div>
     {(error || audio.error) && <div role="alert" className={styles.error}>{error ?? audio.error}</div>}
     {selfId && !expired && <div className={styles.typing}>
       <div className={styles.typingTop}><strong className={styles.inputStatus}>{inputStatus}</strong><div className={styles.distance} aria-label={`탈출까지 ${FINISH - progress.distance}%`}><span style={{ width: `${progress.distance}%` }} /></div><b>{progress.distance}%</b></div>
       <div className={styles.prompt}><mark>{target.slice(0, comparison.prefix)}</mark><span className={styles.nextLetter}>{nextLetter}</span>{target.slice(comparison.prefix + nextLetter.length)}</div>
       <input ref={input} aria-label="제시된 단어 또는 문장 입력" autoFocus autoComplete="off" autoCapitalize="off" spellCheck={false}
-        value={progress.input} aria-invalid={comparison.hasError} disabled={!connected || !!error || !phase.active} readOnly={hit || escaped}
-        placeholder={hit || escaped ? inputStatus : "입력"} maxLength={10_000}
+        value={progress.input} aria-invalid={comparison.hasError} disabled={!connected || !!error || !phase.active} readOnly={hit}
+        placeholder={hit ? inputStatus : "입력"} maxLength={10_000}
         onPaste={e => e.preventDefault()} onDrop={e => e.preventDefault()}
         onCompositionStart={() => { composing.current = true; }}
         onKeyDown={e => { if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key.length === 1 || e.key === "Process" || e.key === "Backspace" || e.key === "Delete")) onActivity(); }}

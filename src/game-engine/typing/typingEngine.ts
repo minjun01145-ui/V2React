@@ -89,7 +89,7 @@ export function normalizeTypingCharacter(
   return normalized;
 }
 
-function isIgnoredTypingCharacter(character: string, options: TypingComparisonOptions): boolean {
+export function isIgnoredTypingCharacter(character: string, options: TypingComparisonOptions): boolean {
   if (!options.ignorePunctuation || /[ \t\n\r]/.test(character)) return false;
   return PUNCTUATION_OR_SYMBOL.test(character);
 }
