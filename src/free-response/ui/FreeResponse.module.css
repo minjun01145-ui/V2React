@@ -4,6 +4,7 @@
 .form label { display: grid; gap: .5rem; font-weight: 300; }
 .form textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: .8rem; border: 1px solid var(--color-border); border-radius: .6rem; background: var(--color-surface); color: var(--color-text); font: inherit; }
 .form small, .dashboard header span { color: var(--color-muted); }
+.dashboard header span { margin-left: auto; }
 .dashboard header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: .8rem; }
 .response { display: flex; flex-direction: column; align-items: stretch; gap: .8rem; padding: 1rem; border: 1px solid var(--color-border); border-radius: .8rem; background: var(--color-surface); color: var(--color-text); text-align: left; font: inherit; cursor: pointer; }
