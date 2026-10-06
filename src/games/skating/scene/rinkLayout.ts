@@ -1,16 +1,20 @@
 import { SKATING_RINK_HALF_WIDTH } from "../model.ts";
 
-/** Height of the rink boards drawn above and below the ice, in pixels. */
-export const BOARD_HEIGHT = 24;
+/** Rink boards drawn above and below the ice, in pixels. */
+export const BOARD_HEIGHT = 14;
 export const LANE_COLORS = [0x0ea5e9, 0x8b5cf6, 0xf59e0b] as const;
 
 /**
- * World ↔ screen mapping for one frame. World x scrolls left as the camera
- * follows `cameraX`; world y spans the rink from the top board to the bottom one.
+ * World ↔ screen mapping for one frame. From the top: the crowd stand, a board,
+ * the three-lane ice, a board. World x scrolls left as the camera follows
+ * `cameraX`; world y spans the ice between the boards.
  */
 export interface RinkLayout {
   readonly width: number;
   readonly height: number;
+  readonly standHeight: number;
+  readonly iceTop: number;
+  readonly iceBottom: number;
   readonly laneHeight: number;
   readonly pixelsPerUnit: number;
   /** World x range currently on screen. */
@@ -29,26 +33,31 @@ export function createRinkLayout(input: {
   readonly pixelsPerUnit: number;
 }): RinkLayout {
   const { width, height, cameraX, anchor, pixelsPerUnit } = input;
-  const iceHeight = Math.max(1, height - BOARD_HEIGHT * 2);
+  const standHeight = Math.round(Math.max(24, Math.min(54, height * 0.11)));
+  const iceTop = standHeight + BOARD_HEIGHT;
+  const iceBottom = Math.max(iceTop + 3, height - BOARD_HEIGHT);
   const anchorX = width * anchor;
   return {
     width,
     height,
-    laneHeight: iceHeight / 3,
+    standHeight,
+    iceTop,
+    iceBottom,
+    laneHeight: (iceBottom - iceTop) / 3,
     pixelsPerUnit,
     left: cameraX - anchorX / pixelsPerUnit,
     right: cameraX + (width - anchorX) / pixelsPerUnit,
     screenX: (x) => anchorX + (x - cameraX) * pixelsPerUnit,
-    screenY: (y) => BOARD_HEIGHT + (y + SKATING_RINK_HALF_WIDTH) / (SKATING_RINK_HALF_WIDTH * 2) * iceHeight,
+    screenY: (y) => iceTop + (y + SKATING_RINK_HALF_WIDTH) / (SKATING_RINK_HALF_WIDTH * 2) * (iceBottom - iceTop),
   };
 }
 
 /**
- * Default zoom: about one gate gap fits ahead of the skater. Faster skaters
- * see further (zoomed out by the square root of their speed-up) so a booster
- * is fast but not blind.
+ * Default zoom: about ten world units ahead of the skater, so the next
+ * question is visible for a few seconds. Faster skaters see further (zoomed
+ * out by the square root of their speed-up) so a booster is fast but not blind.
  */
 export function skaterPixelsPerUnit(width: number, speedFactor: number): number {
-  const base = Math.max(46, Math.min(110, width / 10));
+  const base = Math.max(38, Math.min(92, width / 13));
   return base / Math.sqrt(Math.max(1, speedFactor));
 }

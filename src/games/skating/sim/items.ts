@@ -41,7 +41,8 @@ export function skatingItemAfterGate(seed: string, gateIndex: number): SkatingIt
   return {
     id: gateIndex,
     kind: kindRoll < BOOSTER_SHARE_PERCENT ? "booster" : "speed-up",
-    x: skatingGateX(gateIndex) + SKATING_GATE_SPACING / 2,
+    // Early in the gap, well clear of the next question painted on the ice.
+    x: skatingGateX(gateIndex) + SKATING_GATE_SPACING * 0.35,
     lane: (Math.floor(roll / 100) % 3) as SkatingLane,
   };
 }

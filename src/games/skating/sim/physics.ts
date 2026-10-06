@@ -1,7 +1,7 @@
 import { SKATING_RINK_HALF_WIDTH } from "../model.ts";
 
 /** Forward speed with no items, in world units per second. */
-export const SKATING_BASE_SPEED = 2.6;
+export const SKATING_BASE_SPEED = 3.2;
 /**
  * Ice feel: steering only adds sideways acceleration and the drag is low, so a
  * skater keeps sliding after the key is released and must counter-steer to stop.

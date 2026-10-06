@@ -88,7 +88,7 @@ function SkatingPlayfield({ roomId, session, player, course, participants, initi
     [participants],
   );
   const selfLabel = displayLabel(player.displayName, player.nickname);
-  const { hud, progress, impact, nextQuestion } = game;
+  const { hud, progress, impact } = game;
   const crashed = hud.respawnLeftMs > 0;
 
   const hold = (key: string, direction: -1 | 1) => ({
@@ -121,15 +121,6 @@ function SkatingPlayfield({ roomId, session, player, course, participants, initi
     </div>
     {live.error ? <div className={styles.connectionError}>실시간 연결 오류: {live.error.message}</div> : null}
     {game.saveError ? <div className={styles.connectionError}>기록 저장 오류: {game.saveError.message}</div> : null}
-    <div className={styles.question}>
-      <div className={styles.prompt}>
-        <small>GATE {String(progress.currentIndex + 1).padStart(2, "0")}</small>
-        <strong>{nextQuestion.prompt}</strong>
-      </div>
-      <ol className={styles.choices}>
-        {nextQuestion.choices.map((choice, lane) => <li key={lane}>{choice}</li>)}
-      </ol>
-    </div>
     <div className={styles.stageWrap}>
       <SkatingStage
         ref={stageRef}

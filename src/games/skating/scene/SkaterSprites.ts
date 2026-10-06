@@ -1,7 +1,8 @@
 import Phaser from "phaser";
-import { BlobActor } from "../../../game-engine/phaser-kit/BlobActor.ts";
 import { ensureBodyTexture, playerColor } from "../../../game-engine/phaser-kit/art.ts";
+import { SKATING_BASE_SPEED } from "../sim/physics.ts";
 import type { RinkLayout } from "./rinkLayout.ts";
+import { SkaterActor } from "./SkaterActor.ts";
 
 export interface SkaterFrame {
   readonly id: string;
@@ -10,10 +11,19 @@ export interface SkaterFrame {
   readonly y: number;
   /** Forward speed; 0 means standing still. */
   readonly vx: number;
-  /** Sideways velocity; leans the skater into the slide. */
+  /** Sideways velocity. */
   readonly vy: number;
   readonly self: boolean;
   readonly hidden: boolean;
+  readonly boosting: boolean;
+}
+
+export interface SkaterScreenPosition {
+  /** Body centre. */
+  readonly x: number;
+  readonly y: number;
+  readonly feetY: number;
+  readonly scale: number;
 }
 
 interface TrailPoint {
@@ -22,19 +32,21 @@ interface TrailPoint {
   readonly at: number;
 }
 
-const TRAIL_MS = 750;
-const TRAIL_SAMPLE_MS = 45;
+const TRAIL_MS = 900;
+const TRAIL_SAMPLE_MS = 40;
 const BLINK_MS = 1_000;
 
-/** Skaters on screen: one blob each, with blade marks left on the ice. */
+/** Skaters on screen: one actor each, with blade marks carved into the ice. */
 export class SkaterSprites {
-  private readonly actors = new Map<string, BlobActor>();
+  private readonly actors = new Map<string, SkaterActor>();
   private readonly trails = new Map<string, TrailPoint[]>();
   private readonly blinkUntil = new Map<string, number>();
   private readonly marks: Phaser.GameObjects.Graphics;
-  private readonly positions = new Map<string, { readonly x: number; readonly y: number; readonly scale: number }>();
+  private readonly positions = new Map<string, SkaterScreenPosition>();
+  private readonly scene: Phaser.Scene;
 
-  constructor(private readonly scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
     this.marks = scene.add.graphics().setDepth(3);
   }
 
@@ -47,33 +59,29 @@ export class SkaterSprites {
       this.trails.delete(id);
       this.positions.delete(id);
     }
-    const sizeScale = Phaser.Math.Clamp(layout.laneHeight / 72, 0.75, 1.5);
+    const sizeScale = Phaser.Math.Clamp(layout.laneHeight / 66, 0.8, 1.7);
     const marks = this.marks.clear();
     for (const frame of frames) {
       let actor = this.actors.get(frame.id);
       if (!actor) {
-        actor = new BlobActor(this.scene, frame.id, frame.self);
+        actor = new SkaterActor(this.scene, frame.id, frame.self);
         this.actors.set(frame.id, actor);
       }
       const x = layout.screenX(frame.x);
-      const laneY = layout.screenY(frame.y);
-      const feetY = laneY + layout.laneHeight * 0.24;
-      const scale = sizeScale * (frame.self ? 1.15 : 1);
-      this.positions.set(frame.id, { x, y: feetY - 20 * scale, scale });
+      const feetY = layout.screenY(frame.y) + layout.laneHeight * 0.26;
+      const scale = sizeScale * (frame.self ? 1.12 : 1);
+      this.positions.set(frame.id, { x, y: feetY - 24 * scale, feetY, scale });
       this.drawTrail(frame, layout, time, marks);
-      const onScreen = x > -80 && x < layout.width + 80;
+      const onScreen = x > -90 && x < layout.width + 90;
       actor.container.setVisible(!frame.hidden && onScreen);
       if (frame.hidden || !onScreen) continue;
-      // A slow stride reads as skating strokes; gliding still faces forward.
-      actor.update({ x, feetY, vx: frame.vx > 0 ? 45 : 0, vy: 0 }, time, delta);
+      actor.update({ x, y: feetY, speedFactor: Math.max(0, frame.vx) / SKATING_BASE_SPEED, side: frame.vy, boosting: frame.boosting },
+        time, delta);
       const blinking = time < (this.blinkUntil.get(frame.id) ?? 0) && Math.floor(time / 90) % 2 === 0;
-      actor.container
-        .setScale(scale)
-        .setAngle(Phaser.Math.Clamp(frame.vy * 5, -12, 12))
-        .setAlpha(blinking ? 0.25 : frame.self ? 1 : 0.8)
-        .setDepth((frame.self ? 22 : 18) + laneY / 10_000);
+      actor.container.setScale(scale).setAlpha(blinking ? 0.25 : frame.self ? 1 : 0.85)
+        .setDepth((frame.self ? 22 : 18) + feetY / 10_000);
       actor.setTag(frame.label);
-      // Names stay readable at one size however big the skaters are drawn.
+      // Names stay one size however big the skaters are drawn.
       actor.tag.setScale(1 / scale);
     }
   }
@@ -85,14 +93,14 @@ export class SkaterSprites {
       this.trails.set(frame.id, trail);
     }
     const last = trail[trail.length - 1];
-    if (frame.hidden) trail.length = 0;
+    if (frame.hidden || (last && time < last.at)) trail.length = 0;
     else if (frame.vx > 0 && (!last || time - last.at >= TRAIL_SAMPLE_MS)) trail.push({ x: frame.x, y: frame.y, at: time });
     while (trail.length > 0 && time - trail[0]!.at > TRAIL_MS) trail.shift();
-    const offset = layout.laneHeight * 0.24;
+    const offset = layout.laneHeight * 0.26;
     for (let index = 1; index < trail.length; index += 1) {
       const from = trail[index - 1]!, to = trail[index]!;
-      const alpha = (1 - (time - to.at) / TRAIL_MS) * (frame.self ? 0.55 : 0.3);
-      marks.lineStyle(2, 0x7aa7cf, alpha);
+      const alpha = (1 - (time - to.at) / TRAIL_MS) * (frame.self ? 0.6 : 0.35);
+      marks.lineStyle(frame.boosting ? 3 : 2, frame.boosting ? 0xfb923c : 0x7aa7cf, alpha);
       for (const blade of [-4, 4]) {
         marks.lineBetween(layout.screenX(from.x), layout.screenY(from.y) + offset + blade,
           layout.screenX(to.x), layout.screenY(to.y) + offset + blade);
@@ -100,12 +108,11 @@ export class SkaterSprites {
     }
   }
 
-  /** Body centre on screen, for effects; null when the skater is not drawn. */
-  position(id: string): { readonly x: number; readonly y: number; readonly scale: number } | null {
+  position(id: string): SkaterScreenPosition | null {
     return this.positions.get(id) ?? null;
   }
 
-  actor(id: string): BlobActor | null {
+  actor(id: string): SkaterActor | null {
     return this.actors.get(id) ?? null;
   }
 

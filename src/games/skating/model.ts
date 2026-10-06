@@ -12,8 +12,11 @@ export type SkatingLane = 0 | 1 | 2;
 export const SKATING_CHANNEL_ID = "skating";
 export const SKATING_LANE_CENTERS = [-1, 0, 1] as const;
 export const SKATING_RINK_HALF_WIDTH = 1.5;
-export const SKATING_FIRST_GATE_X = 9;
-export const SKATING_GATE_SPACING = 8;
+/** A long run-up before the first gate, then roughly five seconds between gates at base speed. */
+export const SKATING_FIRST_GATE_X = 22;
+export const SKATING_GATE_SPACING = 16;
+/** The question word is painted on the ice this far before its gate, so students read it on the way. */
+export const SKATING_PROMPT_LEAD = 6;
 
 export interface SkatingQuestion {
   readonly id: string;

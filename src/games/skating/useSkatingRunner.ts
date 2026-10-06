@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createAnswerResult } from "../../game-engine/core/answerResult.ts";
 import { applyResultToProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import type { LiveEvent } from "../../live-world/client.ts";
@@ -201,11 +201,6 @@ export function useSkatingRunner(input: {
     return () => cancelAnimationFrame(frame);
   }, [answerGate, controls, fx, live, player.id, simulation, throwPunch]);
 
-  const nextQuestion = useMemo(
-    () => skatingQuestionForGate(course, Math.max(progress.currentIndex, 0)),
-    [course, progress.currentIndex],
-  );
-
   const start = useCallback((): void => {
     if (startAtRef.current !== null) return;
     startAtRef.current = performance.now() + COUNTDOWN_MS;
@@ -217,7 +212,6 @@ export function useSkatingRunner(input: {
     progress,
     impact,
     hud,
-    nextQuestion,
     saveError,
     /** Read by the scene every frame. */
     snapshotRef,

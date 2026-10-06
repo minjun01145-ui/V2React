@@ -61,59 +61,12 @@
   background: linear-gradient(90deg,#51dfdc,#d0a0ff,#ffd171);
   transition: width .25s;
 }
-.question {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-  gap: 12px;
-  align-items: center;
-  padding: 10px 14px;
-  border-radius: 14px;
-  background: #f5f7ff;
-  color: #14233d;
-}
-.prompt small {
-  display: block;
-  font-size: 11px;
-  font-weight: 300;
-  color: #4d6080;
-  margin-bottom: 3px;
-}
-.prompt strong {
-  display: block;
-  font-size: clamp(21px,3.8vw,32px);
-  overflow-wrap: anywhere;
-  line-height: 1.2;
-}
-.choices {
-  display: grid;
-  gap: 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.choices li {
-  padding: 4px 10px;
-  border-left: 6px solid var(--lane);
-  border-radius: 6px;
-  background: #fff;
-  font-size: 15px;
-  overflow-wrap: anywhere;
-}
-.choices li:nth-child(1) {
-  --lane: #0ea5e9;
-}
-.choices li:nth-child(2) {
-  --lane: #8b5cf6;
-}
-.choices li:nth-child(3) {
-  --lane: #f59e0b;
-}
 .stageWrap {
   position: relative;
   min-width: 0;
 }
 .track {
-  height: clamp(240px,46dvh,480px);
+  height: clamp(300px,62dvh,600px);
   width: 100%;
   overflow: hidden;
   border: 1px solid #405273;
@@ -322,9 +275,6 @@
   }
   .controls {
     gap: 6px;
-  }
-  .question {
-    grid-template-columns: 1fr;
   }
   .controls button {
     min-height: 58px;

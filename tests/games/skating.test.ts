@@ -7,7 +7,9 @@ import {
   skatingGateX,
   skatingQuestionForGate,
   skatingReward,
+  SKATING_FIRST_GATE_X,
   SKATING_GATE_SPACING,
+  SKATING_PROMPT_LEAD,
 } from "../../src/games/skating/model.ts";
 import {
   applySkatingItem,
@@ -74,7 +76,10 @@ assert.deepEqual(skatingItemAfterGate("round-1", 4), skatingItemAfterGate("round
 assert.equal(skatingItemAfterGate("round-1", -1), null);
 const laidOut = Array.from({ length: 200 }, (_, gate) => skatingItemAfterGate("round-1", gate)).filter((item) => item !== null);
 assert.ok(laidOut.some((item) => item.kind === "booster") && laidOut.some((item) => item.kind === "speed-up"));
-for (const item of laidOut) assert.ok(item.x > skatingGateX(item.id) && item.x < skatingGateX(item.id + 1), "items sit between gates");
+for (const item of laidOut) {
+  assert.ok(item.x > skatingGateX(item.id) && item.x < skatingGateX(item.id + 1) - SKATING_PROMPT_LEAD - 1,
+    "items sit between a gate and the next painted question, never on top of it");
+}
 assert.deepEqual(skatingItemsBetween("round-1", 0, skatingGateX(200)).map((item) => item.id), laidOut.map((item) => item.id));
 
 const boosted = applySkatingItem(NO_BUFFS, "booster", 1_000);
@@ -87,7 +92,9 @@ let stacked = NO_BUFFS;
 for (let index = 0; index < 20; index += 1) stacked = applySkatingItem(stacked, "speed-up", 0);
 assert.equal(stacked.speedUps, MAX_SPEED_UPS);
 const fastest = skatingForwardSpeed(applySkatingItem(stacked, "booster", 0), 0);
-assert.ok(SKATING_GATE_SPACING / fastest >= 1, "even at top speed a gate comes at most once a second");
+assert.ok(SKATING_GATE_SPACING / fastest >= 1.5, "even at top speed there is time to read each gate");
+assert.ok(SKATING_GATE_SPACING / SKATING_BASE_SPEED >= 4.5, "at base speed students get several seconds per question");
+assert.ok(SKATING_FIRST_GATE_X / SKATING_BASE_SPEED >= 6, "a run-up before the first question");
 
 // Simulation: gates report the lane, a crash waits three seconds, items are collected once.
 function run(simulation: SkaterSimulation, fromMs: number, seconds: number, steer: -1 | 0 | 1 = 0): SkaterEvent[] {
