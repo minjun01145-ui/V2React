@@ -27,7 +27,7 @@ export default function SlideEnginePanel({ round, sets, disabled, issue, onChang
   };
 
   return <section className={styles.panel} aria-label="문제 엔진 설정">
-    <header className={styles.header}><h3>문제 엔진</h3><Button variant="quiet" size="sm" onClick={onRemove} disabled={disabled}>빼기</Button></header>
+    <header className={styles.header}><h3>문제 엔진</h3><Button variant="danger" size="sm" onClick={onRemove} disabled={disabled}>삭제</Button></header>
     <div className={styles.fields}>
       <Field label="엔진"><Select value={round.gameId} onChange={(event) => onChange(engineRoundForGame(event.target.value, sets))} disabled={disabled}>{SLIDE_ENGINE_GAMES.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</Select></Field>
       <Field label="시간(초)"><input className={styles.input} type="number" min={10} max={600} step={5} value={round.durationSeconds} onChange={(event) => onChange({ ...round, durationSeconds: Number(event.target.value) })} disabled={disabled} /></Field>

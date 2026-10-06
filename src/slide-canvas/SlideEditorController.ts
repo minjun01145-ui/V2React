@@ -23,6 +23,8 @@ export type SlideObjectStylePatch = Partial<Omit<SlideObjectStyle, "kind">>;
 interface ControllerEvents {
   readonly onChange: () => void;
   readonly onSelectionChange: (style: SlideObjectStyle | null) => void;
+  /** The engine window is saved with the slide, so the editor removes it rather than the canvas. */
+  readonly onEngineDelete: () => void;
 }
 
 const DEFAULT_TEXT_COLOR = "#101a3a";
@@ -210,7 +212,8 @@ export class SlideEditorController {
     const active = this.canvas.getActiveObject();
     if (!active || (active instanceof Textbox && active.isEditing)) return;
     event.preventDefault();
-    this.deleteSelection();
+    if (active === this.engineFrame) this.events.onEngineDelete();
+    else this.deleteSelection();
   }
 
   private addAndSelect(object: FabricObject): void {

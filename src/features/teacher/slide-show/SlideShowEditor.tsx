@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, ty
 import { getGame } from "../../../games/registry.ts";
 import type { LearningSetSummary } from "../../../learning-sets/types.ts";
 import { imageFileToDataUrl } from "../../../slide-canvas/imageFile.ts";
+import { importPptxSlides } from "../../../slide-canvas/pptxImport.ts";
 import SlideEditorCanvas from "../../../slide-canvas/SlideEditorCanvas.tsx";
 import { emptySlideCanvas, type SlideEditorController, type SlideObjectStyle, type SlideShapeKind } from "../../../slide-canvas/SlideEditorController.ts";
 import { MAX_SLIDES, type Slide, type SlideEngineRound } from "../../../slide-show/types.ts";
@@ -34,6 +35,7 @@ export function newSlide(): Slide {
 const ICON_PROPS = { viewBox: "0 0 24 24", "aria-hidden": true, fill: "none", stroke: "currentColor", strokeWidth: 2.2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 const TEXT_ICON = <svg {...ICON_PROPS}><path d="M5 6V4h14v2M12 4v16M9 20h6" /></svg>;
 const IMAGE_ICON = <svg {...ICON_PROPS}><rect x="3" y="4" width="18" height="16" rx="3" /><circle cx="9" cy="10" r="2" /><path d="m21 16-5-5-9 9" /></svg>;
+const PPT_ICON = <svg {...ICON_PROPS}><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" /><path d="M14 3v5h5M10 18v-6h2.5a2 2 0 0 1 0 4H10" /></svg>;
 const ENGINE_ICON = <svg {...ICON_PROPS}><path d="M13 2 4 14h7l-1 8 9-12h-7Z" fill="currentColor" stroke="none" /></svg>;
 const SHAPES: readonly { readonly kind: SlideShapeKind; readonly label: string; readonly icon: JSX.Element }[] = [
   { kind: "rect", label: "사각형", icon: <svg {...ICON_PROPS}><rect x="4" y="5" width="16" height="14" rx="2" /></svg> },
@@ -57,8 +59,10 @@ export default function SlideShowEditor({ initial, sets, busy, onSave, onDirtyCh
   const [background, setBackground] = useState("#ffffff");
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(false);
+  const [importing, setImporting] = useState(false);
   const commitTimer = useRef<number | null>(null);
   const imageInput = useRef<HTMLInputElement | null>(null);
+  const pptxInput = useRef<HTMLInputElement | null>(null);
   const current = slides[currentIndex];
   const currentId = current?.id;
 
@@ -158,6 +162,33 @@ export default function SlideShowEditor({ initial, sets, busy, onSave, onDirtyCh
     }
   };
 
+  const importPptx = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setImporting(true);
+    setError("");
+    try {
+      const imported = (await importPptxSlides(file)).map((canvas): Slide => ({ id: crypto.randomUUID(), canvas, engine: null }));
+      if (imported.length === 0) throw new Error("가져올 슬라이드가 없습니다.");
+      if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+      commitTimer.current = null;
+      const committed = captureCurrent(slides);
+      // A brand-new show starts with one blank slide; the imported deck replaces it.
+      const replace = committed.length === 1 && !committed[0]!.engine && (JSON.parse(committed[0]!.canvas) as { objects?: unknown[] }).objects?.length === 0;
+      const next = replace ? imported : [...committed.slice(0, currentIndex + 1), ...imported, ...committed.slice(currentIndex + 1)];
+      if (next.length > MAX_SLIDES) throw new Error(`슬라이드는 최대 ${MAX_SLIDES}장까지 만들 수 있습니다.`);
+      setSlides(next);
+      setCurrentIndex(replace ? 0 : currentIndex + 1);
+      if (!name.trim()) setName(file.name.replace(/\.pptx$/i, "").slice(0, 80));
+      setDirty(true);
+    } catch (value: unknown) {
+      setError(toErrorMessage(value, "PPTX 파일을 가져오지 못했습니다."));
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const engineIssue = current?.engine ? engineSetIssue(current.engine.round, sets) : null;
   const validationError = useMemo(() => {
     try {
@@ -205,6 +236,8 @@ export default function SlideShowEditor({ initial, sets, busy, onSave, onDirtyCh
       <i className={styles.divider} aria-hidden="true" />
       <button type="button" className={styles.tool} onClick={() => imageInput.current?.click()} disabled={!controller}>{IMAGE_ICON}<span>그림</span></button>
       <input ref={imageInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(event) => void insertImage(event)} />
+      <button type="button" className={styles.tool} onClick={() => pptxInput.current?.click()} disabled={!controller || importing}>{PPT_ICON}<span>{importing ? "가져오는 중…" : "PPT 가져오기"}</span></button>
+      <input ref={pptxInput} type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden onChange={(event) => void importPptx(event)} />
       <span className={styles.spacer} />
       <button type="button" className={styles.engineButton} onClick={addEngine} disabled={!controller || Boolean(current?.engine)}>{ENGINE_ICON}<span>{current?.engine ? "문제 엔진 있음" : "문제 엔진 넣기"}</span></button>
     </div>
@@ -223,7 +256,7 @@ export default function SlideShowEditor({ initial, sets, busy, onSave, onDirtyCh
         <SlideRail slides={slides} currentIndex={currentIndex} disabled={false} onSelect={selectSlide} />
       </aside>
       <main className={styles.stage}>
-        <SlideEditorCanvas onReady={setController} onChange={scheduleCommit} onSelectionChange={setSelection} />
+        <SlideEditorCanvas onReady={setController} onChange={scheduleCommit} onSelectionChange={setSelection} onEngineDelete={removeEngine} />
       </main>
       <aside className={styles.inspector}>
         <section className={styles.slidePanel} aria-label="슬라이드 배경">

@@ -7,15 +7,16 @@ interface Props {
   readonly onReady: (controller: SlideEditorController | null) => void;
   readonly onChange: () => void;
   readonly onSelectionChange: (style: SlideObjectStyle | null) => void;
+  readonly onEngineDelete: () => void;
 }
 
 /** Mounts an editable Fabric canvas that always fills the available width at 16:9. */
-export default function SlideEditorCanvas({ onReady, onChange, onSelectionChange }: Props) {
+export default function SlideEditorCanvas({ onReady, onChange, onSelectionChange, onEngineDelete }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   // Fabric listeners are bound once; route them through refs to the latest callbacks.
-  const callbacks = useRef({ onChange, onSelectionChange });
-  callbacks.current = { onChange, onSelectionChange };
+  const callbacks = useRef({ onChange, onSelectionChange, onEngineDelete });
+  callbacks.current = { onChange, onSelectionChange, onEngineDelete };
 
   useEffect(() => {
     const container = containerRef.current;
@@ -26,6 +27,7 @@ export default function SlideEditorCanvas({ onReady, onChange, onSelectionChange
     const controller = new SlideEditorController(element, {
       onChange: () => callbacks.current.onChange(),
       onSelectionChange: (style) => callbacks.current.onSelectionChange(style),
+      onEngineDelete: () => callbacks.current.onEngineDelete(),
     });
     const observer = new ResizeObserver(([entry]) => {
       if (!entry) return;
