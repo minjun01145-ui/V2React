@@ -58,7 +58,6 @@ export function ensureBodyTexture(scene: Phaser.Scene, color: number): string {
   return bakeSprite(scene, `kit-body-${color.toString(16)}`, 40, 44, (graphics) => {
     graphics.fillStyle(shade(color, -0.45), 1).fillRoundedRect(1, 3, 38, 40, 17);
     graphics.fillStyle(color, 1).fillRoundedRect(3, 1, 34, 38, 15);
-    graphics.fillStyle(shade(color, 0.35), 1).fillEllipse(20, 30, 20, 12);
     graphics.fillStyle(0xffffff, 0.45).fillEllipse(12, 10, 10, 6);
   });
 }
