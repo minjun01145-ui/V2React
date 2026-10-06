@@ -60,7 +60,10 @@ export class SlideEditorController {
     this.canvas = new Canvas(element, { preserveObjectStacking: true, selectionColor: "rgba(35,56,184,.08)", selectionBorderColor: SELECTION_COLOR });
     const changed = (): void => { if (!this.loading) this.events.onChange(); };
     const selection = (): void => this.events.onSelectionChange(this.selectedStyle());
-    this.canvas.on("object:added", changed);
+    this.canvas.on("object:added", ({ target }) => {
+      if (target !== this.engineFrame) this.keepEngineFrameOnTop();
+      changed();
+    });
     this.canvas.on("object:removed", changed);
     this.canvas.on("text:changed", changed);
     this.canvas.on("object:modified", ({ target }) => {
@@ -158,6 +161,7 @@ export class SlideEditorController {
     else if (action === "forward") this.canvas.bringObjectForward(target);
     else if (action === "backward") this.canvas.sendObjectBackwards(target);
     else this.canvas.sendObjectToBack(target);
+    this.keepEngineFrameOnTop();
     this.canvas.requestRenderAll();
     this.events.onChange();
   }
@@ -225,14 +229,17 @@ export class SlideEditorController {
   private placeEngineFrame(frame: SlideFrame): void {
     const rect = new Rect({
       left: frame.x, top: frame.y, width: frame.width, height: frame.height,
-      fill: "rgba(255,201,51,0.16)", stroke: ENGINE_ACCENT_DEEP, strokeWidth: 4, strokeDashArray: [16, 10], rx: 18, ry: 18,
+      fill: "rgba(255,226,140,0.92)", stroke: ENGINE_ACCENT_DEEP, strokeWidth: 4, strokeDashArray: [16, 10], rx: 18, ry: 18,
       strokeUniform: true, lockRotation: true, excludeFromExport: true, objectCaching: false,
     });
     rect.setControlsVisibility({ mtr: false });
     this.engineFrame = rect;
-    // Behind the slide content so it never blocks selecting text or shapes; the label is drawn on top.
+    // Above the slide content, as the live engine window covers the slide, so it is always grabbable.
     this.canvas.add(rect);
-    this.canvas.sendObjectToBack(rect);
+  }
+
+  private keepEngineFrameOnTop(): void {
+    if (this.engineFrame) this.canvas.bringObjectToFront(this.engineFrame);
   }
 
   /** Keep the stored frame free of scale so resizing never distorts the dashed border. */
