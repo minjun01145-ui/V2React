@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { phaseAt } from "./model.ts";
 
+// The recorded chant is quiet next to the lobby BGM: each clip is normalized,
+// then boosted through a limiter so the louder voice never clips.
+const CHANT_GAIN = 2.2;
+function normalize(buffer: AudioBuffer): AudioBuffer {
+  let peak = 0;
+  for (let channel = 0; channel < buffer.numberOfChannels; channel++) for (const sample of buffer.getChannelData(channel)) peak = Math.max(peak, Math.abs(sample));
+  if (peak > 0) for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < data.length; i++) data[i] = data[i]! / peak;
+  }
+  return buffer;
+}
 const clips = import.meta.glob("./audio/*.wav", { eager: true, query: "?url", import: "default" }) as Record<string, string>;
 export function useEscapeAudio(teacher: boolean, active: boolean, phase: ReturnType<typeof phaseAt>, hits: number, escapes: number) {
   const [enabled, setEnabled] = useState(false);
@@ -8,6 +20,7 @@ export function useEscapeAudio(teacher: boolean, active: boolean, phase: ReturnT
   const [error, setError] = useState<string | null>(null);
   const audio = useRef<AudioContext | null>(null);
   const buffers = useRef<AudioBuffer[]>([]);
+  const voice = useRef<AudioNode | null>(null);
   const source = useRef<AudioBufferSourceNode | null>(null);
   const lastCue = useRef("");
   const previous = useRef({ hits, escapes });
@@ -15,6 +28,10 @@ export function useEscapeAudio(teacher: boolean, active: boolean, phase: ReturnT
   useEffect(() => {
     let disposed = false;
     const context = new AudioContext(); audio.current = context;
+    const limiter = context.createDynamicsCompressor();
+    limiter.threshold.value = -12; limiter.knee.value = 4; limiter.ratio.value = 12; limiter.attack.value = .002; limiter.release.value = .12;
+    const boost = context.createGain(); boost.gain.value = CHANT_GAIN;
+    boost.connect(limiter).connect(context.destination); voice.current = boost;
     const sync = () => { if (!disposed) setEnabled(context.state === "running"); };
     const unlock = () => {
       if (choseSound.current) return;
@@ -27,7 +44,7 @@ export function useEscapeAudio(teacher: boolean, active: boolean, phase: ReturnT
     if (teacher) void Promise.all(Array.from({ length: 10 }, async (_, index) => {
       const response = await fetch(clips[`./audio/${index}.wav`]!);
       if (!response.ok) throw new Error("구호 소리를 불러오지 못했습니다.");
-      return context.decodeAudioData(await response.arrayBuffer());
+      return normalize(await context.decodeAudioData(await response.arrayBuffer()));
     })).then(values => { if (!disposed) { buffers.current = values; setReady(true); } }).catch(() => {
       if (!disposed) setError("구호 소리를 불러오지 못했습니다. 새로고침해 주세요.");
     });
@@ -56,9 +73,8 @@ export function useEscapeAudio(teacher: boolean, active: boolean, phase: ReturnT
       const next = context.createBufferSource();
       next.buffer = buffers.current[phase.syllable]!;
       next.playbackRate.value = Math.max(1.25, Math.min(7, next.buffer.duration * 1_050 / phase.beatMs));
-      const gain = context.createGain(); gain.gain.value = .8;
-      next.connect(gain).connect(context.destination); next.start(); source.current = next;
-      next.onended = () => { next.disconnect(); gain.disconnect(); if (source.current === next) source.current = null; };
+      next.connect(voice.current ?? context.destination); next.start(); source.current = next;
+      next.onended = () => { next.disconnect(); if (source.current === next) source.current = null; };
     }
   }, [teacher, enabled, ready, active, phase.cycle, phase.beat, phase.syllable, phase.beatMs, phase.watching]);
   useEffect(() => {
