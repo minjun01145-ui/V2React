@@ -1,5 +1,4 @@
 import { spawnSync } from "node:child_process";
-import { recordRelease } from "./release-version.mjs";
 
 const target = process.argv[2];
 const only = { hosting: "hosting", functions: "functions:jurye-v2", rules: "firestore:rules" }[target];
@@ -17,10 +16,4 @@ if (target !== "rules") {
   const buildStatus = run(windows ? "npm.cmd" : "npm", args);
   if (buildStatus !== 0) process.exit(buildStatus);
 }
-let deployStatus = 1;
-try {
-  deployStatus = run(windows ? "firebase.cmd" : "firebase", ["deploy", "--only", only]);
-} finally {
-  recordRelease("deploy", deployStatus === 0 ? "success" : "failure", `${target}-local`);
-}
-process.exitCode = deployStatus;
+process.exitCode = run(windows ? "firebase.cmd" : "firebase", ["deploy", "--only", only]);

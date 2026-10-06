@@ -78,14 +78,3 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM }}
           projectId: v2react-jurye-classroom
           expires: 7d
-
-      - name: Record deployment result
-        if: always()
-        run: node scripts/release-version.mjs record deploy "${{ job.status }}" hosting-preview
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: version-hosting-preview-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .release-records/*.json
-          include-hidden-files: true

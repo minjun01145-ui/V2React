@@ -80,14 +80,3 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_V2REACT_JURYE_CLASSROOM }}
           channelId: live
           projectId: v2react-jurye-classroom
-
-      - name: Record deployment result
-        if: always()
-        run: node scripts/release-version.mjs record deploy "${{ job.status }}" hosting-live
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: version-hosting-live-${{ github.run_id }}-${{ github.run_attempt }}
-          path: .release-records/*.json
-          include-hidden-files: true

@@ -1,2 +1,0 @@
-#!/bin/sh
-node scripts/release-version.mjs commit

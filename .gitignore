@@ -7,7 +7,6 @@ dist/
 firebase-debug.log
 firebase-debug.*.log
 .firebase/
-.release-records/
 functions/node_modules/
 functions/lib/
 .DS_Store
