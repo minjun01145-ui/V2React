@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { readSentenceUnit } from "../../game-engine/sequence/words.ts";
 import { createQuestionDeck } from "../../game-engine/question-engine/questionDeck.ts";
 import type { QuestionEngine } from "../../game-engine/question-engine/useQuestionEngine.ts";
 import { useMultiplayerQuestionEngine } from "../../game-engine/question-engine/multiplayer/useMultiplayerQuestionEngine.ts";
@@ -24,7 +25,7 @@ export function useSentenceBuilderGame(input: {
   readonly disabled?: boolean;
 }): SentenceBuilderEngine {
   const { roomId, session, player, set, disabled = false } = input;
-  const adaptedSet = useMemo(() => adaptReadingChunksSet(set), [set]);
+  const adaptedSet = useMemo(() => adaptReadingChunksSet(set, readSentenceUnit(session.gameConfig)), [set, session.gameConfig]);
   const questions = useMemo(() => createQuestionDeck(adaptedSet.questions, {
     seed: `${session.roundId}:${adaptedSet.id}:questions`,
     shuffleQuestions: true,

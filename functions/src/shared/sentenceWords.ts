@@ -1,3 +1,6 @@
+// Mirrors src/game-engine/sequence/words.ts; keep both in sync.
+import { isRecord } from "./validation.js";
+
 /**
  * Word-level view of sentence text, shared by games that build sentences one
  * word at a time. Punctuation stays attached to its word ("student.").
@@ -18,4 +21,15 @@ export function chunksToWords(chunks: readonly string[]): string[] {
 export function sentenceTextKey(text: string): string {
   const spaced = text.normalize("NFKC").toLowerCase().replace(/\s+/g, " ").trim();
   return spaced.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "") || spaced;
+}
+
+export type SentenceUnit = "chunk" | "word";
+export const SENTENCE_UNIT_KEY = "sentence-unit";
+
+export function readSentenceUnit(config: unknown): SentenceUnit {
+  return isRecord(config) && config[SENTENCE_UNIT_KEY] === "word" ? "word" : "chunk";
+}
+
+export function sentenceUnits(chunks: readonly string[], unit: SentenceUnit): string[] {
+  return unit === "word" ? chunksToWords(chunks) : [...chunks];
 }

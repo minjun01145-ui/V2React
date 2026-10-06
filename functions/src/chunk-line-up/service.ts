@@ -5,6 +5,7 @@ import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
 import { effectiveTenantId, belongsToTenant, type TenantId } from "../shared/tenant.js";
 import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { isRecord } from "../shared/validation.js";
+import { readSentenceUnit, sentenceUnits, type SentenceUnit } from "../shared/sentenceWords.js";
 import {
   buildInitialChunkLineUpBoard,
   isChunkLineUpElevatorDestinationOpen,
@@ -48,6 +49,7 @@ function integer(value: unknown): number {
 }
 
 interface ValidRound {
+  readonly unit: SentenceUnit;
   readonly roundRef: DocumentReference;
   readonly setId: string;
   readonly tenantId: TenantId;
@@ -84,6 +86,7 @@ async function validateRound(input: ChunkLineUpBaseInput, verifyReadingSet = tru
   }
   return {
     roundRef: sessionRef.collection("rounds").doc(input.roundId),
+    unit: readSentenceUnit(config),
     setId,
     tenantId,
     expectedPlayerIds,
@@ -109,14 +112,15 @@ function operationRef(roundRef: DocumentReference, uid: string, operationId: str
   return roundRef.collection("chunkLineUpOperations").doc(uid).collection("items").doc(operationId);
 }
 
-function sourceGroups(value: unknown): ChunkLineUpSourceGroup[] {
+function sourceGroups(value: unknown, unit: SentenceUnit): ChunkLineUpSourceGroup[] {
   if (!isRecord(value) || !Array.isArray(value.items)) return [];
   return value.items.flatMap((raw, index) => {
     if (!isRecord(raw)) return [];
     const sourceText = text(raw.sourceText);
     const prompt = text(raw.meaning);
-    const slots = sourceText.split("/").map((item) => item.trim()).filter(Boolean);
-    if (!prompt || slots.length < 2) return [];
+    const chunks = sourceText.split("/").map((item) => item.trim()).filter(Boolean);
+    if (!prompt || chunks.length < 2) return [];
+    const slots = sentenceUnits(chunks, unit);
     return [{
       id: text(raw.id) || `sentence-${index + 1}`,
       prompt,
@@ -237,7 +241,7 @@ export async function ensureChunkLineUpRoundService(input: ChunkLineUpBaseInput)
     round.setRef.collection("content").doc("main").get(),
     ...round.expectedPlayerIds.map((playerId) => round.roundRef.collection("participants").doc(playerId).get()),
   ]);
-  const groups = sourceGroups(content.exists ? content.data() : null);
+  const groups = sourceGroups(content.exists ? content.data() : null, round.unit);
   if (groups.length === 0) throw new HttpsError("failed-precondition", "Chunk Line-Up에 사용할 끊어읽기 문장이 없습니다.");
   const players = round.expectedPlayerIds.map((playerId, index) => profile(playerId, participantDocs[index]?.data()));
   const initial = buildInitialChunkLineUpBoard(groups, players, input.roundId);

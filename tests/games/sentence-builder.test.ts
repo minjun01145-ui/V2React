@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { evaluateSentenceSequence } from "../../src/games/sentence-builder/evaluator.ts";
 import { adaptReadingChunksSet, isReadingChunksSet } from "../../src/games/sentence-builder/readingChunksAdapter.ts";
+import { readSentenceUnit } from "../../src/game-engine/sequence/words.ts";
+import { settingAppliesToSet } from "../../src/game-engine/contracts/gameDefinition.ts";
+import { getGame } from "../../src/games/registry.ts";
 
 const slashSet = {
   id: "lesson-1",
@@ -70,5 +73,38 @@ assert.throws(() => adaptReadingChunksSet({
     { id: "same", korean: "둘째 문장", chunks: ["C", "D"] },
   ],
 }), /Question IDs must be unique|unique|Duplicate question id/i);
+
+const unitSetting = getGame("sentence-builder").settings.find((setting) => setting.key === "sentence-unit");
+assert.ok(unitSetting);
+assert.equal(unitSetting.defaultValue, "chunk");
+assert.equal(settingAppliesToSet(unitSetting, "reading-chunks"), true);
+assert.equal(settingAppliesToSet(unitSetting, "vocabulary"), false);
+assert.equal(settingAppliesToSet(unitSetting, null), false);
+assert.equal(readSentenceUnit(undefined), "chunk");
+assert.equal(readSentenceUnit(null), "chunk");
+assert.equal(readSentenceUnit({ "sentence-unit": "invalid" }), "chunk");
+assert.equal(readSentenceUnit({ "sentence-unit": "word" }), "word");
+
+const wordQuestion = adaptReadingChunksSet({
+  ...slashSet,
+  items: [{ id: "words", sourceText: "It is very / VERY good.", meaning: "아주 아주 좋아요." }],
+}, "word").questions[0]!;
+assert.deepEqual(wordQuestion.tokens.map((token) => token.text), ["It", "is", "very", "VERY", "good."]);
+assert.deepEqual(wordQuestion.expectedTokenIds, [0, 1, 2, 3, 4].map((index) => `words:chunk:${index}`));
+const wordIds = wordQuestion.expectedTokenIds;
+const swapped = [wordIds[0]!, wordIds[1]!, wordIds[3]!, wordIds[2]!, wordIds[4]!];
+const swappedResult = evaluateSentenceSequence(wordQuestion, { tokenIds: swapped, text: "It is VERY very good." });
+assert.equal(swappedResult.isCorrect, true);
+assert.equal(swappedResult.scoreDelta, 100);
+assert.deepEqual(swappedResult.details, { selectedCount: 5, expectedCount: 5 });
+assert.equal(evaluateSentenceSequence(wordQuestion, { tokenIds: [wordIds[0]!, wordIds[1]!, wordIds[2]!, wordIds[2]!, wordIds[4]!], text: "" }).isCorrect, false);
+assert.equal(evaluateSentenceSequence(wordQuestion, { tokenIds: [...swapped.slice(0, -1), "foreign:chunk:4"], text: "" }).isCorrect, false);
+assert.equal(evaluateSentenceSequence(wordQuestion, { tokenIds: swapped.slice(0, -1), text: "" }).isCorrect, false);
+assert.equal(evaluateSentenceSequence(wordQuestion, { tokenIds: [...wordIds].reverse(), text: "" }).isCorrect, false);
+assert.equal(evaluateSentenceSequence(repeatedQuestion, { tokenIds: ["repeat-q:chunk:0", "repeat-q:chunk:2", "repeat-q:chunk:1", "repeat-q:chunk:3"], text: "" }).isCorrect, true);
+assert.deepEqual(adaptReadingChunksSet({
+  ...slashSet,
+  items: [{ id: "unsplit", sourceText: "It is good.", meaning: "좋아요." }, { id: "split", sourceText: "It is / good.", meaning: "좋아요." }],
+}, "word").questions.map((item) => item.id), ["split"]);
 
 console.log("sentence-builder evaluator/adapter tests passed");

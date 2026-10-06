@@ -181,7 +181,7 @@ export default function BrickSmashPlay({ questions, progress, seed, buffs, block
     <div className={styles.arena}>
       {progress.combo >= 10 && <div className={styles.fever} aria-hidden="true" />}
       <BrickStage bricks={Array.from({ length: VISIBLE_BRICKS }, (_, offset) => brickAtIndex(progress.currentIndex + offset))}
-        impact={impact} impacts={impacts} golden={gold} twin={buffs.hammer > now} shielded={shielded} timerKey={progress.correctCount}
+        impact={impact} impacts={impacts} golden={gold} twin={buffs.hammer > now} shielded={shielded}
         onImpactDone={(id) => {
           setImpacts((previous) => previous.filter((item) => item.id !== id));
           setImpact((current) => current?.id === id ? null : current);

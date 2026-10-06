@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { parseLearningSet } from "../src/learning-sets/codec.ts";
-import { chunksToWords, sentenceTextKey, splitSentenceWords } from "../src/learning-sets/sentenceWords.ts";
+import { chunksToWords, sentenceTextKey, splitSentenceWords } from "../src/game-engine/sequence/words.ts";
 import { LEARNING_SET_TYPE, isLearningSetType, learningSetTypeLabel } from "../src/learning-sets/types.ts";
 import { parseLearningSetPaste, serializeLearningSetItems, validateLearningSetName } from "../src/learning-sets/validation.ts";
 

@@ -1,6 +1,6 @@
 import { useRef, type CSSProperties } from "react";
 import { BRICK_ITEMS, type BrickItemId } from "./items.ts";
-import { BRICK_SCORING, type BrickJudgment } from "./model.ts";
+import type { BrickJudgment } from "./model.ts";
 import styles from "./BrickSmash.module.css";
 
 export interface StageBrick { readonly index: number; readonly text: string; readonly item: BrickItemId | null }
@@ -60,7 +60,7 @@ function Hammer({ golden, defineGradient = true }: { readonly golden: boolean; r
   </svg>;
 }
 
-export default function BrickStage({ bricks, impact, impacts, golden, twin, shielded, timerKey, onImpactDone }: {
+export default function BrickStage({ bricks, impact, impacts, golden, twin, shielded, onImpactDone }: {
   /** Bottom brick first. */
   readonly bricks: readonly StageBrick[];
   readonly impact: Impact | null;
@@ -68,15 +68,12 @@ export default function BrickStage({ bricks, impact, impacts, golden, twin, shie
   readonly golden: boolean;
   readonly twin: boolean;
   readonly shielded: boolean;
-  /** Restarts the bonus fuse whenever a new brick becomes the target. */
-  readonly timerKey: number;
   readonly onImpactDone: (id: number) => void;
 }) {
   const motion = impact?.correct ? impact.bomb ? styles.quake : styles.shake : "";
   const stageKey = useRef(0);
   if (impact) stageKey.current = impact.id;
   const swing = impact ? impact.correct || impact.protectedMiss ? styles.swing : styles.bounce : styles.hammerIdle;
-  const { fastMs, slowMs, min, max } = BRICK_SCORING;
   return <div className={styles.stageWrap}>
     <div className={styles.floor} aria-hidden="true" />
     <div key={`stage-${stageKey.current}`} className={`${styles.stage} ${motion}`} style={vars({ "--shake": `${Math.min(4 + (impact?.combo ?? 0) / 2, 12)}px` })}>
@@ -87,8 +84,6 @@ export default function BrickStage({ bricks, impact, impacts, golden, twin, shie
           const offset = bricks.length - 1 - reversed;
           return <Brick key={brick.index} brick={brick} className={offset === 0 ? `${styles.current} ${shielded ? styles.shielded : ""}` : styles[`upper${offset}`]} />;
         })}
-        <div key={timerKey} className={styles.fuse} aria-hidden="true"
-          style={vars({ "--fast": `${fastMs}ms`, "--slow": `${slowMs - fastMs}ms`, "--floor": min / max })}><i /></div>
       </div>
       {twin && <div key={`twin-${impact?.id ?? 0}`} data-twin="true" className={`${styles.hammer} ${swing}`}><Hammer golden={golden} defineGradient={false} /></div>}
       <div key={`hammer-${impact?.id ?? 0}`} data-golden={golden} className={`${styles.hammer} ${swing}`}><Hammer golden={golden} /></div>

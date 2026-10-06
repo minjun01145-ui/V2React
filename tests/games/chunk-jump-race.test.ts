@@ -10,6 +10,9 @@ import {
 } from "../../src/games/chunk-jump-race/model.ts";
 import { crowdSlots, orderCrowd } from "../../src/games/chunk-jump-race/crowdLayout.ts";
 import type { RuntimeLearningSet } from "../../src/learning-sets/types.ts";
+import { sentenceTextKey } from "../../src/game-engine/sequence/words.ts";
+import { settingAppliesToSet } from "../../src/game-engine/contracts/gameDefinition.ts";
+import { getGame } from "../../src/games/registry.ts";
 
 const set: RuntimeLearningSet = {
   id: "reading-1",
@@ -93,4 +96,21 @@ assert.equal(chunkJumpDirection({ direction: "meaning-to-source" }), "meaning-to
 assert.equal(chunkJumpDirection({}), "source-to-meaning");
 assert.throws(() => buildChunkJumpCourse({ ...vocabulary, items: [{ id: "x", sourceText: "", meaning: "뜻" }] }));
 
+const unitSetting = getGame("chunk-jump-race").settings.find((setting) => setting.key === "sentence-unit");
+assert.ok(unitSetting);
+assert.equal(settingAppliesToSet(unitSetting, "reading-chunks"), true);
+assert.equal(settingAppliesToSet(unitSetting, "vocabulary"), false);
+assert.equal(settingAppliesToSet(unitSetting, null), false);
+const wordCourse = buildChunkJumpCourse({ ...set, items: [
+  { id: "dup", sourceText: "The cat / and the dog.", meaning: "그 고양이와 그 개" },
+  { id: "unsplit", sourceText: "Skip this sentence.", meaning: "제외" },
+] }, "source-to-meaning", "word");
+assert.equal(wordCourse.kind, "sentences");
+assert.deepEqual(wordCourse.sentences.map((sentence) => sentence.chunks), [["The", "cat", "and", "the", "dog."]]);
+assert.equal(wordCourse.chunkPool.length, 4);
+assert.equal(new Set(wordCourse.chunkPool.map(sentenceTextKey)).size, wordCourse.chunkPool.length);
+assert.equal(chunkJumpStep(wordCourse, initialChunkJumpCursor()).answer, "cat");
+const duplicateChoices = chunkJumpChoices(wordCourse, { sentenceIndex: 0, chunkIndex: 2 }, "dup", 5);
+assert.equal(duplicateChoices.filter((choice) => sentenceTextKey(choice) === "the").length, 1);
+assert.deepEqual(buildChunkJumpCourse(vocabulary, "meaning-to-source", "word"), reversed);
 console.log("chunk jump race model test passed");

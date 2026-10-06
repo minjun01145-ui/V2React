@@ -2,6 +2,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { tenantLearningSetsCollection } from "../../shared/tenantData.js";
 import { isRecord } from "../../shared/validation.js";
+import { sentenceTextKey } from "../../shared/sentenceWords.js";
 import { db } from "../../shared/firebase.js";
 import { applySoloQuestionAnswer } from "../model.js";
 import {
@@ -93,7 +94,7 @@ export async function submitSoloSentenceAnswer(student: SoloStudent, input: Solo
       || input.tokenIds.some((tokenId) => !expectedTokenIds.includes(tokenId))) {
       throw new HttpsError("invalid-argument", "문장 조각 제출이 현재 문항과 일치하지 않습니다.");
     }
-    const isCorrect = input.tokenIds.every((tokenId, index) => tokenId === expectedTokenIds[index]);
+    const isCorrect = input.tokenIds.every((tokenId, index) => sentenceTextKey(chunks[expectedTokenIds.indexOf(tokenId)]!) === sentenceTextKey(chunks[index]!));
     const nextState = applySoloQuestionAnswer(state, {
       currentIndex: input.currentIndex,
       questionId: input.questionId,

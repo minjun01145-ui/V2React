@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { readSentenceUnit, sentenceTextKey } from "../../game-engine/sequence/words.ts";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
 import { GameEffectLayer } from "../../game-engine/effects/GameEffectLayer.tsx";
 import { createLearningCompletion } from "../../game-engine/effects/model.ts";
@@ -71,7 +72,8 @@ export default function ChunkJumpRaceStudentGame({ roomId, session, player }: St
   const learningSet = useChunkJumpRaceSet(session);
   const participants = useRoundParticipants(roomId, session.roundId);
   const direction = chunkJumpDirection(session.gameConfig);
-  const course = useMemo(() => learningSet.set ? buildChunkJumpCourse(learningSet.set, direction) : null, [direction, learningSet.set]);
+  const unit = readSentenceUnit(session.gameConfig);
+  const course = useMemo(() => learningSet.set ? buildChunkJumpCourse(learningSet.set, direction, unit) : null, [direction, learningSet.set, unit]);
 
   if (!session.expectedPlayerIds.includes(player.id)) return <StatusPanel title="다음 게임을 기다려 주세요" tone="waiting">이미 시작된 레이스에는 중간 참가할 수 없습니다.</StatusPanel>;
   if (learningSet.loading || participants.loading) return <StatusPanel title="점프 레이스 준비 중">학습 세트와 참가자를 불러오고 있습니다.</StatusPanel>;
@@ -125,7 +127,7 @@ function ChunkJumpRaceRuntime({ roomId, roundId, session, playerId, label, label
 
   const choose = (choice: string): void => {
     if (busy || expired) return;
-    if (choice === step.answer) {
+    if (sentenceTextKey(choice) === sentenceTextKey(step.answer)) {
       if (controllerRef.current?.jumpForward()) {
         const completesSentence = !words && cursor.chunkIndex + 1 >= step.sentence.chunks.length - 1;
         completedSentenceRef.current = completesSentence

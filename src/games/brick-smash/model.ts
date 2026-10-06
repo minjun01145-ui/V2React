@@ -4,7 +4,7 @@ import { shuffled } from "../../game-engine/core/random.ts";
 import { applyResultToProgress, type GameProgress } from "../../game-engine/progress/index.ts";
 import { adaptLearningSetToMultipleChoice } from "../../learning-sets/multipleChoiceAdapter.ts";
 import { adaptReadingChunksToSequence } from "../../learning-sets/sentenceSequenceAdapter.ts";
-import { chunksToWords, sentenceTextKey } from "../../learning-sets/sentenceWords.ts";
+import { readSentenceUnit, sentenceUnits, sentenceTextKey } from "../../game-engine/sequence/words.ts";
 import type { LearningSetQuestionSource } from "../../learning-sets/multipleChoiceTypes.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 import { activateBrickItem, BRICK_ITEM_EFFECTS, EMPTY_BRICK_BUFFS, type BrickBuffs, type BrickItemId } from "./items.ts";
@@ -25,21 +25,18 @@ export interface BrickDetails extends MultipleChoiceEvaluationDetails {
 }
 export type BrickProgress = GameProgress<BrickDetails>;
 
-/** Game setting: reading sets are assembled per chunk (default) or per word. */
-export const BRICK_UNIT_KEY = "brick-unit";
-
 export function buildBrickQuestions(set: RuntimeLearningSet, config: Readonly<Record<string, unknown>>, seed: string): readonly BrickQuestion[] {
   const count = config["choice-count"] === "3" ? 3 : 2;
   if (set.type === "reading-chunks") {
     const canonical = adaptReadingChunksToSequence(set);
-    const sentenceUnits = canonical.questions.map((question) => {
+    const units = canonical.questions.map((question) => {
       const chunks = question.tokens.map((token) => token.text);
-      return config[BRICK_UNIT_KEY] === "word" ? chunksToWords(chunks) : chunks;
+      return sentenceUnits(chunks, readSentenceUnit(config));
     });
     // Wrong buttons come from the whole set, one per distinct text.
-    const pool = [...new Map(sentenceUnits.flat().map((text) => [sentenceTextKey(text), text])).values()];
+    const pool = [...new Map(units.flat().map((text) => [sentenceTextKey(text), text])).values()];
     return canonical.questions.flatMap((question, itemIndex) => {
-      const chunks = sentenceUnits[itemIndex]!;
+      const chunks = units[itemIndex]!;
       return chunks.map((answer, chunkIndex): BrickQuestion => {
         const id = `${question.id}:brick:${chunkIndex}`;
         const candidates = shuffled(pool, `${seed}:${id}:pool`).filter((text) => sentenceTextKey(text) !== sentenceTextKey(answer));

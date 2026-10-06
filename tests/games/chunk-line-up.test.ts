@@ -1,4 +1,12 @@
 import assert from "node:assert/strict";
+import { settingAppliesToSet } from "../../src/game-engine/contracts/gameDefinition.ts";
+import { getGame } from "../../src/games/registry.ts";
+
+const unitSetting = getGame("chunk-line-up").settings.find((setting) => setting.key === "sentence-unit");
+assert.ok(unitSetting);
+assert.equal(settingAppliesToSet(unitSetting, "reading-chunks"), true);
+assert.equal(settingAppliesToSet(unitSetting, "vocabulary"), false);
+assert.equal(settingAppliesToSet(unitSetting, null), false);
 import {
   CHUNK_LINE_UP_GRAVITY,
   CHUNK_LINE_UP_WORLD_WIDTH,

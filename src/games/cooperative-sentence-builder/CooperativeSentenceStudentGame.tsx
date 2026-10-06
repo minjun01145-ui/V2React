@@ -9,6 +9,7 @@ import { useDeadlineCountdown } from "../../game-engine/timed-turn/useDeadlineCo
 import { TimedGameStatus } from "../../game-engine/timed-game/TimedGameStatus.tsx";
 import { useTimedGameClock } from "../../game-engine/timed-game/useTimedGameClock.ts";
 import type { SequenceToken } from "../../game-engine/sequence/types.ts";
+import { readSentenceUnit } from "../../game-engine/sequence/words.ts";
 import { adaptReadingChunksToSequence } from "../../learning-sets/sentenceSequenceAdapter.ts";
 import { useCooperativeAssignment } from "../../multiplayer/cooperative/hooks.ts";
 import { expireCooperativeTurn, refreshCooperativeMatch, submitCooperativeSentence } from "../../multiplayer/cooperative/repository.ts";
@@ -28,7 +29,7 @@ export default function CooperativeSentenceStudentGame({ roomId, session, player
   const learningSet = useCooperativeSentenceSet(session);
   const clock = useTimedGameClock(session);
   const assignment = useCooperativeAssignment(roomId, session.roundId, player.id);
-  const questions = useMemo(() => learningSet.set ? adaptReadingChunksToSequence(learningSet.set).questions : [], [learningSet.set]);
+  const questions = useMemo(() => learningSet.set ? adaptReadingChunksToSequence(learningSet.set, readSentenceUnit(session.gameConfig)).questions : [], [learningSet.set, session.gameConfig]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ readonly correct: boolean; readonly text: string } | null>(null);

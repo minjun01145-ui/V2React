@@ -3,6 +3,7 @@ import { HttpsError } from "firebase-functions/v2/https";
 import { db } from "../shared/firebase.js";
 import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
 import { isRecord } from "../shared/validation.js";
+import { readSentenceUnit, sentenceTextKey, sentenceUnits, type SentenceUnit } from "../shared/sentenceWords.js";
 import { belongsToTenant, effectiveTenantId, type TenantId } from "../shared/tenant.js";
 import { tenantLearningSetsCollection } from "../shared/tenantData.js";
 import { hardModeDeadline, isHardModeTurnExpired, partnerDisplayName, shuffled, TEAM_NAMES, teamSizes } from "./model.js";
@@ -34,14 +35,14 @@ function questionItems(value: unknown): readonly Record<string, unknown>[] {
   // Sentences not split by / are skipped, matching the client's sentence adapter.
   return value.items.filter(isRecord).filter((item) => string(item.sourceText).split("/").filter((chunk) => chunk.trim()).length >= 2);
 }
-function expectedTokenIds(item: Record<string, unknown>, fallbackIndex: number): { readonly questionId: string; readonly ids: readonly string[] } {
+function expectedTokenIds(item: Record<string, unknown>, fallbackIndex: number, unit: SentenceUnit): { readonly questionId: string; readonly ids: readonly string[]; readonly texts: readonly string[] } {
   const questionId = string(item.id) || `sentence-${fallbackIndex + 1}`;
   const sourceText = string(item.sourceText).trim();
   const chunks = sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean);
   if (chunks.length < 2) throw new HttpsError("failed-precondition", `${fallbackIndex + 1}번 문항의 끊어읽기 조각이 부족합니다.`);
-  return { questionId, ids: chunks.map((_chunk, index) => `${questionId}:chunk:${index}`) };
+  const texts = sentenceUnits(chunks, unit);
+  return { questionId, ids: texts.map((_text, index) => `${questionId}:chunk:${index}`), texts };
 }
-function sameOrder(first: readonly string[], second: readonly string[]): boolean { return first.length === second.length && first.every((item, index) => item === second[index]); }
 function profile(playerId: string, value: unknown): MemberProfile {
   const raw = isRecord(value) ? value : {};
   return { playerId, nickname: partnerDisplayName(raw.nickname, raw.displayName), avatar: isRecord(raw.avatar) ? raw.avatar : null };
@@ -184,11 +185,14 @@ export async function submitSentence(uid: string, input: CooperativeSubmitInput)
     const memberAssignments = await Promise.all(team.memberIds.map((memberId) => tx.get(roundRef.collection("cooperativeAssignments").doc(memberId))));
     const item = items[team.currentQuestionIndex];
     if (!item) throw new HttpsError("failed-precondition", "현재 문항을 찾을 수 없습니다.");
-    const expected = expectedTokenIds(item, team.currentQuestionIndex);
+    const expected = expectedTokenIds(item, team.currentQuestionIndex, readSentenceUnit(sessionData.gameConfig));
     if (input.questionId !== expected.questionId) throw new HttpsError("failed-precondition", "이미 다음 문항으로 이동했습니다.");
     const now = Date.now();
     const timedOut = isHardModeTurnExpired(team.hardMode, team.turnDeadlineAtMs, now);
-    const isCorrect = !timedOut && sameOrder(input.tokenIds, expected.ids);
+    const isCorrect = !timedOut && input.tokenIds.length === expected.ids.length
+      && new Set(input.tokenIds).size === input.tokenIds.length
+      && input.tokenIds.every((submitted, index) => expected.ids.includes(submitted)
+        && sentenceTextKey(expected.texts[expected.ids.indexOf(submitted)]!) === sentenceTextKey(expected.texts[index]!));
     if (!isCorrect) {
       const hearts = Math.max(0, team.hearts - 1);
       if (hearts === 0) {

@@ -1,5 +1,6 @@
 import { validateCanonicalQuestionSet } from "../game-engine/question-engine/canonicalQuestionSet.ts";
 import type { SequenceQuestion, SequenceQuestionSet } from "../game-engine/sequence/types.ts";
+import { sentenceUnits, type SentenceUnit } from "../game-engine/sequence/words.ts";
 
 const READING_CHUNK_TYPES = new Set(["reading-chunks", "chunked-reading", "slash-reading", "끊어읽기", "끊어읽기 세트"]);
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
@@ -13,7 +14,7 @@ function extractChunks(item: Record<string, unknown>): string[] {
 export function isReadingChunksSet(set: unknown): boolean {
   return isRecord(set) && READING_CHUNK_TYPES.has(firstText(set.type, set.setType, set.category).toLowerCase());
 }
-export function adaptReadingChunksToSequence(set: unknown): SequenceQuestionSet {
+export function adaptReadingChunksToSequence(set: unknown, unit: SentenceUnit = "chunk"): SequenceQuestionSet {
   if (!isRecord(set)) throw new Error("끊어읽기 세트 데이터가 올바른 객체가 아닙니다.");
   const items = set.items ?? set.questions ?? set.entries;
   if (!Array.isArray(items)) throw new Error("끊어읽기 세트에는 items(또는 questions) 배열이 필요합니다.");
@@ -26,7 +27,7 @@ export function adaptReadingChunksToSequence(set: unknown): SequenceQuestionSet 
     const chunks = extractChunks(rawItem);
     if (!prompt) throw new Error(`${index + 1}번 문항의 한글 뜻이 없습니다.`);
     if (chunks.length < 2) return [];
-    const tokens = chunks.map((text, tokenIndex) => ({ id: `${questionId}:chunk:${tokenIndex}`, text, order: tokenIndex }));
+    const tokens = sentenceUnits(chunks, unit).map((text, tokenIndex) => ({ id: `${questionId}:chunk:${tokenIndex}`, text, order: tokenIndex }));
     return [{ id: questionId, kind: "sequence", prompt, tokens, expectedTokenIds: tokens.map((token) => token.id), source: { setId, itemIndex: index } }];
   });
   if (questions.length < 1) throw new Error("끊어읽기 세트에 / 로 두 조각 이상 나눈 문장이 필요합니다.");

@@ -1,6 +1,11 @@
 
-import { defineGame, type GameDefinition } from "../game-engine/contracts/gameDefinition.ts";
+import { defineGame, type GameDefinition, type GameSelectSetting } from "../game-engine/contracts/gameDefinition.ts";
 import { matchingMinimumSetItemCount } from "./matching/config.ts";
+
+const SENTENCE_UNIT_SETTING = {
+  kind: "select", key: "sentence-unit", label: "문장 조각 단위", defaultValue: "chunk", setTypes: ["reading-chunks"],
+  options: [{ value: "chunk", label: "끊어읽기 단위" }, { value: "word", label: "단어 단위" }],
+} as const satisfies GameSelectSetting;
 
 const definitions = [
   defineGame({
@@ -88,6 +93,7 @@ const definitions = [
     preloadPlayerProgress: true,
     supportsFiniteQuizQuestions: true,
     presentQuizQuestion: (item) => ({ prompt: item.meaning, answer: item.sourceText.replaceAll("/", " ") }),
+    settings: [SENTENCE_UNIT_SETTING],
     solo: {
       supported: true,
       rulesVersion: "sentence-builder-v1",
@@ -104,6 +110,7 @@ const definitions = [
     supportedSetTypes: ["reading-chunks"],
     requiresStoredSet: true,
     handlesOwnTimedBoundary: true,
+    settings: [SENTENCE_UNIT_SETTING],
     loadStudent: () => import("./cooperative-sentence-builder/CooperativeSentenceStudentGame.tsx"),
     loadTeacher: () => import("./cooperative-sentence-builder/CooperativeSentenceTeacherGame.tsx"),
   }),
@@ -286,8 +293,7 @@ const definitions = [
     settings: [
       { kind: "select", key: "direction", label: "출제 방향", defaultValue: "source-to-meaning", setTypes: ["vocabulary"],
         options: [{ value: "source-to-meaning", label: "단어 → 뜻 고르기" }, { value: "meaning-to-source", label: "뜻 → 단어 고르기" }] },
-      { kind: "select", key: "brick-unit", label: "버튼 단위", defaultValue: "chunk", setTypes: ["reading-chunks"],
-        options: [{ value: "chunk", label: "끊어읽기 단위" }, { value: "word", label: "단어 단위" }] },
+      SENTENCE_UNIT_SETTING,
       { kind: "select", key: "choice-count", label: "버튼 수", defaultValue: "2",
         options: [{ value: "2", label: "2개" }, { value: "3", label: "3개" }] },
     ],
@@ -321,6 +327,7 @@ const definitions = [
     handlesOwnTimedBoundary: true,
     supportedSetTypes: ["reading-chunks"],
     requiresStoredSet: true,
+    settings: [SENTENCE_UNIT_SETTING],
     loadStudent: () => import("./chunk-line-up/ChunkLineUpStudentGame.tsx"),
     loadTeacher: () => import("./chunk-line-up/ChunkLineUpTeacherGame.tsx"),
   }),
@@ -344,7 +351,7 @@ const definitions = [
         { value: "on", label: "켜기" },
       ],
     }, { kind: "select", key: "direction", label: "단어 세트 출제 방향", defaultValue: "source-to-meaning",
-      options: [{ value: "source-to-meaning", label: "단어 → 뜻 고르기" }, { value: "meaning-to-source", label: "뜻 → 단어 고르기" }] }],
+      options: [{ value: "source-to-meaning", label: "단어 → 뜻 고르기" }, { value: "meaning-to-source", label: "뜻 → 단어 고르기" }] }, SENTENCE_UNIT_SETTING],
     loadStudent: () => import("./chunk-jump-race/ChunkJumpRaceStudentGame.tsx"),
     loadTeacher: () => import("./chunk-jump-race/ChunkJumpRaceTeacherGame.tsx"),
   }),

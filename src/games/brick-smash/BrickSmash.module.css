@@ -107,8 +107,6 @@
 .game[data-sentence="true"] .itemTag { top: -7px; padding: 1px 6px; font-size: 10px; }
 .shielded { border-color: var(--cyan); }
 .floor { position: absolute; left: var(--cx); bottom: calc(var(--base) - 21px); width: calc(var(--stack-w) * 1.4); height: 38px; background: radial-gradient(ellipse, var(--shadow), transparent 70%); transform: translateX(-50%); }
-.fuse { position: absolute; left: 14px; right: 14px; bottom: -13px; height: 5px; overflow: hidden; border-radius: 5px; background: var(--navy-deep); }
-.fuse i { display: block; width: 100%; height: 100%; border-radius: inherit; background: var(--yellow); transform-origin: left; animation: drain var(--slow) var(--fast) linear forwards; }
 .hammer { position: absolute; z-index: 4; left: calc(var(--cx) - var(--stack-w) / 2 - var(--hammer) * .72); bottom: calc(var(--base) - var(--hammer) * .17); width: var(--hammer); height: var(--hammer); transform: rotate(-35deg); transform-origin: 52% 88%; filter: drop-shadow(0 5px 0 var(--shadow)); }
 .hammer svg { display: block; width: 100%; height: 100%; }
 .hammer[data-twin="true"] { left: calc(var(--cx) - var(--stack-w) / 2 - var(--hammer) * 1.1); bottom: calc(var(--base) + 12px); z-index: 3; opacity: .75; }
@@ -211,7 +209,6 @@
 @keyframes shine { from { background-position: 150% 0; } to { background-position: -100% 0; } }
 @keyframes miss-brick { from { background: var(--red); } to { background: var(--cream); } }
 @keyframes block-brick { from { background: var(--cyan); } to { background: var(--cream); } }
-@keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(var(--floor)); } }
 @keyframes drop { from { transform: translate(-50%, calc(var(--drop-count) * -1 * var(--step))); } to { transform: translate(-50%, 0); } }
 @keyframes hammer-idle { 0%, 100% { transform: rotate(-35deg); } 50% { transform: translateY(-5px) rotate(-39deg); } }
 @keyframes swing { 0% { transform: rotate(-35deg); } 35% { transform: rotate(48deg); } 55% { transform: rotate(42deg); } 100% { transform: rotate(-35deg); } }

@@ -1,4 +1,5 @@
 import { shuffled } from "../../game-engine/core/random.ts";
+import { sentenceTextKey, sentenceUnits, type SentenceUnit } from "../../game-engine/sequence/words.ts";
 import { adaptReadingChunksToSequence } from "../../learning-sets/sentenceSequenceAdapter.ts";
 import type { RuntimeLearningSet } from "../../learning-sets/types.ts";
 
@@ -40,7 +41,7 @@ export function chunkJumpDirection(gameConfig: Readonly<Record<string, unknown>>
   return gameConfig?.direction === "meaning-to-source" ? "meaning-to-source" : "source-to-meaning";
 }
 
-export function buildChunkJumpCourse(set: RuntimeLearningSet, direction: ChunkJumpDirection = "source-to-meaning"): ChunkJumpCourse {
+export function buildChunkJumpCourse(set: RuntimeLearningSet, direction: ChunkJumpDirection = "source-to-meaning", unit: SentenceUnit = "chunk"): ChunkJumpCourse {
   if (set.type === "vocabulary") {
     // A word is a two-chunk "sentence": the prompt stands, the answer is the jump.
     const sentences = set.items.flatMap((item) => {
@@ -50,16 +51,16 @@ export function buildChunkJumpCourse(set: RuntimeLearningSet, direction: ChunkJu
       return [{ id: item.id, meaning: "", chunks: direction === "meaning-to-source" ? [meaning, source] : [source, meaning] }];
     });
     if (sentences.length === 0) throw new Error("점프 레이스에 사용할 단어가 없습니다.");
-    return { kind: "words", sentences, chunkPool: [...new Set(sentences.map((sentence) => sentence.chunks[1]!))] };
+    return { kind: "words", sentences, chunkPool: [...new Map(sentences.map((sentence) => [sentenceTextKey(sentence.chunks[1]!), sentence.chunks[1]!])).values()] };
   }
   const canonical = adaptReadingChunksToSequence(set);
   const sentences = canonical.questions.map((question) => ({
     id: question.id,
     meaning: question.prompt,
-    chunks: question.tokens.map((token) => token.text),
+    chunks: sentenceUnits(question.tokens.map((token) => token.text), unit),
   }));
   if (sentences.length === 0) throw new Error("점프 레이스에 사용할 끊어읽기 문장이 없습니다.");
-  const chunkPool = [...new Set(sentences.flatMap((sentence) => sentence.chunks))];
+  const chunkPool = [...new Map(sentences.flatMap((sentence) => sentence.chunks).map((chunk) => [sentenceTextKey(chunk), chunk])).values()];
   return { kind: "sentences", sentences, chunkPool };
 }
 
@@ -99,7 +100,7 @@ export function chunkJumpChoices(
   targetCount = 3,
 ): readonly string[] {
   const { answer } = chunkJumpStep(course, cursor);
-  const distractors = shuffled(course.chunkPool.filter((chunk) => chunk !== answer), `${seed}:distractors`)
+  const distractors = shuffled(course.chunkPool.filter((chunk) => sentenceTextKey(chunk) !== sentenceTextKey(answer)), `${seed}:distractors`)
     .slice(0, Math.max(1, targetCount - 1));
   return shuffled([answer, ...distractors], `${seed}:positions`);
 }

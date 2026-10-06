@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mock } from "node:test";
+import { db } from "../lib/shared/firebase.js";
+import { ensureChunkLineUpRoundService } from "../lib/chunk-line-up/service.js";
 import {
   buildInitialChunkLineUpBoard,
   chooseChunkLineUpReplacementSource,
@@ -205,4 +208,48 @@ const later = resolveChunkLineUpElevatorState(passing, midway + 20_000).left;
 assert.equal(later.floor, 0);
 assert.equal(later.seats.length, 0, "both riders reach floor 0");
 
-console.log("chunk line-up model tests passed");
+// The service builds and persists slots using the round's shared unit option.
+const documents = new Map();
+const reference = (path) => ({ path, collection: (name) => reference(`${path}/${name}`), doc: (id) => reference(`${path}/${id}`), get: async () => snapshot(path) });
+const snapshot = (path) => ({ exists: documents.has(path), data: () => documents.get(path) });
+mock.method(db, "collection", (name) => reference(name));
+mock.method(db, "runTransaction", async (callback) => {
+  const writes = [];
+  const result = await callback({
+    get: async (ref) => { assert.equal(writes.length, 0); return snapshot(ref.path); },
+    set: (ref, data) => writes.push([ref.path, data]),
+  });
+  for (const [path, data] of writes) documents.set(path, data);
+  return result;
+});
+const roundPath = "multiplayerSessions/room/rounds/round";
+try {
+  for (const unit of [undefined, "chunk", "word", "invalid"]) {
+    documents.clear();
+    const playerIds = ["alice", "bob", "carol", "dave", "eve"];
+    documents.set("multiplayerSessions/room", { status: "playing", gameId: "chunk-line-up", roundId: "round", startedAtMs: Date.now(), expectedPlayerIds: playerIds, gameConfig: { setId: "set", "sentence-unit": unit } });
+    documents.set("learningSets/set", { type: "reading-chunks" });
+    documents.set("learningSets/set/content/main", { items: [
+      { id: "unsplit", sourceText: "Skip this sentence.", meaning: "제외" },
+      { id: "sentence", sourceText: "the cat / and the dog.", meaning: "그 고양이와 그 개" },
+    ] });
+    for (const playerId of playerIds) documents.set(`${roundPath}/participants/${playerId}`, { displayName: playerId });
+    await ensureChunkLineUpRoundService({ roomId: "room", roundId: "round" });
+    const state = documents.get(`${roundPath}/chunkLineUpState/main`);
+    const expectedSlots = unit === "word" ? ["the", "cat", "and", "the", "dog."] : ["the cat", "and the dog."];
+    assert.deepEqual(state.sourceGroups, [{ id: "sentence", prompt: "그 고양이와 그 개", slots: expectedSlots }]);
+    assert.deepEqual(state.board.groups[0].slots.map((slot) => slot.text), expectedSlots);
+    assertCardInvariant(state.board, `service ${unit ?? "default"}`);
+    if (unit === "word") {
+      const card = Object.values(state.board.assignments).find((assignment) => assignment.token === "the");
+      const group = state.board.groups[0];
+      const otherSlot = group.slots.find((slot) => slot.text === "the" && slot.id !== card.targetSlotId);
+      assert.equal(placeChunkLineUpCard(state, card.playerId, group.id, otherSlot.id, "word-swap").kind, "placed");
+    }
+    await ensureChunkLineUpRoundService({ roomId: "room", roundId: "round" });
+    assert.equal(documents.get(`${roundPath}/chunkLineUpState/main`), state, "initialization is idempotent");
+  }
+} finally {
+  mock.restoreAll();
+}
+console.log("chunk line-up model/service tests passed");

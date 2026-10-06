@@ -133,11 +133,11 @@ const school: LearningSet = { ...set, type: "reading-chunks", itemCount: 2, item
   { id: "m1", sourceText: "I am / a middle school student.", meaning: "나는 중학생이다" },
   { id: "m2", sourceText: "She likes / green apples", meaning: "그녀는 풋사과를 좋아한다" },
 ] };
-const words = buildBrickQuestions(school, { "brick-unit": "word", "choice-count": "3" }, "round");
+const words = buildBrickQuestions(school, { "sentence-unit": "word", "choice-count": "3" }, "round");
 assert.deepEqual(words.filter((question) => question.source.itemId === "m1").map((question) => question.options.find((option) => option.id === question.correctOptionId)?.text),
   ["I", "am", "a", "middle", "school", "student."]);
 assert.deepEqual(words[0]?.sentence?.chunks, ["I", "am", "a", "middle", "school", "student."]);
-const chunkUnits = buildBrickQuestions(school, { "brick-unit": "chunk" }, "round");
+const chunkUnits = buildBrickQuestions(school, { "sentence-unit": "chunk" }, "round");
 assert.deepEqual(chunkUnits.filter((question) => question.source.itemId === "m1").map((question) => question.options.find((option) => option.id === question.correctOptionId)?.text), ["I am", "a middle school student."]);
 const otherSentenceWords = new Set(["She", "likes", "green", "apples"]);
 assert.ok(words.some((question) => question.source.itemId === "m1" && question.options.some((option) => otherSentenceWords.has(option.text))), "Wrong buttons may come from other sentences");
@@ -151,5 +151,5 @@ assert.equal(strikeBrick(empty, twin, "other-sentence-I").result.isCorrect, true
 // Teachers see the direction only for word sets and the button unit only for reading sets.
 const visible = (setType: string) => getGame("brick-smash").settings.filter((setting) => settingAppliesToSet(setting, setType)).map((setting) => setting.key);
 assert.deepEqual(visible("vocabulary"), ["direction", "choice-count"]);
-assert.deepEqual(visible("reading-chunks"), ["brick-unit", "choice-count"]);
+assert.deepEqual(visible("reading-chunks"), ["sentence-unit", "choice-count"]);
 console.log("brick smash game tests passed");
