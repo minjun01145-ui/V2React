@@ -14,6 +14,36 @@ function splitRow(line: string): readonly [string, string] {
   return [line.slice(0, separatorIndex).trim(), line.slice(separatorIndex + 1).trim()];
 }
 
+// Reading sentences contain commas, so a comma is never a column separator for them.
+// Without a tab the meaning starts at the first Hangul letter after the English text.
+function splitReadingRow(line: string): readonly [string, string] {
+  const tabIndex = line.indexOf("\t");
+  if (tabIndex >= 0) return [line.slice(0, tabIndex).trim(), line.slice(tabIndex + 1).trim()];
+  const hangulIndex = line.search(/[가-힣]/);
+  if (hangulIndex > 0 && /[A-Za-z]/.test(line.slice(0, hangulIndex))) return [line.slice(0, hangulIndex).trim(), line.slice(hangulIndex).trim()];
+  return [line.trim(), ""];
+}
+
+const HANGUL_LINE = /^[^A-Za-z]*[가-힣]/;
+
+/** Rows of a reading set: "English<tab>뜻", "English 뜻" on one line, or an English line followed by its 뜻 line. */
+function readingRows(rows: readonly { readonly line: string; readonly lineNumber: number }[]): { readonly sourceText: string; readonly meaning: string; readonly lineNumber: number }[] {
+  const result: { sourceText: string; meaning: string; lineNumber: number }[] = [];
+  for (let index = 0; index < rows.length; index += 1) {
+    const row = rows[index];
+    if (!row) continue;
+    const [sourceText, meaning] = splitReadingRow(row.line);
+    const next = rows[index + 1];
+    if (!meaning && !HANGUL_LINE.test(sourceText) && next && !next.line.includes("\t") && HANGUL_LINE.test(next.line)) {
+      result.push({ sourceText, meaning: next.line, lineNumber: row.lineNumber });
+      index += 1;
+    } else {
+      result.push({ sourceText, meaning, lineNumber: row.lineNumber });
+    }
+  }
+  return result;
+}
+
 function isHeader(sourceText: string, meaning: string): boolean {
   return SOURCE_HEADERS.has(sourceText.toLowerCase()) && MEANING_HEADERS.has(meaning.toLowerCase());
 }
@@ -67,9 +97,19 @@ export function parseLearningSetPaste(value: string, type: LearningSetType): rea
     : isHeader(firstPair[0], firstPair[1]);
   const contentRows = hasHeader ? rows.slice(1) : rows;
   if (contentRows.length < 1) throw new Error("머리글 아래에 학습 항목을 한 줄 이상 입력해 주세요.");
-  if (contentRows.length > MAX_LEARNING_SET_ITEMS) throw new Error(`한 세트에는 최대 ${MAX_LEARNING_SET_ITEMS}개까지 저장할 수 있습니다.`);
 
   let totalCharacters = 0;
+  if (type === LEARNING_SET_TYPE.READING_CHUNKS) {
+    const pairs = readingRows(contentRows);
+    if (pairs.length > MAX_LEARNING_SET_ITEMS) throw new Error(`한 세트에는 최대 ${MAX_LEARNING_SET_ITEMS}개까지 저장할 수 있습니다.`);
+    return pairs.map(({ sourceText, meaning, lineNumber }, index) => {
+      validateItem(sourceText, meaning, type, lineNumber);
+      totalCharacters += sourceText.length + meaning.length;
+      if (totalCharacters > MAX_LEARNING_SET_CHARACTERS) throw new Error("세트 전체 내용이 너무 큽니다. 여러 세트로 나누어 주세요.");
+      return { id: `item-${String(index + 1).padStart(3, "0")}`, sourceText, meaning };
+    });
+  }
+  if (contentRows.length > MAX_LEARNING_SET_ITEMS) throw new Error(`한 세트에는 최대 ${MAX_LEARNING_SET_ITEMS}개까지 저장할 수 있습니다.`);
   return contentRows.map(({ line, lineNumber }, index) => {
     if (type === LEARNING_SET_TYPE.FORM_CHANGES) {
       const [meaning, sourceText, form2, form3] = splitFormRow(line);

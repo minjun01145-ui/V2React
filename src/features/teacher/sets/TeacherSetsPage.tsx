@@ -280,7 +280,7 @@ export default function TeacherSetsPage({ roomId }: { readonly roomId: string })
                   }
                 }}
                 disabled={Boolean(busy)}
-                placeholder={formChangeType ? "예: PDF의 표 내용을 붙여넣거나 아래에서 PDF 파일을 선택하세요." : readingType ? "영어 문장만 붙여넣어도 현재 끊어읽기 방식으로 나누고 뜻을 붙입니다." : "단어 목록, 본문 일부, 표 등을 붙여넣으세요."}
+                placeholder={formChangeType ? "예: PDF의 표 내용을 붙여넣거나 아래에서 PDF·HWPX 파일을 선택하세요." : readingType ? "/ 로 끊어 둔 문장과 뜻을 붙여넣거나 아래에서 PDF·HWPX 파일을 선택하세요." : "단어 목록, 본문 일부, 표 등을 붙여넣으세요."}
               />
               <div className={styles.aiFileRow}>
                 <input ref={aiFileInputRef} type="file" accept={AI_SOURCE_FILE_ACCEPT} disabled={Boolean(busy)} onChange={(event) => {

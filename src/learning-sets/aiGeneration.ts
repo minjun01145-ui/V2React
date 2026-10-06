@@ -25,8 +25,8 @@ export interface LearningSetGenerationResult {
 }
 
 export const MAX_AI_SOURCE_FILE_BYTES = 4 * 1024 * 1024;
-export const MAX_AI_SOURCE_TEXT_CHARACTERS = 4_000;
-export const AI_SOURCE_FILE_ACCEPT = ".pdf,.txt,.csv,.tsv,.md,application/pdf,text/plain,text/csv,text/tab-separated-values";
+export const MAX_AI_SOURCE_TEXT_CHARACTERS = 12_000;
+export const AI_SOURCE_FILE_ACCEPT = ".pdf,.hwpx,.txt,.csv,.tsv,.md,application/pdf,text/plain,text/csv,text/tab-separated-values";
 
 export function isAiGeneratableLearningSetType(type: LearningSetType): type is AiGeneratableLearningSetType {
   return type === LEARNING_SET_TYPE.VOCABULARY
@@ -74,7 +74,7 @@ function parseResult(value: unknown, type: AiGeneratableLearningSetType): Learni
 }
 
 export async function generateLearningSetDraft(input: LearningSetGenerationInput): Promise<LearningSetGenerationResult> {
-  const callable = httpsCallable<LearningSetGenerationInput, unknown>(functions, "generateLearningSet");
+  const callable = httpsCallable<LearningSetGenerationInput, unknown>(functions, "generateLearningSet", { timeout: 300_000 });
   const response = await callable(input);
   return parseResult(response.data, input.type);
 }

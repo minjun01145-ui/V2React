@@ -1,11 +1,15 @@
 import { PDFParse } from "pdf-parse";
 import { generateAiReply } from "../ai/service.js";
 import { isRecord } from "../shared/validation.js";
+import { extractHwpxText } from "./hwpx.js";
 
 const SUPPORTED_SET_TYPES = new Set(["vocabulary", "reading-chunks", "form-changes"] as const);
 const MAX_FILE_BYTES = 4 * 1024 * 1024;
-const MAX_SOURCE_CHARACTERS = 4_000;
-const MAX_GENERATED_ITEMS = 150;
+const MAX_SOURCE_CHARACTERS = 12_000;
+// One AI call answers within its output-token limit only for a few thousand characters of material.
+const MAX_PIECE_CHARACTERS = 3_000;
+const MAX_GENERATED_ITEMS = 250;
+const MAX_TOTAL_ITEMS = 500;
 
 export type GeneratedLearningSetType = "vocabulary" | "reading-chunks" | "form-changes";
 
@@ -64,7 +68,7 @@ function parseRequest(value: unknown): GenerationRequest {
 function textFile(file: UploadedSourceFile, data: Buffer): string {
   const lowerName = file.name.toLowerCase();
   const textLike = file.mimeType.startsWith("text/") || [".txt", ".csv", ".tsv", ".md"].some((extension) => lowerName.endsWith(extension));
-  if (!textLike) throw new LearningSetGenerationError("PDF, TXT, CSV, TSV, MD 파일만 사용할 수 있습니다.");
+  if (!textLike) throw new LearningSetGenerationError("PDF, HWPX, TXT, CSV, TSV, MD 파일만 사용할 수 있습니다.");
   return data.toString("utf8").replaceAll("\u0000", "").trim();
 }
 
@@ -77,6 +81,16 @@ async function extractFileText(file: UploadedSourceFile): Promise<string> {
   }
   if (data.length < 1 || data.length > MAX_FILE_BYTES) throw new LearningSetGenerationError("파일은 4MB 이하만 사용할 수 있습니다.");
 
+  if (file.name.toLowerCase().endsWith(".hwpx")) {
+    let text: string;
+    try {
+      text = extractHwpxText(data);
+    } catch {
+      throw new LearningSetGenerationError("HWPX 내용을 읽지 못했습니다.");
+    }
+    if (!text) throw new LearningSetGenerationError("이 HWPX에서 읽을 수 있는 텍스트를 찾지 못했습니다.");
+    return text;
+  }
   const pdf = file.mimeType === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
   if (!pdf) return textFile(file, data);
   if (data.subarray(0, 5).toString("ascii") !== "%PDF-") throw new LearningSetGenerationError("올바른 PDF 파일이 아닙니다.");
@@ -84,7 +98,7 @@ async function extractFileText(file: UploadedSourceFile): Promise<string> {
   const parser = new PDFParse({ data });
   try {
     const result = await parser.getText();
-    const text = result.text.replaceAll("\u0000", "").trim();
+    const text = result.text.replaceAll("\u0000", "").replace(/^-- \d+ of \d+ --$/gm, "").trim();
     if (!text) throw new LearningSetGenerationError("이 PDF에서 읽을 수 있는 텍스트를 찾지 못했습니다.");
     return text;
   } catch (error: unknown) {
@@ -112,12 +126,10 @@ function promptFor(type: GeneratedLearningSetType): string {
   }
   if (type === "reading-chunks") {
     return [...common,
-      "현재 교사가 사용하는 방식처럼 영어 원문 순서를 유지하면서 보통 2~5개, 긴 문장은 최대 6개 정도의 의미·구문 단위로 / 를 넣는다.",
-      "주어, 서술어, 목적어·보어, 부사어, 절·접속 경계를 중심으로 나누되 is good at, are made of, would put on 같은 고정 표현은 한 덩어리로 유지하고 전치사나 관사마다 잘게 자르지 않는다.",
-      "한국어 뜻도 영어와 정확히 같은 덩어리 수와 순서로 / 를 넣는다. 자연스러운 의역보다 영어 덩어리와 바로 대응되는 직역형 해석을 우선한다.",
-      "문장부호는 해당 덩어리에 붙여 둔다.",
-      "교사의 기존 예시: He / likes / hiking with his dad. → 그는 / 좋아한다 / 아빠와 하이킹하는 것을.",
-      "교사의 기존 예시: If / she had a flying carpet, / she could travel / all over the world. → 만약 / 그녀에게 날아다니는 양탄자가 있다면 / 여행할 수 있을 텐데 / 전 세계를.",
+      "자료는 교사가 이미 / 기호로 끊어 둔 영어 문장과 한국어 뜻이다. 교사가 끊은 그대로 옮겨 적기만 한다.",
+      "영어 문장의 단어, 문장부호, / 위치를 절대 바꾸지 않는다. / 를 새로 넣거나 빼거나 옮기지 않는다.",
+      "한국어 뜻도 자료에 적힌 그대로 옮긴다. 자료에 뜻이 없는 문장만 영어 덩어리와 같은 수의 / 를 넣어 직역한다.",
+      "영어와 뜻이 다른 줄이나 다른 칸에 있으면 같은 문장끼리 짝지어 한 항목으로 만든다. 문장 번호, 머리글, 쪽 번호, / 가 없는 영어 문장은 제외한다.",
       '형식: {"suggestedName":"짧은 세트 이름","items":[{"sourceText":"I go / to school / every day.","meaning":"나는 간다 / 학교에 / 매일"}]}',
     ].join("\n");
   }
@@ -145,7 +157,13 @@ function cleanGeneratedText(value: unknown, label: string, maxLength: number): s
   return text;
 }
 
-export function parseGeneratedLearningSetReply(reply: string, type: GeneratedLearningSetType): GeneratedLearningSetDraft {
+/** Letters and digits only, so layout, spacing and quote styles of the source do not matter. */
+function comparableText(text: string): string {
+  return text.normalize("NFKC").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+export function parseGeneratedLearningSetReply(reply: string, type: GeneratedLearningSetType, source = ""): GeneratedLearningSetDraft {
+  const comparableSource = comparableText(source);
   const raw = jsonObject(reply);
   if (!isRecord(raw) || !Array.isArray(raw.items) || raw.items.length < 1 || raw.items.length > MAX_GENERATED_ITEMS) {
     throw new LearningSetGenerationError("AI가 만든 학습 항목 수를 확인하지 못했습니다.");
@@ -166,13 +184,54 @@ export function parseGeneratedLearningSetReply(reply: string, type: GeneratedLea
     if (type === "reading-chunks") {
       const sourceChunks = sourceText.split("/").map((chunk) => chunk.trim()).filter(Boolean);
       const meaningChunks = meaning.split("/").map((chunk) => chunk.trim()).filter(Boolean);
-      if (sourceChunks.length < 2 || sourceChunks.length !== meaningChunks.length) {
+      if (sourceChunks.length < 2 || (meaning.includes("/") && sourceChunks.length !== meaningChunks.length)) {
         throw new LearningSetGenerationError("AI가 만든 끊어읽기 덩어리 수가 맞지 않습니다.");
+      }
+      if (comparableSource && !comparableSource.includes(comparableText(sourceText))) {
+        throw new LearningSetGenerationError("AI가 자료의 영어 문장을 바꿔 적었습니다.");
       }
     }
     return { sourceText, meaning };
   });
   return { suggestedName, items };
+}
+
+function sourcePieces(source: string): readonly string[] {
+  const pieces: string[] = [];
+  let current = "";
+  for (const line of source.split("\n")) {
+    // Prefer to cut before a line that starts a new English sentence so a sentence stays with its meaning.
+    const goodBreak = !/^[\s\d.)]*[가-힣]/.test(line);
+    if (current && current.length + line.length >= MAX_PIECE_CHARACTERS && (goodBreak || current.length >= MAX_PIECE_CHARACTERS * 1.3)) {
+      pieces.push(current);
+      current = "";
+    }
+    current = current ? `${current}\n${line}` : line;
+  }
+  if (current) pieces.push(current);
+  return pieces;
+}
+
+async function generatePiece(type: GeneratedLearningSetType, source: string): Promise<GeneratedLearningSetDraft> {
+  const messages = [
+    { role: "system" as const, content: promptFor(type) },
+    { role: "user" as const, content: `다음 자료를 학습세트로 변환해 주세요.\n\n${source}` },
+  ];
+  const first = await generateAiReply(messages, { minimumOutputTokens: 4096 });
+  try {
+    return parseGeneratedLearningSetReply(first.reply, type, source);
+  } catch {
+    const repaired = await generateAiReply([
+      ...messages,
+      { role: "assistant" as const, content: first.reply.slice(0, 4_500) },
+      { role: "user" as const, content: "방금 응답이 지정한 JSON 형식이나 필수 항목 검증에 맞지 않았습니다. 같은 자료를 다시 변환하여 올바른 JSON 객체 하나만 출력하세요." },
+    ], { minimumOutputTokens: 4096 });
+    try {
+      return parseGeneratedLearningSetReply(repaired.reply, type, source);
+    } catch {
+      throw new LearningSetGenerationError("AI 결과를 완성하지 못했습니다. 자료를 조금 나누어 다시 시도해 주세요.");
+    }
+  }
 }
 
 export async function generateLearningSetDraft(value: unknown): Promise<GeneratedLearningSetDraft> {
@@ -182,23 +241,8 @@ export async function generateLearningSetDraft(value: unknown): Promise<Generate
   if (!source) throw new LearningSetGenerationError("학습 자료에서 읽을 내용을 찾지 못했습니다.");
   if (source.length > MAX_SOURCE_CHARACTERS) throw new LearningSetGenerationError(`자료가 너무 깁니다. ${MAX_SOURCE_CHARACTERS.toLocaleString()}자 이하로 나눠 주세요.`);
 
-  const messages = [
-    { role: "system" as const, content: promptFor(request.type) },
-    { role: "user" as const, content: `다음 자료를 학습세트로 변환해 주세요.\n\n${source}` },
-  ];
-  const first = await generateAiReply(messages, { minimumOutputTokens: 4096 });
-  try {
-    return parseGeneratedLearningSetReply(first.reply, request.type);
-  } catch (firstError: unknown) {
-    const repaired = await generateAiReply([
-      ...messages,
-      { role: "assistant" as const, content: first.reply.slice(0, 4_500) },
-      { role: "user" as const, content: "방금 응답이 지정한 JSON 형식이나 필수 항목 검증에 맞지 않았습니다. 같은 자료를 다시 변환하여 올바른 JSON 객체 하나만 출력하세요." },
-    ], { minimumOutputTokens: 4096 });
-    try {
-      return parseGeneratedLearningSetReply(repaired.reply, request.type);
-    } catch {
-      throw new LearningSetGenerationError("AI 결과를 완성하지 못했습니다. 자료가 길다면 조금 나누어 다시 시도해 주세요.");
-    }
-  }
+  const drafts = await Promise.all(sourcePieces(source).map((piece) => generatePiece(request.type, piece)));
+  const items = drafts.flatMap((draft) => draft.items);
+  if (items.length > MAX_TOTAL_ITEMS) throw new LearningSetGenerationError(`한 세트에는 최대 ${MAX_TOTAL_ITEMS}개까지 만들 수 있습니다. 자료를 나누어 주세요.`);
+  return { suggestedName: drafts.find((draft) => draft.suggestedName)?.suggestedName ?? "", items };
 }

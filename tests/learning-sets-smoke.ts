@@ -19,6 +19,19 @@ const reading = parseLearningSetPaste("I go / to school.\t나는 학교에 간�
 assert.equal(reading[0]?.sourceText, "I go / to school.");
 assert.throws(() => parseLearningSetPaste("I go to school.\t나는 학교에 간다.", LEARNING_SET_TYPE.READING_CHUNKS), /기호로 나눠/);
 assert.throws(() => parseLearningSetPaste("I go / to school.\t나는 / 학교에 / 간다.", LEARNING_SET_TYPE.READING_CHUNKS), /덩어리 수/);
+// Regression: a comma inside a chunked sentence was taken as the column separator.
+assert.deepEqual(
+  parseLearningSetPaste("Yes, / I do.\t응, / 그래.", LEARNING_SET_TYPE.READING_CHUNKS).map((item) => [item.sourceText, item.meaning]),
+  [["Yes, / I do.", "응, / 그래."]],
+);
+assert.deepEqual(
+  parseLearningSetPaste("When I was young, / I lived / in Seoul. 어렸을 때, / 나는 살았다 / 서울에", LEARNING_SET_TYPE.READING_CHUNKS).map((item) => [item.sourceText, item.meaning]),
+  [["When I was young, / I lived / in Seoul.", "어렸을 때, / 나는 살았다 / 서울에"]],
+);
+assert.deepEqual(
+  parseLearningSetPaste("He / likes / hiking, too.\n그는 / 좋아한다 / 하이킹도\nI go / to school.\n나는 / 학교에 간다", LEARNING_SET_TYPE.READING_CHUNKS).map((item) => [item.sourceText, item.meaning]),
+  [["He / likes / hiking, too.", "그는 / 좋아한다 / 하이킹도"], ["I go / to school.", "나는 / 학교에 간다"]],
+);
 
 const formChanges = parseLearningSetPaste([
   "뜻\t원급\t비교급\t최상급",
