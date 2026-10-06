@@ -7,3 +7,4 @@
 .colon { color: var(--color-brand-deep); font-size: 2.5rem; }
 .actions { display: flex; justify-content: center; gap: 8px; }
 .finished { text-align: center; color: var(--color-danger); font-size: 1.5rem; }
+.setTime { min-width: 4.5em; align-self: center; color: var(--color-brand-deep); font-size: 1.5rem; font-weight: 300; text-align: center; font-variant-numeric: tabular-nums; }

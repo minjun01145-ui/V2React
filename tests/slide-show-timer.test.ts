@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { MAX_TIMER_SECONDS, adjustTimerSeconds, countdownSeconds, formatTimerSeconds } from "../src/features/teacher/slide-show-runtime/timer/model.ts";
+import { appleBites, elapsedFraction, isTimerSkin, showsRemainingTime } from "../src/features/teacher/slide-show-runtime/timer/skins/skins.ts";
 
 assert.equal(adjustTimerSeconds(180, 60), 240);
 assert.equal(adjustTimerSeconds(60, -1), 59);
@@ -15,4 +16,15 @@ assert.equal(countdownSeconds(10_000, 8_500), 2);
 assert.equal(countdownSeconds(10_000, 9_000), 1);
 assert.equal(countdownSeconds(10_000, 10_000), 0);
 assert.equal(countdownSeconds(10_000, 20_000), 0, "a throttled/background timer must still expire on time");
+// Timer skins
+assert.equal(elapsedFraction(180, 180), 0);
+assert.equal(elapsedFraction(45, 180), 0.75);
+assert.equal(elapsedFraction(0, 0), 0, "an unset timer shows nothing used");
+assert.equal(appleBites(0, 10), 0, "a fresh apple is whole");
+assert.equal(appleBites(0.999, 10), 9, "the last bite is saved for time up");
+assert.equal(appleBites(1, 10), 10);
+assert.equal(showsRemainingTime("hourglass"), false, "the hourglass hides the remaining time");
+assert.equal(showsRemainingTime("glow"), true);
+assert.equal(isTimerSkin("apple"), true);
+assert.equal(isTimerSkin("banana"), false, "an unknown stored skin falls back to the default");
 console.log("Slide show timer tests passed");

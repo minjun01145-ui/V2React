@@ -3,6 +3,8 @@ import { adjustTimerSeconds, countdownSeconds } from "./model.ts";
 
 export interface CountdownTimer {
   readonly remainingSeconds: number;
+  /** The time the timer was set to, which progress is measured against. */
+  readonly durationSeconds: number;
   readonly running: boolean;
   readonly finished: boolean;
   readonly adjust: (delta: number) => void;
@@ -30,6 +32,7 @@ export function useCountdownTimer(): CountdownTimer {
 
   return {
     remainingSeconds,
+    durationSeconds,
     running: deadlineMs !== null,
     finished: remainingSeconds === 0 && durationSeconds > 0,
     adjust: (delta) => {

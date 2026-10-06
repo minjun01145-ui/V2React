@@ -1,0 +1,16 @@
+.layer { position: absolute; inset: 0; z-index: 2; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.bubble { position: absolute; bottom: 8px; display: grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 rgba(7, 13, 46, 0.3), 0 10px 24px -8px rgba(7, 13, 46, 0.5); font-size: 1.9rem; line-height: 1; animation: reaction-rise 2.6s cubic-bezier(.2, .7, .3, 1) forwards; }
+.bubble::after { content: ""; position: absolute; bottom: -7px; left: 50%; border: 8px solid transparent; border-top-color: #fff; border-bottom: 0; transform: translateX(-50%); }
+.error { position: absolute; left: 50%; bottom: 12px; margin: 0; padding: 4px 12px; border-radius: 999px; background: var(--color-danger-soft); color: var(--color-danger-text); font-size: var(--text-sm); white-space: nowrap; transform: translateX(-50%); }
+@keyframes reaction-rise {
+  0% { opacity: 0; transform: translate(-50%, 20px) scale(.4); }
+  10% { opacity: 1; transform: translate(-50%, 0) scale(1.12); }
+  20% { transform: translate(-50%, -10px) scale(1); }
+  45% { transform: translate(calc(-50% + 10px), -120px); }
+  70% { opacity: 1; transform: translate(calc(-50% - 8px), -200px); }
+  100% { opacity: 0; transform: translate(-50%, -280px) scale(.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bubble { animation: reaction-fade 2.6s ease forwards; transform: translateX(-50%); }
+  @keyframes reaction-fade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+}

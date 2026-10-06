@@ -1,3 +1,5 @@
+import { SESSION_STATUS, type SessionStatus } from "../../../multiplayer/constants.ts";
+
 export type TeacherBgmMode = "lobby" | "game";
 
 export interface TeacherBgmCatalog {
@@ -31,6 +33,16 @@ export function buildTeacherBgmCatalog(files: Readonly<Record<string, string>>):
     lobby: orderedUrls(tracks.lobby),
     game: orderedUrls(tracks.game),
   };
+}
+
+/**
+ * What the teacher screen plays (null = silence). Slides themselves are silent; a question engine
+ * opened from a slide plays game music until the teacher returns to the slide.
+ */
+export function teacherBgmMode(status: SessionStatus | null, slideShow: { readonly engine: object | null } | null): TeacherBgmMode | null {
+  const running = status === SESSION_STATUS.PLAYING || status === SESSION_STATUS.PREPARING;
+  if (running && slideShow) return slideShow.engine ? "game" : null;
+  return status === SESSION_STATUS.PLAYING ? "game" : "lobby";
 }
 
 export function pickRandomTrack(

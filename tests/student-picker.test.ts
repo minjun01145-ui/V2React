@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { createLadder, pickStudentIndex, traceLadder } from "../src/student-picker/model.ts";
+import { jumpRaceScope, parseJumpRace, rankJumpRace } from "../src/student-picker/jump-race/model.ts";
 
 assert.equal(pickStudentIndex(0), -1);
 assert.equal(pickStudentIndex(22, () => 0), 0);
@@ -32,4 +33,20 @@ for (const count of [1, 2, 5, 22, 40]) {
     }
   }
 }
+// Jump-tower race line-up
+const racers = [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }, { id: "e" }];
+const lineUp = rankJumpRace(racers, [
+  { playerId: "a", floor: 100, reachedAtMs: 5_000 },
+  { playerId: "b", floor: 100, reachedAtMs: 3_000 },
+  { playerId: "c", floor: 64, reachedAtMs: 4_000 },
+  { playerId: "d", floor: 64, reachedAtMs: 2_000 },
+], 100);
+assert.deepEqual(lineUp.map((standing) => [standing.rank, standing.player.id, standing.finished]),
+  [[1, "b", true], [2, "a", true], [3, "d", false], [4, "c", false], [5, "e", false]],
+  "finishers by arrival time, then everyone else by height (earlier first on a tie), students without a record last");
+assert.equal(rankJumpRace([{ id: "a" }], [{ playerId: "a", floor: 140, reachedAtMs: 1 }], 100)[0]!.floor, 100, "a record above the goal counts as the goal");
+assert.deepEqual(jumpRaceScope("room", { raceId: "r1" }), { roomId: "room", roundId: "jump-race-r1", channelId: "race" });
+assert.deepEqual(parseJumpRace({ raceId: "r1", showRunId: "run-1", goalFloor: 100, startedAtMs: 1 }), { raceId: "r1", showRunId: "run-1", goalFloor: 100, startedAtMs: 1 });
+assert.equal(parseJumpRace({ raceId: "r1", showRunId: "run-1", goalFloor: 0, startedAtMs: 1 }), null);
+assert.equal(parseJumpRace(null), null);
 console.log("Student picker and ladder tests passed");

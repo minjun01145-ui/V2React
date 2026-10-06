@@ -38,6 +38,8 @@ interface Props {
   readonly children?: ReactNode;
   readonly onRecords?: (records: readonly LiveRecord[]) => void;
   readonly onHeight?: (floor: number, best: number) => void;
+  /** Highest floor ever recorded, so a race's finish time is kept once the goal is reached. */
+  readonly recordLimit?: number;
   readonly roomId: string;
   readonly playerId: string;
   readonly label: string;
@@ -69,7 +71,7 @@ function dailyChannelId(): string {
   return `climb-${day}`;
 }
 
-export default function JumpTowerGame({ roomId, playerId, label, players, onExit, roundId, channelId, seed, courseSource, rules, initialState: savedState, initialBest = 0, observer = false, children, onRecords, onHeight }: Props) {
+export default function JumpTowerGame({ roomId, playerId, label, players, onExit, roundId, channelId, seed, courseSource, rules, initialState: savedState, initialBest = 0, observer = false, children, onRecords, onHeight, recordLimit }: Props) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<ClimbScene | null>(null);
@@ -185,7 +187,7 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
       onBuffsChange: setBuffs,
       onHeight: (floor, best) => {
         setHeight({ floor, best });
-        records?.submit(best, label);
+        records?.submit(recordLimit === undefined ? best : Math.min(best, recordLimit), label);
         callbacksRef.current.onHeight?.(floor, best);
       },
       onStandings: setStandings,
@@ -222,7 +224,7 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
       claims.close();
       records?.close();
     };
-  }, [label, playerId, roomId, roundId, channelId, seed, courseSource, savedState, initialBest, observer]);
+  }, [label, playerId, roomId, roundId, channelId, seed, courseSource, savedState, initialBest, observer, recordLimit]);
 
   const press = (event: PointerEvent<HTMLButtonElement>, action: TouchAction): void => {
     event.preventDefault();

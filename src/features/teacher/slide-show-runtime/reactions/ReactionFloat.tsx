@@ -2,30 +2,34 @@ import { useEffect, useRef, useState } from "react";
 import type { Player } from "../../../../multiplayer/types.ts";
 import { SLIDE_REACTIONS, type SlideReaction } from "../../../../slide-reactions/model.ts";
 import { subscribeSlideReactions } from "../../../../slide-reactions/repository.ts";
-import Avatar from "../../../../shared/ui/Avatar.tsx";
-import styles from "./AudienceRow.module.css";
+import styles from "./ReactionFloat.module.css";
 
-const BUBBLE_LIFETIME_MS = 2_400;
+const BUBBLE_LIFETIME_MS = 2_600;
 
 interface Bubble {
   readonly id: number;
-  readonly playerId: string;
   readonly emoji: string;
+  /** Horizontal start, as a percentage of the slide width. */
+  readonly left: number;
 }
 
 /**
- * The class as an audience under the teacher's slide: every student's character, with the emoji
- * reactions they send floating up from them. Names are deliberately not shown.
+ * Students' emoji reactions rising from random spots along the bottom of the teacher's slide.
+ * It overlays the slide without taking space and never catches clicks. Only reactions from
+ * this room's players are shown.
  */
-export default function AudienceRow({ roomId, players }: { readonly roomId: string; readonly players: readonly Player[] }) {
+export default function ReactionFloat({ roomId, players }: { readonly roomId: string; readonly players: readonly Player[] }) {
   const [bubbles, setBubbles] = useState<readonly Bubble[]>([]);
   const [error, setError] = useState(false);
   const nextId = useRef(0);
+  const playerIds = useRef(new Set<string>());
+  playerIds.current = new Set(players.map((player) => player.id));
 
   useEffect(() => {
     const timers = new Set<number>();
     const show = ({ playerId, reaction }: SlideReaction): void => {
-      const bubble = { id: nextId.current += 1, playerId, emoji: SLIDE_REACTIONS[reaction]!.emoji };
+      if (!playerIds.current.has(playerId)) return;
+      const bubble = { id: nextId.current += 1, emoji: SLIDE_REACTIONS[reaction]!.emoji, left: 6 + Math.random() * 88 };
       setBubbles((list) => [...list, bubble]);
       const timer = window.setTimeout(() => {
         timers.delete(timer);
@@ -43,12 +47,8 @@ export default function AudienceRow({ roomId, players }: { readonly roomId: stri
     };
   }, [roomId]);
 
-  if (players.length === 0) return null;
-  return <div className={styles.row} aria-label="학생 캐릭터">
+  return <div className={styles.layer} aria-hidden={!error}>
+    {bubbles.map((bubble) => <span className={styles.bubble} key={bubble.id} style={{ left: `${bubble.left}%` }}>{bubble.emoji}</span>)}
     {error ? <p className={styles.error} role="alert">학생 반응을 받지 못하고 있습니다</p> : null}
-    {players.map((player, index) => <div className={styles.seat} key={player.id} style={{ animationDelay: `${(index % 7) * -0.37}s` }}>
-      <Avatar avatar={player.avatar} label="학생 캐릭터" className={styles.avatar ?? ""} />
-      {bubbles.filter((bubble) => bubble.playerId === player.id).map((bubble) => <span className={styles.bubble} key={bubble.id} aria-hidden="true">{bubble.emoji}</span>)}
-    </div>)}
   </div>;
 }

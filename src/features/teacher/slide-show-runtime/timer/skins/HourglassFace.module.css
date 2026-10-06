@@ -1,0 +1,10 @@
+.face { display: grid; place-items: center; padding: 8px 0; }
+.glass { width: min(100%, 170px); height: auto; overflow: visible; filter: drop-shadow(0 6px 10px rgba(16, 26, 58, 0.25)); }
+.sand { fill: #f2b84b; transform-box: fill-box; transform-origin: bottom; transition: transform 1s linear; }
+.stream { stroke: #f2b84b; stroke-width: 2.4; stroke-dasharray: 3 4; animation: sand-fall 0.5s linear infinite; }
+.outline { fill: rgba(200, 230, 255, 0.18); stroke: #8fb6d8; stroke-width: 3; stroke-linejoin: round; }
+.frame { fill: #8a5a2b; stroke: #5e3a17; stroke-width: 2; }
+.face[data-finished="true"] .glass { animation: hourglass-done 1.2s ease-in-out infinite; }
+@keyframes sand-fall { to { stroke-dashoffset: -14; } }
+@keyframes hourglass-done { 50% { transform: rotate(8deg); } }
+@media (prefers-reduced-motion: reduce) { .stream, .face[data-finished="true"] .glass { animation: none; } .sand { transition: none; } }

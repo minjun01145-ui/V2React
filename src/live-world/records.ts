@@ -23,6 +23,8 @@ export interface LiveRecord {
   readonly playerId: string;
   readonly score: number;
   readonly label: string;
+  /** Server time the current best was set; earlier wins a tie in races. */
+  readonly reachedAtMs: number | null;
 }
 
 export interface LiveRecords {
@@ -37,9 +39,9 @@ function parseRecord(snapshot: DataSnapshot): LiveRecord | null {
   const playerId = snapshot.key;
   const raw: unknown = snapshot.val();
   if (!playerId || typeof raw !== "object" || raw === null) return null;
-  const { s, l } = raw as Record<string, unknown>;
+  const { s, l, t } = raw as Record<string, unknown>;
   return typeof s === "number" && Number.isSafeInteger(s) && s >= 0 && typeof l === "string"
-    ? { playerId, score: s, label: l.slice(0, MAX_LABEL) }
+    ? { playerId, score: s, label: l.slice(0, MAX_LABEL), reachedAtMs: typeof t === "number" && Number.isFinite(t) ? t : null }
     : null;
 }
 

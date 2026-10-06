@@ -11,6 +11,8 @@ import StatusPanel from "../../../shared/StatusPanel.tsx";
 import SlideViewport from "../../slide-show-runtime/SlideViewport.tsx";
 import { useMyShowScore } from "../../slide-show-runtime/useMyShowScore.ts";
 import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
+import { useJumpRace } from "../../../student-picker/jump-race/useJumpRace.ts";
+import JumpRaceStage from "./jump-race/JumpRaceStage.tsx";
 import ReactionBar from "./ReactionBar.tsx";
 import styles from "./StudentSlideShowRuntime.module.css";
 
@@ -42,6 +44,7 @@ export default function StudentSlideShowRuntime({ roomId, session, player, slide
   const awardEffect = useAwardEffects(slideShow.awards, player.id);
   const slide = slides.get(slideShow.slideIds[slideShow.currentSlideIndex] ?? "");
   const engine = slideShow.engine?.slideId === slide?.id ? slideShow.engine : null;
+  const race = useJumpRace(roomId, slideShow.runId);
 
   const engineContent = !engine ? null
     : engine.phase === "answering"
@@ -61,10 +64,11 @@ export default function StudentSlideShowRuntime({ roomId, session, player, slide
       <span className={styles.score}><b>{score.toLocaleString("ko-KR")}</b>점</span>
     </header>
     <div className={styles.body}>
-      {error ? <StatusPanel title="슬라이드를 불러오지 못했어요" tone="error">{error.message}</StatusPanel>
+      {race ? <JumpRaceStage roomId={roomId} player={player} race={race} />
+        : error ? <StatusPanel title="슬라이드를 불러오지 못했어요" tone="error">{error.message}</StatusPanel>
         : loading || !slide ? <StatusPanel title="슬라이드를 불러오는 중" tone="waiting">잠시만 기다려 주세요.</StatusPanel>
         : <SlideViewport slide={slide} engineFrame={engine?.frame ?? null} engineContent={engineContent} />}
     </div>
-    <ReactionBar roomId={roomId} playerId={player.id} />
+    {race ? null : <ReactionBar roomId={roomId} playerId={player.id} />}
   </section>;
 }

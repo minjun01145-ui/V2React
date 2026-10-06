@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
-import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
-import { useSession } from "../../../multiplayer/hooks.ts";
+import { useSessionSubscription } from "../../../multiplayer/hooks.ts";
+import { subscribeSlideShowSession } from "../../../slide-show/multiplayerService.ts";
 import { teacherBgmCatalog } from "./catalog.ts";
-import { pickRandomTrack, type TeacherBgmMode } from "./model.ts";
+import { pickRandomTrack, teacherBgmMode, type TeacherBgmMode } from "./model.ts";
 
 const TEACHER_BGM_VOLUME = 0.22;
 
-function useTeacherBgmPlayer(mode: TeacherBgmMode): void {
+function useTeacherBgmPlayer(mode: TeacherBgmMode | null): void {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ function useTeacherBgmPlayer(mode: TeacherBgmMode): void {
     const audio = audioRef.current;
     if (!audio) return undefined;
 
-    const source = pickRandomTrack(teacherBgmCatalog[mode]);
+    const source = mode ? pickRandomTrack(teacherBgmCatalog[mode]) : null;
     if (!source) {
       audio.pause();
       audio.removeAttribute("src");
@@ -56,8 +56,8 @@ function useTeacherBgmPlayer(mode: TeacherBgmMode): void {
 }
 
 export default function TeacherBgm({ roomId }: { readonly roomId: string }) {
-  const { session } = useSession(roomId);
-  const mode: TeacherBgmMode = session?.status === SESSION_STATUS.PLAYING ? "game" : "lobby";
-  useTeacherBgmPlayer(mode);
+  // The slide show state rides on the session document, so one subscription gives both.
+  const { value } = useSessionSubscription(roomId, subscribeSlideShowSession);
+  useTeacherBgmPlayer(teacherBgmMode(value?.session.status ?? null, value?.slideShow ?? null));
   return null;
 }

@@ -8,7 +8,7 @@ import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import SlideViewport from "../../slide-show-runtime/SlideViewport.tsx";
 import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
-import AudienceRow from "./audience/AudienceRow.tsx";
+import ReactionFloat from "./reactions/ReactionFloat.tsx";
 import AwardPanel from "./AwardPanel.tsx";
 import EnginePhasePanel from "./EnginePhasePanel.tsx";
 import SlideInkLayer from "./ink/SlideInkLayer.tsx";
@@ -17,6 +17,8 @@ import StudentPickerPanel from "./StudentPickerPanel.tsx";
 import TeacherEngineWindow from "./TeacherEngineWindow.tsx";
 import TimerPanel from "./timer/TimerPanel.tsx";
 import { formatTimerSeconds } from "./timer/model.ts";
+import { showsRemainingTime } from "./timer/skins/skins.ts";
+import { useTimerSkin } from "./timer/skins/useTimerSkin.ts";
 import { useCountdownTimer } from "./timer/useCountdownTimer.ts";
 import styles from "./TeacherSlideShowRuntime.module.css";
 
@@ -37,6 +39,7 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
   const fullscreenRef = useRef<HTMLElement | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const timer = useCountdownTimer();
+  const [timerSkin, setTimerSkin] = useTimerSkin();
   const index = slideShow.currentSlideIndex;
   const slide = slides.get(slideShow.slideIds[index] ?? "");
   const engine = slideShow.engine;
@@ -113,7 +116,7 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
             /> : null}
             annotation={(scale) => <SlideInkLayer key={slide.id} scale={scale} />}
           />}
-        <AudienceRow roomId={roomId} players={players} />
+        <ReactionFloat roomId={roomId} players={players} />
       </div>
       <div className={styles.controls}>
         <div className={styles.nav}>
@@ -126,7 +129,7 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
           <Button variant={panel === "award" ? "primary" : "ghost"} onClick={() => setPanel(panel === "award" ? null : "award")}>점수 주기</Button>
           <Button variant={panel === "ranking" ? "primary" : "ghost"} onClick={() => setPanel(panel === "ranking" ? null : "ranking")}>순위</Button>
           <Button variant={panel === "picker" ? "primary" : "ghost"} onClick={() => setPanel(panel === "picker" ? null : "picker")}>학생 뽑기</Button>
-          <Button className={styles.timerButton} variant={panel === "timer" ? "primary" : "ghost"} onClick={() => setPanel(panel === "timer" ? null : "timer")}>타이머 {formatTimerSeconds(timer.remainingSeconds)}</Button>
+          <Button className={styles.timerButton} variant={panel === "timer" ? "primary" : "ghost"} onClick={() => setPanel(panel === "timer" ? null : "timer")}>타이머{showsRemainingTime(timerSkin) ? ` ${formatTimerSeconds(timer.remainingSeconds)}` : ""}</Button>
           <Button variant="ghost" onClick={() => void toggleFullscreen()}>{fullscreen ? "전체화면 종료" : "전체 화면"}</Button>
         </div>
       </div>
@@ -134,8 +137,8 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
       {error ? <StatusPanel title="슬라이드쇼 진행 오류" tone="error">{error}</StatusPanel> : null}
       {panel === "award" ? <Card><AwardPanel players={players} awards={slideShow.awards} disabled={working} onAward={(playerIds, points) => run(() => awardShowPoints(roomId, playerIds, points), "점수를 주지 못했습니다.")} /></Card> : null}
       {panel === "ranking" ? <Card><ShowLeaderboard roomId={roomId} slideShow={slideShow} /></Card> : null}
-      {panel === "picker" ? <Card><StudentPickerPanel roomId={roomId} players={players} /></Card> : null}
-      {panel === "timer" ? <Card><TimerPanel timer={timer} /></Card> : null}
+      {panel === "picker" ? <Card><StudentPickerPanel roomId={roomId} showRunId={slideShow.runId} players={players} /></Card> : null}
+      {panel === "timer" ? <Card><TimerPanel timer={timer} skin={timerSkin} onSkinChange={setTimerSkin} /></Card> : null}
       {engine ? <EnginePhasePanel roomId={roomId} session={session} engine={engine} onCloseAnswers={() => setShowEnginePhase(roomId, "submissions")} onAwardingChange={setAwarding} /> : null}
     </div>
   </section>;
