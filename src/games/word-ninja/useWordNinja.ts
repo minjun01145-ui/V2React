@@ -3,8 +3,9 @@ import { createEmptyProgress, normalizeProgress } from "../../game-engine/progre
 import { usePlayerGameProgress } from "../../multiplayer/game-progress/hooks.ts";
 import { persistGameAttempt, type GameAttemptSubmission } from "../../multiplayer/game-progress/repository.ts";
 import type { StudentGameModuleProps } from "../../game-engine/contracts/gameDefinition.ts";
-import { isGoldenWave, ninjaQuestionAt, sliceFruit, type NinjaDetails, type NinjaProgress, type NinjaQuestion } from "./model.ts";
+import { ninjaQuestionAt, sliceFruit, type NinjaDetails, type NinjaProgress, type NinjaQuestion } from "./model.ts";
 
+export type NinjaSliceContext = Parameters<typeof sliceFruit>[3];
 type Attempt = GameAttemptSubmission<NinjaQuestion, { optionId: string }, NinjaDetails>;
 
 const MAX_PENDING = 12;
@@ -60,20 +61,23 @@ export function useWordNinja({ roomId, session, player, questions, expired }: St
     }
   }, [player, roomId, session.gameId, session.roundId]);
 
-  /** `elapsedMs` is how long the current wave has been in the air. */
-  const slice = useCallback((optionId: string, elapsedMs: number) => {
+  /**
+   * `wave` is the question as thrown (a curse may have added decoys); a fruit
+   * from an earlier question that is still falling no longer counts.
+   */
+  const slice = useCallback((wave: NinjaQuestion, optionId: string, context: NinjaSliceContext) => {
     if (!initialized.current || expired || blocked.current || remote.error || queue.current.length >= MAX_PENDING) return null;
     const previousProgress = current.current;
-    const question = ninjaQuestionAt(questions, previousProgress.currentIndex);
-    const next = sliceFruit(previousProgress, question, optionId, { elapsedMs, golden: isGoldenWave(session.roundId, previousProgress.currentIndex) });
+    if (wave.id !== ninjaQuestionAt(questions, previousProgress.currentIndex).id) return null;
+    const next = sliceFruit(previousProgress, wave, optionId, context);
     current.current = next.progress;
     setProgress(next.progress);
-    queue.current.push({ attemptId: crypto.randomUUID(), item: question, answer: { optionId },
+    queue.current.push({ attemptId: crypto.randomUUID(), item: wave, answer: { optionId },
       result: next.result, previousProgress, progress: next.progress });
     setPending(queue.current.length);
     void flush();
     return next.result;
-  }, [expired, flush, questions, remote.error, session.roundId]);
+  }, [expired, flush, questions, remote.error]);
 
   return { progress, ready, pending, error: saveError ?? remote.error?.message ?? null,
     blocked: !ready || Boolean(saveError || remote.error) || pending >= MAX_PENDING || expired, slice, retry: flush };

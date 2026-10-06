@@ -1,3 +1,5 @@
+import { activeTimedBuffs, type TimedBuffDefinitions } from "../timed-buffs/model.ts";
+
 /**
  * Power-up rules shared by the party platformers. Each game decides where and
  * when items appear (deterministically, so every client agrees); pickups are
@@ -38,6 +40,14 @@ export const ITEM_STYLE: Readonly<Record<PartyItemKind, { readonly color: number
   star: { color: 0xeab308, icon: "★" },
 };
 
+export const PARTY_BUFF_DEFINITIONS: TimedBuffDefinitions<PartyItemKind> = {
+  speed: { label: ITEM_LABEL.speed, icon: ITEM_STYLE.speed.icon, durationMs: BUFF_DURATION_MS, color: "linear-gradient(135deg, #f59e0b, #f97316)" },
+  jump: { label: ITEM_LABEL.jump, icon: ITEM_STYLE.jump.icon, durationMs: BUFF_DURATION_MS, color: "linear-gradient(135deg, #22c55e, #16a34a)" },
+  punch: { label: ITEM_LABEL.punch, icon: ITEM_STYLE.punch.icon, durationMs: BUFF_DURATION_MS, color: "linear-gradient(135deg, #ef4444, #dc2626)" },
+  dash: { label: ITEM_LABEL.dash, icon: ITEM_STYLE.dash.icon, durationMs: BUFF_DURATION_MS, color: "linear-gradient(135deg, #38bdf8, #0284c7)" },
+  star: { label: ITEM_LABEL.star, icon: ITEM_STYLE.star.icon, durationMs: BUFF_DURATION_MS, color: "linear-gradient(135deg, #facc15, #f472b6, #a78bfa)" },
+};
+
 export interface PartyItem {
   readonly id: string;
   readonly kind: PartyItemKind;
@@ -65,13 +75,9 @@ export function activePartyBuffs(
   kindOf: (id: string) => PartyItemKind | null,
   nowMs: number,
 ): Map<PartyItemKind, number> {
-  const buffs = new Map<PartyItemKind, number>();
-  for (const claim of claims) {
-    if (claim.by !== playerId) continue;
-    const kind = kindOf(claim.id);
-    const endsAt = claim.atMs + BUFF_DURATION_MS;
-    if (!kind || endsAt <= nowMs) continue;
-    buffs.set(kind, Math.max(buffs.get(kind) ?? 0, endsAt));
-  }
-  return buffs;
+  const pickups = claims.flatMap((claim) => {
+    const kind = claim.by === playerId ? kindOf(claim.id) : null;
+    return kind ? [{ kind, atMs: claim.atMs }] : [];
+  });
+  return new Map(activeTimedBuffs(pickups, () => BUFF_DURATION_MS, nowMs).map((buff) => [buff.kind, buff.endsAtLocalMs]));
 }

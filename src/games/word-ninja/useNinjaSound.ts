@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export type NinjaSound = "swoosh" | "slice" | "miss" | "golden" | "milestone" | "toss";
+export type NinjaSound = "swoosh" | "slice" | "miss" | "golden" | "milestone" | "toss" | "frenzy" | "curse" | "chain";
 type Tone = readonly [frequency: number, endFrequency: number, delay: number, duration: number, volume: number, type: OscillatorType];
 type Noise = readonly [filter: BiquadFilterType, frequency: number, endFrequency: number, duration: number, volume: number];
 
@@ -11,6 +11,11 @@ const TONES: Record<NinjaSound, readonly Tone[]> = {
   golden: [[1319, 1319, 0, 0.09, 0.07, "sine"], [1760, 1760, 0.06, 0.09, 0.07, "sine"], [2637, 2637, 0.12, 0.3, 0.06, "sine"]],
   milestone: [[523, 523, 0, 0.08, 0.07, "square"], [659, 659, 0.07, 0.08, 0.07, "square"], [784, 784, 0.14, 0.08, 0.07, "square"], [1047, 1047, 0.21, 0.28, 0.08, "square"]],
   toss: [[140, 260, 0, 0.12, 0.08, "sine"]],
+  // A gong-like rise for the all-correct frenzy.
+  frenzy: [[392, 392, 0, 0.5, 0.08, "triangle"], [587, 587, 0.05, 0.45, 0.07, "triangle"], [784, 1568, 0.12, 0.4, 0.06, "sine"]],
+  // Two detuned falling tones for the curse.
+  curse: [[330, 110, 0, 0.55, 0.09, "sawtooth"], [311, 104, 0.02, 0.55, 0.07, "square"]],
+  chain: [[1175, 1568, 0, 0.09, 0.05, "square"]],
 };
 
 const NOISES: Partial<Record<NinjaSound, Noise>> = {
@@ -19,6 +24,7 @@ const NOISES: Partial<Record<NinjaSound, Noise>> = {
   // The juice: a wet low crunch.
   slice: ["lowpass", 2_400, 500, 0.2, 0.7],
   miss: ["lowpass", 600, 200, 0.25, 0.5],
+  frenzy: ["bandpass", 3_000, 600, 0.3, 0.35],
 };
 
 export function useNinjaSound() {
