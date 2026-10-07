@@ -1,6 +1,8 @@
 import "./fabricSetup.ts";
 import { ActiveSelection, Canvas, Circle, Control, controlsUtils, FabricImage, Line, Rect, Textbox, Triangle, util, type FabricObject, type TMat2D } from "fabric";
 import { SLIDE_HEIGHT, SLIDE_WIDTH, type SlideFrame } from "../slide-show/types.ts";
+import type { AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
+import { applyAssistantOperation, describeSlide } from "./assistantOperations.ts";
 import { collectSlideTexts, loadSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
 import { UndoHistory } from "./undoHistory.ts";
 
@@ -122,6 +124,9 @@ export class SlideEditorController {
   /** Kept across slides, so objects can be copied from one slide to another. */
   private copied: readonly CopiedObject[] = [];
   private pasteCount = 0;
+  /** Objects as last described to the AI helper; its ids o1, o2 … index into this list. */
+  private assistantTargets: readonly FabricObject[] = [];
+  private applyingAssistant = false;
 
   constructor(element: HTMLCanvasElement, events: ControllerEvents) {
     this.events = events;
@@ -286,6 +291,38 @@ export class SlideEditorController {
     this.pasteCount = previous.pasteCount;
   }
 
+  /** The slide as the AI helper sees it (the question-engine window is left out). */
+  describeForAssistant(): AssistantSlide {
+    const active = this.canvas.getActiveObject();
+    if (active instanceof Textbox && active.isEditing) active.exitEditing();
+    this.assistantTargets = this.canvas.getObjects().filter((item) => item !== this.engineFrame);
+    return describeSlide(this.assistantTargets, this.background);
+  }
+
+  /** Applies the AI helper's edits as one undo step; returns how many could not be applied. */
+  async applyAssistantOperations(operations: readonly AssistantOperation[], loadImage: (query: string) => Promise<string>): Promise<number> {
+    this.canvas.discardActiveObject();
+    this.applyingAssistant = true;
+    let skipped = 0;
+    try {
+      for (const operation of operations) {
+        const target = "id" in operation ? this.assistantTargets[Number(operation.id.slice(1)) - 1] : undefined;
+        try {
+          if (!await applyAssistantOperation(this.canvas, operation, target, loadImage)) skipped += 1;
+        } catch {
+          skipped += 1;
+        }
+      }
+    } finally {
+      this.applyingAssistant = false;
+    }
+    this.keepEngineFrameOnTop();
+    this.canvas.requestRenderAll();
+    this.edited();
+    this.events.onSelectionChange(null);
+    return skipped;
+  }
+
   arrange(action: SlideArrangeAction): void {
     const target = this.canvas.getActiveObject();
     if (!target) return;
@@ -365,7 +402,7 @@ export class SlideEditorController {
   /** Every user edit: save the slide and record one undo step (several events of one action collapse). */
   private edited(): void {
     this.events.onChange();
-    if (this.recordScheduled) return;
+    if (this.recordScheduled || this.applyingAssistant) return;
     this.recordScheduled = true;
     queueMicrotask(() => {
       this.recordScheduled = false;

@@ -10,6 +10,7 @@ import { validateSlides, validateSlideShowName } from "../../../slide-show/valid
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import { engineSetIssue, newSlideEngine } from "./engineDraft.ts";
+import SlideAssistantPanel from "./assistant/SlideAssistantPanel.tsx";
 import ObjectStylePanel from "./ObjectStylePanel.tsx";
 import SlideEnginePanel from "./SlideEnginePanel.tsx";
 import SlideRail from "./SlideRail.tsx";
@@ -270,6 +271,7 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
             <label className={styles.customColor} aria-label="직접 고르기"><input type="color" value={background} onChange={(event) => changeBackground(event.target.value)} disabled={!controller} /></label>
           </div>
         </section>
+        <SlideAssistantPanel key={currentId} controller={controller} />
         {selection ? <ObjectStylePanel style={selection} onChange={(patch) => controller?.updateSelection(patch)} onArrange={(action) => controller?.arrange(action)} onDuplicate={() => void controller?.duplicateSelection()} onDelete={() => controller?.deleteSelection()} /> : null}
         {current?.engine ? <SlideEnginePanel round={current.engine.round} sets={sets} disabled={busy} issue={engineIssue} onChange={setEngineRound} onRemove={removeEngine} /> : null}
       </aside>
