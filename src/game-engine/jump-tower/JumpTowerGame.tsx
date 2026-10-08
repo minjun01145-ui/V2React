@@ -1,9 +1,10 @@
 import Phaser from "phaser";
-import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { hashString } from "../core/random.ts";
-import { movementAction } from "../input/movementKeys.ts";
 import { resizeScaleConfig } from "../phaser-kit/scaleConfig.ts";
 import { clearPlatformerInput, createPlatformerInput } from "../platformer/movement.ts";
+import PlatformerTouchControls from "../platformer/PlatformerTouchControls.tsx";
+import { usePlatformerKeyboard } from "../platformer/usePlatformerKeyboard.ts";
 import BuffHud from "../platformer-party/BuffHud.tsx";
 import type { ActiveBuff } from "../platformer-party/buffs.ts";
 import { FullscreenToggle } from "../stage/ImmersiveStage.tsx";
@@ -17,6 +18,7 @@ import {
   subscribeLiveServerTimeOffset,
   type LiveRecord,
 } from "../../live-world/client.ts";
+import { dailyChannelId } from "../../live-world/dailyChannel.ts";
 import { displayLabel, type Player } from "../../multiplayer/types.ts";
 import ClimbScene, { type ClimbStanding } from "./ClimbScene.ts";
 import { CLIMB_GRAVITY, CLIMB_PLAYER_HEIGHT, CLIMB_WORLD_WIDTH, climbFloorAt, type ClimbCourseSource } from "./course.ts";
@@ -47,30 +49,6 @@ interface Props {
   readonly onExit?: () => void;
 }
 
-const TOUCH_ACTIONS = [
-  { action: "left", label: "왼쪽", text: "◀" },
-  { action: "right", label: "오른쪽", text: "▶" },
-  { action: "punch", label: "펀치", text: "✊" },
-  { action: "drop", label: "내려가기", text: "▼" },
-  { action: "jump", label: "점프", text: "점프" },
-] as const;
-type TouchAction = (typeof TOUCH_ACTIONS)[number]["action"];
-
-const PUNCH_KEYS = new Set(["Space", "KeyF", "KeyJ"]);
-const DROP_KEYS = new Set(["ArrowDown", "KeyS"]);
-
-/** Buttons are not typing targets: after clicking one, game keys must keep working. */
-function isTypingTarget(target: EventTarget | null): boolean {
-  return target instanceof Element && Boolean(target.closest("input, textarea, select, [contenteditable='true']"));
-}
-
-/** Movement, punches and item claims live in a channel per day so old claims never pile up. */
-function dailyChannelId(): string {
-  const now = new Date();
-  const day = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  return `climb-${day}`;
-}
-
 export default function JumpTowerGame({ roomId, playerId, label, players, onExit, roundId, channelId, seed, courseSource, rules, initialState: savedState, initialBest = 0, observer = false, children, onRecords, onHeight, recordLimit }: Props) {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -89,49 +67,10 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
   labelsRef.current = new Map(players.map((player) => [player.id, displayLabel(player.displayName, player.nickname)]));
 
   useEffect(() => {
-    if (observer) return;
-    stageRef.current?.focus({ preventScroll: true });
-    const input = inputRef.current;
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (isTypingTarget(event.target)) return;
-      if (event.code === "KeyR") {
-        event.preventDefault();
-        if (!event.repeat) input.resetQueued = true;
-        return;
-      }
-      if (PUNCH_KEYS.has(event.code)) {
-        event.preventDefault();
-        if (!event.repeat) sceneRef.current?.punch();
-        return;
-      }
-      if (DROP_KEYS.has(event.code)) {
-        event.preventDefault();
-        if (!event.repeat) sceneRef.current?.dropDown();
-        return;
-      }
-      const action = movementAction(event.code, event.key);
-      if (!action) return;
-      event.preventDefault();
-      if (action === "jump") {
-        if (!event.repeat) input.jumpQueued = true;
-        return;
-      }
-      input.held.set(event.code || event.key, action);
-    };
-    const onKeyUp = (event: KeyboardEvent): void => { input.held.delete(event.code || event.key); };
-    const clear = (): void => clearPlatformerInput(input);
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
-    window.addEventListener("blur", clear);
-    document.addEventListener("visibilitychange", clear);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
-      window.removeEventListener("blur", clear);
-      document.removeEventListener("visibilitychange", clear);
-      clear();
-    };
+    if (!observer) stageRef.current?.focus({ preventScroll: true });
   }, [observer]);
+  const actions = { punch: () => sceneRef.current?.punch(), drop: () => sceneRef.current?.dropDown() };
+  usePlatformerKeyboard(inputRef.current, actions, !observer);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -141,7 +80,7 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
     const onError = (error: Error): void => { if (active) setConnectionError(error); };
     let serverOffsetMs = 0;
     const unsubscribeClock = subscribeLiveServerTimeOffset((offset) => { serverOffsetMs = offset; }, onError);
-    const scope = { roomId, roundId: roundId ?? LOBBY_SCOPE_ID, channelId: channelId ?? dailyChannelId() };
+    const scope = { roomId, roundId: roundId ?? LOBBY_SCOPE_ID, channelId: channelId ?? dailyChannelId("climb") };
     const spread = (hashString(playerId) % 400) - 200;
     const initialState = savedState ?? { x: CLIMB_WORLD_WIDTH / 2 + spread, y: -CLIMB_PLAYER_HEIGHT / 2, vx: 0, vy: 0 };
 
@@ -226,19 +165,6 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
     };
   }, [label, playerId, roomId, roundId, channelId, seed, courseSource, savedState, initialBest, observer, recordLimit]);
 
-  const press = (event: PointerEvent<HTMLButtonElement>, action: TouchAction): void => {
-    event.preventDefault();
-    stageRef.current?.focus({ preventScroll: true });
-    event.currentTarget.setPointerCapture(event.pointerId);
-    if (action === "punch") sceneRef.current?.punch();
-    else if (action === "drop") sceneRef.current?.dropDown();
-    else if (action === "jump") inputRef.current.jumpQueued = true;
-    else inputRef.current.held.set(`pointer-${event.pointerId}`, action);
-  };
-  const release = (event: PointerEvent<HTMLButtonElement>): void => {
-    inputRef.current.held.delete(`pointer-${event.pointerId}`);
-  };
-
   return <>
     <div
       ref={stageRef}
@@ -287,18 +213,8 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
       {!roundId && !observer ? <div className={styles.controlsHint}>
         <kbd>← →</kbd> 이동 <kbd>↑</kbd> 점프(2단) <kbd>Space</kbd> 펀치 <kbd>↓</kbd> 내려가기 <kbd>R</kbd> 처음으로
       </div> : null}
-      {!observer ? <div className={styles.touchControls} aria-label="점프 타워 조작">
-        {TOUCH_ACTIONS.map(({ action, label: actionLabel, text }) => <button
-          type="button"
-          key={action}
-          aria-label={actionLabel}
-          className={action === "left" || action === "right" ? undefined : styles.touchPrimary}
-          onPointerDown={(event) => press(event, action)}
-          onPointerUp={release}
-          onPointerCancel={release}
-          onLostPointerCapture={release}
-        >{text}</button>)}
-      </div> : null}
+      {!observer ? <PlatformerTouchControls input={inputRef.current} actions={actions} label="점프 타워 조작"
+        onPress={() => stageRef.current?.focus({ preventScroll: true })} /> : null}
       {children}
     </div>
   </>;

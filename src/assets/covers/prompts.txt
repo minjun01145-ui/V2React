@@ -68,5 +68,8 @@ learning-jump-tower.webp (학습 점프타워) — BG #3b6cf6
 lobby-platformer.webp (대기실 점프 타워) — BG #0e9be0
   A bouncy kangaroo-like blob character springing up a mountain of platforms, huge grin.
 
+lobby-deathmatch.webp (데스매치) — BG #dc2626
+  Cute blob characters bumping each other with boxing gloves on floating platforms above a bubbling lava pool, playful and not scary.
+
 solo.webp (혼자하기) — BG #a24ff0
   A chill character wearing big headphones, studying alone at a tiny desk under a cozy lamp, focused smile.

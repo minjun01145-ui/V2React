@@ -6,7 +6,7 @@
   min-width: 0;
   overflow: hidden;
   outline: none;
-  background: #8fd3ff;
+  background: #1e1b4b;
 }
 
 .canvasHost {
@@ -29,47 +29,41 @@
   pointer-events: none;
 }
 
-.heightCard {
-  display: grid;
-  min-width: 108px;
-  padding: 6px 14px 8px;
-  border: 3px solid #fcd34d;
+.myScore {
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  border: 3px solid #fb923c;
   border-radius: 16px;
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
-  box-shadow: 0 4px 0 rgba(30,58,95,.2), 0 10px 22px rgba(15,42,67,.16);
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  box-shadow: 0 4px 0 rgba(124,45,18,.3), 0 10px 22px rgba(15,23,42,.25);
+}
+
+.myScore span {
+  display: grid;
+  min-width: 62px;
   text-align: center;
 }
 
-.heightCard small { color: #92400e; font-size: 11px; font-weight: 300; }
-.heightCard strong { color: #9a3412; font-size: 34px; font-weight: 300; line-height: 1; }
-.heightCard strong span { margin-left: 2px; font-size: 16px; }
-.heightCard em { color: #b45309; font-size: 11px; font-style: normal; font-weight: 300; }
+.myScore small { color: #9a3412; font-size: 11px; font-weight: 300; }
+.myScore strong { color: #c2410c; font-size: 32px; font-weight: 300; line-height: 1; }
+.myScore span + span strong { color: #475569; }
 
-/* "지금 순위" (left) and "역대 순위" (right) share one look. */
-.standings,
-.records {
+.board {
   display: grid;
   gap: 3px;
-  min-width: 170px;
+  min-width: 200px;
   padding: 6px 8px 8px;
+  border: 2px solid #fb923c;
   border-radius: 14px;
-  background: rgba(255,255,255,.86);
-  box-shadow: 0 6px 18px rgba(15,42,67,.14);
-  backdrop-filter: blur(4px);
+  background: rgba(255,255,255,.88);
+  box-shadow: 0 6px 18px rgba(15,23,42,.25);
 }
 
-.records { border: 2px solid #fcd34d; }
+.board h2 { margin: 0 0 2px; color: #7c2d12; font-size: 12px; font-weight: 300; }
+.board p { margin: 2px 0; color: #64748b; font-size: 11px; font-weight: 300; }
 
-.standings h2,
-.records h2 {
-  margin: 0 0 2px;
-  color: #1e3a5f;
-  font-size: 12px;
-  font-weight: 300;
-}
-
-.standings ol,
-.records ol {
+.board ol {
   display: grid;
   gap: 3px;
   margin: 0;
@@ -77,10 +71,9 @@
   list-style: none;
 }
 
-.standings li,
-.records li {
+.board li {
   display: grid;
-  grid-template-columns: 20px minmax(0, 110px) auto;
+  grid-template-columns: 20px minmax(0, 100px) auto;
   align-items: center;
   gap: 6px;
   padding: 2px 6px;
@@ -91,11 +84,9 @@
   white-space: nowrap;
 }
 
-.standings li[data-self="true"],
-.records li[data-self="true"] { background: #fef3c7; }
+.board li[data-self="true"] { background: #ffedd5; }
 
-.standings li b,
-.records li b {
+.board li b {
   display: grid;
   width: 20px;
   height: 20px;
@@ -105,29 +96,17 @@
   font-size: 11px;
 }
 
-.standings li:first-child b,
-.records li:first-child b { background: #f59e0b; color: #fff; }
-.records li:nth-child(2) b { background: #94a3b8; color: #fff; }
-.records li:nth-child(3) b { background: #c2773d; color: #fff; }
+.board li:first-child b { background: #f59e0b; color: #fff; }
+.board li span { overflow: hidden; text-overflow: ellipsis; }
+.board li em { color: #9a3412; font-style: normal; }
 
-.standings li span,
-.records li span { overflow: hidden; color: #1e3a5f; font-weight: 300; text-overflow: ellipsis; }
-
-.records p { margin: 2px 0; color: #64748b; font-size: 11px; font-weight: 300; }
-.records small { color: #92400e; font-size: 11px; font-weight: 300; text-align: right; }
-
-.hudRight {
-  display: grid;
-  justify-items: end;
-  gap: 8px;
-  margin-left: auto;
-}
-
-.hudActions {
+.actions {
   display: flex;
   gap: 6px;
+  margin-left: auto;
   pointer-events: auto;
 }
+
 .exitButton {
   height: 38px;
   padding: 0 14px;
@@ -140,6 +119,34 @@
   font-weight: 300;
   cursor: pointer;
 }
+
+.feed {
+  position: absolute;
+  z-index: 41;
+  top: 64px;
+  right: 10px;
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.feed li {
+  padding: 4px 10px;
+  border-radius: 10px;
+  background: rgba(15,23,42,.72);
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 300;
+  animation: slideIn .2s ease-out;
+}
+
+.feed li[data-self="true"] { background: rgba(194,65,12,.85); }
+.feed li b { color: #fdba74; font-weight: 500; }
+.feed li[data-self="true"] b { color: #fff7ed; }
 
 .error {
   position: absolute;
@@ -185,11 +192,15 @@
   font-size: 10px;
 }
 
+@keyframes slideIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
 @media (hover: none), (pointer: coarse) {
   .controlsHint { display: none; }
 }
 
 @media (max-width: 640px) {
-  .standings, .records { display: none; }
-  .controlsHint { display: none; }
+  .board, .controlsHint { display: none; }
 }

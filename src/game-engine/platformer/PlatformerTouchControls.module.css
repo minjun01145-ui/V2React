@@ -1,0 +1,35 @@
+.touchControls {
+  position: absolute;
+  z-index: 44;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: none;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.touchControls button {
+  min-width: 58px;
+  height: 52px;
+  padding: 0 12px;
+  border: 2px solid rgba(255,255,255,.9);
+  border-radius: 16px;
+  background: rgba(30,58,95,.62);
+  box-shadow: 0 4px 0 rgba(15,23,42,.35);
+  color: white;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 300;
+  touch-action: none;
+  user-select: none;
+  pointer-events: auto;
+}
+
+.touchControls button:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(15,23,42,.35); }
+.touchControls button:nth-child(3) { margin-left: auto; }
+.touchControls .touchPrimary { background: rgba(234,88,12,.78); }
+
+@media (hover: none), (pointer: coarse) {
+  .touchControls { display: flex; }
+}

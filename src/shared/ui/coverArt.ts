@@ -27,6 +27,7 @@ const PLACEHOLDERS = {
   "chunk-jump-race": { emoji: "🐸", color: "#12b07a" },
   "learning-jump-tower": { emoji: "🚀", color: "#3b6cf6" },
   "lobby-platformer": { emoji: "🦘", color: "#0e9be0" },
+  "lobby-deathmatch": { emoji: "🌋", color: "#dc2626" },
   "solo": { emoji: "🎧", color: "#a24ff0" },
   "drawing": { emoji: "🎨", color: "#7954d8" },
   "character-shop": { emoji: "👕", color: "#e69421" },

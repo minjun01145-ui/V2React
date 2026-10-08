@@ -5,7 +5,8 @@ import { BlobActor, compactLabel } from "../phaser-kit/BlobActor.ts";
 import { Effects } from "../phaser-kit/Effects.ts";
 import { BUFF_EFFECT, type ActiveBuff, type ItemClaim } from "../platformer-party/buffs.ts";
 import { PowerUpLayer } from "../platformer-party/PowerUpLayer.ts";
-import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, PUNCH_KNOCKBACK_MAX_SPEED, PUNCH_KNOCKBACK_MS, choosePunchTarget, encodePunch, punchKnockback } from "../platformer-party/punch.ts";
+import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, PUNCH_KNOCKBACK_MS, choosePunchTarget, encodePunch } from "../platformer-party/punch.ts";
+import { launchFromPunch, PLATFORMER_MAX_FALL_SPEED, PLATFORMER_RUN_SPEED, steerPlatformerBody } from "../platformer/steering.ts";
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
 import type { LiveEvent } from "../../live-world/events.ts";
 import {
@@ -22,11 +23,6 @@ import {
 import { ClimbBackdrop } from "./scene/ClimbBackdrop.ts";
 import { ClimbCourseView } from "./scene/ClimbCourseView.ts";
 
-const RUN_SPEED = 300;
-const GROUND_ACCELERATION = 2_600;
-const AIR_ACCELERATION = 1_700;
-const GROUND_DRAG = 2_800;
-const AIR_DRAG = 700;
 const DROP_THROUGH_MS = 240;
 const VIEW_HEIGHT = 620;
 const SHATTER_EVENT = "tower-shatter";
@@ -136,7 +132,7 @@ export default class ClimbScene extends Phaser.Scene {
     this.player = this.add.zone(initial.x, initial.y, CLIMB_PLAYER_WIDTH, CLIMB_PLAYER_HEIGHT);
     this.physics.add.existing(this.player);
     this.body = this.player.body as Phaser.Physics.Arcade.Body;
-    this.body.setCollideWorldBounds(true).setMaxVelocity(RUN_SPEED, 1_100).setDragX(GROUND_DRAG);
+    this.body.setCollideWorldBounds(true).setMaxVelocity(PLATFORMER_RUN_SPEED, PLATFORMER_MAX_FALL_SPEED);
     const landOn = (_player: unknown, platform: unknown): boolean => this.canLandOn(platform);
     this.physics.add.collider(this.player, ground);
     this.physics.add.collider(this.player, this.course.statics, undefined, landOn);
@@ -194,18 +190,15 @@ export default class ClimbScene extends Phaser.Scene {
     if (event.kind === SHATTER_EVENT && this.options.courseSource) {
       this.remoteRespawns.set(event.playerId, this.options.nowMs() + RESPAWN_MS);
       const frame = this.lastFrames.find((entry) => entry.playerId === event.playerId);
-      if (frame) this.shatterPieces(frame.x, frame.y, event.playerId);
+      if (frame) this.effects.shatter(frame.x, frame.y, playerColor(event.playerId));
       return;
     }
     if (event.kind !== PUNCH_EVENT || !this.body || this.dead || this.options.rules && !this.options.rules.isActive()) return;
     const powered = Math.abs(event.value) >= 2;
     this.remotes.get(event.playerId)?.punch(this.time.now, event.value < 0 ? -1 : 1);
     if (event.target === this.options.localPlayer.id) {
-      const knockback = punchKnockback(event.value);
-      this.body.setVelocity(knockback.vx, knockback.vy);
+      launchFromPunch(this.body, event.value);
       this.knockedUntil = this.time.now + PUNCH_KNOCKBACK_MS;
-      // Lift the speed cap now: physics steps before our next update and would clamp the hit.
-      this.body.setMaxVelocity(PUNCH_KNOCKBACK_MAX_SPEED, 1_100);
       this.actor.recoil(this.time.now, event.value);
       this.effects.punchHit(this.body.center.x, this.body.center.y - 6, powered);
       this.cameras.main.shake(90, powered ? 0.008 : 0.004);
@@ -313,18 +306,9 @@ export default class ClimbScene extends Phaser.Scene {
       this.jump = createJumpState();
       this.landedIndex = null;
     }
-    const directions = [...input.held.values()];
-    const left = directions.includes("left");
-    const right = directions.includes("right");
     const grounded = body.blocked.down;
-    const knocked = time < this.knockedUntil;
     const speedBoost = this.powerUps?.has("speed") ? BUFF_EFFECT.speed.runMultiplier : 1;
-    body.setMaxVelocity(knocked ? PUNCH_KNOCKBACK_MAX_SPEED : RUN_SPEED * speedBoost, 1_100);
-    // A knocked player flies freely for a moment; steering would cancel the hit.
-    const steer = knocked ? 0 : Number(right) - Number(left);
-    body.setAccelerationX(steer * (grounded ? GROUND_ACCELERATION : AIR_ACCELERATION) * speedBoost);
-    if (grounded && !knocked && ((right && body.velocity.x < 0) || (left && body.velocity.x > 0))) body.setVelocityX(body.velocity.x * 0.5);
-    body.setDragX(grounded && !knocked && !left && !right ? GROUND_DRAG : AIR_DRAG);
+    steerPlatformerBody(body, input, { grounded, knocked: time < this.knockedUntil, speedMultiplier: speedBoost });
     if (grounded) body.x += this.course.carrySpeedAt(body.center.x, body.bottom) * (delta / 1_000);
 
     const pad = grounded ? this.course.padAt(body.center.x, body.bottom) : null;
@@ -396,16 +380,7 @@ export default class ClimbScene extends Phaser.Scene {
     clearPlatformerInput(this.options.input);
     this.options.rules?.onDeath(true);
     this.options.publishEvent(SHATTER_EVENT, "", 0);
-    this.shatterPieces(x, y, this.options.localPlayer.id);
-  }
-
-  private shatterPieces(x: number, y: number, playerId: string): void {
-    // Soft coloured pieces use the same colour as the blob, without blood or gore.
-    for (let index = 0; index < 16; index += 1) {
-      const piece = this.add.rectangle(x, y - 10, 7, 7, playerColor(playerId)).setDepth(30);
-      this.tweens.add({ targets: piece, x: x + Phaser.Math.Between(-100, 100), y: y + Phaser.Math.Between(-65, 90),
-        angle: Phaser.Math.Between(-180, 180), alpha: 0, duration: 700, onComplete: () => piece.destroy() });
-    }
+    this.effects.shatter(x, y, playerColor(this.options.localPlayer.id));
   }
 
   private respawn(): void {

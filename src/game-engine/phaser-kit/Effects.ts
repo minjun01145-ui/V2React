@@ -121,6 +121,15 @@ export class Effects {
     this.floatText(x, y - 40, "+1", "#16a34a");
   }
 
+  /** A blob bursting into soft pieces of its own colour (no blood or gore). */
+  shatter(x: number, y: number, color: number): void {
+    for (let index = 0; index < 16; index += 1) {
+      const piece = this.scene.add.rectangle(x, y - 10, 7, 7, color).setDepth(30);
+      this.scene.tweens.add({ targets: piece, x: x + Phaser.Math.Between(-100, 100), y: y + Phaser.Math.Between(-65, 90),
+        angle: Phaser.Math.Between(-180, 180), alpha: 0, duration: 700, onComplete: () => piece.destroy() });
+    }
+  }
+
   wrong(x: number, y: number): void {
     this.sparks.explode(12, x, y);
     this.floatText(x, y - 40, "✕", "#dc2626");

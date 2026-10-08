@@ -24,6 +24,7 @@ import { useReloadOnNewDeployment } from "../../../app/useReloadOnNewDeployment.
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
 const LobbyPlatformer = lazy(() => import("../../../games/lobby-platformer/LobbyPlatformer.tsx"));
+const LobbyDeathmatch = lazy(() => import("../../../games/lobby-deathmatch/LobbyDeathmatch.tsx"));
 const DrawingBoard = lazy(() => import("../../../collaborative-drawing/DrawingBoard.tsx"));
 
 interface Props {
@@ -47,6 +48,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   const [duplicateRetry, setDuplicateRetry] = useState(0);
   const [typingOpen, setTypingOpen] = useState<"sentence" | "acid-rain" | null>(null);
   const [platformerOpen, setPlatformerOpen] = useState(false);
+  const [deathmatchOpen, setDeathmatchOpen] = useState(false);
   const [drawingOpen, setDrawingOpen] = useState(false);
   const [soloOpen, setSoloOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -59,7 +61,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   const authoring = useStudentQuestionSubmission(roomId, targeted && activity ? activity.runId : null, uid);
   const authoringOpen = Boolean(activity && (targeted && activity.phase === "active" && authoring.loading
     || shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)));
-  useReloadOnNewDeployment(!authoringOpen && !soloOpen && !drawingOpen && !typingOpen && !platformerOpen && !shopOpen);
+  useReloadOnNewDeployment(!authoringOpen && !soloOpen && !drawingOpen && !typingOpen && !platformerOpen && !deathmatchOpen && !shopOpen);
 
   useEffect(() => {
     if (!nickname || !nicknameGrade || resolvingDuplicateNickname.current) return;
@@ -119,6 +121,17 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
       />
     </Suspense>;
   }
+  if (deathmatchOpen) {
+    return <Suspense fallback={<StatusPanel title="데스매치 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
+      <LobbyDeathmatch
+        roomId={roomId}
+        playerId={uid}
+        label={nickname || displayName}
+        players={activePlayers}
+        onExit={() => setDeathmatchOpen(false)}
+      />
+    </Suspense>;
+  }
   return (
     <div className={styles.stack}>
       <div className={styles.left}>
@@ -134,7 +147,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
           onClose={() => setShopOpen(false)}
         />
       </Card>
-      <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} onDrawing={() => setDrawingOpen(true)} />
+      <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} onDeathmatch={() => setDeathmatchOpen(true)} onDrawing={() => setDrawingOpen(true)} />
       <OpinionButton roomId={roomId} author={{ playerId: uid, studentNumber: selfStudentNumber, displayName }} />
       </div>
       <div className={styles.right}>
