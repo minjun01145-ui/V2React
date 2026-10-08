@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { recoilShove } from "./recoilShove.ts";
 import { FONT_FAMILY, TEXT_METRICS_SAMPLE, TEXT_RESOLUTION, ensureBodyTexture, playerColor, shade } from "./art.ts";
 
 const BODY_WIDTH = 34;
@@ -6,6 +7,7 @@ const BODY_HEIGHT = 38;
 const LANDING_SPEED = 260;
 const PUNCH_MS = 200;
 const RECOIL_MS = 320;
+const SHOVE_DISTANCE = 22;
 export const BLOB_TAG_Y = -54;
 
 export interface BlobPose {
@@ -43,6 +45,7 @@ export class BlobActor {
   private punchStartedAt = -Infinity;
   private recoilStartedAt = -Infinity;
   private recoilDirection = 1;
+  private recoilShoves = false;
   private stride = 0;
   private facing = 1;
   private squashUntil = 0;
@@ -98,12 +101,17 @@ export class BlobActor {
   }
 
   /**
-   * Instant "got hit" reaction, pushed in `direction`. Remote positions arrive a
-   * few hundred ms late, so this shows the hit on the attacker's screen at once.
+   * Instant "got hit" reaction in `direction`: a flash and a lean. For a remote
+   * player (`shove`), whose real position arrives a few hundred ms late, it also
+   * pushes the drawing ahead of the network so the attacker sees the hit at once.
+   * The shove holds until the real knockback catches up and then fades into it,
+   * so the character never snaps back and gets knocked a second time. Leave
+   * `shove` off for the local player, whose body already flies immediately.
    */
-  recoil(time: number, direction: number): void {
+  recoil(time: number, direction: number, shove = true): void {
     this.recoilStartedAt = time;
     this.recoilDirection = direction < 0 ? -1 : 1;
+    this.recoilShoves = shove;
     this.flash(0xffffff);
   }
 
@@ -124,11 +132,10 @@ export class BlobActor {
 
   /** Returns true on the frame the character lands hard, so the scene can kick up dust. */
   update(pose: BlobPose, time: number, delta: number): boolean {
-    // A short jolt backwards (returns to 0) plus a lean; the real knockback follows via positions.
     const recoilAge = (time - this.recoilStartedAt) / RECOIL_MS;
-    const recoil = recoilAge >= 0 && recoilAge < 1 ? Math.sin(Math.PI * recoilAge) : 0;
     const recoilLean = recoilAge >= 0 && recoilAge < 1 ? this.recoilDirection * 0.55 * (1 - recoilAge) : 0;
-    this.container.setPosition(Math.round(pose.x + this.recoilDirection * recoil * 22), Math.round(pose.feetY - recoil * 10));
+    const shove = this.recoilShoves ? recoilShove(time - this.recoilStartedAt) : 0;
+    this.container.setPosition(Math.round(pose.x + this.recoilDirection * shove * SHOVE_DISTANCE), Math.round(pose.feetY - shove * 10));
     this.container.setAlpha(pose.alpha ?? 1);
 
     const grounded = Math.abs(pose.vy) < 30;

@@ -308,7 +308,7 @@ export default class ChunkLineUpScene extends Phaser.Scene {
     this.knockedUntil = this.time.now + PUNCH_KNOCKBACK_MS;
     // Lift the speed cap now: physics steps before our next update and would clamp the hit.
     body.setMaxVelocity(PUNCH_KNOCKBACK_MAX_SPEED, 1_000);
-    this.localActor?.recoil(this.time.now, value);
+    this.localActor?.recoil(this.time.now, value, false);
     this.effects.punchHit(body.center.x, body.center.y - 6, Math.abs(value) >= 2);
     this.cameras.main.shake(90, Math.abs(value) >= 2 ? 0.008 : 0.004);
   }

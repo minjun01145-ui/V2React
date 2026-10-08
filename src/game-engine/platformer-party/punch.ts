@@ -12,8 +12,14 @@ export const PUNCH_COOLDOWN_MS = 380;
  */
 export const PUNCH_KNOCKBACK_MS = 420;
 export const PUNCH_KNOCKBACK_MAX_SPEED = 1_000;
-const REACH = 72;
-const VERTICAL_REACH = 34;
+export interface PunchReach {
+  /** How far ahead of the attacker a hit lands. */
+  readonly forward: number;
+  /** How far above or below the attacker's centre. */
+  readonly vertical: number;
+}
+
+export const FIST_REACH: PunchReach = { forward: 72, vertical: 34 };
 
 export interface PunchCandidate {
   readonly playerId: string;
@@ -21,16 +27,17 @@ export interface PunchCandidate {
   readonly y: number;
 }
 
-/** The closest player in front of the attacker within arm's reach, if any. */
+/** The closest player in front of the attacker within reach (a fist by default), if any. */
 export function choosePunchTarget(
   attacker: { readonly x: number; readonly y: number; readonly facing: number },
   candidates: readonly PunchCandidate[],
+  reach: PunchReach = FIST_REACH,
 ): PunchCandidate | null {
   let best: PunchCandidate | null = null;
   let bestDistance = Infinity;
   for (const candidate of candidates) {
     const ahead = (candidate.x - attacker.x) * attacker.facing;
-    if (ahead < -6 || ahead > REACH || Math.abs(candidate.y - attacker.y) > VERTICAL_REACH) continue;
+    if (ahead < -6 || ahead > reach.forward || Math.abs(candidate.y - attacker.y) > reach.vertical) continue;
     const distance = Math.abs(candidate.x - attacker.x);
     if (distance < bestDistance) {
       best = candidate;

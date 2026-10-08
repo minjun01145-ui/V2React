@@ -4,9 +4,12 @@ import { CLIMB_GRAVITY, CLIMB_PLAYER_HEIGHT } from "../../game-engine/jump-tower
 import { resizeScaleConfig } from "../../game-engine/phaser-kit/scaleConfig.ts";
 import { clearPlatformerInput, createPlatformerInput } from "../../game-engine/platformer/movement.ts";
 import PlatformerTouchControls from "../../game-engine/platformer/PlatformerTouchControls.tsx";
+import BuffHud from "../../game-engine/platformer-party/BuffHud.tsx";
+import { partyAttackBonus, type ActiveBuff } from "../../game-engine/platformer-party/buffs.ts";
 import { usePlatformerKeyboard } from "../../game-engine/platformer/usePlatformerKeyboard.ts";
 import { FullscreenToggle, ImmersiveStage } from "../../game-engine/stage/ImmersiveStage.tsx";
 import {
+  createLiveClaims,
   createLiveEventChannel,
   createLiveMovementEngine,
   createLiveRecords,
@@ -60,6 +63,8 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
   const [deaths, setDeaths] = useState<readonly LiveRecord[]>([]);
   const [own, setOwn] = useState({ kills: 0, deaths: 0 });
   const [feed, setFeed] = useState<readonly FeedEntry[]>([]);
+  const [buffs, setBuffs] = useState<readonly ActiveBuff[]>([]);
+  const [attackPickups, setAttackPickups] = useState(0);
 
   useEffect(() => { stageRef.current?.focus({ preventScroll: true }); }, []);
   const actions = { punch: () => sceneRef.current?.punch(), drop: () => sceneRef.current?.dropDown() };
@@ -76,6 +81,7 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
     const unsubscribeClock = subscribeLiveServerTimeOffset((offset) => { serverOffsetMs = offset; }, onError);
     const movement = createLiveMovementEngine(playerId, { sendHz: 12, onError });
     const events = createLiveEventChannel(scope, playerId, (event) => sceneRef.current?.receiveEvent(event), onError);
+    const claims = createLiveClaims(scope, playerId, (claim) => sceneRef.current?.receiveClaim(claim), onError);
 
     // Counters only ever go up, which is exactly what the record boards allow.
     const counts = { kills: 0, deaths: 0 };
@@ -112,6 +118,9 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
       samplePlayers: () => movement.sampleRemotePlayers(),
       playerLabel: (id) => labelsRef.current.get(id),
       publishEvent: (kind, target, value) => events.publish(kind, target, value),
+      claimItem: (id) => claims.claim(id),
+      onBuffsChange: setBuffs,
+      onAttackPickups: setAttackPickups,
       onDeath,
     });
     sceneRef.current = scene;
@@ -140,6 +149,7 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
       game.destroy(true);
       void movement.close();
       void events.close();
+      claims.close();
       killBoard.close();
       deathBoard.close();
     };
@@ -161,6 +171,7 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
       <div className={styles.myScore} aria-label="내 기록">
         <span><small>킬</small><strong>{own.kills}</strong></span>
         <span><small>데스</small><strong>{own.deaths}</strong></span>
+        {attackPickups > 0 ? <span className={styles.attack}><small>공격력</small><strong>+{Math.round(partyAttackBonus(attackPickups) * 100)}%</strong></span> : null}
       </div>
       <section className={styles.board} aria-label="오늘 킬 순위">
         <h2>오늘 킬 순위</h2>
@@ -180,6 +191,7 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
         {entry.killer ? <><b>{entry.killer}</b> ✊ </> : null}<span>{entry.victim}</span> 🌋
       </li>)}
     </ol>
+    <BuffHud buffs={buffs} />
     {connectionError ? <div className={styles.error}>실시간 연결 오류: {connectionError.message}</div> : null}
     <div className={styles.controlsHint}>
       <kbd>← →</kbd> 이동 <kbd>↑</kbd> 점프(2단) <kbd>Space</kbd> 펀치 <kbd>↓</kbd> 내려가기

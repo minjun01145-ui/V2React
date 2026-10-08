@@ -14,6 +14,7 @@ import {
 } from "../../src/games/lobby-deathmatch/arena.ts";
 import { createKillCredit, KILL_CREDIT_MS } from "../../src/games/lobby-deathmatch/killCredit.ts";
 import { deathmatchScoreboard } from "../../src/games/lobby-deathmatch/scoreboard.ts";
+import { DEATHMATCH_ITEMS, DEATHMATCH_ITEM_WINDOW_MS } from "../../src/games/lobby-deathmatch/items.ts";
 
 // Arena: few enough gadgets that falling in stays likely, all of them over the lava.
 assert.ok(ARENA_GADGET_COUNT <= 10, "at most ten platforms and gadgets in total");
@@ -91,5 +92,23 @@ assert.deepEqual(
     .map((row) => [row.playerId, row.kills, row.deaths]),
   [["b", 3, 1], ["a", 3, 4], ["c", 1, 0], ["d", 0, 2]],
 );
+
+// Items: same for every client, never the star, all on static platforms, and every kind shows up.
+const seen = new Set<string>();
+for (let window = 0; window < 200; window += 1) {
+  const at = window * DEATHMATCH_ITEM_WINDOW_MS + 1;
+  const items = DEATHMATCH_ITEMS.itemsAt(at);
+  assert.deepEqual(items, DEATHMATCH_ITEMS.itemsAt(at + DEATHMATCH_ITEM_WINDOW_MS - 2), "items stay put for their window");
+  assert.equal(new Set(items.map((item) => item.id)).size, items.length);
+  for (const item of items) {
+    seen.add(item.kind);
+    assert.equal(DEATHMATCH_ITEMS.kindOf(item.id), item.kind);
+    assert.ok(ARENA_PLATFORMS.some((platform) => platform.kind === "step"
+      && item.x > platform.x && item.x < platform.x + platform.width && item.y < platform.y));
+  }
+}
+assert.equal(seen.has("star"), false, "no invincibility in the deathmatch");
+assert.deepEqual([...seen].sort(), ["attack", "dash", "jump", "punch", "speed", "sword"]);
+assert.equal(DEATHMATCH_ITEMS.kindOf("nonsense"), null);
 
 console.log("lobby deathmatch tests passed");

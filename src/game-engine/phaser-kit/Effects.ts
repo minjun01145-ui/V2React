@@ -87,8 +87,13 @@ export class Effects {
   }
 
   punchHit(x: number, y: number, powered: boolean): void {
-    this.impact.explode(powered ? 16 : 9, x, y);
+    this.impactBurst(x, y, powered);
     this.floatText(x, y - 20, powered ? "쾅!" : "퍽!", powered ? "#dc2626" : "#ea580c", powered ? 24 : 18);
+  }
+
+  /** The spray of sparks where a hit lands, without any text. */
+  impactBurst(x: number, y: number, powered: boolean): void {
+    this.impact.explode(powered ? 16 : 9, x, y);
   }
 
   /** Rocket burst under a dashing double jump. */

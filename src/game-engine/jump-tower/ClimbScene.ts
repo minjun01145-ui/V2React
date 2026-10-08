@@ -1,9 +1,10 @@
 import Phaser from "phaser";
-import { clearPlatformerInput, createJumpState, takeJump, type PlatformerInput } from "../platformer/movement.ts";
+import { clearPlatformerInput, createJumpState, type PlatformerInput } from "../platformer/movement.ts";
 import { ensureSharedTextures, playerColor } from "../phaser-kit/art.ts";
 import { BlobActor, compactLabel } from "../phaser-kit/BlobActor.ts";
 import { Effects } from "../phaser-kit/Effects.ts";
 import { BUFF_EFFECT, type ActiveBuff, type ItemClaim } from "../platformer-party/buffs.ts";
+import { partyJump } from "../platformer-party/partyJump.ts";
 import { PowerUpLayer } from "../platformer-party/PowerUpLayer.ts";
 import { PUNCH_COOLDOWN_MS, PUNCH_EVENT, PUNCH_KNOCKBACK_MS, choosePunchTarget, encodePunch } from "../platformer-party/punch.ts";
 import { launchFromPunch, PLATFORMER_MAX_FALL_SPEED, PLATFORMER_RUN_SPEED, steerPlatformerBody } from "../platformer/steering.ts";
@@ -199,7 +200,7 @@ export default class ClimbScene extends Phaser.Scene {
     if (event.target === this.options.localPlayer.id) {
       launchFromPunch(this.body, event.value);
       this.knockedUntil = this.time.now + PUNCH_KNOCKBACK_MS;
-      this.actor.recoil(this.time.now, event.value);
+      this.actor.recoil(this.time.now, event.value, false);
       this.effects.punchHit(this.body.center.x, this.body.center.y - 6, powered);
       this.cameras.main.shake(90, powered ? 0.008 : 0.004);
       return;
@@ -318,14 +319,11 @@ export default class ClimbScene extends Phaser.Scene {
       this.course.bouncePad(pad);
       this.effects.jumpPuff(body.center.x, body.bottom);
     } else {
-      const jumpVelocity = takeJump(this.jump, grounded, input.jumpQueued, time);
-      if (jumpVelocity !== null && this.jump.used === 2 && this.powerUps?.has("dash")) {
-        // Straight up: drop the sideways speed so the dash reads as a vertical launch.
-        body.setVelocity(0, BUFF_EFFECT.dash.doubleJumpVelocity);
+      const jumped = partyJump(body, this.jump, { grounded, pressed: input.jumpQueued, time }, (kind) => this.powerUps?.has(kind) ?? false);
+      if (jumped === "dash") {
         this.effects.dashBurst(body.center.x, body.bottom);
         this.cameras.main.shake(80, 0.003);
-      } else if (jumpVelocity !== null) {
-        body.setVelocityY(jumpVelocity * (this.powerUps?.has("jump") ? BUFF_EFFECT.jump.jumpMultiplier : 1));
+      } else if (jumped === "jump") {
         this.effects.jumpPuff(body.center.x, body.bottom);
       }
     }

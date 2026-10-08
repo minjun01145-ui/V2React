@@ -1,4 +1,4 @@
-import { activePartyBuffs, type ItemClaim, type PartyItem, type PartyItemKind } from "./buffs.ts";
+import { activePartyBuffs, permanentPartyItemCount, type ItemClaim, type PartyItem, type PartyItemKind, type PermanentPartyItemKind } from "./buffs.ts";
 
 /** How a game exposes its deterministic item schedule. */
 export interface PartyItemSource {
@@ -50,8 +50,12 @@ export class PowerUpTracker {
     this.pending.delete(id);
   }
 
-  buffs(playerId: string, nowMs: number): Map<PartyItemKind, number> {
+  buffs(playerId: string, nowMs: number): ReadonlyMap<PartyItemKind, number> {
     return activePartyBuffs(this.claims, playerId, (id) => this.kindOf(id), nowMs);
+  }
+
+  permanentCount(playerId: string, kind: PermanentPartyItemKind): number {
+    return permanentPartyItemCount(this.claims, playerId, (id) => this.kindOf(id), kind);
   }
 
   kindOf(id: string): PartyItemKind | null {

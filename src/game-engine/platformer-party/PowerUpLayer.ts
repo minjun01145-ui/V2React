@@ -1,6 +1,6 @@
 import type Phaser from "phaser";
 import type { Effects } from "../phaser-kit/Effects.ts";
-import type { ActiveBuff, ItemClaim, PartyItemKind } from "./buffs.ts";
+import { isPermanentPartyItem, type ActiveBuff, type ItemClaim, type PartyItemKind, type PermanentPartyItemKind } from "./buffs.ts";
 import { ItemsView } from "./ItemsView.ts";
 import { PowerUpTracker, type PartyItemSource } from "./PowerUpTracker.ts";
 
@@ -20,7 +20,7 @@ export class PowerUpLayer {
   private readonly effects: Effects;
   private readonly view: ItemsView;
   private readonly tracker: PowerUpTracker;
-  private localBuffs = new Map<PartyItemKind, number>();
+  private localBuffs: ReadonlyMap<PartyItemKind, number> = new Map();
   private buffsKey = "";
   private readonly lastTrailAt = new Map<string, number>();
 
@@ -48,6 +48,11 @@ export class PowerUpLayer {
     if (playerId === this.options.localPlayerId) return this.has(kind);
     const nowMs = this.options.nowMs();
     return (this.tracker.buffs(playerId, nowMs).get(kind) ?? 0) > nowMs;
+  }
+
+  /** Pickups of a permanent item so far, for any player. */
+  count(playerId: string, kind: PermanentPartyItemKind): number {
+    return this.tracker.permanentCount(playerId, kind);
   }
 
   /** `local` is the local player's body centre, or null when it cannot pick things up. */
@@ -89,6 +94,7 @@ export class PowerUpLayer {
     if (key === this.buffsKey) return;
     this.buffsKey = key;
     const offset = Date.now() - nowMs;
-    this.options.onBuffsChange?.([...this.localBuffs].map(([kind, until]) => ({ kind, endsAtLocalMs: until + offset })));
+    this.options.onBuffsChange?.([...this.localBuffs].flatMap(([kind, until]) =>
+      isPermanentPartyItem(kind) ? [] : [{ kind, endsAtLocalMs: until + offset }]));
   }
 }
