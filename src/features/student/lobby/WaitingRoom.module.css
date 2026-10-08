@@ -1,4 +1,6 @@
 .stack { height: 100%; min-height: 0; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 20px; padding: 20px; overflow-y: auto; }
+/* With a notice on top, it keeps its own height and the lobby fills the rest; all of it scrolls together. */
+.stack:has(> [data-lobby-notice]) { grid-template-rows: auto 1fr; }
 .left { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 .right { min-height: 0; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
 .card { flex: 1 0 auto; display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; gap: 12px; }

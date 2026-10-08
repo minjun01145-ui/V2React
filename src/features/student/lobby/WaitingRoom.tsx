@@ -8,6 +8,7 @@ import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import CharacterShop from "../shop/CharacterShop.tsx";
+import ClassroomNoticeBanner from "./ClassroomNoticeBanner.tsx";
 import OpinionButton from "./OpinionButton.tsx";
 import LobbyActivityTiles from "./LobbyActivityTiles.tsx";
 import styles from "./WaitingRoom.module.css";
@@ -134,6 +135,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   }
   return (
     <div className={styles.stack}>
+      <ClassroomNoticeBanner roomId={roomId} />
       <div className={styles.left}>
       <Card className={styles.profileCard}>
         <CharacterShop

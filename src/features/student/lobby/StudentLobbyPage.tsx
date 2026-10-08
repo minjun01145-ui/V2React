@@ -11,7 +11,6 @@ import StatusPanel from "../../../shared/StatusPanel.tsx";
 import NicknamePrompt from "./NicknamePrompt.tsx";
 import WaitingRoomSkeleton from "./WaitingRoomSkeleton.tsx";
 import WaitingRoom from "./WaitingRoom.tsx";
-import ClassroomNoticeBanner from "./ClassroomNoticeBanner.tsx";
 import type { NicknameChoice } from "./NicknamePrompt.tsx";
 
 interface LobbyProps {
@@ -53,7 +52,7 @@ export default function StudentLobbyPage(props: Props) {
     </div></LobbyLayout>;
   }
   const { roomId, session, player, identity } = props;
-  return <LobbyLayout topBar={topBar} notice={<ClassroomNoticeBanner roomId={roomId} />}>
+  return <LobbyLayout topBar={topBar}>
     <WaitingRoom roomId={roomId} session={session} player={player} identity={identity} selfStudentNumber={player.studentNumber} displayName={player.displayName} nickname={player.nickname} nicknameGrade={player.nicknameGrade ?? null} avatar={player.avatar ?? null} uid={identity.uid} />
   </LobbyLayout>;
 }
