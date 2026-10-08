@@ -5,8 +5,9 @@ import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 
 /**
- * Lets a student leave an opinion for the teacher. The wording is truthful: the teacher's screen
- * does not show the author, and the author is checked only when really necessary.
+ * Lets a student leave an opinion for the teacher. The popup only says what is true (the teacher's
+ * screen does not show the author); it must never promise anonymity, since the author is recorded
+ * and may be identified for student protection under the school's rules.
  */
 export default function OpinionButton({ roomId, author }: { readonly roomId: string; readonly author: OpinionAuthor }) {
   const { requestInput, showMessage } = usePopup();
@@ -17,7 +18,7 @@ export default function OpinionButton({ roomId, author }: { readonly roomId: str
       size: "large",
       message: <>
         <p>선생님께 하고 싶은 말을 자유롭게 남겨 주세요.</p>
-        <p>선생님 화면에는 누가 썼는지 나오지 않아요. 욕설이나 위험한 상황처럼 꼭 필요할 때에만 작성자를 확인해요.</p>
+        <p>선생님 화면에는 누가 썼는지 나오지 않아요.</p>
       </>,
       fields: [{ name: "text", label: "의견", multiline: true, maxLength: MAX_OPINION_LENGTH }],
       confirmLabel: "보내기",
