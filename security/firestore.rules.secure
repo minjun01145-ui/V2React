@@ -598,6 +598,35 @@ service cloud.firestore {
         }
       }
 
+      // Lobby opinions. Students add their own with their verified identity, which only the
+      // administrator looks up in the console when truly needed; the app shows the teacher the
+      // text alone. Students cannot read opinions back.
+      match /opinions/{opinionId} {
+        allow read, delete: if isRoomAdmin(roomId);
+        allow create: if isRoomStudent(roomId)
+          && request.resource.data.keys().hasOnly(["text", "playerId", "studentNumber", "displayName", "createdAt", "createdAtMs"])
+          && request.resource.data.playerId == request.auth.uid
+          && request.resource.data.studentNumber == request.auth.token.studentNumber
+          && request.resource.data.displayName == request.auth.token.displayName
+          && request.resource.data.text is string
+          && request.resource.data.text.size() >= 1
+          && request.resource.data.text.size() <= 1000
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.createdAtMs is int;
+        allow update: if false;
+      }
+
+      // The teacher's notice shown in the student lobby.
+      match /notice/current {
+        allow read: if isRoomAdmin(roomId) || isRoomStudent(roomId);
+        allow write: if isRoomAdmin(roomId)
+          && request.resource.data.keys().hasOnly(["text", "updatedAt", "updatedAtMs"])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.updatedAt == request.time
+          && request.resource.data.updatedAtMs is int;
+      }
+
       // Slides copied for one slide-show run; students in the room read what the teacher started.
       match /showRuns/{runId}/slides/{slideId} {
         allow read: if isRoomAdmin(roomId) || isRoomStudent(roomId);

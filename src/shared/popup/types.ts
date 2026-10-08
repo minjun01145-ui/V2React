@@ -10,6 +10,8 @@ export interface PopupBaseOptions {
   readonly blurBackground?: boolean;
   readonly closeOnBackdrop?: boolean;
   readonly closeOnEscape?: boolean;
+  /** "large" widens the panel for longer writing. */
+  readonly size?: "default" | "large";
 }
 
 export interface MessagePopupOptions extends PopupBaseOptions {
@@ -33,6 +35,8 @@ export interface PopupInputField {
   readonly pattern?: string;
   readonly required?: boolean;
   readonly autoFocus?: boolean;
+  /** A multi-line text area instead of a single-line input. */
+  readonly multiline?: boolean;
   readonly validate?: (value: string, values: PopupInputValues) => string | null;
 }
 

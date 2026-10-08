@@ -49,25 +49,24 @@ export default function InputPopup({ options, onResolve, onCancel }: Props) {
   return (
     <PopupFrame options={options} onDismiss={busy || !allowCancel ? undefined : onCancel}>
       <form className={styles.body} onSubmit={(event) => void submit(event)}>
-        <div className={styles.fields}>{options.fields.map((field, index) => (
-          <label className={styles.field} key={field.name}>
+        <div className={styles.fields}>{options.fields.map((field, index) => {
+          const shared = {
+            name: field.name,
+            placeholder: field.placeholder,
+            maxLength: field.maxLength,
+            required: field.required ?? true,
+            value: values[field.name] ?? "",
+            disabled: busy,
+            "data-popup-autofocus": field.autoFocus || (!options.fields.some((item) => item.autoFocus) && index === 0) ? "true" : undefined,
+          };
+          const update = (value: string): void => setValues((current) => ({ ...current, [field.name]: value }));
+          return <label className={styles.field} key={field.name}>
             {field.label}
-            <input
-              type={field.type ?? "text"}
-              name={field.name}
-              inputMode={field.inputMode}
-              autoComplete={field.autoComplete}
-              placeholder={field.placeholder}
-              maxLength={field.maxLength}
-              pattern={field.pattern}
-              required={field.required ?? true}
-              value={values[field.name] ?? ""}
-              onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
-              disabled={busy}
-              data-popup-autofocus={field.autoFocus || (!options.fields.some((item) => item.autoFocus) && index === 0) ? "true" : undefined}
-            />
-          </label>
-        ))}</div>
+            {field.multiline
+              ? <textarea {...shared} rows={8} onChange={(event) => update(event.target.value)} />
+              : <input {...shared} type={field.type ?? "text"} inputMode={field.inputMode} autoComplete={field.autoComplete} pattern={field.pattern} onChange={(event) => update(event.target.value)} />}
+          </label>;
+        })}</div>
         {error ? <p className={styles.error} role="alert">{error}</p> : null}
         <div className={styles.actions}>
           {allowCancel ? <Button variant="ghost" onClick={onCancel} disabled={busy}>{options.cancelLabel ?? "취소"}</Button> : null}

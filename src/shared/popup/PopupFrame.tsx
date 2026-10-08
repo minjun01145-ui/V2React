@@ -62,7 +62,7 @@ export default function PopupFrame({ options, children, onDismiss }: Props) {
 
   return (
     <div className={`${styles.overlay} ${blurBackground ? styles.blurred : styles.clear}`} onMouseDown={dismissFromBackdrop} data-popup-overlay="true">
-      <div className={`${styles.panel} ${styles[options.tone ?? "info"]}`} ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={options.message ? descriptionId : undefined} tabIndex={-1}>
+      <div className={`${styles.panel} ${styles[options.tone ?? "info"]} ${options.size === "large" ? styles.large : ""}`} ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={options.message ? descriptionId : undefined} tabIndex={-1}>
         <div className={styles.accent} aria-hidden="true" />
         <header className={styles.header}>
           <h2 id={titleId}>{options.title}</h2>

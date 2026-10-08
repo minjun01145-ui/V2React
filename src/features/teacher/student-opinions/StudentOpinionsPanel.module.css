@@ -1,0 +1,10 @@
+.card { display: grid; gap: 12px; }
+.heading { display: flex; align-items: center; gap: 10px; }
+.heading h2 { margin: 0; font-size: 1.25rem; font-weight: 300; }
+.count { display: inline-grid; place-items: center; min-width: 36px; height: 28px; padding: 0 10px; border-radius: 999px; background: var(--color-brand-deep); color: var(--color-accent); font-size: 1rem; font-weight: 300; }
+.list { display: grid; gap: 8px; max-height: 420px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.list li { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--color-surface-muted); }
+.list p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--color-muted); font-size: var(--text-sm); }
+.empty { margin: 0; color: var(--color-muted); }
+.error { margin: 0; color: var(--color-danger); }

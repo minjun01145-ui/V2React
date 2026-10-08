@@ -1,0 +1,6 @@
+.card { display: grid; gap: 12px; }
+.card h2 { margin: 0; font-size: 1.25rem; font-weight: 300; }
+.input { width: 100%; box-sizing: border-box; resize: vertical; padding: 12px 14px; border: 2px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); font: inherit; line-height: 1.55; }
+.input:focus { border-color: var(--color-primary); outline: none; box-shadow: var(--focus-ring); }
+.actions { display: flex; justify-content: flex-end; }
+.error { margin: 0; color: var(--color-danger); }

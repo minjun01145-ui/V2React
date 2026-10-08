@@ -8,6 +8,7 @@ import StatusPanel from "../../../shared/StatusPanel.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import PlayerGrid from "../../../multiplayer/ui/PlayerGrid.tsx";
 import CharacterShop from "../shop/CharacterShop.tsx";
+import OpinionButton from "./OpinionButton.tsx";
 import LobbyActivityTiles from "./LobbyActivityTiles.tsx";
 import styles from "./WaitingRoom.module.css";
 import StudentQuestionAuthoring from "../../../student-question-activity/StudentQuestionAuthoring.tsx";
@@ -134,6 +135,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
         />
       </Card>
       <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} onDrawing={() => setDrawingOpen(true)} />
+      <OpinionButton roomId={roomId} author={{ playerId: uid, studentNumber: selfStudentNumber, displayName }} />
       </div>
       <div className={styles.right}>
       <Card className={styles.card}>

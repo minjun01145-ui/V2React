@@ -2,6 +2,7 @@
 .blurred { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 .clear { backdrop-filter: none; -webkit-backdrop-filter: none; }
 .panel { position: relative; width: min(26rem, 100%); max-height: min(42rem, calc(100vh - 2rem)); overflow: auto; border: 0; border-radius: 20px; outline: none; color: var(--color-text); background: var(--color-surface); box-shadow: var(--shadow-pop); animation: panelIn 220ms var(--ease-pop); }
+.large { width: min(40rem, 100%); }
 .accent { height: 6px; background: var(--popup-accent, var(--color-primary)); }
 .header { padding: 1.25rem 1.25rem .6rem; }
 .header h2 { margin: 0; font-size: 1.25rem; font-weight: 300; }

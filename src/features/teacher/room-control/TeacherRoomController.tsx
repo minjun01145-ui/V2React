@@ -23,6 +23,8 @@ import TeacherStudentQuestionPanel from "../../../student-question-activity/Teac
 import { startStudentQuestionActivity } from "../../../student-question-activity/repository.ts";
 import type { StudentQuestionConfig } from "../../../student-question-activity/types.ts";
 import type { SlideShow } from "../../../slide-show/types.ts";
+import NoticeEditor from "../classroom-notice/NoticeEditor.tsx";
+import StudentOpinionsPanel from "../student-opinions/StudentOpinionsPanel.tsx";
 import TeacherPlayerRoster from "./TeacherPlayerRoster.tsx";
 
 // Fabric.js is only needed once a slide show is running.
@@ -147,11 +149,12 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
         <DrawingBoard scope={{ roomId, boardId: "lobby" }} participants={activePlayers.map((player) => ({ id: player.id, label: player.nickname || player.displayName }))} canClearBoard onExit={() => setDrawingOpen(false)} />
       </Suspense> : <div className={styles.lobbyGrid} data-has-side={!isQuestionActivity}>
       <div className={styles.mainColumn}>
+        <NoticeEditor roomId={roomId} />
         <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
         {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
         {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading} launch={launch} /> : null}
       </div>
-      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} onDrawing={() => setDrawingOpen(true)} /></aside> : null}
+      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} onDrawing={() => setDrawingOpen(true)} /><StudentOpinionsPanel roomId={roomId} /></aside> : null}
     </div>}
   </>;
 
