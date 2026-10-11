@@ -27,6 +27,29 @@ try {
   }
   console.log("Card UI composition regression tests passed");
 
+  const { getRoomIdFromLocation } = await server.ssrLoadModule("/src/app/location.ts");
+  const { tenantConfig, tenantHref } = await server.ssrLoadModule("/src/tenant/config.ts");
+  const { default: StudentLoginPage } = await server.ssrLoadModule("/src/features/student/login/StudentLoginPage.tsx");
+  const { PopupProvider } = await server.ssrLoadModule("/src/shared/popup/index.ts");
+  for (const search of ["?tenant=hana", "?tenant=hana&room=main-class", "?tenant=hana&room=hana--main-class"]) {
+    const studentRoom = getRoomIdFromLocation({ search });
+    const login = renderToStaticMarkup(createElement(PopupProvider, null, createElement(StudentLoginPage, {
+      roomId: studentRoom, tenant: tenantConfig("hana"), onAuthenticated: () => {},
+    })));
+    const teacherLink = login.match(/<a[^>]*href="([^"]+)"[^>]*>관리자 페이지<\/a>/)?.[1];
+    assert.ok(teacherLink);
+    const teacherLocation = new URL(teacherLink.replaceAll("&amp;", "&"), "https://example.com");
+    assert.equal(getRoomIdFromLocation(teacherLocation), studentRoom, "하나쌤 관리자 링크는 학생과 같은 대기실을 열어야 합니다.");
+    assert.equal(studentRoom, "hana--main-class");
+  }
+  for (const room of ["교실 1", "a".repeat(100)]) {
+    const studentRoom = getRoomIdFromLocation({ search: `?tenant=hana&room=${encodeURIComponent(room)}` });
+    const teacherLocation = new URL(tenantHref("/teacher/", "hana", { room: studentRoom }), "https://example.com");
+    assert.equal(getRoomIdFromLocation(teacherLocation), studentRoom, "정규화되거나 최대 길이인 방도 관리자 링크에서 유지합니다.");
+  }
+  assert.equal(getRoomIdFromLocation({ search: "?room=main-class" }), "main-class");
+  console.log("Tenant student-to-teacher room link regression tests passed");
+
   const { default: GamePicker } = await server.ssrLoadModule("/src/features/teacher/room-control/GamePicker.tsx");
   const { listGames } = await server.ssrLoadModule("/src/games/registry.ts");
   const pickerProps = { games: listGames().filter((game) => game.supportedSetTypes.length > 0), selectedId: "matching", onSelect: () => {}, disabled: false };

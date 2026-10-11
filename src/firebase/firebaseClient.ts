@@ -3,6 +3,9 @@ import { initializeAppCheck, ReCaptchaEnterpriseProvider } from "firebase/app-ch
 import { browserLocalPersistence, browserSessionPersistence, getAuth, initializeAuth, type Auth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
+import { tenantConfigFromLocation } from "../tenant/config.ts";
+import { PRIMARY_TENANT_ID } from "../tenant/scope.ts";
+import { firebaseAppName } from "./appScope.ts";
 
 function required(value: unknown, label: string): string {
   const normalized = String(value ?? "").trim();
@@ -29,7 +32,8 @@ function currentRole(): AppRole {
 }
 
 const role = currentRole();
-const appName = `jurye-${role}`;
+const tenantId = typeof window === "undefined" ? PRIMARY_TENANT_ID : tenantConfigFromLocation()?.id ?? PRIMARY_TENANT_ID;
+const appName = firebaseAppName(role, tenantId);
 const existing = getApps().find((app) => app.name === appName);
 export const firebaseApp: FirebaseApp = existing ?? initializeApp(firebaseConfig, appName);
 

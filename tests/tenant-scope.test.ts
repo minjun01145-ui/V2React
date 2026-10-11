@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { firebaseAppName } from "../src/firebase/appScope.ts";
 import {
   effectiveTenantId,
   PRIMARY_TENANT_ID,
@@ -21,5 +22,11 @@ assert.equal(scopeRoomId(PRIMARY_TENANT_ID, "main-class"), "main-class", "primar
 assert.equal(scopeRoomId(SECONDARY_TENANT_ID, "main-class"), "hana--main-class");
 assert.equal(scopeRoomId(SECONDARY_TENANT_ID, "hana--main-class"), "hana--main-class", "room scoping is idempotent");
 assert.ok(scopeRoomId(SECONDARY_TENANT_ID, "x".repeat(128)).length <= 64);
+
+for (const role of ["student", "teacher"] as const) {
+  assert.equal(firebaseAppName(role, PRIMARY_TENANT_ID), `jurye-${role}`, "기존 민준쌤 로그인 저장소를 유지합니다.");
+  assert.notEqual(firebaseAppName(role, SECONDARY_TENANT_ID), firebaseAppName(role, PRIMARY_TENANT_ID), "tenant 사이에 로그인 상태를 공유하지 않습니다.");
+}
+assert.notEqual(firebaseAppName("student", SECONDARY_TENANT_ID), firebaseAppName("teacher", SECONDARY_TENANT_ID), "하나쌤 교사와 학생 로그인도 분리합니다.");
 
 console.log("tenant scope tests passed");

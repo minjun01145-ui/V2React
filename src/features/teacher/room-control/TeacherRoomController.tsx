@@ -42,7 +42,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const { value: sessionSnapshot, loading, error } = useSessionSubscription(roomId, subscribeSlideShowSession, { ensure: true });
   const session = sessionSnapshot ? sessionSnapshot.session : null;
   const slideShow = sessionSnapshot ? sessionSnapshot.slideShow : null;
-  const { activePlayers } = usePlayers(roomId);
+  const { activePlayers, loading: playersLoading, error: playersError } = usePlayers(roomId);
   const preparingRoundId = session?.status === SESSION_STATUS.PREPARING && session.roundId ? session.roundId : undefined;
   const { value: readiness, error: readinessError } = useRoundReadiness(roomId, preparingRoundId);
   const [working, setWorking] = useState(false);
@@ -50,6 +50,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const finalizingRound = useRef<string | null>(null);
   const gameSetup = useGameSetup(session?.latestStudentQuestionResult?.resultSetId ?? null);
   const { requestConfirmation, showMessage } = usePopup();
+  const playersUnavailable = playersLoading || Boolean(playersError);
 
   const run = async (action: RoomAction): Promise<void> => {
     if (working) return;
@@ -116,7 +117,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const startLatestQuestions = (setId: string, timedMode: TimedGameMode): Promise<void> => run((id) => startRegularGameSession(id, { gameId: "ai-tutor", gameConfig: withTimedGameConfig({ setId }, timedMode) }));
   const launch = useActivityLaunch({
     setup: gameSetup,
-    disabled: working || loading,
+    disabled: working || loading || playersUnavailable,
     hasPlayers: activePlayers.length > 0,
     latestQuestionSetId: session?.latestStudentQuestionResult?.resultSetId ?? null,
     onStartGame: () => run(startGame),
@@ -131,18 +132,19 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const actions = isPlaying || isPreparing ? <>
     {isPreparing ? <Button variant="accent" disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
     <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetSlideAwareSession)}>대기실로 돌아가기</Button>
-  </> : <Button variant="accent" size="lg" disabled={working || loading || activePlayers.length === 0 || launch.invalidSelection} onClick={() => void launch.start()}>{working ? "처리 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
+  </> : <Button variant="accent" size="lg" disabled={working || loading || playersUnavailable || activePlayers.length === 0 || launch.invalidSelection} onClick={() => void launch.start()}>{working ? "처리 중…" : playersError ? "학생 목록 연결 오류" : playersLoading ? "학생 접속 확인 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
 
   const content = <>
     <RoomStatusBar
       label={isPlaying ? slideShow ? "슬라이드쇼 진행 중" : "게임 진행 중" : isPreparing ? "접속 확인 중" : "학생 대기 중"}
-      count={isPreparing ? `${readyCount}/${expectedCount}` : String(activePlayers.length)}
+      count={playersError ? "?" : playersLoading ? "…" : isPreparing ? `${readyCount}/${expectedCount}` : String(activePlayers.length)}
       {...(isPreparing ? {} : { title: isPlaying && session ? slideShow ? slideShow.name : getGame(session.gameId).title : activityTitle })}
       tone={isPlaying ? "playing" : isPreparing ? "preparing" : "waiting"}
       actions={actions}
       art={statusArt}
     />
     {error ? <StatusPanel title="Firebase 연결 오류" tone="error">{error.message}</StatusPanel> : null}
+    {playersError ? <StatusPanel title="학생 목록 연결 오류" tone="error">{playersError.message}</StatusPanel> : null}
     {readinessError ? <StatusPanel title="접속 확인 오류" tone="error">{readinessError.message}</StatusPanel> : null}
     {(isPlaying || isPreparing) && session && slideShow ? <Suspense fallback={<StatusPanel title="슬라이드쇼를 여는 중" tone="waiting">잠시만 기다려 주세요.</StatusPanel>}><TeacherSlideShowRuntime roomId={roomId} session={session} slideShow={slideShow} players={activePlayers} /></Suspense>
       : isPlaying && session ? <GameHost role="teacher" roomId={roomId} session={session} /> : isPreparing ? <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} /> : drawingOpen && !isQuestionActivity ? <Suspense fallback={<StatusPanel title="그림판 준비 중">그림판을 불러오는 중…</StatusPanel>}>
