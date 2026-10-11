@@ -5,15 +5,18 @@ import { imageFileToDataUrl } from "../../../slide-canvas/imageFile.ts";
 import { importPptxSlides } from "../../../slide-canvas/pptxImport.ts";
 import SlideEditorCanvas from "../../../slide-canvas/SlideEditorCanvas.tsx";
 import { emptySlideCanvas, type SlideEditorController, type SlideObjectStyle, type SlideShapeKind } from "../../../slide-canvas/SlideEditorController.ts";
+import { applyTemplate, type SlideTemplate } from "../../../slide-canvas/slideTemplates.ts";
 import { MAX_SLIDES, type Slide, type SlideEngineRound } from "../../../slide-show/types.ts";
 import { validateSlides, validateSlideShowName } from "../../../slide-show/validation.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
+import { usePopup } from "../../../shared/popup/index.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import { engineSetIssue, newSlideEngine } from "./engineDraft.ts";
 import SlideAssistantPanel from "./assistant/SlideAssistantPanel.tsx";
 import ObjectStylePanel from "./ObjectStylePanel.tsx";
 import SlideEnginePanel from "./SlideEnginePanel.tsx";
 import SlideRail from "./SlideRail.tsx";
+import SlideTemplatePanel from "./SlideTemplatePanel.tsx";
 import { useSlideClipboard } from "./useSlideClipboard.ts";
 import styles from "./SlideShowEditor.module.css";
 
@@ -64,6 +67,9 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
   const [error, setError] = useState("");
   const [dirty, setDirty] = useState(initiallyDirty);
   const [importing, setImporting] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [applyingTemplate, setApplyingTemplate] = useState(false);
+  const { requestConfirmation } = usePopup();
   const commitTimer = useRef<number | null>(null);
   const imageInput = useRef<HTMLInputElement | null>(null);
   const pptxInput = useRef<HTMLInputElement | null>(null);
@@ -93,9 +99,10 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
 
   const scheduleCommit = useCallback((): void => {
     setDirty(true);
+    if (controller) setBackground(controller.background);
     if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
     commitTimer.current = window.setTimeout(commitCanvas, COMMIT_DELAY_MS);
-  }, [commitCanvas]);
+  }, [commitCanvas, controller]);
 
   useEffect(() => () => { if (commitTimer.current !== null) window.clearTimeout(commitTimer.current); }, []);
 
@@ -226,7 +233,29 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
     controller?.setBackground(color);
   };
 
-  return <div className={styles.editor}>
+  const applyDesign = async (template: SlideTemplate, all: boolean): Promise<void> => {
+    if (!controller || !current) return;
+    if (all && !await requestConfirmation({ title: "모든 슬라이드의 배경과 글꼴을 바꿀까요?", confirmLabel: "적용", cancelLabel: "취소", tone: "warning", blurBackground: true })) return;
+    if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+    commitTimer.current = null;
+    setApplyingTemplate(true);
+    setError("");
+    try {
+      const next = captureCurrent(slides).map((slide, index) => all || index === currentIndex
+        ? applyTemplate(slide, template, { variant: index === 0 ? "cover" : "content" }) : slide);
+      validateSlides(next);
+      await controller.applyCanvas(next[currentIndex]!.canvas);
+      setSlides(captureCurrent(next));
+      setBackground(controller.background);
+      setDirty(true);
+    } catch (value: unknown) {
+      setError(toErrorMessage(value, "양식을 적용하지 못했습니다."));
+    } finally {
+      setApplyingTemplate(false);
+    }
+  };
+
+  return <div className={styles.editor} inert={applyingTemplate} aria-busy={applyingTemplate}>
     <header className={styles.header}>
       <input className={styles.nameInput} aria-label="슬라이드쇼 이름" value={name} maxLength={80} placeholder="슬라이드쇼 이름" onChange={(event) => { setName(event.target.value); setDirty(true); }} disabled={busy} />
       <Button variant="accent" onClick={() => void save()} disabled={busy || Boolean(validationError) || !dirty}>{busy ? "저장 중…" : dirty ? "저장" : "저장됨"}</Button>
@@ -243,6 +272,7 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
       <input ref={imageInput} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(event) => void insertImage(event)} />
       <button type="button" className={styles.tool} onClick={() => pptxInput.current?.click()} disabled={!controller || importing}>{PPT_ICON}<span>{importing ? "가져오는 중…" : "PPT 가져오기"}</span></button>
       <input ref={pptxInput} type="file" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" hidden onChange={(event) => void importPptx(event)} />
+      <button type="button" className={styles.tool} aria-expanded={templatesOpen} onClick={() => setTemplatesOpen((open) => !open)} disabled={!controller}><svg {...ICON_PROPS}><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 9v12" /></svg><span>양식</span></button>
       <span className={styles.spacer} />
       <button type="button" className={styles.engineButton} onClick={addEngine} disabled={!controller || Boolean(current?.engine)}>{ENGINE_ICON}<span>{current?.engine ? "문제 엔진 있음" : "문제 엔진 넣기"}</span></button>
     </div>
@@ -264,6 +294,7 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
         <SlideEditorCanvas onReady={setController} onChange={scheduleCommit} onSelectionChange={setSelection} onEngineDelete={removeEngine} />
       </main>
       <aside className={styles.inspector}>
+        {templatesOpen ? <SlideTemplatePanel variant={currentIndex === 0 ? "cover" : "content"} disabled={!controller || busy || applyingTemplate} onApply={(template, all) => void applyDesign(template, all)} /> : null}
         <section className={styles.slidePanel} aria-label="슬라이드 배경">
           <h3><b>{currentIndex + 1}</b>슬라이드 배경</h3>
           <div className={styles.swatches}>

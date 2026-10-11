@@ -10,7 +10,9 @@
     "test": "node --test tests/settings.test.mjs",
     "test:browser": "node launch.mjs tests/browser.test.mjs",
     "test:passwords": "node launch.mjs tests/passwords.test.mjs",
-    "test:slide-editor": "node launch.mjs tests/slide-editor.test.mjs"
+    "test:slide-editor": "node launch.mjs tests/slide-editor.test.mjs",
+    "test:slide-templates": "node launch.mjs tests/slide-templates.test.mjs",
+    "test:slide-question": "node launch.mjs tests/slide-question.test.mjs"
   },
   "devDependencies": {
     "electron": "44.5.1"

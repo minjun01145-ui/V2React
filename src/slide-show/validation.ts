@@ -1,3 +1,4 @@
+import { validateQuestionSource } from "../slide-question/model.ts";
 import {
   MAX_SLIDE_CANVAS_BYTES,
   MAX_SLIDES,
@@ -77,14 +78,15 @@ export function validateSlideFrame(frame: SlideFrame): SlideFrame {
   };
 }
 
-export function validateSlideEngineRound(round: SlideEngineRound): SlideEngineRound {
+export function validateSlideEngineRound(round: SlideEngineRound, requireGrading = true): SlideEngineRound {
   if (!GAME_ID_PATTERN.test(round.gameId)) throw new Error("문제 엔진 ID가 올바르지 않습니다.");
   if ((round.gameId === "free-response") !== (round.source.kind === "free-response")) throw new Error("자유 답변 엔진에는 자유 답변 질문이 필요합니다.");
+  if ((round.gameId === "slide-question") !== (round.source.kind === "slide-question")) throw new Error("슬라이드 문제엔진에는 문제 설정이 필요합니다.");
   if (round.source.kind === "stored-set") {
     if (round.source.setId !== null && !ID_PATTERN.test(round.source.setId)) throw new Error("학습 세트 ID가 올바르지 않습니다.");
   } else if (round.source.kind === "free-response") {
     if (!requiredText(round.source.prompt, 1000)) throw new Error("자유 답변 질문은 1~1000자로 입력해 주세요.");
-  } else {
+  } else if (round.source.kind === "custom") {
     if (round.source.setType !== "vocabulary" && round.source.setType !== "reading-chunks") throw new Error("직접 출제 형식이 올바르지 않습니다.");
     if (round.source.items.length < 1 || round.source.items.length > 100) throw new Error("직접 출제 문항은 1~100개가 필요합니다.");
     for (const item of round.source.items) {
@@ -92,12 +94,15 @@ export function validateSlideEngineRound(round: SlideEngineRound): SlideEngineRo
       if (round.source.setType === "reading-chunks" && item.sourceText.split("/").filter((part) => part.trim()).length < 2) throw new Error("문장 만들기 문항은 문장 조각을 /로 2개 이상 나눠 주세요.");
     }
   }
-  if (!Number.isInteger(round.durationSeconds) || round.durationSeconds < 10 || round.durationSeconds > 600) {
-    throw new Error("문제 시간은 10~600초로 설정해 주세요.");
+  const min = round.gameId === "slide-question" ? 5 : 10;
+  const max = round.gameId === "slide-question" ? 300 : 600;
+  if (!Number.isInteger(round.durationSeconds) || round.durationSeconds < min || round.durationSeconds > max) {
+    throw new Error(`문제 시간은 ${min}~${max}초로 설정해 주세요.`);
   }
   if (!parseStringConfig(round.gameConfig)) throw new Error("문제 엔진 설정이 올바르지 않습니다.");
   const source: SlideEngineSource = round.source.kind === "custom"
     ? { ...round.source, items: round.source.items.map((item) => ({ ...item, sourceText: item.sourceText.trim(), meaning: item.meaning.trim() })) }
+    : round.source.kind === "slide-question" ? validateQuestionSource(round.source, requireGrading)
     : round.source.kind === "free-response" ? { ...round.source, prompt: round.source.prompt.trim() } : { ...round.source };
   return { gameId: round.gameId, source, durationSeconds: round.durationSeconds, gameConfig: { ...round.gameConfig } };
 }
@@ -107,7 +112,10 @@ export function validateSlide(slide: Slide): Slide {
   return {
     id: slide.id,
     canvas: validateSlideCanvas(slide.canvas),
-    engine: slide.engine ? { frame: validateSlideFrame(slide.engine.frame), round: validateSlideEngineRound(slide.engine.round) } : null,
+    engine: slide.engine ? {
+      frame: validateSlideFrame(slide.engine.frame),
+      round: validateSlideEngineRound(slide.engine.round),
+    } : null,
   };
 }
 
@@ -127,6 +135,9 @@ function parseSource(value: unknown): SlideEngineSource | null {
   if (value.kind === "free-response") {
     const prompt = requiredText(value.prompt, 1000);
     return prompt ? { kind: "free-response", prompt } : null;
+  }
+  if (value.kind === "slide-question") {
+    try { return validateQuestionSource(value as unknown as Extract<SlideEngineSource, { kind: "slide-question" }>, false); } catch { return null; }
   }
   if (value.kind !== "custom" || (value.setType !== "vocabulary" && value.setType !== "reading-chunks") || !Array.isArray(value.items)) return null;
   const items = value.items.map((item) => {
@@ -159,7 +170,7 @@ function parseEngineRound(value: unknown): SlideEngineRound | null {
   const source = parseSource(value.source);
   if (!gameId || !source || durationSeconds === null || !gameConfig) return null;
   try {
-    return validateSlideEngineRound({ gameId, source, durationSeconds, gameConfig });
+    return validateSlideEngineRound({ gameId, source, durationSeconds, gameConfig }, false);
   } catch {
     return null;
   }
@@ -177,7 +188,8 @@ export function parseSlide(id: string, value: unknown): Slide | null {
   if (!ID_PATTERN.test(id) || !isRecord(value) || typeof value.canvas !== "string") return null;
   if (value.engine !== null && value.engine !== undefined && !parseEngine(value.engine)) return null;
   try {
-    return validateSlide({ id, canvas: value.canvas, engine: parseEngine(value.engine) });
+    const canvas = validateSlideCanvas(value.canvas);
+    return { id, canvas, engine: parseEngine(value.engine) };
   } catch {
     return null;
   }

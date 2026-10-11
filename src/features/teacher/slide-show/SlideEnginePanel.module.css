@@ -14,3 +14,5 @@
 .item > button { grid-column: 3; grid-row: 1 / span 2; }
 .item .input { height: 38px; }
 .issue { margin: 0; padding: 8px 10px; border-radius: 10px; color: var(--color-danger-text); background: var(--color-danger-soft); font-size: var(--text-sm); }
+.questionOption { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto; align-items: center; gap: 6px; }
+.optionChip { display: grid; place-items: center; width: 24px; height: 24px; color: white; font-weight: 700; }

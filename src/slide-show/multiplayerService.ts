@@ -1,3 +1,4 @@
+import { publicQuestionSource } from "../slide-question/model.ts";
 import { collection, deleteField, doc, getDocs, runTransaction, serverTimestamp, setDoc, type Transaction, type Unsubscribe } from "firebase/firestore";
 import { appConfig } from "../config/appConfig.ts";
 import { db } from "../firebase/firebaseClient.ts";
@@ -120,7 +121,13 @@ export async function startSlideShow(roomId: string, show: SlideShow): Promise<v
   await ensureSession(roomId);
   const runId = crypto.randomUUID();
   const slidesCollection = runSlidesCollection(roomId, runId);
-  await Promise.all(slides.map((slide) => setDoc(doc(slidesCollection, slide.id), { canvas: slide.canvas, engine: slide.engine })));
+  await Promise.all(slides.map(async (slide) => {
+    const source = slide.engine?.round.source;
+    if (source?.kind === "slide-question") {
+      await setDoc(doc(db, MULTIPLAYER_COLLECTION, roomId, "showRuns", runId, "questionKeys", slide.id), { grading: source.grading });
+      await setDoc(doc(slidesCollection, slide.id), { canvas: slide.canvas, engine: { ...slide.engine, round: { ...slide.engine!.round, source: publicQuestionSource(source) } } });
+    } else await setDoc(doc(slidesCollection, slide.id), { canvas: slide.canvas, engine: slide.engine });
+  }));
   const activePlayers = await loadActivePlayers(roomId);
   const now = Date.now();
   await runTransaction(db, async (tx) => {

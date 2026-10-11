@@ -34,6 +34,15 @@ const definitions = [
     loadTeacher: () => import("./free-response/FreeResponseTeacherGame.tsx"),
   }),
   defineGame({
+    id: "slide-question",
+    title: "슬라이드 문제엔진",
+    category: "quiz",
+    supportedSetTypes: [],
+    handlesOwnTimedBoundary: true,
+    loadStudent: () => import("./slide-question/SlideQuestionStudentGame.tsx"),
+    loadTeacher: () => import("./slide-question/SlideQuestionTeacherGame.tsx"),
+  }),
+  defineGame({
     id: "ai-tutor",
     title: "AI 문답",
     category: "quiz",

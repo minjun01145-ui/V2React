@@ -2,7 +2,7 @@ import "./fabricSetup.ts";
 import { StaticCanvas } from "fabric";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "../slide-show/types.ts";
-import { collectSlideTexts, loadSlideFonts, watchSlideFonts } from "./fonts.ts";
+import { collectSlideTexts, collectSlideFontFamilies, loadSlideFonts, watchSlideFonts } from "./fonts.ts";
 import styles from "./SlideStage.module.css";
 
 interface Props {
@@ -71,7 +71,7 @@ export default function SlideStage({ canvas, className, overlay }: Props) {
     } catch {
       return undefined;
     }
-    void loadSlideFonts(collectSlideTexts(parsed))
+    void loadSlideFonts(collectSlideTexts(parsed), collectSlideFontFamilies(parsed))
       .then(() => staticCanvas.loadFromJSON(parsed as Record<string, unknown>, undefined, { signal: controller.signal }))
       .then(() => { if (!controller.signal.aborted) staticCanvas.requestRenderAll(); })
       .catch((error: unknown) => { if (!controller.signal.aborted) console.error(error); });

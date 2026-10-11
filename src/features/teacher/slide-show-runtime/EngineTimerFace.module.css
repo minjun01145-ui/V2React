@@ -1,0 +1,6 @@
+.slot { container-type: size; min-width: 0; min-height: 0; width: 100%; height: 100%; }
+.face { --timer-face-size: min(90cqw, 90cqh); --timer-hourglass-size: min(50cqw, max(0px, calc(56cqh - 12px))); --timer-digit-size: min(20cqw, 20cqh); display: grid; place-items: center; width: 100%; height: 100%; padding: 2cqh; box-sizing: border-box; border-radius: 18px; color: var(--color-brand-deep); background: var(--color-surface, #fff); }
+.face[data-skin="apple"] { --timer-face-size: min(85cqw, max(0px, calc(75cqh - 4px))); --timer-digit-size: min(12cqw, 12cqh); }
+.face[data-skin="apple"] strong { line-height: 1; }
+.face[data-skin="apple"] > div { width: var(--timer-face-size); max-width: 100%; }
+.face[data-skin="hourglass"] > div { width: var(--timer-hourglass-size); max-width: 100%; }

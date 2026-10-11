@@ -1,3 +1,4 @@
+import type { QuestionSource } from "../slide-question/model.ts";
 import type { SlideTimerState } from "./timer.ts";
 import type { TimerSkin } from "./timerSkins.ts";
 
@@ -15,6 +16,7 @@ export const MAX_SLIDE_CANVAS_BYTES = 900_000;
 export type SlideEngineSource =
   | { readonly kind: "stored-set"; readonly setId: string | null }
   | { readonly kind: "free-response"; readonly prompt: string }
+  | QuestionSource
   | {
       readonly kind: "custom";
       readonly setType: "vocabulary" | "reading-chunks";

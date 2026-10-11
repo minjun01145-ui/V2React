@@ -25,7 +25,7 @@ await editor.load('{"objects":[],"background":"#ffffff"}', null, '');
 window.SlideTextbox = SlideTextbox;
 window.StaticCanvas = StaticCanvas;
 function Properties() {
-  const [style, setStyle] = useState({kind:'text', fill:'#101a3a', opacity:1, stroke:'#101a3a', strokeWidth:8, fontSize:80, bold:false, textAlign:'left', background:null});
+  const [style, setStyle] = useState({kind:'text', fill:'#101a3a', opacity:1, stroke:'#101a3a', strokeWidth:8, fontSize:80, fontFamily:"'Noto Sans KR', sans-serif", bold:false, textAlign:'left', background:null});
   window.objectStyle = style;
   window.setObjectStyle = setStyle;
   return React.createElement(ObjectStylePanel, {style, onChange: patch => setStyle(value => ({...value, ...patch})), onArrange() {}, onDuplicate() {}, onDelete() {}});

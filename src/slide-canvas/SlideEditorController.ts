@@ -4,7 +4,7 @@ import { SlideTextbox as Textbox } from "./SlideTextbox.ts";
 import { SLIDE_HEIGHT, SLIDE_WIDTH, type SlideFrame } from "../slide-show/types.ts";
 import type { AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
 import { applyAssistantOperation, describeSlide } from "./assistantOperations.ts";
-import { collectSlideTexts, loadSlideFonts, watchSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
+import { collectSlideTexts, collectSlideFontFamilies, loadSlideFonts, watchSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
 import { UndoHistory } from "./undoHistory.ts";
 
 export type SlideShapeKind = "rect" | "circle" | "triangle" | "line";
@@ -20,6 +20,7 @@ export interface SlideObjectStyle {
   readonly stroke: string;
   readonly strokeWidth: number;
   readonly fontSize: number;
+  readonly fontFamily: string;
   readonly bold: boolean;
   readonly textAlign: SlideTextAlign;
   /** Text box background colour, or null for none. */
@@ -181,7 +182,7 @@ export class SlideEditorController {
     this.loading = true;
     try {
       const parsed: unknown = JSON.parse(canvasJson);
-      await loadSlideFonts(collectSlideTexts(parsed));
+      await loadSlideFonts(collectSlideTexts(parsed), collectSlideFontFamilies(parsed));
       this.engineFrame = null;
       await this.canvas.loadFromJSON(parsed as Record<string, unknown>);
       this.engineLabel = engineLabel;
@@ -192,6 +193,28 @@ export class SlideEditorController {
     } finally {
       this.loading = false;
     }
+    this.events.onSelectionChange(null);
+  }
+
+  /** Replace the slide design without resetting history; the whole cutover is one undo step. */
+  async applyCanvas(canvasJson: string): Promise<void> {
+    const active = this.canvas.getActiveObject();
+    if (active instanceof Textbox && active.isEditing) active.exitEditing();
+    this.history.push(this.serialize());
+    const parsed: unknown = JSON.parse(canvasJson);
+    await loadSlideFonts(collectSlideTexts(parsed), collectSlideFontFamilies(parsed));
+    const frame = this.getEngineFrame();
+    this.restoring = true;
+    try {
+      this.engineFrame = null;
+      await this.canvas.loadFromJSON(parsed as Record<string, unknown>);
+      if (frame) this.placeEngineFrame(frame);
+      this.canvas.discardActiveObject();
+      this.canvas.requestRenderAll();
+    } finally {
+      this.restoring = false;
+    }
+    this.edited();
     this.events.onSelectionChange(null);
   }
 
@@ -299,7 +322,7 @@ export class SlideEditorController {
   describeForAssistant(): AssistantSlide {
     const active = this.canvas.getActiveObject();
     if (active instanceof Textbox && active.isEditing) active.exitEditing();
-    this.assistantTargets = this.canvas.getObjects().filter((item) => item !== this.engineFrame);
+    this.assistantTargets = this.canvas.getObjects().filter((item) => item !== this.engineFrame && !item.get("data")?.templateDecoration);
     return describeSlide(this.assistantTargets, this.background);
   }
 
@@ -349,6 +372,15 @@ export class SlideEditorController {
     if (patch.strokeWidth !== undefined && kind !== "text") target.set({ strokeWidth: patch.strokeWidth });
     if (target instanceof Textbox) {
       if (patch.fontSize !== undefined) target.set({ fontSize: patch.fontSize });
+      if (patch.fontFamily !== undefined) {
+        target.set({ fontFamily: patch.fontFamily });
+        void loadSlideFonts([target.text], [patch.fontFamily]).then(() => {
+          target.initDimensions();
+          target.setCoords();
+          if (target.isEditing) target._updateTextarea();
+          this.canvas.requestRenderAll();
+        });
+      }
       if (patch.bold !== undefined) target.set({ fontWeight: patch.bold ? 800 : 400 });
       if (patch.textAlign !== undefined) target.set({ textAlign: patch.textAlign });
       if (patch.background !== undefined) target.set({ backgroundColor: patch.background ?? "" });
@@ -456,6 +488,9 @@ export class SlideEditorController {
   }
 
   private keepEngineFrameOnTop(): void {
+    // User objects may be sent backward, but template ornamentation stays below them.
+    this.canvas.getObjects().filter((item) => item.get("data")?.templateDecoration).reverse()
+      .forEach((item) => this.canvas.sendObjectToBack(item));
     if (this.engineFrame) this.canvas.bringObjectToFront(this.engineFrame);
   }
 
@@ -508,6 +543,7 @@ export class SlideEditorController {
       stroke: hexColor(target.stroke, DEFAULT_STROKE),
       strokeWidth: target.strokeWidth,
       fontSize: target instanceof Textbox ? target.fontSize : 0,
+      fontFamily: target instanceof Textbox ? target.fontFamily : SLIDE_FONT_FAMILY,
       bold: target instanceof Textbox ? Number(target.fontWeight) >= 700 || target.fontWeight === "bold" : false,
       textAlign: target instanceof Textbox ? textAlignOf(target.textAlign) : "left",
       background: target instanceof Textbox && target.backgroundColor ? hexColor(target.backgroundColor, "#ffffff") : null,

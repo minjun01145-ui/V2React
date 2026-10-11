@@ -633,10 +633,20 @@ service cloud.firestore {
         allow write: if isRoomAdmin(roomId);
       }
 
+      // Answer keys never enter the room's student-readable slide/session documents.
+      match /showRuns/{runId}/questionKeys/{slideId} {
+        allow read, write: if isRoomAdmin(roomId);
+      }
+
       match /rounds/{roundId} {
         allow read, write: if isRoomAdmin(roomId);
 
         match /freeResponses/{uid} {
+          allow read: if isRoomAdmin(roomId) || (isRoomStudent(roomId) && request.auth.uid == uid);
+          allow write: if false;
+        }
+
+        match /questionResponses/{uid} {
           allow read: if isRoomAdmin(roomId) || (isRoomStudent(roomId) && request.auth.uid == uid);
           allow write: if false;
         }
@@ -835,6 +845,7 @@ service cloud.firestore {
           allow read: if isRoomAdmin(roomId) || (isRoomStudent(roomId) && request.auth.uid == uid);
           allow create: if isRoomStudent(roomId)
             && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId != "free-response"
+            && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId != "slide-question"
             && request.auth.uid == uid
             && activeRound(roomId, roundId)
             && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))
@@ -854,6 +865,8 @@ service cloud.firestore {
           allow update: if isRoomStudent(roomId)
             && resource.data.gameId != "free-response"
             && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId != "free-response"
+            && resource.data.gameId != "slide-question"
+            && get(/databases/$(database)/documents/multiplayerSessions/$(roomId)).data.gameId != "slide-question"
             && request.auth.uid == uid
             && activeRound(roomId, roundId)
             && exists(/databases/$(database)/documents/multiplayerSessions/$(roomId)/rounds/$(roundId)/participants/$(uid))

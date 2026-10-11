@@ -108,7 +108,7 @@ export async function applyAssistantOperation(
     case "style": style(target!, operation); break;
     case "setText":
       if (!(target instanceof Textbox)) return false;
-      await loadSlideFonts([operation.text]);
+      await loadSlideFonts([operation.text], [target.fontFamily]);
       target.set({ text: operation.text });
       break;
     case "delete": canvas.remove(target!); return true;

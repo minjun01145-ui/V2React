@@ -1,3 +1,4 @@
+import { publicQuestionSource } from "../slide-question/model.ts";
 import type { Slide, SlideEnginePhase, SlideShow, SlideShowSessionState } from "./types.ts";
 
 const nextPhase: Readonly<Record<SlideEnginePhase, SlideEnginePhase | null>> = Object.freeze({
@@ -34,9 +35,11 @@ export function startSlideEngine(state: SlideShowSessionState, slide: Slide, rou
   if (state.engine) throw new Error("이미 진행 중인 문제가 있습니다.");
   if (state.slideIds[state.currentSlideIndex] !== slide.id) throw new Error("현재 슬라이드의 문제만 시작할 수 있습니다.");
   if (!slide.engine) throw new Error("이 슬라이드에는 문제 엔진이 없습니다.");
+  const round = slide.engine.round.source.kind === "slide-question"
+    ? { ...slide.engine.round, source: publicQuestionSource(slide.engine.round.source) } : slide.engine.round;
   return {
     ...state,
-    engine: { slideId: slide.id, roundId, phase: "answering", frame: slide.engine.frame, round: slide.engine.round },
+    engine: { slideId: slide.id, roundId, phase: "answering", frame: slide.engine.frame, round },
     scoredRoundIds: [...state.scoredRoundIds, roundId],
   };
 }

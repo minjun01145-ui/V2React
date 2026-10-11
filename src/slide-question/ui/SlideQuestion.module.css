@@ -1,0 +1,38 @@
+.student { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 16px; gap: 16px; background: white; box-sizing: border-box; overflow: auto; }
+.prompt { flex: 0 0 auto; margin: 0; font-size: clamp(20px, 3.2vw, 32px); font-weight: 700; text-align: center; overflow-wrap: anywhere; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(72px, 1fr); gap: 12px; flex: 1; min-height: 0; }
+.tiles[data-five="true"] > :last-child { grid-column: span 2; }
+.tile { position: relative; display: flex; align-items: center; gap: 12px; padding: 12px 18px; box-sizing: border-box; border: 0; border-radius: 12px; color: white; font: inherit; font-weight: 700; font-size: clamp(18px, 2.4vw, 28px); box-shadow: inset 0 -4px 0 rgba(0,0,0,.2); min-width: 0; min-height: 72px; overflow-wrap: anywhere; text-align: left; }
+button.tile { cursor: pointer; transition: transform .12s; }
+button.tile:hover:not(:disabled), button.tile:active:not(:disabled) { transform: translateY(2px); }
+.tile[data-wrong="true"] { opacity: .35; }
+.symbol { flex: 0 0 auto; font-size: 1.3em; }
+.check { margin-left: auto; }
+.tiles[data-ox="true"] .tile { justify-content: center; container-type: size; }
+.tiles[data-ox="true"] .symbol { font-size: 50cqh; line-height: 1; }
+.tiles[data-ox="true"] .check { position: absolute; right: 12px; top: 12px; margin: 0; }
+.answerForm { display: flex; align-items: center; gap: 12px; margin: auto 0; }
+.answerForm input { height: 56px; box-sizing: border-box; font-size: 22px; border-radius: 12px; border: 2px solid #adb5bd; padding: 0 14px; flex: 1; min-width: 0; }
+.answerForm button { background: #1368CE; color: white; border: 0; border-radius: 12px; height: 56px; padding: 0 24px; font-size: 22px; font-weight: 700; cursor: pointer; }
+.answerForm button:disabled { opacity: .5; cursor: default; }
+.outcome { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; height: 100%; text-align: center; background: #F1F3F5; color: #212529; font-size: clamp(24px, 5vw, 52px); }
+.outcome strong, .outcome b { font-weight: 700; }
+.outcome[data-result="correct"] { background: #26890C; color: white; }
+.outcome[data-result="wrong"] { background: #E21B3C; color: white; }
+.outcome[data-result="timeout"] { background: #868E96; color: white; }
+.error { color: #c92a2a; margin: 0; }
+.chart { height: 100%; min-height: 0; display: flex; justify-content: center; gap: 24px; padding: 0 16px; box-sizing: border-box; }
+.barColumn { display: flex; flex: 0 1 96px; width: 96px; max-width: 96px; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.barColumn > b { font-size: 20px; font-weight: 700; line-height: 24px; }
+.barTrack { flex: 1; width: 100%; min-height: 6px; display: flex; align-items: flex-end; }
+.bar { width: 100%; border-radius: 8px 8px 0 0; min-height: 6px; }
+.bar[data-correct="false"] { opacity: .35; }
+.barLabel { display: grid; place-items: center; flex: 0 0 32px; width: 32px; height: 32px; border-radius: 8px; color: #fff; font-size: 20px; font-weight: 700; line-height: 1; }
+.shortResults { height: 100%; display: flex; flex-direction: column; gap: 8px; overflow: auto; text-align: center; }
+.shortResults > strong { font-size: 24px; font-weight: 700; }
+.responseList { display: grid; gap: 6px; }
+.response { display: flex; align-items: center; gap: 12px; border: 2px solid #adb5bd; border-radius: 12px; padding: 6px 12px; }
+.response[data-correct="true"] { border-color: #26890C; }
+.response[data-correct="false"] { border-color: #E21B3C; }
+.response strong { flex: 1; overflow-wrap: anywhere; }
+.response small { font-size: 12px; }

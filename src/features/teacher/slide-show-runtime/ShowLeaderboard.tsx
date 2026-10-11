@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import type { LeaderboardEntry } from "../../../game-engine/timed-game/leaderboard.ts";
-import { loadRoundProgress } from "../../../multiplayer/game-progress/repository.ts";
+import { subscribeRoundProgress } from "../../../multiplayer/game-progress/repository.ts";
 import { loadRoundParticipants } from "../../../multiplayer/round-participants/repository.ts";
 import type { SlideShowSessionState } from "../../../slide-show/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import { createShowLeaderboard } from "../../slide-show-runtime/cumulativeLeaderboard.ts";
+import type { LeaderboardRound } from "../../slide-show-runtime/cumulativeLeaderboard.ts";
 import styles from "./ShowLeaderboard.module.css";
 
 /** Ranking over the whole show: the run's participants, every engine round, and teacher awards. */
@@ -17,13 +18,33 @@ export default function ShowLeaderboard({ roomId, slideShow }: { readonly roomId
   useEffect(() => {
     let active = true;
     setError("");
-    void Promise.all(roundIds.map(async (roundId) => {
-      const [participants, progress] = await Promise.all([loadRoundParticipants(roomId, roundId), loadRoundProgress(roomId, roundId)]);
-      return { participants, progress };
-    })).then((rounds) => {
-      if (active) setEntries(createShowLeaderboard(rounds, slideShow.awards));
-    }).catch((value: unknown) => { if (active) setError(toErrorMessage(value, "순위를 불러오지 못했습니다.")); });
-    return () => { active = false; };
+    const rounds: { participants?: LeaderboardRound["participants"]; progress?: LeaderboardRound["progress"] }[] = roundIds.map(() => ({}));
+    const publish = (): void => {
+      if (!active) return;
+      const loaded: LeaderboardRound[] = [];
+      for (const round of rounds) {
+        if (!round.participants || !round.progress) return;
+        loaded.push({ participants: round.participants, progress: round.progress });
+      }
+      setEntries(createShowLeaderboard(loaded, slideShow.awards));
+    };
+    const failed = (value: unknown): void => {
+      if (active) setError(toErrorMessage(value, "순위를 불러오지 못했습니다."));
+    };
+    // AI verdicts can arrive after this or a later slide opens its results.
+    const unsubscribe = roundIds.map((roundId, index) => {
+      const round = rounds[index]!;
+      void loadRoundParticipants(roomId, roundId).then((participants) => {
+        if (!active) return;
+        round.participants = participants;
+        publish();
+      }).catch(failed);
+      return subscribeRoundProgress(roomId, roundId, (progress) => {
+        round.progress = progress;
+        publish();
+      }, failed);
+    });
+    return () => { active = false; unsubscribe.forEach((stop) => stop()); };
     // `scope` captures every input that can change the ranking.
   }, [roomId, scope]);
 

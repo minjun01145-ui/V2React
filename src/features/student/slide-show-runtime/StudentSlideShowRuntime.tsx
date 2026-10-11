@@ -14,6 +14,7 @@ import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
 import StudentTimerOverlay from "../../slide-show-runtime/timer/StudentTimerOverlay.tsx";
 import { useJumpRace } from "../../../student-picker/jump-race/useJumpRace.ts";
 import JumpRaceStage from "./jump-race/JumpRaceStage.tsx";
+import SlideQuestionOutcome from "./SlideQuestionOutcome.tsx";
 import ReactionBar from "./ReactionBar.tsx";
 import styles from "./StudentSlideShowRuntime.module.css";
 
@@ -52,6 +53,7 @@ export default function StudentSlideShowRuntime({ roomId, session, player, slide
       ? session.status === SESSION_STATUS.PLAYING && session.roundId === engine.roundId
         ? <GameHost role="student" roomId={roomId} session={session} player={player} />
         : null
+      : engine.round.source.kind === "slide-question" ? <SlideQuestionOutcome key={engine.roundId} roomId={roomId} playerId={player.id} engine={engine} />
       : <div className={styles.engineStatus}>
         <strong>{engine.phase === "submissions" ? "제출 마감!" : "결과 발표"}</strong>
         <span>{getGame(engine.round.gameId).title}</span>

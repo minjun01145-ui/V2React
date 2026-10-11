@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SlideArrangeAction, SlideObjectStyle, SlideObjectStylePatch } from "../../../slide-canvas/SlideEditorController.ts";
+import { SLIDE_FONTS } from "../../../slide-canvas/fonts.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import SegmentedControl from "../../../shared/ui/SegmentedControl.tsx";
 import styles from "./ObjectStylePanel.module.css";
@@ -47,6 +48,10 @@ export default function ObjectStylePanel({ style, onChange, onArrange, onDuplica
     <div className={styles.grid}>
       {hasFill ? <ColorField label={style.kind === "text" ? "글씨 색" : "채우기 색"} value={style.fill} onChange={(fill) => onChange({ fill })} /> : null}
       {style.kind === "text" ? <NumberField label="글씨 크기" value={style.fontSize} min={8} max={240} onChange={(fontSize) => onChange({ fontSize })} /> : null}
+      {style.kind === "text" ? <label className={`${styles.field} ${styles.wide}`}><span>글꼴</span><select aria-label="글꼴" value={style.fontFamily} style={{ fontFamily: style.fontFamily }} onChange={(event) => onChange({ fontFamily: event.target.value })}>
+        {!SLIDE_FONTS.some((font) => font.family === style.fontFamily) ? <option value={style.fontFamily} style={{ fontFamily: style.fontFamily }}>{style.fontFamily}</option> : null}
+        {SLIDE_FONTS.map((font) => <option key={font.family} value={font.family} style={{ fontFamily: font.family }}>{font.label}</option>)}
+      </select></label> : null}
       {style.kind === "text" ? <div className={`${styles.field} ${styles.wide}`}><span>정렬</span><SegmentedControl options={ALIGNMENTS} value={style.textAlign} onChange={(textAlign) => onChange({ textAlign })} ariaLabel="글 정렬" size="sm" /></div> : null}
       {style.kind === "text" ? <div className={`${styles.field} ${styles.wide}`}><span>배경 색</span><div className={styles.backgroundRow}>
         <input className={styles.color} type="color" aria-label="배경 색" value={style.background ?? "#ffffff"} onChange={(event) => onChange({ background: event.target.value })} />

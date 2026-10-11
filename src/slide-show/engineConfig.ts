@@ -7,6 +7,7 @@ export function slideEngineGameConfig(round: SlideEngineRound, slideId: string):
   if (round.source.kind === "free-response") {
     return { freeResponsePrompt: round.source.prompt, ...duration };
   }
+  if (round.source.kind === "slide-question") return { slideQuestion: round.source.question, ...duration };
   if (round.source.kind === "stored-set") {
     const sourceConfig = round.source.setId ? { setId: round.source.setId } : {};
     return { ...sourceConfig, ...round.gameConfig, ...duration };

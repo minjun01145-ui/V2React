@@ -8,7 +8,8 @@ import type { ActiveSlideEngine, SlideEngineRound, SlideShowSessionState } from 
 import Button from "../../../shared/ui/Button.tsx";
 import SegmentedControl from "../../../shared/ui/SegmentedControl.tsx";
 import { TIMER_SKINS, type TimerSkin } from "../../../slide-show/timerSkins.ts";
-import TimerFace from "../../slide-show-runtime/timer/skins/TimerFace.tsx";
+import EngineTimerFace from "./EngineTimerFace.tsx";
+import SlideQuestionTeacherWindow from "./SlideQuestionTeacherWindow.tsx";
 import ShowLeaderboard from "./ShowLeaderboard.tsx";
 import styles from "./TeacherEngineWindow.module.css";
 
@@ -24,17 +25,17 @@ function AnsweringCard({ roomId, session, engine, timerSkin, onTimerSkinChange }
   const progress = useRoundProgress(roomId, engine.roundId);
   const done = progress.value.filter((item) => item.completedAtMs !== null || item.attemptCount > 0).length;
   const seconds = clock.remainingMs === null ? null : Math.ceil(clock.remainingMs / 1_000);
+  if (engine.round.gameId === "free-response" && seconds !== null) return <div className={`${styles.card} ${styles.timerCard}`} data-urgent={seconds <= 5}>
+    <div className={styles.timerHeader}>
+      <span>{getGame(engine.round.gameId).title}</span>
+      <SegmentedControl options={TIMER_SKINS} value={timerSkin} onChange={onTimerSkinChange} ariaLabel="타이머 모양" size="sm" />
+      <em>참여 {done}/{participants.value.length}</em>
+    </div>
+    <EngineTimerFace skin={timerSkin} timer={{ remainingSeconds: seconds, durationSeconds: engine.round.durationSeconds, running: !clock.expired, finished: clock.expired }} />
+  </div>;
   return <div className={styles.card} data-urgent={seconds !== null && seconds <= 5}>
     <span>{getGame(engine.round.gameId).title}</span>
-    {engine.round.gameId === "free-response" && seconds !== null ? <>
-      <SegmentedControl options={TIMER_SKINS} value={timerSkin} onChange={onTimerSkinChange} ariaLabel="타이머 모양" size="sm" />
-      <div className={styles.answerTimer}><TimerFace skin={timerSkin} timer={{
-        remainingSeconds: seconds,
-        durationSeconds: engine.round.durationSeconds,
-        running: !clock.expired,
-        finished: clock.expired,
-      }} /></div>
-    </> : <strong>{seconds ?? "—"}</strong>}
+    <strong>{seconds ?? "—"}</strong>
     <em>참여 {done}/{participants.value.length}</em>
   </div>;
 }
@@ -48,6 +49,7 @@ function ActiveEngine({ roomId, session, slideShow, engine, timerSkin, onTimerSk
   readonly onTimerSkinChange: (skin: TimerSkin) => void;
 }) {
   if (session.status === SESSION_STATUS.PREPARING) return <div className={styles.card}><span>{getGame(engine.round.gameId).title}</span><strong className={styles.small}>학생 접속 확인 중</strong></div>;
+  if (engine.round.source.kind === "slide-question") return <SlideQuestionTeacherWindow roomId={roomId} session={session} slideShow={slideShow} engine={engine} source={engine.round.source} timerSkin={timerSkin} onTimerSkinChange={onTimerSkinChange} />;
   if (engine.phase === "answering") return <AnsweringCard roomId={roomId} session={session} engine={engine} timerSkin={timerSkin} onTimerSkinChange={onTimerSkinChange} />;
   if (engine.phase === "submissions") return <div className={styles.card}><span>{getGame(engine.round.gameId).title}</span><strong className={styles.small}>제출 마감!</strong></div>;
   return <div className={styles.ranking}><ShowLeaderboard roomId={roomId} slideShow={slideShow} /></div>;

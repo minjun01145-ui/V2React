@@ -1,3 +1,4 @@
+import "./fonts.css";
 import "./SlideTextbox.ts";
 import { FabricObject } from "fabric";
 
@@ -5,3 +6,4 @@ import { FabricObject } from "fabric";
 // are laid out by their top-left corner, so restore the classic origin once.
 FabricObject.ownDefaults.originX = "left";
 FabricObject.ownDefaults.originY = "top";
+FabricObject.customProperties = [...FabricObject.customProperties, "data", "selectable", "evented", "lockMovementX", "lockMovementY", "lockScalingX", "lockScalingY", "lockRotation"];

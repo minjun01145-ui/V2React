@@ -1,3 +1,4 @@
+import { newQuestion } from "../../../slide-question/model.ts";
 import { minimumSetItemCountForType, type GameDefinition } from "../../../game-engine/contracts/gameDefinition.ts";
 import { getGame, listGames } from "../../../games/registry.ts";
 import { readMatchingCardMode } from "../../../games/matching/config.ts";
@@ -8,6 +9,7 @@ import type { SlideEngine, SlideEngineCustomItem, SlideEngineRound, SlideFrame }
 export const SLIDE_ENGINE_GAMES: readonly GameDefinition[] = [
   ...listGames().filter((game) => game.supportedSetTypes.length > 0 && game.fixedTimedMode === null),
   getGame("free-response"),
+  getGame("slide-question"),
 ];
 
 export const DEFAULT_ENGINE_FRAME: SlideFrame = { x: 140, y: 90, width: 1000, height: 540 };
@@ -25,8 +27,8 @@ export function engineRoundForGame(gameId: string, sets: readonly LearningSetSum
   const firstSet = sets.find((set) => game.supportedSetTypes.includes(set.type));
   return {
     gameId: game.id,
-    source: game.id === "free-response" ? { kind: "free-response", prompt: "" } : { kind: "stored-set", setId: firstSet?.id ?? null },
-    durationSeconds: 60,
+    source: game.id === "slide-question" ? newQuestion() : game.id === "free-response" ? { kind: "free-response", prompt: "" } : { kind: "stored-set", setId: firstSet?.id ?? null },
+    durationSeconds: game.id === "slide-question" ? 20 : 60,
     gameConfig: defaultConfig(game),
   };
 }

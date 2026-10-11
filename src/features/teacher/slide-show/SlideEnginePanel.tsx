@@ -8,6 +8,7 @@ import Button from "../../../shared/ui/Button.tsx";
 import Field from "../../../shared/ui/Field.tsx";
 import Select from "../../../shared/ui/Select.tsx";
 import { compatibleSets, engineRoundForGame, newCustomItem, SLIDE_ENGINE_GAMES } from "./engineDraft.ts";
+import SlideQuestionSettings from "./SlideQuestionSettings.tsx";
 import styles from "./SlideEnginePanel.module.css";
 
 interface Props {
@@ -27,7 +28,7 @@ export default function SlideEnginePanel({ round: storedRound, sets, disabled, i
   useEffect(() => { setDurationDraft(String(round.durationSeconds)); }, [round.durationSeconds]);
   const commitDuration = (): void => {
     const parsed = durationDraft.trim() ? Number(durationDraft) : NaN;
-    const durationSeconds = Number.isFinite(parsed) ? Math.min(600, Math.max(10, Math.round(parsed))) : round.durationSeconds;
+    const durationSeconds = Number.isFinite(parsed) ? Math.min(round.gameId === "slide-question" ? 300 : 600, Math.max(round.gameId === "slide-question" ? 5 : 10, Math.round(parsed))) : round.durationSeconds;
     setDurationDraft(String(durationSeconds));
     if (durationSeconds !== round.durationSeconds) onChange({ ...round, durationSeconds });
   };
@@ -45,10 +46,10 @@ export default function SlideEnginePanel({ round: storedRound, sets, disabled, i
     <header className={styles.header}><h3>문제 엔진</h3><Button variant="danger" size="sm" onClick={onRemove} disabled={disabled}>삭제</Button></header>
     <div className={styles.fields}>
       <Field label="엔진"><Select value={round.gameId} onChange={(event) => onChange(engineRoundForGame(event.target.value, sets))} disabled={disabled}>{SLIDE_ENGINE_GAMES.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</Select></Field>
-      <Field label="시간(초)"><input className={styles.input} type="number" min={10} max={600} step={5} value={durationDraft}
+      <Field label={round.gameId === "slide-question" ? "풀이 시간(초)" : "시간(초)"}><input className={styles.input} type="number" min={round.gameId === "slide-question" ? 5 : 10} max={round.gameId === "slide-question" ? 300 : 600} step={5} value={durationDraft}
         onChange={(event) => setDurationDraft(event.target.value)} onBlur={commitDuration}
         onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); commitDuration(); } }} disabled={disabled} /></Field>
-      {source.kind !== "free-response" ? <Field label="문제 공급"><Select value={source.kind} onChange={(event) => setSource(event.target.value === "custom"
+      {source.kind !== "free-response" && source.kind !== "slide-question" ? <Field label="문제 공급"><Select value={source.kind} onChange={(event) => setSource(event.target.value === "custom"
         ? { kind: "custom", setType: game.supportedSetTypes[0] === "reading-chunks" ? "reading-chunks" : "vocabulary", items: [newCustomItem()] }
         : { kind: "stored-set", setId: candidates[0]?.id ?? null })} disabled={disabled || !game.supportsFiniteQuizQuestions}>
         <option value="stored-set">학습 세트 반복</option>
@@ -67,6 +68,7 @@ export default function SlideEnginePanel({ round: storedRound, sets, disabled, i
       </Select></Field>)}
     </div>
     {source.kind === "free-response" ? <Field label="학생에게 보여줄 질문"><textarea className={styles.textarea} rows={3} value={source.prompt} maxLength={1000} onChange={(event) => setSource({ kind: "free-response", prompt: event.target.value })} disabled={disabled} /></Field> : null}
+    {source.kind === "slide-question" ? <SlideQuestionSettings source={source} disabled={disabled} onChange={setSource} /> : null}
     {source.kind === "custom" ? <div className={styles.items}>
       {source.items.map((item, index) => <div className={styles.item} key={item.id}>
         <b>{index + 1}</b>
