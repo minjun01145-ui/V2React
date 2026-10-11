@@ -7,6 +7,7 @@ import { ensureSession, loadPlayers, subscribeSessionField } from "../multiplaye
 import { participantIdentity } from "../multiplayer/round-participants/model.ts";
 import { roundParticipantRef } from "../multiplayer/round-participants/repository.ts";
 import type { GameSession, Player } from "../multiplayer/types.ts";
+import { parseLobbyGathering } from "../multiplayer/lobbyGathering.ts";
 import { slideEngineGameConfig } from "./engineConfig.ts";
 import {
   advanceSlideEnginePhase,
@@ -18,6 +19,8 @@ import {
 } from "./sessionState.ts";
 import type { Slide, SlideEnginePhase, SlideShow, SlideShowSessionState } from "./types.ts";
 import { parseSlide, parseSlideShowSessionState, validateSlides } from "./validation.ts";
+import { adjustTimerSeconds, slideTimerSnapshot } from "./timer.ts";
+import type { TimerSkin } from "./timerSkins.ts";
 
 const SLIDE_SHOW_SESSION_FIELD = "slideShow";
 /** Session gameId while slides (not an engine) are on screen. */
@@ -89,6 +92,7 @@ export async function startRegularGameSession(roomId: string, options: RegularGa
     const currentSession = await tx.get(ref);
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
     if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
+    if (parseLobbyGathering(currentData.lobbyGathering)?.active) throw new Error("점프타워 집합을 해산한 뒤 시작해 주세요.");
     tx.update(ref, nextSession);
     addParticipants(tx, roomId, roundId, activePlayers, now);
   });
@@ -124,6 +128,7 @@ export async function startSlideShow(roomId: string, show: SlideShow): Promise<v
     const currentSession = await tx.get(ref);
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
     if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
+    if (parseLobbyGathering(currentData.lobbyGathering)?.active) throw new Error("점프타워 집합을 해산한 뒤 시작해 주세요.");
     tx.update(ref, {
       gameId: SLIDE_SHOW_GAME_ID,
       gameConfig: deleteField(),
@@ -161,6 +166,11 @@ async function updateShowState(
     const state = isRecord(data) ? parseSlideShowSessionState(data[SLIDE_SHOW_SESSION_FIELD]) : null;
     if (!state || (status !== SESSION_STATUS.PLAYING && status !== SESSION_STATUS.PREPARING)) throw new Error("진행 중인 슬라이드쇼가 없습니다.");
     const patch = await update(state, tx);
+    // Other show transitions must retain the raw Firestore timestamp, not its parsed millisecond value.
+    if (isRecord(patch[SLIDE_SHOW_SESSION_FIELD]) && isRecord(data) && isRecord(data[SLIDE_SHOW_SESSION_FIELD])) {
+      const rawShow = data[SLIDE_SHOW_SESSION_FIELD] as Record<string, unknown>;
+      patch[SLIDE_SHOW_SESSION_FIELD] = { ...patch[SLIDE_SHOW_SESSION_FIELD], timer: rawShow.timer ?? null };
+    }
     tx.update(ref, { ...patch, updatedAt: serverTimestamp(), updatedAtMs: Date.now() });
   });
 }
@@ -209,4 +219,29 @@ export function closeShowEngine(roomId: string): Promise<void> {
 
 export function awardShowPoints(roomId: string, playerIds: readonly string[], points: number): Promise<void> {
   return updateShowState(roomId, (state) => ({ [SLIDE_SHOW_SESSION_FIELD]: addAwards(state, playerIds, points) }));
+}
+
+export function changeShowTimer(roomId: string, runId: string, command: "start" | "pause" | "reset" | number, nowMs: number, skin: TimerSkin): Promise<void> {
+  return updateShowState(roomId, (state) => {
+    if (state.runId !== runId) throw new Error("슬라이드쇼가 변경되었습니다.");
+    const timer = slideTimerSnapshot(state.timer, nowMs);
+    if (command === "start") {
+      if (timer.running || timer.remainingSeconds === 0) return {};
+      return { "slideShow.timerSkin": skin, "slideShow.timer": { durationSeconds: timer.durationSeconds, remainingSeconds: timer.remainingSeconds, startedAt: serverTimestamp() } };
+    }
+    if (typeof command === "number" && timer.running) return {};
+    const remainingSeconds = typeof command === "number" ? adjustTimerSeconds(timer.remainingSeconds, command)
+      : command === "reset" ? timer.durationSeconds : timer.remainingSeconds;
+    return { "slideShow.timer": {
+      durationSeconds: typeof command === "number" ? remainingSeconds : timer.durationSeconds,
+      remainingSeconds, startedAt: null,
+    } };
+  });
+}
+
+export function setShowTimerSkin(roomId: string, runId: string, skin: TimerSkin): Promise<void> {
+  return updateShowState(roomId, (state) => {
+    if (state.runId !== runId) throw new Error("슬라이드쇼가 변경되었습니다.");
+    return { "slideShow.timerSkin": skin };
+  });
 }

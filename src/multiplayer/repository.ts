@@ -26,6 +26,7 @@ import { parseLatestStudentQuestionResult, parseStudentQuestionActivity } from "
 import { currentTenantConfig } from "../tenant/config.ts";
 import { effectiveTenantId } from "../tenant/scope.ts";
 import { parseCharacterAppearance } from "../characters/appearance.ts";
+import { parseLobbyGathering } from "./lobbyGathering.ts";
 
 const sessionRef = (roomId: string) => doc(db, MULTIPLAYER_COLLECTION, roomId);
 const playersRef = (roomId: string) => collection(db, MULTIPLAYER_COLLECTION, roomId, "players");
@@ -97,6 +98,7 @@ function parseSession(snapshot: DocumentSnapshot<DocumentData>): GameSession | n
     roundId: typeof data.roundId === "string" && data.roundId ? data.roundId : null,
     gameConfig: parseGameConfig(data.gameConfig),
     waitingTypingConfig: parseGameConfig(data.waitingTypingConfig),
+    lobbyGathering: parseLobbyGathering(data.lobbyGathering),
     createdAtMs: numberOrNull(data.createdAtMs),
     updatedAtMs: numberOrNull(data.updatedAtMs),
     startedAtMs: resolveSessionStartedAtMs(data.startedAt, data.startedAtMs, data.startDelayMs),
@@ -297,7 +299,7 @@ export async function startSession(roomId: string, options: StartSessionOptions 
   await runTransaction(db, async (tx) => {
     const currentSession = await tx.get(sessionRef(roomId));
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
-    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || parseStudentQuestionActivity(currentData.classroomActivity)) return;
+    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || parseStudentQuestionActivity(currentData.classroomActivity) || parseLobbyGathering(currentData.lobbyGathering)?.active) return;
 
     const currentPlayerSnapshots = await Promise.all(
       activePlayers.map((player) => tx.get(playerRef(roomId, player.id))),
@@ -429,5 +431,46 @@ export async function updateWaitingTypingConfig(
     waitingTypingConfig: config ?? deleteField(),
     updatedAt: serverTimestamp(),
     updatedAtMs: Date.now(),
+  });
+}
+
+/** The session document's existing Rules allow only this room's tenant administrator to write. */
+export async function gatherLobbyForJumpTower(roomId: string): Promise<void> {
+  const runId = crypto.randomUUID();
+  await runTransaction(db, async (tx) => {
+    const ref = sessionRef(roomId);
+    const snapshot = await tx.get(ref);
+    const data: unknown = snapshot.exists() ? snapshot.data() : null;
+    if (!isRecord(data) || effectiveTenantId(data.tenantId) !== currentTenantConfig().id) {
+      throw new Error("이 사용자에게 속한 대기실이 아닙니다.");
+    }
+    if (data.status !== SESSION_STATUS.WAITING || data.classroomActivity) {
+      throw new Error("대기실에서만 점프타워로 집합할 수 있습니다.");
+    }
+    if (parseLobbyGathering(data.lobbyGathering)?.active) return;
+    tx.update(ref, {
+      lobbyGathering: { runId, active: true },
+      updatedAt: serverTimestamp(),
+      updatedAtMs: Date.now(),
+    });
+  });
+}
+
+export async function dismissLobbyGathering(roomId: string, runId: string): Promise<void> {
+  await runTransaction(db, async (tx) => {
+    const ref = sessionRef(roomId);
+    const snapshot = await tx.get(ref);
+    const data: unknown = snapshot.exists() ? snapshot.data() : null;
+    if (!isRecord(data) || effectiveTenantId(data.tenantId) !== currentTenantConfig().id) {
+      throw new Error("이 사용자에게 속한 대기실이 아닙니다.");
+    }
+    const gathering = parseLobbyGathering(data.lobbyGathering);
+    if (!gathering?.active || gathering.runId !== runId) return;
+    // Keep the completed run so a reconnecting student also discards an earlier free-play screen.
+    tx.update(ref, {
+      lobbyGathering: { runId, active: false },
+      updatedAt: serverTimestamp(),
+      updatedAtMs: Date.now(),
+    });
   });
 }

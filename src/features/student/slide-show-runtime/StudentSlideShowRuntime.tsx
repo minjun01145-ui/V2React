@@ -11,6 +11,7 @@ import StatusPanel from "../../../shared/StatusPanel.tsx";
 import SlideViewport from "../../slide-show-runtime/SlideViewport.tsx";
 import { useMyShowScore } from "../../slide-show-runtime/useMyShowScore.ts";
 import { useShowRunSlides } from "../../slide-show-runtime/useShowRunSlides.ts";
+import StudentTimerOverlay from "../../slide-show-runtime/timer/StudentTimerOverlay.tsx";
 import { useJumpRace } from "../../../student-picker/jump-race/useJumpRace.ts";
 import JumpRaceStage from "./jump-race/JumpRaceStage.tsx";
 import ReactionBar from "./ReactionBar.tsx";
@@ -58,6 +59,7 @@ export default function StudentSlideShowRuntime({ roomId, session, player, slide
 
   return <section className={styles.runtime}>
     <GameEffectLayer effect={awardEffect} />
+    <StudentTimerOverlay show={slideShow} />
     <header className={styles.hud}>
       <span className={styles.name}>{slideShow.name}</span>
       <strong className={styles.page}>{slideShow.currentSlideIndex + 1} / {slideShow.slideIds.length}</strong>

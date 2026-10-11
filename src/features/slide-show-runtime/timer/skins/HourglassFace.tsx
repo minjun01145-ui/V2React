@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { elapsedFraction } from "./skins.ts";
+import { elapsedFraction } from "../../../../slide-show/timerSkins.ts";
 import styles from "./HourglassFace.module.css";
 
 // Glass outline: a top bulb narrowing to the neck at y=100 and a mirrored bottom bulb.

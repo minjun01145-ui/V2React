@@ -1,9 +1,10 @@
 import "./fabricSetup.ts";
-import { ActiveSelection, Canvas, Circle, Control, controlsUtils, FabricImage, Line, Rect, Textbox, Triangle, util, type FabricObject, type TMat2D } from "fabric";
+import { ActiveSelection, Canvas, Circle, Control, controlsUtils, FabricImage, Line, Rect, Triangle, util, type FabricObject, type TMat2D } from "fabric";
+import { SlideTextbox as Textbox } from "./SlideTextbox.ts";
 import { SLIDE_HEIGHT, SLIDE_WIDTH, type SlideFrame } from "../slide-show/types.ts";
 import type { AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
 import { applyAssistantOperation, describeSlide } from "./assistantOperations.ts";
-import { collectSlideTexts, loadSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
+import { collectSlideTexts, loadSlideFonts, watchSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
 import { UndoHistory } from "./undoHistory.ts";
 
 export type SlideShapeKind = "rect" | "circle" | "triangle" | "line";
@@ -113,6 +114,7 @@ function bakeTextboxScale(text: Textbox): void {
  */
 export class SlideEditorController {
   private readonly canvas: Canvas;
+  private readonly stopWatchingFonts: () => void;
   private readonly events: ControllerEvents;
   private engineFrame: Rect | null = null;
   private engineLabel = "";
@@ -131,6 +133,7 @@ export class SlideEditorController {
   constructor(element: HTMLCanvasElement, events: ControllerEvents) {
     this.events = events;
     this.canvas = new Canvas(element, { preserveObjectStacking: true, selectionColor: "rgba(35,56,184,.08)", selectionBorderColor: SELECTION_COLOR });
+    this.stopWatchingFonts = watchSlideFonts(this.canvas);
     const changed = (): void => { if (!this.loading && !this.restoring) this.edited(); };
     const selection = (): void => this.events.onSelectionChange(this.selectedStyle());
     this.canvas.on("object:added", ({ target }) => {
@@ -163,6 +166,7 @@ export class SlideEditorController {
   }
 
   dispose(): Promise<boolean> {
+    this.stopWatchingFonts();
     return this.canvas.dispose();
   }
 

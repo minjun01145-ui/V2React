@@ -7,7 +7,7 @@ interface Props {
   readonly playerId: string;
   readonly label: string;
   readonly players: readonly Player[];
-  readonly onExit: () => void;
+  readonly onExit?: () => void;
 }
 
 export default function LobbyPlatformer(props: Props) {

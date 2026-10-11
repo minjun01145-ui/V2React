@@ -51,6 +51,20 @@ npm test --prefix functions
 
 캐릭터 검증은 `npm run test:characters`와 `npm run test:characters --prefix functions`로 실행합니다. 실제 Auth·Functions·Firestore 통합 검증은 `firebase emulators:start --only auth,firestore,functions --project demo-character`로 에뮬레이터를 시작하고, 콘솔에 표시된 로컬 포트로 `FIRESTORE_EMULATOR_HOST`, `FIREBASE_AUTH_EMULATOR_HOST`, `CHARACTER_FUNCTIONS_EMULATOR`를 지정한 뒤 `npm run test:characters:emulator --prefix functions`로 실행합니다.
 
+## 슬라이드 글상자 편집
+
+글상자는 영어 단어를 유지하며 줄바꿈하고, 한 줄보다 긴 단어와 공백 없는 한국어는 박스 안에서 나누어 표시합니다. 편집기와 학생 화면에 같은 줄바꿈을 적용합니다. 글씨 크기·선 두께·문제 엔진 시간은 입력 중 빈 값을 허용하고, Enter 또는 포커스를 옮길 때 범위를 적용하며 빈 값은 이전 값으로 복원합니다.
+
+글상자 캐럿, 줄바꿈, 숫자 입력의 브라우저 회귀 검증은 `npm ci --prefix external-test-browser` 후 `npm run test:slide-editor --prefix external-test-browser`로 실행합니다.
+
+## 슬라이드 수업 타이머
+
+교사가 **타이머 → 시작**으로 켠 일반 수업 타이머는 학생 화면 중앙에도 같은 모양으로 표시됩니다. 진행 중 모양을 바꾸면 학생 화면도 함께 바뀌며, 일시정지·초기화·시간 종료 시 학생 표시가 사라집니다.
+
+자유답변 슬라이드의 제한시간은 교사 답변 영역에서 같은 테마 타이머로 표시됩니다. 이 타이머의 모양은 영역 안 조작이나 일반 타이머 설정에서 바꿀 수 있으며, 학생 답변 입력 영역에는 표시하지 않습니다. 제출 마감 시점은 기존 제한시간을 따릅니다.
+
+교사 대기실의 **점프타워로 집합**은 자유 플레이 중인 학생까지 점프타워로 이동시키고, **해산**은 모두 대기실로 돌려보냅니다. 집합 중에는 수업·슬라이드쇼·질문 만들기를 시작할 수 없으며, 다른 교사 창에서도 먼저 해산해야 합니다.
+
 ## 작업 안내
 
 - [AGENTS.md](./AGENTS.md): 코드를 수정할 때의 최소 작업 원칙.

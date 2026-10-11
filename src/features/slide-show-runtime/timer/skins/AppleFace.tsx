@@ -1,6 +1,6 @@
 import { useId } from "react";
-import { formatTimerSeconds } from "../model.ts";
-import { appleBites, elapsedFraction } from "./skins.ts";
+import { formatTimerSeconds } from "../../../../slide-show/timer.ts";
+import { appleBites, elapsedFraction } from "../../../../slide-show/timerSkins.ts";
 import styles from "./AppleFace.module.css";
 
 /** Bite marks around the apple, in the order they are taken (alternating sides). */

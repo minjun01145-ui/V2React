@@ -1,6 +1,6 @@
 import { useId } from "react";
-import { formatTimerSeconds } from "../model.ts";
-import { elapsedFraction } from "./skins.ts";
+import { formatTimerSeconds } from "../../../../slide-show/timer.ts";
+import { elapsedFraction } from "../../../../slide-show/timerSkins.ts";
 import styles from "./GlowFace.module.css";
 
 const RADIUS = 88;

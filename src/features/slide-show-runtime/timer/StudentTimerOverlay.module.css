@@ -1,0 +1,3 @@
+.overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; pointer-events: none; background: rgba(7, 13, 46, 0.28); }
+.face { --timer-face-size: min(60vw, 48vh, 480px); --timer-hourglass-size: min(40vw, 35vh, 300px); --timer-digit-size: clamp(3rem, 12vw, 8rem); display: grid; place-items: center; width: min(88vw, 680px); padding: 32px; border-radius: 28px; color: var(--color-brand-deep); background: var(--color-surface, #fff); box-shadow: 0 12px 60px rgba(7, 13, 46, 0.3); }
+.face > div { width: min(100%, var(--timer-face-size)); }

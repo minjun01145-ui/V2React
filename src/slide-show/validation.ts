@@ -11,6 +11,8 @@ import {
   type SlideFrame,
   type SlideShowSessionState,
 } from "./types.ts";
+import { parseSlideTimer } from "./timer.ts";
+import { isTimerSkin } from "./timerSkins.ts";
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const GAME_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -213,5 +215,6 @@ export function parseSlideShowSessionState(value: unknown): SlideShowSessionStat
   if (!runId || !ID_PATTERN.test(runId) || !showId || !ID_PATTERN.test(showId) || !name || !slideIds || slideIds.length < 1 || slideIds.length > MAX_SLIDES) return null;
   if (currentSlideIndex === null || currentSlideIndex < 0 || currentSlideIndex >= slideIds.length || !scoredRoundIds || !awards) return null;
   if (value.engine !== null && !engine) return null;
-  return { runId, showId, name, slideIds, currentSlideIndex, engine, scoredRoundIds, awards };
+  return { runId, showId, name, slideIds, currentSlideIndex, engine, scoredRoundIds, awards,
+    timer: parseSlideTimer(value.timer), timerSkin: isTimerSkin(value.timerSkin) ? value.timerSkin : null };
 }

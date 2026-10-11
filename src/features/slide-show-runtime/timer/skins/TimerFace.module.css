@@ -1,0 +1,1 @@
+.plain { display: block; color: inherit; font-size: var(--timer-digit-size, clamp(3rem, 9vw, 7rem)); font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }

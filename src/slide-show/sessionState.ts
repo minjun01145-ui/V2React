@@ -19,6 +19,8 @@ export function createSlideShowSessionState(show: SlideShow, runId: string): Sli
     engine: null,
     scoredRoundIds: [],
     awards: {},
+    timer: null,
+    timerSkin: null,
   };
 }
 

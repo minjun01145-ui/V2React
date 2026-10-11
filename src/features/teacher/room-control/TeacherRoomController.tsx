@@ -4,7 +4,7 @@ import { getGame } from "../../../games/registry.ts";
 import { SESSION_STATUS } from "../../../multiplayer/constants.ts";
 import { usePlayers, useRoundReadiness, useSessionSubscription } from "../../../multiplayer/hooks.ts";
 import { countExpectedReady } from "../../../multiplayer/round-readiness/model.ts";
-import { finalizeSessionStart } from "../../../multiplayer/repository.ts";
+import { dismissLobbyGathering, finalizeSessionStart, gatherLobbyForJumpTower } from "../../../multiplayer/repository.ts";
 import { withTimedGameConfig, type TimedGameMode } from "../../../game-engine/timed-game/config.ts";
 import { resetSlideAwareSession, startRegularGameSession, startSlideShow, subscribeSlideShowSession } from "../../../slide-show/multiplayerService.ts";
 import PageShell from "../../../shared/PageShell.tsx";
@@ -68,6 +68,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const isPlaying = session?.status === SESSION_STATUS.PLAYING;
   const isPreparing = session?.status === SESSION_STATUS.PREPARING;
   const isQuestionActivity = Boolean(session?.classroomActivity);
+  const isGathered = Boolean(session?.lobbyGathering?.active);
   const expectedPlayerIds = session?.expectedPlayerIds ?? [];
   const readyCount = countExpectedReady(expectedPlayerIds, readiness);
   const expectedCount = new Set(expectedPlayerIds).size;
@@ -117,7 +118,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const startLatestQuestions = (setId: string, timedMode: TimedGameMode): Promise<void> => run((id) => startRegularGameSession(id, { gameId: "ai-tutor", gameConfig: withTimedGameConfig({ setId }, timedMode) }));
   const launch = useActivityLaunch({
     setup: gameSetup,
-    disabled: working || loading || playersUnavailable,
+    disabled: working || loading || playersUnavailable || isGathered,
     hasPlayers: activePlayers.length > 0,
     latestQuestionSetId: session?.latestStudentQuestionResult?.resultSetId ?? null,
     onStartGame: () => run(startGame),
@@ -132,7 +133,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
   const actions = isPlaying || isPreparing ? <>
     {isPreparing ? <Button variant="accent" disabled={working || loading || readyCount === 0} onClick={() => void forceStart()}>강제 시작 ({readyCount}/{expectedCount})</Button> : null}
     <Button variant="ghost" disabled={working || loading || isQuestionActivity} onClick={() => void run(resetSlideAwareSession)}>대기실로 돌아가기</Button>
-  </> : <Button variant="accent" size="lg" disabled={working || loading || playersUnavailable || activePlayers.length === 0 || launch.invalidSelection} onClick={() => void launch.start()}>{working ? "처리 중…" : playersError ? "학생 목록 연결 오류" : playersLoading ? "학생 접속 확인 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
+  </> : <Button variant="accent" size="lg" disabled={working || loading || playersUnavailable || activePlayers.length === 0 || launch.invalidSelection || isGathered} onClick={() => void launch.start()}>{working ? "처리 중…" : isGathered ? "점프타워 집합 중" : playersError ? "학생 목록 연결 오류" : playersLoading ? "학생 접속 확인 중…" : activePlayers.length === 0 ? "학생 접속 대기 중" : launch.startLabel}</Button>;
 
   const content = <>
     <RoomStatusBar
@@ -154,9 +155,11 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
         <NoticeEditor roomId={roomId} />
         <TeacherPlayerRoster roomId={roomId} players={activePlayers} disabled={working || loading} />
         {isQuestionActivity && session?.classroomActivity ? <TeacherStudentQuestionPanel roomId={roomId} activePlayers={activePlayers} activity={session.classroomActivity} disabled={working || isPlaying} onError={(value) => void showMessage({ title: "질문 만들기 오류", message: toErrorMessage(value, "작업을 완료하지 못했습니다."), tone: "error", blurBackground: false })} /> : null}
-        {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading} launch={launch} /> : null}
+        {!isQuestionActivity ? <ActivityLaunchPanel setup={gameSetup} disabled={working || loading || isGathered} launch={launch} /> : null}
       </div>
-      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} onDrawing={() => setDrawingOpen(true)} /><StudentOpinionsPanel roomId={roomId} /></aside> : null}
+      {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} onDrawing={() => setDrawingOpen(true)}
+        gatheringDisabled={working || loading || !session || session.status !== SESSION_STATUS.WAITING}
+        onGathering={() => void run((id) => session?.lobbyGathering?.active ? dismissLobbyGathering(id, session.lobbyGathering.runId) : gatherLobbyForJumpTower(id))} /><StudentOpinionsPanel roomId={roomId} /></aside> : null}
     </div>}
   </>;
 

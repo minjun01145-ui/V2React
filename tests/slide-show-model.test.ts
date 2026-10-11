@@ -40,7 +40,7 @@ assert.deepEqual(customConfig.set, { id: "slide-slide-4", name: "슬라이드 �
 
 // Presentation state
 const state = createSlideShowSessionState(show, "run-1");
-assert.deepEqual(state, { runId: "run-1", showId: "show-1", name: "2단원 수업", slideIds: ["slide-1", "slide-2"], currentSlideIndex: 0, engine: null, scoredRoundIds: [], awards: {} });
+assert.deepEqual(state, { runId: "run-1", showId: "show-1", name: "2단원 수업", slideIds: ["slide-1", "slide-2"], currentSlideIndex: 0, engine: null, scoredRoundIds: [], awards: {}, timer: null, timerSkin: null });
 assert.deepEqual(parseSlideShowSessionState(state), state);
 assert.throws(() => goToSlide(state, 2), /슬라이드가 없습니다/);
 assert.throws(() => startSlideEngine(state, engineSlide, "round-1"), /현재 슬라이드/, "only the slide on screen can start its engine");

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { isTimerSkin, type TimerSkin } from "./skins.ts";
+import { isTimerSkin, type TimerSkin } from "../../../../../slide-show/timerSkins.ts";
 
 const STORAGE_KEY = "v2r.slideTimerSkin";
 

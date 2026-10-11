@@ -1,3 +1,6 @@
+import type { SlideTimerState } from "./timer.ts";
+import type { TimerSkin } from "./timerSkins.ts";
+
 export const SLIDE_SHOW_SCHEMA_VERSION = 1 as const;
 
 /** Slides are authored on a fixed 16:9 board and scaled to every screen. */
@@ -89,4 +92,6 @@ export interface SlideShowSessionState {
   readonly scoredRoundIds: readonly string[];
   /** Points handed out by the teacher during the show, per player. */
   readonly awards: Readonly<Record<string, number>>;
+  readonly timer: SlideTimerState | null;
+  readonly timerSkin: TimerSkin | null;
 }

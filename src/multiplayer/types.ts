@@ -2,6 +2,7 @@ import type { SessionStatus } from "./constants.ts";
 import type { LatestStudentQuestionResult, StudentQuestionActivity } from "../student-question-activity/types.ts";
 import type { TenantId } from "../tenant/scope.ts";
 import type { EquippedAvatar } from "../student-data/cosmetics/types.ts";
+import type { LobbyGathering } from "./lobbyGathering.ts";
 
 export interface Player {
   readonly id: string;
@@ -25,6 +26,7 @@ export interface GameSession {
   readonly roundId: string | null;
   readonly gameConfig: Readonly<Record<string, unknown>> | null;
   readonly waitingTypingConfig?: Readonly<Record<string, unknown>> | null;
+  readonly lobbyGathering?: LobbyGathering | null;
   readonly createdAtMs: number | null;
   readonly updatedAtMs: number | null;
   readonly startedAtMs: number | null;

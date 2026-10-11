@@ -21,6 +21,7 @@ import type { StudentIdentity } from "../../../auth/types.ts";
 import type { Player } from "../../../multiplayer/types.ts";
 import { canEnterSolo } from "../solo/model.ts";
 import { useReloadOnNewDeployment } from "../../../app/useReloadOnNewDeployment.ts";
+import { synchronizeLobbyActivity, type LobbyActivity, type LobbyActivityState } from "./lobbyActivity.ts";
 
 const TypingPracticeGame = lazy(() => import("../../../games/typing/TypingPracticeGame.tsx"));
 const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePracticeGame.tsx"));
@@ -47,12 +48,16 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   const duplicateRetryTimer = useRef<number | null>(null);
   const mounted = useRef(true);
   const [duplicateRetry, setDuplicateRetry] = useState(0);
-  const [typingOpen, setTypingOpen] = useState<"sentence" | "acid-rain" | null>(null);
-  const [platformerOpen, setPlatformerOpen] = useState(false);
-  const [deathmatchOpen, setDeathmatchOpen] = useState(false);
-  const [drawingOpen, setDrawingOpen] = useState(false);
-  const [soloOpen, setSoloOpen] = useState(false);
+  const [activityState, setActivityState] = useState<LobbyActivityState>({ activity: null, gatheringRunId: null, gatheringActive: false });
   const [shopOpen, setShopOpen] = useState(false);
+  const synchronizedActivity = synchronizeLobbyActivity(activityState, session.lobbyGathering);
+  if (synchronizedActivity !== activityState) {
+    setActivityState(synchronizedActivity);
+    setShopOpen(false);
+  }
+  const activityOpen = synchronizedActivity.activity;
+  const gathered = synchronizedActivity.gatheringActive;
+  const openActivity = (activity: LobbyActivity): void => setActivityState((current) => ({ ...current, activity }));
   const savedTypingConfig = parseWaitingTypingConfig(session.waitingTypingConfig);
   const typingConfig = savedTypingConfig ?? createWaitingTypingConfig(typingDemoSet.id);
   const activity = session.classroomActivity;
@@ -62,7 +67,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   const authoring = useStudentQuestionSubmission(roomId, targeted && activity ? activity.runId : null, uid);
   const authoringOpen = Boolean(activity && (targeted && activity.phase === "active" && authoring.loading
     || shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)));
-  useReloadOnNewDeployment(!authoringOpen && !soloOpen && !drawingOpen && !typingOpen && !platformerOpen && !deathmatchOpen && !shopOpen);
+  useReloadOnNewDeployment(!authoringOpen && !activityOpen && !shopOpen);
 
   useEffect(() => {
     if (!nickname || !nicknameGrade || resolvingDuplicateNickname.current) return;
@@ -96,40 +101,40 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
   }, []);
   if (targeted && activity?.phase === "active" && authoring.loading) return <StatusPanel title="질문 만들기 확인 중" tone="waiting">제출 상태를 불러오고 있습니다.</StatusPanel>;
   if (activity && shouldShowStudentQuestionAuthoring(activity, uid, authoring.submission)) return <StudentQuestionAuthoring roomId={roomId} playerId={uid} activity={activity} />;
-  if (soloOpen && soloAllowed) return <StudentSoloExperience identity={identity} player={player} onReturnToLobby={() => setSoloOpen(false)} />;
-  if (drawingOpen) {
+  if (activityOpen === "solo" && soloAllowed) return <StudentSoloExperience identity={identity} player={player} onReturnToLobby={() => openActivity(null)} />;
+  if (activityOpen === "drawing") {
     return <Suspense fallback={<StatusPanel title="그림판 준비 중">그림판을 불러오는 중…</StatusPanel>}>
       <DrawingBoard scope={{ roomId, boardId: "lobby" }} author={{ id: uid, label: nickname || displayName }}
         participants={activePlayers.map((participant) => ({ id: participant.id, label: participant.nickname || participant.displayName }))}
-        onExit={() => setDrawingOpen(false)} />
+        onExit={() => openActivity(null)} />
     </Suspense>;
   }
-  if (typingOpen && typingConfig) {
+  if ((activityOpen === "sentence" || activityOpen === "acid-rain") && typingConfig) {
     return <Suspense fallback={<StatusPanel title="타자 연습 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
-      {typingOpen === "sentence"
-        ? <SentencePracticeGame roomId={roomId} nickname={nickname || displayName} config={typingConfig} onExit={() => setTypingOpen(null)} />
-        : <TypingPracticeGame config={typingConfig} onExit={() => setTypingOpen(null)} />}
+      {activityOpen === "sentence"
+        ? <SentencePracticeGame roomId={roomId} nickname={nickname || displayName} config={typingConfig} onExit={() => openActivity(null)} />
+        : <TypingPracticeGame config={typingConfig} onExit={() => openActivity(null)} />}
     </Suspense>;
   }
-  if (platformerOpen) {
+  if (activityOpen === "platformer") {
     return <Suspense fallback={<StatusPanel title="점프 타워 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
       <LobbyPlatformer
         roomId={roomId}
         playerId={uid}
         label={nickname || displayName}
         players={activePlayers}
-        onExit={() => setPlatformerOpen(false)}
+        {...(gathered ? {} : { onExit: () => openActivity(null) })}
       />
     </Suspense>;
   }
-  if (deathmatchOpen) {
+  if (activityOpen === "deathmatch") {
     return <Suspense fallback={<StatusPanel title="데스매치 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
       <LobbyDeathmatch
         roomId={roomId}
         playerId={uid}
         label={nickname || displayName}
         players={activePlayers}
-        onExit={() => setDeathmatchOpen(false)}
+        onExit={() => openActivity(null)}
       />
     </Suspense>;
   }
@@ -149,7 +154,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
           onClose={() => setShopOpen(false)}
         />
       </Card>
-      <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => setSoloOpen(true)} onSentence={() => setTypingOpen("sentence")} onAcidRain={() => setTypingOpen("acid-rain")} onPlatformer={() => setPlatformerOpen(true)} onDeathmatch={() => setDeathmatchOpen(true)} onDrawing={() => setDrawingOpen(true)} />
+      <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => openActivity("solo")} onSentence={() => openActivity("sentence")} onAcidRain={() => openActivity("acid-rain")} onPlatformer={() => openActivity("platformer")} onDeathmatch={() => openActivity("deathmatch")} onDrawing={() => openActivity("drawing")} />
       <OpinionButton roomId={roomId} author={{ playerId: uid, studentNumber: selfStudentNumber, displayName }} />
       </div>
       <div className={styles.right}>

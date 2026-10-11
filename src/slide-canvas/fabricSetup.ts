@@ -1,3 +1,4 @@
+import "./SlideTextbox.ts";
 import { FabricObject } from "fabric";
 
 // Fabric 7 positions objects by their centre by default. Slides (and engine windows)

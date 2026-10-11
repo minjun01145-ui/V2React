@@ -1,58 +1,38 @@
-import { useEffect, useState } from "react";
-import { adjustTimerSeconds, countdownSeconds } from "./model.ts";
+import { useRef, useState } from "react";
+import { changeShowTimer } from "../../../../slide-show/multiplayerService.ts";
+import { slideTimerSnapshot, type TimerSnapshot } from "../../../../slide-show/timer.ts";
+import type { SlideShowSessionState } from "../../../../slide-show/types.ts";
+import type { TimerSkin } from "../../../../slide-show/timerSkins.ts";
+import { toErrorMessage } from "../../../../shared/errors/errorMessage.ts";
+import { useSlideTimerClock } from "../../../slide-show-runtime/timer/useSlideTimerClock.ts";
 
-export interface CountdownTimer {
-  readonly remainingSeconds: number;
-  /** The time the timer was set to, which progress is measured against. */
-  readonly durationSeconds: number;
-  readonly running: boolean;
-  readonly finished: boolean;
+export interface CountdownTimer extends TimerSnapshot {
+  readonly working: boolean;
   readonly adjust: (delta: number) => void;
   readonly start: () => void;
   readonly pause: () => void;
   readonly reset: () => void;
 }
 
-/** Keep the deadline while panels change; background throttling must not slow the timer. */
-export function useCountdownTimer(): CountdownTimer {
-  const [durationSeconds, setDurationSeconds] = useState(180);
-  const [remainingSeconds, setRemainingSeconds] = useState(180);
-  const [deadlineMs, setDeadlineMs] = useState<number | null>(null);
-  useEffect(() => {
-    if (deadlineMs === null) return;
-    const update = (): void => {
-      const seconds = countdownSeconds(deadlineMs, Date.now());
-      setRemainingSeconds(seconds);
-      if (seconds === 0) setDeadlineMs(null);
-    };
-    update();
-    const interval = window.setInterval(update, 250);
-    return () => window.clearInterval(interval);
-  }, [deadlineMs]);
-
-  return {
-    remainingSeconds,
-    durationSeconds,
-    running: deadlineMs !== null,
-    finished: remainingSeconds === 0 && durationSeconds > 0,
-    adjust: (delta) => {
-      if (deadlineMs !== null) return;
-      const seconds = adjustTimerSeconds(remainingSeconds, delta);
-      setDurationSeconds(seconds);
-      setRemainingSeconds(seconds);
-    },
-    start: () => {
-      if (deadlineMs !== null || remainingSeconds === 0) return;
-      setDeadlineMs(Date.now() + remainingSeconds * 1_000);
-    },
-    pause: () => {
-      if (deadlineMs === null) return;
-      setRemainingSeconds(countdownSeconds(deadlineMs, Date.now()));
-      setDeadlineMs(null);
-    },
-    reset: () => {
-      setDeadlineMs(null);
-      setRemainingSeconds(durationSeconds);
-    },
+/** Session state owns the timer so reloads and both roles keep the same deadline. */
+export function useCountdownTimer(roomId: string, show: SlideShowSessionState, skin: TimerSkin, onError: (message: string) => void): CountdownTimer {
+  const clock = useSlideTimerClock(show.timer?.startedAtMs == null ? null : show.timer.startedAtMs + show.timer.remainingSeconds * 1_000);
+  const timer = slideTimerSnapshot(show.timer, clock.nowMs);
+  const pending = useRef(false);
+  const [working, setWorking] = useState(false);
+  const change = async (command: "start" | "pause" | "reset" | number): Promise<void> => {
+    if (pending.current) return;
+    pending.current = true;
+    setWorking(true);
+    onError("");
+    try { await changeShowTimer(roomId, show.runId, command, Date.now() + clock.offsetMs, skin); }
+    catch (cause: unknown) { onError(toErrorMessage(cause, "타이머를 변경하지 못했습니다.")); }
+    finally { pending.current = false; setWorking(false); }
+  };
+  return { ...timer, working,
+    adjust: (delta) => void change(delta),
+    start: () => void change("start"),
+    pause: () => void change("pause"),
+    reset: () => void change("reset"),
   };
 }

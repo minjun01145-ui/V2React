@@ -1,15 +1,15 @@
 import Button from "../../../../shared/ui/Button.tsx";
 import SegmentedControl from "../../../../shared/ui/SegmentedControl.tsx";
-import { formatTimerSeconds, MAX_TIMER_SECONDS } from "./model.ts";
-import TimerFace from "./skins/TimerFace.tsx";
-import { TIMER_SKINS, type TimerSkin } from "./skins/skins.ts";
+import { formatTimerSeconds, MAX_TIMER_SECONDS } from "../../../../slide-show/timer.ts";
+import TimerFace from "../../../slide-show-runtime/timer/skins/TimerFace.tsx";
+import { TIMER_SKINS, type TimerSkin } from "../../../../slide-show/timerSkins.ts";
 import type { CountdownTimer } from "./useCountdownTimer.ts";
 import styles from "./TimerPanel.module.css";
 
 function DigitEditor({ timer }: { readonly timer: CountdownTimer }) {
   const minutes = Math.floor(timer.remainingSeconds / 60);
   const seconds = timer.remainingSeconds % 60;
-  const adjustDisabled = timer.running;
+  const adjustDisabled = timer.running || timer.working;
   return <div className={styles.time} aria-label="남은 시간" role="timer" aria-live="off">
     <div className={styles.unit}>
       <Button variant="ghost" aria-label="분 늘리기" disabled={adjustDisabled || timer.remainingSeconds > MAX_TIMER_SECONDS - 60} onClick={() => timer.adjust(60)}>▲</Button>
@@ -38,17 +38,17 @@ export default function TimerPanel({ timer, skin, onSkinChange }: {
     <SegmentedControl options={TIMER_SKINS} value={skin} onChange={onSkinChange} ariaLabel="타이머 모양" size="sm" />
     {skin === "normal" ? <DigitEditor timer={timer} /> : <TimerFace skin={skin} timer={timer} />}
     {skin !== "normal" && idle ? <div className={styles.actions}>
-      <Button variant="ghost" disabled={timer.remainingSeconds < 60} onClick={() => timer.adjust(-60)}>−1분</Button>
+      <Button variant="ghost" disabled={timer.working || timer.remainingSeconds < 60} onClick={() => timer.adjust(-60)}>−1분</Button>
       <strong className={styles.setTime}>{formatTimerSeconds(timer.remainingSeconds)}</strong>
-      <Button variant="ghost" disabled={timer.remainingSeconds > MAX_TIMER_SECONDS - 60} onClick={() => timer.adjust(60)}>+1분</Button>
+      <Button variant="ghost" disabled={timer.working || timer.remainingSeconds > MAX_TIMER_SECONDS - 60} onClick={() => timer.adjust(60)}>+1분</Button>
     </div> : null}
     {editable ? <div className={styles.actions}>
-      <Button variant="ghost" disabled={timer.running || timer.remainingSeconds === 0} onClick={() => timer.adjust(-30)}>−30초</Button>
-      <Button variant="ghost" disabled={timer.running || timer.remainingSeconds > MAX_TIMER_SECONDS - 30} onClick={() => timer.adjust(30)}>+30초</Button>
+      <Button variant="ghost" disabled={timer.working || timer.running || timer.remainingSeconds === 0} onClick={() => timer.adjust(-30)}>−30초</Button>
+      <Button variant="ghost" disabled={timer.working || timer.running || timer.remainingSeconds > MAX_TIMER_SECONDS - 30} onClick={() => timer.adjust(30)}>+30초</Button>
     </div> : null}
     <div className={styles.actions}>
-      {timer.running ? <Button onClick={timer.pause}>일시정지</Button> : <Button onClick={timer.start} disabled={timer.remainingSeconds === 0}>{timer.remainingSeconds === 0 ? "시간 설정" : "시작"}</Button>}
-      <Button variant="ghost" onClick={timer.reset}>초기화</Button>
+      {timer.running ? <Button onClick={timer.pause} disabled={timer.working}>일시정지</Button> : <Button onClick={timer.start} disabled={timer.working || timer.remainingSeconds === 0}>{timer.remainingSeconds === 0 ? "시간 설정" : "시작"}</Button>}
+      <Button variant="ghost" onClick={timer.reset} disabled={timer.working}>초기화</Button>
     </div>
     {timer.finished ? <strong className={styles.finished} role="status">시간 종료</strong> : null}
   </section>;

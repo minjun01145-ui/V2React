@@ -1,4 +1,5 @@
-import { Circle, FabricImage, Line, Rect, Textbox, Triangle, type Canvas, type FabricObject } from "fabric";
+import { Circle, FabricImage, Line, Rect, Triangle, type Canvas, type FabricObject } from "fabric";
+import { SlideTextbox as Textbox } from "./SlideTextbox.ts";
 import type { AssistantObject, AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "../slide-show/types.ts";
 import { loadSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";

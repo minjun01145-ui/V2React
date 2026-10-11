@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { SlideArrangeAction, SlideObjectStyle, SlideObjectStylePatch } from "../../../slide-canvas/SlideEditorController.ts";
 import Button from "../../../shared/ui/Button.tsx";
 import SegmentedControl from "../../../shared/ui/SegmentedControl.tsx";
@@ -22,10 +23,19 @@ function ColorField({ label, value, onChange }: { readonly label: string; readon
 }
 
 function NumberField({ label, value, min, max, onChange }: { readonly label: string; readonly value: number; readonly min: number; readonly max: number; readonly onChange: (value: number) => void }) {
-  return <label className={styles.field}><span>{label}</span><input className={styles.number} type="number" min={min} max={max} value={Math.round(value)} onChange={(event) => {
-    const next = Number(event.target.value);
-    if (Number.isFinite(next)) onChange(Math.min(max, Math.max(min, next)));
-  }} /></label>;
+  const [draft, setDraft] = useState(String(Math.round(value)));
+  useEffect(() => { setDraft(String(Math.round(value))); }, [value]);
+  const commit = (): void => {
+    const parsed = draft.trim() ? Number(draft) : NaN;
+    const next = Number.isFinite(parsed) ? Math.min(max, Math.max(min, Math.round(parsed))) : value;
+    setDraft(String(Math.round(next)));
+    if (next !== value) onChange(next);
+  };
+  return <label className={styles.field}><span>{label}</span><input className={styles.number} type="number" min={min} max={max} value={draft}
+    onChange={(event) => setDraft(event.target.value)} onBlur={commit}
+    onKeyDown={(event) => {
+      if (event.key === "Enter") { event.preventDefault(); commit(); }
+    }} /></label>;
 }
 
 export default function ObjectStylePanel({ style, onChange, onArrange, onDuplicate, onDelete }: Props) {

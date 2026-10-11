@@ -2,6 +2,7 @@ import { collection, doc, onSnapshot, runTransaction, serverTimestamp, setDoc, t
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../firebase/firebaseClient.ts";
 import { MULTIPLAYER_COLLECTION, SESSION_STATUS } from "../multiplayer/constants.ts";
+import { parseLobbyGathering } from "../multiplayer/lobbyGathering.ts";
 import { parseStudentQuestionSubmission } from "./codec.ts";
 import { STUDENT_QUESTION_ACTIVITY_KIND, type StudentQuestionConfig, type StudentQuestionDraft, type StudentQuestionSubmission } from "./types.ts";
 import { parseStudentQuestionConfig, validateStudentQuestions } from "./validation.ts";
@@ -22,6 +23,7 @@ export async function startStudentQuestionActivity(roomId: string, configValue: 
     if (typeof data !== "object" || data === null || Array.isArray(data)) throw new Error("수업 세션을 찾을 수 없습니다.");
     const current = data as Record<string, unknown>;
     if (current.status !== SESSION_STATUS.WAITING || current.classroomActivity) throw new Error("다른 게임이나 질문 만들기가 진행 중입니다.");
+    if (parseLobbyGathering(current.lobbyGathering)?.active) throw new Error("점프타워 집합을 해산한 뒤 시작해 주세요.");
     const activity = { kind: STUDENT_QUESTION_ACTIVITY_KIND, runId, phase: "active", config, expectedPlayerIds, resultSetId: null } as const;
     tx.set(runRef(roomId, runId), { ...activity, startedAt: serverTimestamp(), startedAtMs: now });
     tx.set(sessionRef(roomId), { classroomActivity: activity, updatedAt: serverTimestamp(), updatedAtMs: now }, { merge: true });

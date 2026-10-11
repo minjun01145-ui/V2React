@@ -1,5 +1,5 @@
 .face { display: grid; justify-items: center; gap: 4px; }
-.apple { width: min(100%, 200px); height: auto; overflow: visible; filter: drop-shadow(0 6px 8px rgba(16, 26, 58, 0.22)); }
+.apple { width: min(100%, var(--timer-face-size, 200px)); height: auto; overflow: visible; filter: drop-shadow(0 6px 8px rgba(16, 26, 58, 0.22)); }
 .skin { fill: #e5383b; }
 .flesh { fill: #fff3c4; }
 .shine { fill: rgba(255, 255, 255, 0.35); }
@@ -8,6 +8,6 @@
 .core path { fill: #fff3c4; stroke: #e5383b; stroke-width: 3; }
 .seed { fill: #4e2c14; }
 .body { transform-origin: 100px 130px; animation: apple-chomp 0.35s ease-out; }
-.digits { color: var(--color-brand-deep); font-size: 2rem; font-weight: 300; font-variant-numeric: tabular-nums; }
+.digits { color: var(--color-brand-deep); font-size: var(--timer-digit-size, 2rem); font-weight: 300; font-variant-numeric: tabular-nums; }
 @keyframes apple-chomp { 30% { transform: scale(0.94) rotate(-3deg); } 60% { transform: scale(1.03) rotate(2deg); } }
 @media (prefers-reduced-motion: reduce) { .body { animation: none; } }

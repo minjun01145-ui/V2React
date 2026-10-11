@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { GameSession, Player } from "../../../multiplayer/types.ts";
-import { awardShowPoints, closeShowEngine, goToShowSlide, setShowEnginePhase, startShowSlideEngine } from "../../../slide-show/multiplayerService.ts";
+import { awardShowPoints, closeShowEngine, goToShowSlide, setShowEnginePhase, setShowTimerSkin, startShowSlideEngine } from "../../../slide-show/multiplayerService.ts";
 import type { SlideShowSessionState } from "../../../slide-show/types.ts";
 import StatusPanel from "../../../shared/StatusPanel.tsx";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -16,8 +16,8 @@ import ShowLeaderboard from "./ShowLeaderboard.tsx";
 import StudentPickerPanel from "./StudentPickerPanel.tsx";
 import TeacherEngineWindow from "./TeacherEngineWindow.tsx";
 import TimerPanel from "./timer/TimerPanel.tsx";
-import { formatTimerSeconds } from "./timer/model.ts";
-import { showsRemainingTime } from "./timer/skins/skins.ts";
+import { formatTimerSeconds } from "../../../slide-show/timer.ts";
+import { showsRemainingTime, type TimerSkin } from "../../../slide-show/timerSkins.ts";
 import { useTimerSkin } from "./timer/skins/useTimerSkin.ts";
 import { useCountdownTimer } from "./timer/useCountdownTimer.ts";
 import styles from "./TeacherSlideShowRuntime.module.css";
@@ -38,8 +38,15 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
   const [error, setError] = useState("");
   const fullscreenRef = useRef<HTMLElement | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
-  const timer = useCountdownTimer();
-  const [timerSkin, setTimerSkin] = useTimerSkin();
+  const [preferredTimerSkin, rememberTimerSkin] = useTimerSkin();
+  const timerSkin = slideShow.timerSkin ?? preferredTimerSkin;
+  const timer = useCountdownTimer(roomId, slideShow, timerSkin, setError);
+  const setTimerSkin = (skin: TimerSkin): void => {
+    rememberTimerSkin(skin);
+    void setShowTimerSkin(roomId, slideShow.runId, skin).catch((cause: unknown) => {
+      setError(toErrorMessage(cause, "타이머 모양을 변경하지 못했습니다."));
+    });
+  };
   const index = slideShow.currentSlideIndex;
   const slide = slides.get(slideShow.slideIds[index] ?? "");
   const engine = slideShow.engine;
@@ -111,6 +118,8 @@ export default function TeacherSlideShowRuntime({ roomId, session, slideShow, pl
               slideShow={slideShow}
               round={currentEngine?.round ?? slide.engine.round}
               engine={currentEngine}
+              timerSkin={timerSkin}
+              onTimerSkinChange={setTimerSkin}
               starting={working}
               onStart={() => void run(() => startShowSlideEngine(roomId), "문제를 시작하지 못했습니다.")}
             /> : null}

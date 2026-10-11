@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { settingAppliesToSet } from "../../../game-engine/contracts/gameDefinition.ts";
 import { getGame } from "../../../games/registry.ts";
 import { readMatchingCardMode } from "../../../games/matching/config.ts";
@@ -22,6 +23,14 @@ export default function SlideEnginePanel({ round: storedRound, sets, disabled, i
   const round = storedRound.gameId === "matching" || storedRound.gameId === "matching-all"
     ? { ...storedRound, gameId: "matching", gameConfig: { ...storedRound.gameConfig, "matching-cards": readMatchingCardMode(storedRound.gameConfig, storedRound.gameId) } }
     : storedRound;
+  const [durationDraft, setDurationDraft] = useState(String(round.durationSeconds));
+  useEffect(() => { setDurationDraft(String(round.durationSeconds)); }, [round.durationSeconds]);
+  const commitDuration = (): void => {
+    const parsed = durationDraft.trim() ? Number(durationDraft) : NaN;
+    const durationSeconds = Number.isFinite(parsed) ? Math.min(600, Math.max(10, Math.round(parsed))) : round.durationSeconds;
+    setDurationDraft(String(durationSeconds));
+    if (durationSeconds !== round.durationSeconds) onChange({ ...round, durationSeconds });
+  };
   const game = getGame(round.gameId);
   const candidates = compatibleSets(round, sets);
   const source = round.source;
@@ -36,7 +45,9 @@ export default function SlideEnginePanel({ round: storedRound, sets, disabled, i
     <header className={styles.header}><h3>문제 엔진</h3><Button variant="danger" size="sm" onClick={onRemove} disabled={disabled}>삭제</Button></header>
     <div className={styles.fields}>
       <Field label="엔진"><Select value={round.gameId} onChange={(event) => onChange(engineRoundForGame(event.target.value, sets))} disabled={disabled}>{SLIDE_ENGINE_GAMES.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</Select></Field>
-      <Field label="시간(초)"><input className={styles.input} type="number" min={10} max={600} step={5} value={round.durationSeconds} onChange={(event) => onChange({ ...round, durationSeconds: Number(event.target.value) })} disabled={disabled} /></Field>
+      <Field label="시간(초)"><input className={styles.input} type="number" min={10} max={600} step={5} value={durationDraft}
+        onChange={(event) => setDurationDraft(event.target.value)} onBlur={commitDuration}
+        onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); commitDuration(); } }} disabled={disabled} /></Field>
       {source.kind !== "free-response" ? <Field label="문제 공급"><Select value={source.kind} onChange={(event) => setSource(event.target.value === "custom"
         ? { kind: "custom", setType: game.supportedSetTypes[0] === "reading-chunks" ? "reading-chunks" : "vocabulary", items: [newCustomItem()] }
         : { kind: "stored-set", setId: candidates[0]?.id ?? null })} disabled={disabled || !game.supportsFiniteQuizQuestions}>

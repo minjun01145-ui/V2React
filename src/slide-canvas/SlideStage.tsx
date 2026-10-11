@@ -2,7 +2,7 @@ import "./fabricSetup.ts";
 import { StaticCanvas } from "fabric";
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "../slide-show/types.ts";
-import { collectSlideTexts, loadSlideFonts } from "./fonts.ts";
+import { collectSlideTexts, loadSlideFonts, watchSlideFonts } from "./fonts.ts";
 import styles from "./SlideStage.module.css";
 
 interface Props {
@@ -44,8 +44,10 @@ export default function SlideStage({ canvas, className, overlay }: Props) {
     const element = document.createElement("canvas");
     host.appendChild(element);
     const staticCanvas = new StaticCanvas(element, { renderOnAddRemove: false });
+    const stopWatchingFonts = watchSlideFonts(staticCanvas);
     staticCanvasRef.current = staticCanvas;
     return () => {
+      stopWatchingFonts();
       staticCanvasRef.current = null;
       void staticCanvas.dispose().finally(() => element.remove());
     };

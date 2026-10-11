@@ -1,5 +1,5 @@
 .face { display: grid; place-items: center; padding: 8px 0; }
-.glass { width: min(100%, 170px); height: auto; overflow: visible; filter: drop-shadow(0 6px 10px rgba(16, 26, 58, 0.25)); }
+.glass { width: min(100%, var(--timer-hourglass-size, var(--timer-face-size, 170px))); height: auto; overflow: visible; filter: drop-shadow(0 6px 10px rgba(16, 26, 58, 0.25)); }
 .sand { fill: #f2b84b; transform-box: fill-box; transform-origin: bottom; transition: transform 1s linear; }
 .stream { stroke: #f2b84b; stroke-width: 2.4; stroke-dasharray: 3 4; animation: sand-fall 0.5s linear infinite; }
 .outline { fill: rgba(200, 230, 255, 0.18); stroke: #8fb6d8; stroke-width: 3; stroke-linejoin: round; }
