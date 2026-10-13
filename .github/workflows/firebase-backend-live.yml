@@ -89,6 +89,7 @@ jobs:
           --only "functions:jurye-v2:gradeSlideQuestionResponse"
           --project v2react-jurye-classroom
           --non-interactive
+          --force
 
       - name: Deploy Functions
         run: >-
