@@ -112,16 +112,19 @@ try {
     text._updateTextarea();
     editor.canvas.renderAll();
     const before = text._getCursorBoundaries().leftOffset;
-    const face = new FontFace('SlideRegressionLateFont', 'local("Arial"), local("Liberation Sans"), local("DejaVu Sans")');
+    // Ensure the late font changes metrics even when the runner's fallback font
+    // happens to have the same glyph widths as the selected local face.
+    const face = new FontFace('SlideRegressionLateFont', 'local("Arial"), local("Liberation Sans"), local("DejaVu Sans")', {sizeAdjust:'200%'});
     document.fonts.add(face);
-    await document.fonts.load('80px SlideRegressionLateFont', 'apple');
+    const loaded = await document.fonts.load('80px SlideRegressionLateFont', 'apple');
     await document.fonts.ready;
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     const ctx = document.createElement('canvas').getContext('2d');
     ctx.font = '80px SlideRegressionLateFont, monospace';
-    return {before, actual:ctx.measureText('app').width, caret:text._getCursorBoundaries().leftOffset, native:text.hiddenTextarea.selectionStart};
+    return {loaded:loaded.length, before, actual:ctx.measureText('app').width, caret:text._getCursorBoundaries().leftOffset, native:text.hiddenTextarea.selectionStart};
   })()`);
-  assert.ok(Math.abs(lateFont.before - lateFont.actual) > 2, 'the fixture really changes the glyph metrics after editing starts');
+  assert.equal(lateFont.loaded, 1, 'the fixture loads its late font');
+  assert.ok(Math.abs(lateFont.before - lateFont.actual) > 2, `the fixture really changes the glyph metrics after editing starts: ${JSON.stringify(lateFont)}`);
   assert.ok(Math.abs(lateFont.caret - lateFont.actual) < 0.1, 'caret matches the loaded font');
   assert.equal(lateFont.native, 3, 'font refresh preserves native selection');
   await evaluate('text.hiddenTextarea.focus()');
