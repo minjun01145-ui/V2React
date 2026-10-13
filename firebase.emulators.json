@@ -1,0 +1,22 @@
+{
+  "firestore": {
+    "rules": "security/firestore.rules.secure"
+  },
+  "database": {
+    "rules": "security/realtime-database.rules.json"
+  },
+  "emulators": {
+    "firestore": {
+      "host": "127.0.0.1",
+      "port": 8080
+    },
+    "database": {
+      "host": "127.0.0.1",
+      "port": 9000
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": false
+  }
+}

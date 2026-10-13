@@ -1,5 +1,5 @@
 import { publicQuestionSource } from "../slide-question/model.ts";
-import { collection, deleteField, doc, getDocs, runTransaction, serverTimestamp, setDoc, type Transaction, type Unsubscribe } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, doc, getDoc, getDocFromServer, getDocs, runTransaction, serverTimestamp, setDoc, type DocumentReference, type Transaction, type Unsubscribe } from "firebase/firestore";
 import { appConfig } from "../config/appConfig.ts";
 import { db } from "../firebase/firebaseClient.ts";
 import { canStartSession, MULTIPLAYER_COLLECTION, SESSION_STATUS, type SessionStatus } from "../multiplayer/constants.ts";
@@ -38,6 +38,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function parseStatus(value: unknown): SessionStatus {
   if (value === SESSION_STATUS.PREPARING || value === SESSION_STATUS.PLAYING || value === SESSION_STATUS.FINISHED) return value;
   return SESSION_STATUS.WAITING;
+}
+
+function assertSessionCanStart(data: unknown): void {
+  if (!isRecord(data) || !canStartSession(parseStatus(data.status))) throw new Error("진행 중인 수업을 종료한 뒤 시작해 주세요.");
+  if (data.classroomActivity) throw new Error("질문 만들기를 종료한 뒤 시작해 주세요.");
+  if (parseLobbyGathering(data.lobbyGathering)?.active) throw new Error("점프타워 집합을 해산한 뒤 시작해 주세요.");
 }
 
 export interface SlideShowSessionSnapshot {
@@ -92,8 +98,7 @@ export async function startRegularGameSession(roomId: string, options: RegularGa
     const ref = sessionRef(roomId);
     const currentSession = await tx.get(ref);
     const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
-    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
-    if (parseLobbyGathering(currentData.lobbyGathering)?.active) throw new Error("점프타워 집합을 해산한 뒤 시작해 주세요.");
+    assertSessionCanStart(currentData);
     tx.update(ref, nextSession);
     addParticipants(tx, roomId, roundId, activePlayers, now);
   });
@@ -119,38 +124,62 @@ export async function resetSlideAwareSession(roomId: string): Promise<void> {
 export async function startSlideShow(roomId: string, show: SlideShow): Promise<void> {
   const slides = validateSlides(show.slides);
   await ensureSession(roomId);
+  const ref = sessionRef(roomId);
+  const session = await getDoc(ref);
+  assertSessionCanStart(session.exists() ? session.data() : null);
   const runId = crypto.randomUUID();
   const slidesCollection = runSlidesCollection(roomId, runId);
-  await Promise.all(slides.map(async (slide) => {
+  const activationRef = doc(slidesCollection, slides[0]!.id);
+  const writes = slides.flatMap<{ ref: DocumentReference; data: Record<string, unknown> }>((slide) => {
     const source = slide.engine?.round.source;
-    if (source?.kind === "slide-question") {
-      await setDoc(doc(db, MULTIPLAYER_COLLECTION, roomId, "showRuns", runId, "questionKeys", slide.id), { grading: source.grading });
-      await setDoc(doc(slidesCollection, slide.id), { canvas: slide.canvas, engine: { ...slide.engine, round: { ...slide.engine!.round, source: publicQuestionSource(source) } } });
-    } else await setDoc(doc(slidesCollection, slide.id), { canvas: slide.canvas, engine: slide.engine });
-  }));
-  const activePlayers = await loadActivePlayers(roomId);
-  const now = Date.now();
-  await runTransaction(db, async (tx) => {
-    const ref = sessionRef(roomId);
-    const currentSession = await tx.get(ref);
-    const currentData: unknown = currentSession.exists() ? currentSession.data() : null;
-    if (!isRecord(currentData) || !canStartSession(parseStatus(currentData.status)) || currentData.classroomActivity) return;
-    if (parseLobbyGathering(currentData.lobbyGathering)?.active) throw new Error("점프타워 집합을 해산한 뒤 시작해 주세요.");
-    tx.update(ref, {
-      gameId: SLIDE_SHOW_GAME_ID,
-      gameConfig: deleteField(),
-      [SLIDE_SHOW_SESSION_FIELD]: createSlideShowSessionState({ ...show, slides }, runId),
-      status: SESSION_STATUS.PLAYING,
-      roundId: runId,
-      expectedPlayerIds: activePlayers.map((player) => player.id),
-      startedAt: serverTimestamp(),
-      startedAtMs: now,
-      startDelayMs: deleteField(),
-      updatedAt: serverTimestamp(),
-      updatedAtMs: now,
-    });
-    addParticipants(tx, roomId, runId, activePlayers, now);
+    if (source?.kind === "slide-question") return [
+      { ref: doc(db, MULTIPLAYER_COLLECTION, roomId, "showRuns", runId, "questionKeys", slide.id), data: { grading: source.grading } },
+      { ref: doc(slidesCollection, slide.id), data: { canvas: slide.canvas, engine: { ...slide.engine, round: { ...slide.engine!.round, source: publicQuestionSource(source) } } } },
+    ];
+    return [{ ref: doc(slidesCollection, slide.id), data: { canvas: slide.canvas, engine: slide.engine } }];
   });
+  try {
+    // Finish every upload before activation or cleanup: one failed upload must not leave
+    // other in-flight uploads recreating documents after they have been deleted.
+    const uploaded = await Promise.allSettled(writes.map((write) => setDoc(write.ref, write.data)));
+    const failed = uploaded.find((result) => result.status === "rejected");
+    if (failed?.status === "rejected") throw failed.reason;
+    const activePlayers = await loadActivePlayers(roomId);
+    const now = Date.now();
+    await runTransaction(db, async (tx) => {
+      const currentSession = await tx.get(ref);
+      assertSessionCanStart(currentSession.exists() ? currentSession.data() : null);
+      tx.update(ref, {
+        gameId: SLIDE_SHOW_GAME_ID,
+        gameConfig: deleteField(),
+        [SLIDE_SHOW_SESSION_FIELD]: createSlideShowSessionState({ ...show, slides }, runId),
+        status: SESSION_STATUS.PLAYING,
+        roundId: runId,
+        expectedPlayerIds: activePlayers.map((player) => player.id),
+        startedAt: serverTimestamp(),
+        startedAtMs: now,
+        startDelayMs: deleteField(),
+        updatedAt: serverTimestamp(),
+        updatedAtMs: now,
+      });
+      addParticipants(tx, roomId, runId, activePlayers, now);
+      // This receipt commits with the session. It disambiguates a lost commit response.
+      tx.update(activationRef, { activated: true });
+    });
+  } catch (error) {
+    try {
+      const receipt = await getDocFromServer(activationRef);
+      if (receipt.exists() && receipt.data().activated === true) return;
+    } catch {
+      // Do not delete a possibly active show's slides when the server cannot confirm it.
+      console.warn("슬라이드 실행 여부를 확인하지 못해 준비 데이터를 보존했습니다.", runId);
+      throw error;
+    }
+    // Each attempt owns a fresh runId, so cleanup never touches a different class/run.
+    const cleaned = await Promise.allSettled(writes.map((write) => deleteDoc(write.ref)));
+    if (cleaned.some((result) => result.status === "rejected")) console.warn("시작하지 못한 슬라이드 실행 데이터를 정리하지 못했습니다.", runId);
+    throw error;
+  }
 }
 
 export async function loadShowRunSlides(roomId: string, runId: string): Promise<ReadonlyMap<string, Slide>> {

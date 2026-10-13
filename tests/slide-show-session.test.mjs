@@ -12,6 +12,9 @@ const engine = {
   round: { gameId: "simple-quiz", source: { kind: "stored-set", setId: "set-1" }, durationSeconds: 30, gameConfig: {} },
 };
 const fixture = {
+  uploadFailure: false,
+  loseActivationAck: false,
+  beforeTransaction: null,
   players: [player("online", now - 1_000), player("offline", now - 31_000)],
   participants: new Map(),
   documents: new Map([
@@ -26,30 +29,54 @@ const session = () => fixture.documents.get("multiplayerSessions/room-1");
 // Replace only persistence and environment boundaries; run the actual transition.
 const unexpected = () => { throw new Error("Unexpected persistence operation"); };
 const path = (base, ...parts) => [...(typeof base === "string" ? [base] : []), ...parts].join("/");
+const snapshot = ref => { const data = fixture.documents.get(ref); return { id: ref.split("/").at(-1), exists: () => data !== undefined, data: () => data }; };
+let transactionQueue = Promise.resolve();
 mock.module("firebase/firestore", {
   namedExports: {
     doc: path,
     collection: path,
     deleteField: () => undefined,
     serverTimestamp: () => ({ toMillis: () => now }),
-    setDoc: async (ref, data) => fixture.documents.set(ref, data),
+    getDoc: async ref => snapshot(ref),
+    getDocFromServer: async ref => snapshot(ref),
+    deleteDoc: async ref => fixture.documents.delete(ref),
+    setDoc: async (ref, data) => {
+      if (fixture.uploadFailure) {
+        if (ref.includes("/questionKeys/")) throw new Error("simulated upload failure");
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
+      fixture.documents.set(ref, data);
+    },
     getDocs: unexpected,
-    runTransaction: async (_db, work) => work({
-      get: async (ref) => {
-        const data = fixture.documents.get(ref);
-        return { id: ref.split("/").at(-1), exists: () => data !== undefined, data: () => data };
-      },
-      update: (ref, patch) => {
-        const data = fixture.documents.get(ref);
-        for (const [key, value] of Object.entries(patch)) {
-          const segments = key.split(".");
-          let target = data;
-          for (const segment of segments.slice(0, -1)) target = target[segment];
-          target[segments.at(-1)] = value;
+    runTransaction: (_db, work) => {
+      const result = transactionQueue.then(async () => {
+        const before = fixture.beforeTransaction;
+        fixture.beforeTransaction = null;
+        before?.();
+        const writes = [];
+        const value = await work({
+          get: async ref => snapshot(ref),
+          update: (ref, patch) => writes.push(() => {
+            const data = fixture.documents.get(ref);
+            for (const [key, value] of Object.entries(patch)) {
+              const segments = key.split(".");
+              let target = data;
+              for (const segment of segments.slice(0, -1)) target = target[segment];
+              target[segments.at(-1)] = value;
+            }
+          }),
+          set: (ref, data) => writes.push(() => fixture.participants.set(ref, data)),
+        });
+        writes.forEach(apply => apply());
+        if (fixture.loseActivationAck) {
+          fixture.loseActivationAck = false;
+          throw new Error("simulated lost commit response");
         }
-      },
-      set: (ref, data) => fixture.participants.set(ref, data),
-    }),
+        return value;
+      });
+      transactionQueue = result.catch(() => {});
+      return result;
+    },
   },
 });
 mock.module(new URL("../src/config/appConfig.ts", import.meta.url), {
@@ -138,7 +165,54 @@ try {
   session().status = "waiting";
   await startRegularGameSession("room-1", { gameId: "simple-quiz" });
   assert.equal(session().status, "preparing", "regular games can start after dismissal");
+
+  const documentsBeforeRejectedStart = new Set(fixture.documents.keys());
+  await assert.rejects(startSlideShow("room-1", show), /진행 중인 수업/);
+  await assert.rejects(startRegularGameSession("room-1", { gameId: "simple-quiz" }), /진행 중인 수업/);
+  assert.deepEqual(new Set(fixture.documents.keys()), documentsBeforeRejectedStart, "preflight rejection writes no run data");
+  session().status = "waiting";
+  session().classroomActivity = { kind: "student-question-authoring" };
+  await assert.rejects(startSlideShow("room-1", show), /질문 만들기/);
+  assert.deepEqual(new Set(fixture.documents.keys()), documentsBeforeRejectedStart);
+  delete session().classroomActivity;
+  const questionShow = { ...show, slides: [{ id: "question", canvas, engine: {
+    ...engine, round: { gameId: "slide-question", source: { kind: "slide-question", question: { type: "ox", prompt: "문제", doublePoints: false }, grading: { answer: "O" } }, durationSeconds: 20, gameConfig: {} },
+  } }] };
+  const participantsBeforeFailures = new Map(fixture.participants);
+  fixture.uploadFailure = true;
+  await assert.rejects(startSlideShow("room-1", questionShow), /upload failure/);
+  fixture.uploadFailure = false;
+  assert.equal(session().status, "waiting", "an incomplete upload never activates a show");
+  assert.deepEqual(new Set(fixture.documents.keys()), documentsBeforeRejectedStart, "cleanup waits for delayed uploads and removes both slides and keys");
+  assert.deepEqual(fixture.participants, participantsBeforeFailures);
+
+  fixture.beforeTransaction = () => { session().status = "playing"; session().roundId = "another-teacher-round"; };
+  await assert.rejects(startSlideShow("room-1", questionShow), /진행 중인 수업/);
+  assert.equal(session().roundId, "another-teacher-round", "a stale launch cannot overwrite another teacher's active class");
+  assert.deepEqual(new Set(fixture.documents.keys()), documentsBeforeRejectedStart, "a rejected activation cleans only its own prepared run");
+  assert.deepEqual(fixture.participants, participantsBeforeFailures);
+
+  session().status = "waiting";
+  const concurrent = await Promise.allSettled([startSlideShow("room-1", questionShow), startSlideShow("room-1", questionShow)]);
+  assert.equal(concurrent.filter(result => result.status === "fulfilled").length, 1, "only one concurrent start can activate");
+  assert.equal(concurrent.filter(result => result.status === "rejected").length, 1);
+  const activeRun = session().slideShow.runId;
+  const newlyWritten = [...fixture.documents.keys()].filter(path => !documentsBeforeRejectedStart.has(path));
+  assert.equal(newlyWritten.length, 2, "only the winning run's slide and answer key remain");
+  assert.ok(newlyWritten.every(path => path.includes('/showRuns/' + activeRun + '/')));
+  const publicSlide = fixture.documents.get('multiplayerSessions/room-1/showRuns/' + activeRun + '/slides/question');
+  assert.equal("grading" in publicSlide.engine.round.source, false);
+  assert.equal(JSON.stringify(session().slideShow).includes('"grading"'), false);
+  assert.deepEqual(fixture.documents.get('multiplayerSessions/room-1/showRuns/' + activeRun + '/questionKeys/question'), { grading: { answer: "O" } });
+
+  session().status = "waiting";
+  fixture.loseActivationAck = true;
+  await startSlideShow("room-1", questionShow);
+  const committedRun = session().slideShow.runId;
+  assert.equal(session().status, "playing");
+  assert.ok(fixture.documents.has('multiplayerSessions/room-1/showRuns/' + committedRun + '/slides/question'), "a lost commit response must never delete an active show's slides");
+  assert.ok(fixture.documents.has('multiplayerSessions/room-1/showRuns/' + committedRun + '/questionKeys/question'));
 } finally {
   mock.restoreAll();
 }
-console.log("slide show session transition tests passed");
+console.log("slide show session transitions, atomic activation, failed-upload cleanup and concurrent start tests passed");

@@ -32,13 +32,20 @@ export function validateQuestionSource(source: QuestionSource, requireGrading = 
 export function normalizeShortAnswer(value: string): string { return value.trim().replace(/\s+/gu, " ").toLowerCase(); }
 export function normalizeAiAnswer(value: string): string { return value.normalize("NFC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "").normalize("NFC"); }
 export type JudgementMethod = "deterministic" | "ai" | "fallback";
-export async function gradeQuestion(question: PublicQuestion, grading: GradingKey, answer: string, ai: (reference: string, answer: string) => Promise<boolean>): Promise<{ correct: boolean; method: JudgementMethod }> {
+export interface QuestionJudgement { readonly correct: boolean; readonly method: JudgementMethod }
+export function gradeDeterministically(question: PublicQuestion, grading: GradingKey, answer: string): QuestionJudgement | null {
   if (question.type === "multiple-choice") return { correct: "correctOptions" in grading && grading.correctOptions.includes(Number(answer)), method: "deterministic" };
   if (!("answer" in grading)) throw new Error("정답 형식이 올바르지 않습니다.");
   const correct = question.type === "ai-short-answer" ? normalizeAiAnswer(grading.answer) === normalizeAiAnswer(answer) : normalizeShortAnswer(grading.answer) === normalizeShortAnswer(answer);
   if (question.type !== "ai-short-answer" || correct) return { correct, method: "deterministic" };
+  return null;
+}
+export async function gradeQuestion(question: PublicQuestion, grading: GradingKey, answer: string, ai: (reference: string, answer: string) => Promise<boolean>): Promise<QuestionJudgement> {
+  const result = gradeDeterministically(question, grading, answer);
+  if (result) return result;
+  if (!("answer" in grading)) throw new Error("정답 형식이 올바르지 않습니다.");
   try { return { correct: await ai(grading.answer, answer), method: "ai" }; }
-  catch { return { correct, method: "fallback" }; }
+  catch { return { correct: false, method: "fallback" }; }
 }
 export function questionScore(correct: boolean, elapsedMs: number, durationMs: number, doublePoints: boolean): number {
   return correct ? Math.round(1000 * (1 - Math.min(durationMs, Math.max(0, elapsedMs)) / durationMs / 2)) * (doublePoints ? 2 : 1) : 0;

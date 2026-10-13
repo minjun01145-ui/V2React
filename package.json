@@ -52,7 +52,8 @@
     "test:ai": "node --experimental-strip-types tests/ai-admin-smoke.ts",
     "test:drawing": "node --experimental-strip-types tests/collaborative-drawing.test.ts",
     "test:drawing:rules": "node tests/collaborative-drawing-rules.test.mjs",
-    "test:characters": "node --experimental-strip-types tests/character-appearance.test.ts"
+    "test:characters": "node --experimental-strip-types tests/character-appearance.test.ts",
+    "test:rules": "firebase emulators:exec --config firebase.emulators.json --only firestore,database --project demo-slide-question \"npm run test:slide-question:rules && npm run test:drawing:rules\""
   },
   "dependencies": {
     "fabric": "^7.4.0",

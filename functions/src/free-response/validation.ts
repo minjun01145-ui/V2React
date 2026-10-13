@@ -1,6 +1,7 @@
 import { HttpsError } from "firebase-functions/v2/https";
 import { isRecord } from "../shared/validation.js";
 import { resolveSessionStartedAtMs } from "../shared/sessionTime.js";
+import { parseSubmissionScope } from "../shared/timedSubmission.js";
 
 function id(value: unknown): string {
   const text = typeof value === "string" ? value.trim() : "";
@@ -9,8 +10,7 @@ function id(value: unknown): string {
 }
 
 export function parseFreeResponseScope(value: unknown): { readonly roomId: string; readonly roundId: string } {
-  if (!isRecord(value)) throw new HttpsError("invalid-argument", "답안 요청 형식이 올바르지 않습니다.");
-  return { roomId: id(value.roomId), roundId: id(value.roundId) };
+  return parseSubmissionScope(value);
 }
 
 export function parseSubmissionInput(value: unknown) {

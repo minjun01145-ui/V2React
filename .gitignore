@@ -6,6 +6,8 @@ dist/
 .env.*.local
 firebase-debug.log
 firebase-debug.*.log
+firestore-debug.log
+database-debug.log
 .firebase/
 functions/node_modules/
 functions/lib/

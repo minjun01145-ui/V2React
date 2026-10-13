@@ -11,10 +11,10 @@ permissions:
 
 concurrency:
   group: firebase-hosting-live
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build_and_deploy:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -73,6 +73,43 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Preserve the verified Hosting build
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosting-dist
+          path: dist
+          retention-days: 1
+
+  browser_regressions:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm ci --prefix external-test-browser
+      - run: npm run test:slide-editor --prefix external-test-browser
+      - run: npm run test:slide-templates --prefix external-test-browser
+      - run: npm run test:slide-question --prefix external-test-browser
+
+  backend:
+    needs: [build, browser_regressions]
+    uses: ./.github/workflows/firebase-backend-live.yml
+    secrets: inherit
+
+  deploy_hosting:
+    needs: [build, backend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: hosting-dist
+          path: dist
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:

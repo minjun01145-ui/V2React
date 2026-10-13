@@ -80,7 +80,9 @@ npm test --prefix functions
 
 제출은 한 번만 가능하고 서버 접수 시각으로 마감·속도 점수를 계산합니다. 정답은 교사 전용 문서에 보관하며 학생에게 공개되는 슬라이드·세션에는 넣지 않습니다. 마감 후 교사 화면에 선택지별 인원 또는 답변별 판정이 표시됩니다. 선택지 결과는 가운데 정렬된 최대 96px 폭 막대와 색상 기호 칩으로 표시하며, 0명도 6px 바닥 막대를 유지하고 오답 막대는 흐리게 표시합니다. 제출 현황은 차트 위 오른쪽에 배치하고 선택지 타일 영역은 유지합니다. 점수는 기존 슬라이드쇼 누적 순위에 합산됩니다. 새 기능 운영에는 **Hosting, Functions, Firestore Rules 배포가 모두 필요**합니다.
 
-도메인 회귀는 `npm run test:slide-question`, 서버 제출·인증·마감·점수 검증은 `npm test --prefix functions`에 포함됩니다. Java 21과 Firebase CLI가 준비되면 `firebase emulators:exec --only firestore --project demo-slide-question "npm run test:slide-question:rules"`로 실제 보안 규칙을 검증합니다. 교사·학생 입력/결과 및 네 타이머 테마의 브라우저 회귀는 `npm run test:slide-question --prefix external-test-browser`로 실행하며 `ENGINE_SCREENSHOT_DIR`을 지정하면 해당 폴더에 화면을 저장합니다.
+도메인 회귀는 `npm run test:slide-question`, 서버 제출·인증·마감·점수 검증은 `npm test --prefix functions`에 포함됩니다. Java 21과 Firebase CLI가 준비되면 `npm run test:rules`로 Firestore와 Realtime Database의 실제 보안 규칙을 격리된 로컬 에뮬레이터에서 검증합니다. 교사·학생 입력/결과 및 네 타이머 테마의 브라우저 회귀는 `npm run test:slide-question --prefix external-test-browser`로 실행하며 `ENGINE_SCREENSHOT_DIR`을 지정하면 해당 폴더에 화면을 저장합니다.
+
+main 배포는 화면 검사·빌드와 슬라이드 브라우저 회귀 검증을 먼저 완료하고, Rules 에뮬레이터 검증 및 서버 테스트를 통과한 뒤 Functions → Rules → Hosting 순으로 진행합니다. AI 단답형은 서버가 접수한 원래 답안과 시각으로 자동 채점하며, 실행이 중단되어도 Firestore 이벤트 재시도로 복구합니다.
 
 ## 작업 안내
 

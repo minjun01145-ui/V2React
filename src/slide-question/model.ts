@@ -36,20 +36,7 @@ export function validateQuestionSource(source: QuestionSource, requireGrading = 
   return grading ? { kind: "slide-question", question, grading } : { kind: "slide-question", question };
 }
 export function publicQuestionSource(source: QuestionSource): QuestionSource { return { kind: "slide-question", question: source.question }; }
-export function normalizeShortAnswer(value: string): string { return value.trim().replace(/\s+/gu, " ").toLowerCase(); }
-export function normalizeAiAnswer(value: string): string { return value.normalize("NFC").toLowerCase().replace(/[\s\p{P}\p{S}]/gu, "").normalize("NFC"); }
 export type JudgementMethod = "deterministic" | "ai" | "fallback";
-export async function gradeQuestion(question: PublicQuestion, grading: GradingKey, answer: string, ai: (reference: string, answer: string) => Promise<boolean>): Promise<{ correct: boolean; method: JudgementMethod }> {
-  if (question.type === "multiple-choice") return { correct: "correctOptions" in grading && grading.correctOptions.includes(Number(answer)), method: "deterministic" };
-  if (!("answer" in grading)) throw new Error("정답 형식이 올바르지 않습니다.");
-  const correct = question.type === "ai-short-answer" ? normalizeAiAnswer(grading.answer) === normalizeAiAnswer(answer) : normalizeShortAnswer(grading.answer) === normalizeShortAnswer(answer);
-  if (question.type !== "ai-short-answer" || correct) return { correct, method: "deterministic" };
-  try { return { correct: await ai(grading.answer, answer), method: "ai" }; }
-  catch { return { correct, method: "fallback" }; }
-}
-export function questionScore(correct: boolean, elapsedMs: number, durationMs: number, doublePoints: boolean): number {
-  return correct ? Math.round(1000 * (1 - Math.min(durationMs, Math.max(0, elapsedMs)) / durationMs / 2)) * (doublePoints ? 2 : 1) : 0;
-}
 export interface QuestionResponse { readonly playerId: string; readonly displayName: string; readonly answer: string; readonly submittedAtMs: number; readonly correct: boolean | null; readonly method: JudgementMethod | null; readonly score: number }
 export function parseQuestionResponse(value: unknown): QuestionResponse | null {
   if (!record(value) || typeof value.playerId !== "string" || typeof value.displayName !== "string" || typeof value.answer !== "string" || typeof value.submittedAtMs !== "number" || !Number.isFinite(value.submittedAtMs) || (value.correct !== null && typeof value.correct !== "boolean") || (value.method !== null && value.method !== "deterministic" && value.method !== "ai" && value.method !== "fallback") || !Number.isInteger(value.score) || (value.score as number) < 0 || (value.score as number) > 2000) return null;
