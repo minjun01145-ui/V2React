@@ -6,6 +6,7 @@ import TeacherLobbyPage from "../../features/teacher/lobby/TeacherLobbyPage.tsx"
 import TeacherSetsPage from "../../features/teacher/sets/TeacherSetsPage.tsx";
 import TeacherSettingsPage from "../../features/teacher/settings/TeacherSettingsPage.tsx";
 import TeacherStudentsPage from "../../features/teacher/students/TeacherStudentsPage.tsx";
+import TeacherOpinionsPage from "../../features/teacher/opinions/TeacherOpinionsPage.tsx";
 import TeacherNav from "./TeacherNav.tsx";
 import type { TenantConfig } from "../../tenant/config.ts";
 import { PRIMARY_TENANT_ID } from "../../tenant/scope.ts";
@@ -32,6 +33,7 @@ export default function TeacherWorkspace({ tenant }: { readonly tenant: TenantCo
       <div className={styles.main}>
         {activeView === TEACHER_VIEW.LOBBY ? <TeacherLobbyPage roomId={roomId} /> : null}
         {activeView === TEACHER_VIEW.STUDENTS ? <TeacherStudentsPage roomId={roomId} /> : null}
+        {activeView === TEACHER_VIEW.OPINIONS ? <TeacherOpinionsPage roomId={roomId} /> : null}
         {activeView === TEACHER_VIEW.SETS ? <TeacherSetsPage roomId={roomId} /> : null}
         {activeView === TEACHER_VIEW.SLIDE_SHOW ? <Suspense fallback={null}><TeacherSlideShowPage roomId={roomId} /></Suspense> : null}
         {activeView === TEACHER_VIEW.AI ? <TeacherAiPage roomId={roomId} /> : null}

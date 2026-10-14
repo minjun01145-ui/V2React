@@ -1,6 +1,6 @@
 import { Circle, FabricImage, Line, Rect, Triangle, type Canvas, type FabricObject } from "fabric";
 import { SlideTextbox as Textbox } from "./SlideTextbox.ts";
-import type { AssistantObject, AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
+import type { AssistantImageSource, AssistantObject, AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "../slide-show/types.ts";
 import { loadSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
 
@@ -37,6 +37,7 @@ export function describeSlide(objects: readonly FabricObject[], background: stri
         return {
           ...base, text: object.text.slice(0, MAX_DESCRIBED_TEXT), fontSize: Math.round(object.fontSize),
           bold: Number(object.fontWeight) >= 700, textAlign: String(object.textAlign),
+          fontFamily: object.fontFamily,
           ...(hex(object.fill) ? { fill: hex(object.fill)! } : {}), ...(background ? { background } : {}),
         };
       }
@@ -68,6 +69,7 @@ function style(target: FabricObject, operation: Extract<AssistantOperation, { op
     if (operation.bold !== undefined) target.set({ fontWeight: operation.bold ? 800 : 400 });
     if (operation.textAlign !== undefined) target.set({ textAlign: operation.textAlign });
     if (operation.background !== undefined) target.set({ backgroundColor: operation.background ?? "" });
+    if (operation.fontFamily !== undefined) target.set({ fontFamily: operation.fontFamily });
   }
 }
 
@@ -80,8 +82,7 @@ function shape(operation: Extract<AssistantOperation, { op: "addShape" }>): Fabr
   return new Rect({ ...common, width: operation.width, height: operation.height, rx: 16, ry: 16 });
 }
 
-async function image(operation: Extract<AssistantOperation, { op: "addImage" }>, loadImage: (query: string) => Promise<string>): Promise<FabricObject> {
-  const picture = await FabricImage.fromURL(await loadImage(operation.query));
+function placeImage(picture: FabricImage, operation: { readonly left?: number; readonly top?: number; readonly width?: number }): FabricImage {
   const scale = Math.min((operation.width ?? DEFAULT_IMAGE_WIDTH) / picture.width, (SLIDE_HEIGHT * 0.9) / picture.height);
   picture.set({ scaleX: scale, scaleY: scale, strokeWidth: 0, stroke: DEFAULT_TEXT_COLOR, strokeUniform: true });
   picture.set({
@@ -91,21 +92,55 @@ async function image(operation: Extract<AssistantOperation, { op: "addImage" }>,
   return picture;
 }
 
+/** The licence and author of a searched picture, stored on the object so the source stays with it. */
+function imageData(credit: AssistantImageSource["credit"]): Record<string, unknown> {
+  return {
+    data: {
+      assistantImage: {
+        source: credit.source,
+        creator: credit.creator,
+        license: credit.license,
+        licenseUrl: credit.licenseUrl,
+        pageUrl: credit.pageUrl,
+      },
+    },
+  };
+}
+
+/** Loads the searched picture and marks it with its credit before it is added to the canvas. */
+async function createAssistantImage(operation: Extract<AssistantOperation, { op: "addImage" }>, loadImage: (query: string) => Promise<AssistantImageSource>): Promise<FabricImage> {
+  const fetched = await loadImage(operation.query);
+  const picture = await FabricImage.fromURL(fetched.dataUrl);
+  picture.set(imageData(fetched.credit));
+  return placeImage(picture, operation);
+}
+
 /**
- * Applies one operation. `target` is the object the operation's id referred to when the slide
- * was described; returns false when it no longer exists or the operation does not fit it.
+ * Applies one operation to the slide being edited. `target` is the object the operation's id
+ * referred to when the slide was described; returns false when it no longer exists or the
+ * operation does not fit it.
  */
 export async function applyAssistantOperation(
   canvas: Canvas,
   operation: AssistantOperation,
   target: FabricObject | undefined,
-  loadImage: (query: string) => Promise<string>,
+  loadImage: (query: string) => Promise<AssistantImageSource>,
 ): Promise<boolean> {
   if ("id" in operation && (!target || !canvas.getObjects().includes(target))) return false;
   switch (operation.op) {
     case "move": target!.set({ left: operation.left, top: operation.top }); break;
     case "resize": resize(target!, operation.width, operation.height); break;
-    case "style": style(target!, operation); break;
+    case "style":
+      await loadSlideFonts([target!.get("text") ?? ""], [operation.fontFamily ?? (target instanceof Textbox ? target.fontFamily : SLIDE_FONT_FAMILY)]);
+      style(target!, operation);
+      break;
+    case "arrange": {
+      if (operation.action === "front") canvas.bringObjectToFront(target!);
+      else if (operation.action === "forward") canvas.bringObjectForward(target!);
+      else if (operation.action === "backward") canvas.sendObjectBackwards(target!);
+      else canvas.sendObjectToBack(target!);
+      return true;
+    }
     case "setText":
       if (!(target instanceof Textbox)) return false;
       await loadSlideFonts([operation.text], [target.fontFamily]);
@@ -113,17 +148,18 @@ export async function applyAssistantOperation(
       break;
     case "delete": canvas.remove(target!); return true;
     case "addText": {
-      await loadSlideFonts([operation.text]);
+      await loadSlideFonts([operation.text], operation.fontFamily ? [operation.fontFamily] : undefined);
       canvas.add(new Textbox(operation.text, {
         left: operation.left, top: operation.top, width: operation.width, fontSize: operation.fontSize ?? 40,
-        fontWeight: operation.bold ? 800 : 400, fontFamily: SLIDE_FONT_FAMILY, fill: operation.fill ?? DEFAULT_TEXT_COLOR,
+        fontWeight: operation.bold ? 800 : 400, fontFamily: operation.fontFamily ?? SLIDE_FONT_FAMILY, fill: operation.fill ?? DEFAULT_TEXT_COLOR,
         textAlign: operation.textAlign ?? "left", backgroundColor: operation.background ?? "", splitByGrapheme: true,
       }));
       return true;
     }
     case "addShape": canvas.add(shape(operation)); return true;
-    case "addImage": canvas.add(await image(operation, loadImage)); return true;
+    case "addImage": canvas.add(await createAssistantImage(operation, loadImage)); return true;
     case "background": canvas.backgroundColor = operation.color; return true;
+    default: return false;
   }
   target!.setCoords();
   return true;

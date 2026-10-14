@@ -15,7 +15,7 @@ import styles from "./WaitingRoom.module.css";
 import StudentQuestionAuthoring from "../../../student-question-activity/StudentQuestionAuthoring.tsx";
 import { useStudentQuestionSubmission } from "../../../student-question-activity/useStudentQuestionSubmission.ts";
 import { shouldShowStudentQuestionAuthoring } from "../../../student-question-activity/model.ts";
-import { pickRandomNickname } from "./randomNickname.ts";
+import { ensureDailyRandomNickname } from "../../../student-data/random-nickname/repository.ts";
 import StudentSoloExperience from "../solo/StudentSoloExperience.tsx";
 import type { StudentIdentity } from "../../../auth/types.ts";
 import type { Player } from "../../../multiplayer/types.ts";
@@ -76,14 +76,19 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
     const keeperId = [...sameNickname]
       .sort((a, b) => Number(Boolean(a.nicknameGrade)) - Number(Boolean(b.nicknameGrade)) || a.id.localeCompare(b.id))[0]?.id;
     if (keeperId === uid) return;
-    const usedNicknames = new Set(activePlayers.flatMap((player) => player.nickname ? [player.nickname] : []));
-    const next = pickRandomNickname(usedNicknames);
     resolvingDuplicateNickname.current = true;
-    void replaceRandomNicknameIfUnchanged(roomId, uid, nickname, nicknameGrade, next.nickname, next.grade)
+    // The server owns the day's roll: it hands back a same-grade replacement instead of letting
+    // the browser reroll, so a clash can neither be farmed into a higher grade nor rerolled twice.
+    let replaced = false;
+    void ensureDailyRandomNickname(roomId)
+      .then(async (roll) => {
+        if (roll.nickname === nickname) return;
+        replaced = await replaceRandomNicknameIfUnchanged(roomId, uid, nickname, nicknameGrade, roll.nickname, roll.nicknameGrade);
+      })
       .catch(console.error)
       .finally(() => {
         resolvingDuplicateNickname.current = false;
-        if (!mounted.current) return;
+        if (!mounted.current || !replaced) return;
         if (duplicateRetryTimer.current !== null) window.clearTimeout(duplicateRetryTimer.current);
         duplicateRetryTimer.current = window.setTimeout(() => {
           duplicateRetryTimer.current = null;

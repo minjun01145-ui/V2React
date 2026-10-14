@@ -24,7 +24,6 @@ import { startStudentQuestionActivity } from "../../../student-question-activity
 import type { StudentQuestionConfig } from "../../../student-question-activity/types.ts";
 import type { SlideShow } from "../../../slide-show/types.ts";
 import NoticeEditor from "../classroom-notice/NoticeEditor.tsx";
-import StudentOpinionsPanel from "../student-opinions/StudentOpinionsPanel.tsx";
 import TeacherPlayerRoster from "./TeacherPlayerRoster.tsx";
 
 // Fabric.js is only needed once a slide show is running.
@@ -159,7 +158,7 @@ export default function TeacherRoomController({ roomId, embedded = false }: Prop
       </div>
       {!isQuestionActivity ? <aside className={styles.sideColumn}><LobbyToolsPanel roomId={roomId} session={session} typingDisabled={working} onDrawing={() => setDrawingOpen(true)}
         gatheringDisabled={working || loading || !session || session.status !== SESSION_STATUS.WAITING}
-        onGathering={() => void run((id) => session?.lobbyGathering?.active ? dismissLobbyGathering(id, session.lobbyGathering.runId) : gatherLobbyForJumpTower(id))} /><StudentOpinionsPanel roomId={roomId} /></aside> : null}
+        onGathering={() => void run((id) => session?.lobbyGathering?.active ? dismissLobbyGathering(id, session.lobbyGathering.runId) : gatherLobbyForJumpTower(id))} /></aside> : null}
     </div>}
   </>;
 

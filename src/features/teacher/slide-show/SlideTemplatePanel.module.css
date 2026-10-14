@@ -1,6 +1,11 @@
-.panel { display: grid; gap: 16px; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 4px 0 rgba(16, 26, 58, 0.08), var(--shadow-card); }
+.panel { display: grid; gap: 12px; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 4px 0 rgba(16, 26, 58, 0.08), var(--shadow-card); }
 .panel h3 { margin: 0; font-size: 1rem; font-weight: inherit; }
-.card { display: grid; justify-items: center; gap: 8px; }
-.preview { display: block; width: 200px; max-width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 10px; }
-.card h4 { margin: 0; font-size: var(--text-sm); font-weight: inherit; }
-.card button { width: 100%; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.card { display: grid; gap: 4px; min-width: 0; padding: 4px; border: 2px solid var(--color-border); border-radius: 12px; background: #fff; color: var(--color-text); font: inherit; cursor: pointer; transition: border-color 120ms ease, transform 120ms var(--ease-pop); }
+.card:not(:disabled):hover { transform: translateY(-2px); }
+.card[aria-pressed="true"] { border-color: var(--color-primary); box-shadow: var(--focus-ring); }
+.card:disabled { cursor: default; opacity: .6; }
+.preview { display: block; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 8px; }
+.name { overflow: hidden; font-size: var(--text-sm); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.actions { display: grid; gap: 8px; }
+.actions > button { width: 100%; }

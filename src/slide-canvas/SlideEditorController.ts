@@ -2,9 +2,10 @@ import "./fabricSetup.ts";
 import { ActiveSelection, Canvas, Circle, Control, controlsUtils, FabricImage, Line, Rect, Triangle, util, type FabricObject, type TMat2D } from "fabric";
 import { SlideTextbox as Textbox } from "./SlideTextbox.ts";
 import { SLIDE_HEIGHT, SLIDE_WIDTH, type SlideFrame } from "../slide-show/types.ts";
-import type { AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
+import type { AssistantImageSource, AssistantOperation, AssistantSlide } from "../slide-assistant/types.ts";
 import { applyAssistantOperation, describeSlide } from "./assistantOperations.ts";
 import { collectSlideTexts, collectSlideFontFamilies, loadSlideFonts, watchSlideFonts, SLIDE_FONT_FAMILY } from "./fonts.ts";
+import { attachSnapping } from "./snapping/attachSnapping.ts";
 import { UndoHistory } from "./undoHistory.ts";
 
 export type SlideShapeKind = "rect" | "circle" | "triangle" | "line";
@@ -51,10 +52,6 @@ const SELECTION_COLOR = "#2338b8";
 const ENGINE_ACCENT = "#ffc933";
 const ENGINE_ACCENT_DEEP = "#d49b00";
 const ENGINE_INK = "#1a1640";
-
-export function emptySlideCanvas(background = "#ffffff"): string {
-  return JSON.stringify({ objects: [], background });
-}
 
 function hexColor(value: unknown, fallback: string): string {
   return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value) ? value : fallback;
@@ -116,6 +113,7 @@ function bakeTextboxScale(text: Textbox): void {
 export class SlideEditorController {
   private readonly canvas: Canvas;
   private readonly stopWatchingFonts: () => void;
+  private readonly stopSnapping: () => void;
   private readonly events: ControllerEvents;
   private engineFrame: Rect | null = null;
   private engineLabel = "";
@@ -135,6 +133,7 @@ export class SlideEditorController {
     this.events = events;
     this.canvas = new Canvas(element, { preserveObjectStacking: true, selectionColor: "rgba(35,56,184,.08)", selectionBorderColor: SELECTION_COLOR });
     this.stopWatchingFonts = watchSlideFonts(this.canvas);
+    this.stopSnapping = attachSnapping(this.canvas);
     const changed = (): void => { if (!this.loading && !this.restoring) this.edited(); };
     const selection = (): void => this.events.onSelectionChange(this.selectedStyle());
     this.canvas.on("object:added", ({ target }) => {
@@ -168,6 +167,7 @@ export class SlideEditorController {
 
   dispose(): Promise<boolean> {
     this.stopWatchingFonts();
+    this.stopSnapping();
     return this.canvas.dispose();
   }
 
@@ -327,7 +327,7 @@ export class SlideEditorController {
   }
 
   /** Applies the AI helper's edits as one undo step; returns how many could not be applied. */
-  async applyAssistantOperations(operations: readonly AssistantOperation[], loadImage: (query: string) => Promise<string>): Promise<number> {
+  async applyAssistantOperations(operations: readonly AssistantOperation[], loadImage: (query: string) => Promise<AssistantImageSource>): Promise<number> {
     this.canvas.discardActiveObject();
     this.applyingAssistant = true;
     let skipped = 0;

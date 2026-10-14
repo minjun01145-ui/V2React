@@ -1,17 +1,29 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { findSlideImage } from "../../../../slide-assistant/imageSearch.ts";
+import { describeDeck } from "../../../../slide-assistant/deckContext.ts";
+import { planDeckOperations, splitAssistantReply } from "../../../../slide-assistant/deckPlan.ts";
+import { findSlideImage, imageCreditText } from "../../../../slide-assistant/imageSearch.ts";
 import { requestSlideAssist } from "../../../../slide-assistant/repository.ts";
+import { SLIDE_FONTS } from "../../../../slide-canvas/fonts.ts";
 import type { SlideEditorController } from "../../../../slide-canvas/SlideEditorController.ts";
+import type { Slide } from "../../../../slide-show/types.ts";
 import { toErrorMessage } from "../../../../shared/errors/errorMessage.ts";
 import Button from "../../../../shared/ui/Button.tsx";
 import styles from "./SlideAssistantPanel.module.css";
 
+/** Font families the AI helper may pick from, as the editor renders them. */
+const FONT_FAMILIES = SLIDE_FONTS.map((font) => font.family);
+
 /**
- * AI helper for the slide being edited: the teacher asks in plain words ("줄 맞춰줘",
- * "어울리는 그림 넣어줘") and the AI's edits are applied as one undoable step.
- * Mounted per slide, so a reply that arrives after switching slides is dropped.
+ * AI helper for the slide show: the teacher asks in plain words ("줄 맞춰줘", "오류 있는지 봐줘",
+ * "버스 그림 하나 넣어줘") and the AI answers, optionally with edits that are applied as one
+ * undoable step. Mounted per slide, so a reply that arrives after switching slides is dropped.
  */
-export default function SlideAssistantPanel({ controller }: { readonly controller: SlideEditorController | null }) {
+export default function SlideAssistantPanel({ controller, slides, currentIndex, onApplyDeck }: {
+  readonly controller: SlideEditorController | null;
+  readonly slides: readonly Slide[];
+  readonly currentIndex: number;
+  readonly onApplyDeck: (slides: readonly Slide[], currentIndex: number) => void;
+}) {
   const [instruction, setInstruction] = useState("");
   const [status, setStatus] = useState("");
   const [reply, setReply] = useState("");
@@ -26,14 +38,40 @@ export default function SlideAssistantPanel({ controller }: { readonly controlle
     if (!controller || !request || busy) return;
     setError("");
     setReply("");
-    setStatus("AI가 생각하는 중…");
+    setStatus("AI가 확인하는 중…");
     try {
-      const result = await requestSlideAssist(request, controller.describeForAssistant());
+      const currentSlide = slides[currentIndex];
+      const described = controller.describeForAssistant();
+      const result = await requestSlideAssist(request, describeDeck({
+        slides, current: currentIndex + 1, currentSlide: described, fonts: FONT_FAMILIES,
+      }));
       if (!mounted.current) return;
-      if (result.operations.some((operation) => operation.op === "addImage")) setStatus("그림 찾는 중…");
-      const skipped = await controller.applyAssistantOperations(result.operations, findSlideImage);
+
+      const split = splitAssistantReply(result.operations, currentIndex + 1, described);
+      // Pictures first: a searched picture becomes part of the slide being edited, and the slide
+      // list is then captured from that same canvas.
+      const credits: string[] = [];
+      if (split.canvas.some((operation) => operation.op === "addImage")) setStatus("그림 찾는 중…");
+      const skipped = await controller.applyAssistantOperations(split.canvas, async (query) => {
+        const image = await findSlideImage(query);
+        credits.push(imageCreditText(image.credit));
+        return image;
+      });
       if (!mounted.current) return;
-      setReply(result.operations.length === 0 ? result.message || "바꿀 것이 없었습니다." : skipped > 0 ? `${result.message} (${skipped}개 작업은 적용하지 못했습니다)` : result.message || "적용했습니다.");
+
+      const plan = planDeckOperations({ slides, current: currentIndex + 1 }, split.deck);
+      if (plan.count > 0) {
+        const index = plan.slides.findIndex((slide) => slide.id === currentSlide?.id);
+        onApplyDeck(plan.slides, index >= 0 ? index : Math.min(currentIndex, plan.slides.length - 1));
+      }
+
+      const notes = [
+        result.message,
+        skipped > 0 ? `${skipped}개 작업은 적용하지 못했습니다.` : "",
+        result.dropped > 0 ? `${result.dropped}개 작업은 형식이 맞지 않아 건너뛰었습니다.` : "",
+        ...credits.map((credit) => `그림 출처: ${credit}`),
+      ].filter(Boolean);
+      setReply(notes.length > 0 ? notes.join("\n") : "바꿀 것이 없었습니다.");
       setInstruction("");
     } catch (cause: unknown) {
       if (mounted.current) setError(toErrorMessage(cause, "AI 작업을 완료하지 못했습니다."));

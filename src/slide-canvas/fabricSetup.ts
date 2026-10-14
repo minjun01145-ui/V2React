@@ -1,4 +1,3 @@
-import "./fonts.css";
 import "./SlideTextbox.ts";
 import { FabricObject } from "fabric";
 

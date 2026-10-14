@@ -1,31 +1,24 @@
 import { cache, FabricText, Group, IText, type FabricObject, type StaticCanvas } from "fabric";
+import { DEFAULT_FONT_FAMILY, FONT_CATALOG, type FontDefinition } from "../fonts/catalog.ts";
+import { DEFAULT_FONT_WEIGHTS, loadFonts, onFontsLoaded } from "../fonts/loader.ts";
 
-export const SLIDE_FONT_FAMILY = "'Noto Sans KR', sans-serif";
+export const SLIDE_FONT_FAMILY = DEFAULT_FONT_FAMILY;
 
-export const SLIDE_FONTS = [
-  { label: "기본 고딕", family: SLIDE_FONT_FAMILY },
-  { label: "프리텐다드", family: "'Pretendard', sans-serif" },
-  { label: "본명조", family: "'Noto Serif KR', serif" },
-  { label: "검은고딕", family: "'Black Han Sans', sans-serif" },
-  { label: "주아", family: "'Jua', sans-serif" },
-  { label: "나눔손글씨 펜", family: "'Nanum Pen Script', cursive" },
-  { label: "궁서", family: "'ChosunGs', 'Gungsuh', '궁서', serif" },
-] as const;
+/** 슬라이드 글꼴 선택기 항목. 앱 전역 카탈로그(src/fonts)를 그대로 노출한다. */
+export const SLIDE_FONTS = FONT_CATALOG.map((font) => ({ label: font.label, family: font.family, category: font.category, id: font.id }));
+
+export type SlideFont = FontDefinition;
 
 /** Canvas text does not trigger web-font loading; load the faces before measuring. */
-export async function loadSlideFonts(texts: readonly string[], families: readonly string[] = [SLIDE_FONT_FAMILY]): Promise<void> {
+export async function loadSlideFonts(texts: readonly string[], families: readonly string[] = [SLIDE_FONT_FAMILY], weights: readonly number[] = DEFAULT_FONT_WEIGHTS): Promise<void> {
   const sample = texts.join("");
-  if (!sample || typeof document === "undefined" || !document.fonts) return;
-  await Promise.all([...new Set(families)].flatMap((family) => [400, 700, 800].map((weight) =>
-    document.fonts.load(`${weight} 32px ${family}`, sample),
-  ))).catch(() => undefined);
+  await loadFonts(families, sample, weights);
   // Includes family stacks and partial text styles, not only the default face.
   cache.clearFontCache();
 }
 
 /** Re-measure existing text when new font subsets/weights finish loading during editing. */
 export function watchSlideFonts(canvas: StaticCanvas): () => void {
-  const fonts = document.fonts;
   const refresh = (): void => {
     cache.clearFontCache();
     const refreshObject = (object: FabricObject): void => {
@@ -39,8 +32,7 @@ export function watchSlideFonts(canvas: StaticCanvas): () => void {
     canvas.getObjects().forEach(refreshObject);
     canvas.requestRenderAll();
   };
-  fonts.addEventListener("loadingdone", refresh);
-  return () => fonts.removeEventListener("loadingdone", refresh);
+  return onFontsLoaded(refresh);
 }
 
 export function collectSlideTexts(json: unknown): string[] {

@@ -1,6 +1,7 @@
 export const TEACHER_VIEW = Object.freeze({
   LOBBY: "lobby",
   STUDENTS: "students",
+  OPINIONS: "opinions",
   SETS: "sets",
   SLIDE_SHOW: "slide-show",
   AI: "ai",

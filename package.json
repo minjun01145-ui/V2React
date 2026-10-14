@@ -27,9 +27,11 @@
     "test:multiple-choice": "node --experimental-strip-types tests/multiple-choice-engine.test.ts",
     "test:solo": "node --experimental-strip-types tests/solo-contract.test.ts",
     "check:architecture": "node scripts/check-architecture.mjs && node tests/architecture-source-files.test.mjs",
-    "check": "npm run typecheck && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:live-world && npm run test:timed-game && npm run test:effects && npm run test:items && npm run test:combat && npm run test:scoring && npm run test:multiple-choice && npm run test:solo && npm run test:games && npm run test:routing && npm run test:bgm && npm run test:student-session && npm run test:student-questions && npm run test:free-response && npm run test:presence && npm run test:waiting-dice && npm run test:reconnect && npm run test:multiplayer-contract && npm run test:multiplayer-progress && npm run test:retry-idempotency && npm run test:auth && npm run test:popup && npm run test:sets && npm run test:ai && npm run test:ui && npm run test:console && npm run test:drawing && npm run test:characters && npm run test:slide-templates",
+    "check": "npm run typecheck && npm run check:architecture && npm run check:security && npm run test:engine && npm run test:live-world && npm run test:timed-game && npm run test:effects && npm run test:items && npm run test:combat && npm run test:scoring && npm run test:multiple-choice && npm run test:solo && npm run test:games && npm run test:routing && npm run test:bgm && npm run test:student-session && npm run test:student-questions && npm run test:free-response && npm run test:presence && npm run test:waiting-dice && npm run test:reconnect && npm run test:multiplayer-contract && npm run test:multiplayer-progress && npm run test:retry-idempotency && npm run test:auth && npm run test:popup && npm run test:sets && npm run test:ai && npm run test:ui && npm run test:console && npm run test:drawing && npm run test:characters && npm run test:slide-templates && npm run test:fonts && npm run test:slide-snapping && npm run test:slide-assistant",
     "test": "npm run check",
     "test:slide-templates": "node --experimental-strip-types tests/slide-templates.test.ts",
+    "test:fonts": "node --experimental-strip-types tests/fonts.test.ts",
+    "test:slide-assistant": "node --experimental-strip-types tests/slide-assistant-operations.test.ts && node --experimental-strip-types tests/image-search.test.ts",
     "test:slide-question": "node --experimental-strip-types tests/slide-question.test.ts",
     "test:slide-question:rules": "node tests/slide-question-rules.test.mjs",
     "test:ui": "node tests/card-ui.test.mjs",
@@ -53,7 +55,8 @@
     "test:drawing": "node --experimental-strip-types tests/collaborative-drawing.test.ts",
     "test:drawing:rules": "node tests/collaborative-drawing-rules.test.mjs",
     "test:characters": "node --experimental-strip-types tests/character-appearance.test.ts",
-    "test:rules": "firebase emulators:exec --config firebase.emulators.json --only firestore,database --project demo-slide-question \"npm run test:slide-question:rules && npm run test:drawing:rules\""
+    "test:rules": "firebase emulators:exec --config firebase.emulators.json --only firestore,database --project demo-slide-question \"npm run test:slide-question:rules && npm run test:drawing:rules\"",
+    "test:slide-snapping": "node --experimental-strip-types tests/slide-snapping.test.ts"
   },
   "dependencies": {
     "fabric": "^7.4.0",

@@ -1,6 +1,7 @@
 export { completeStudentLogin, prepareStudentLogin, releaseStudentIdentity, syncStudentTenantClaim } from "./student-auth/callables.js";
 export { bootstrapAdminTenant, syncAdminTenantClaim } from "./admin-auth/callables.js";
 export { deleteStudent, importStudents, listStudents, resetStudentPin, upsertStudent } from "./student-roster/callables.js";
+export { ensureDailyStudentNickname } from "./student-nickname/callables.js";
 export { getAiProviderSettings, saveAiProviderSettings, sendAiTestMessage, testAiConnection } from "./ai/callables.js";
 export { submitAiTutorTurn } from "./ai-tutor/callables.js";
 export { submitFreeResponse, awardFreeResponsePoints } from "./free-response/callables.js";

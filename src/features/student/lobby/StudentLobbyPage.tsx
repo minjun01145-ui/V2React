@@ -24,7 +24,6 @@ interface LobbyProps {
 interface EntryProps {
   readonly roomId: string;
   readonly player: null;
-  readonly identity: StudentIdentity;
   readonly onJoin: (choice: NicknameChoice) => Promise<void>;
   readonly defaultDisplayName: string;
   readonly selfStudentNumber: string;
@@ -45,9 +44,9 @@ export default function StudentLobbyPage(props: Props) {
   }} />;
   if (props.player === null) {
     if (leaving) return <LobbyLayout topBar={topBar}><StatusPanel title="대기실에서 나가는 중" tone="waiting">로그인 화면으로 이동하고 있습니다.</StatusPanel></LobbyLayout>;
-    const { roomId, identity, onJoin, defaultDisplayName, selfStudentNumber } = props;
+    const { roomId, onJoin, defaultDisplayName, selfStudentNumber } = props;
     return <LobbyLayout topBar={topBar}><div className={styles.entry}>
-      <NicknamePrompt roomId={roomId} uid={identity.uid} studentNumber={identity.studentNumber} defaultDisplayName={defaultDisplayName} onChooseNickname={onJoin} />
+      <NicknamePrompt roomId={roomId} defaultDisplayName={defaultDisplayName} onChooseNickname={onJoin} />
       <WaitingRoomSkeleton roomId={roomId} selfStudentNumber={selfStudentNumber} />
     </div></LobbyLayout>;
   }

@@ -1,9 +1,7 @@
-import type { NicknameGrade } from "../../../multiplayer/types.ts";
-
-export interface RandomNickname {
-  readonly nickname: string;
-  readonly grade: NicknameGrade;
-}
+// The server owns the graded random food-nickname pool, so a browser can never
+// pick its own grade and cannot reroll until the next Korea-time day. This file is
+// the only pool: the client asks the callable instead of drawing names itself.
+import type { NicknameGrade } from "./model.js";
 
 const C_NAMES = `김밥 떡볶이 라면 짜장면 짬뽕 우동 국수 냉면 만두 순대 어묵 튀김 돈까스 카레 볶음밥 비빔밥 김치 깍두기 계란 감자 고구마 양파 대파 마늘 당근 오이 배추 무우 상추 깻잎 버섯 두부 콩알 콩나물 숙주 애호박 가지 옥수수 토마토 사과 배조각 귤주스 바나나 포도 수박 딸기 복숭아 체리 레몬 라임 우유 치즈 버터 모닝빵 식빵 크루아상 쿠키 초콜릿 사탕 젤리 아이스크림 케이크 피자 햄버거 핫도그 샌드위치 토스트 감자튀김 치킨 닭가슴살 소고기 돼지고기 삼겹살 목살 갈비 불고기 제육볶음 김치찌개 된장찌개 미역국 떡국 잡채 계란말이 계란찜 김치볶음밥 주먹밥 유부초밥 참치 연어 고등어 새우 오징어 문어 꽃게 조개 김자반 미역 다시마 소금 설탕 후추 간장 고추장 된장 식초 참기름 들기름 벌꿀 딸기잼 시리얼 요구르트 두유 커피 코코아 녹차 보리차 현미 보리 쌀밥 밀가루 찹쌀 참깨 멸치 슬라이스햄 완자 가래떡 꿀떡 호떡 붕어빵 군밤 약과 식혜 수정과`.split(" ");
 
@@ -13,16 +11,23 @@ const A_NAMES = `부라타치즈 리코타치즈 고르곤졸라 까망베르 �
 
 const S_NAMES = `콜리플라워 로마네스코 화이트아스파라거스 블랙트러플 화이트트러플 사프란꽃 불수감 살락 아키 체리모야 사포딜라 핑거라임 모렐버섯 포르치니 마쓰타케 송로버섯 트러플소금 유자후추 성게알 보타르가 가쓰오부시 가람마살라 산초 화자오 통카빈 아마레나체리 마라스키노체리 페피타 프리케 테프 아마란스 스펠트 카무트 우메보시 유바 곤약 나메코 쿠로마메 금귤 카카오닙스 몰돈소금 죽순꽃송이 노루궁뎅이버섯 송이버섯 흑마늘 홍화씨 캐롭 파바빈 사차인치`.split(" ");
 
-const gradeGroups: ReadonlyArray<{
+interface NicknameGroup {
   readonly grade: NicknameGrade;
   readonly weight: number;
   readonly names: readonly string[];
-}> = [
+}
+
+const gradeGroups: readonly NicknameGroup[] = [
   { grade: "C", weight: 60, names: C_NAMES },
   { grade: "B", weight: 25, names: B_NAMES },
   { grade: "A", weight: 12, names: A_NAMES },
   { grade: "S", weight: 3, names: S_NAMES },
 ];
+
+export interface RandomNickname {
+  readonly nickname: string;
+  readonly grade: NicknameGrade;
+}
 
 export const RANDOM_NICKNAME_POOL: readonly RandomNickname[] = gradeGroups.flatMap(({ grade, names }) =>
   names.map((nickname) => ({ nickname, grade })),
@@ -32,6 +37,7 @@ function chooseIndex(length: number, random: () => number): number {
   return Math.min(length - 1, Math.floor(Math.max(0, Math.min(0.999999999, random())) * length));
 }
 
+/** Weighted pick across every grade, skipping names the room already wears. */
 export function pickRandomNickname(
   usedNicknames: ReadonlySet<string>,
   random: () => number = Math.random,
@@ -52,4 +58,21 @@ export function pickRandomNickname(
   const nickname = group.names[chooseIndex(group.names.length, random)];
   if (!nickname) throw new Error("랜덤 닉네임을 선택하지 못했습니다.");
   return { nickname, grade: group.grade };
+}
+
+/**
+ * Another unused name of the same grade, used only to break a lobby duplicate.
+ * Keeping the grade means a collision can never be farmed into a higher grade.
+ * Returns null when the grade has no free names left.
+ */
+export function pickNicknameOfGrade(
+  grade: NicknameGrade,
+  usedNicknames: ReadonlySet<string>,
+  random: () => number = Math.random,
+): string | null {
+  const group = gradeGroups.find((item) => item.grade === grade);
+  if (!group) return null;
+  const available = group.names.filter((name) => !usedNicknames.has(name));
+  if (available.length === 0) return null;
+  return available[chooseIndex(available.length, random)] ?? null;
 }

@@ -1,7 +1,7 @@
 import { readAiProviderSettings, writeAiProviderSettings } from "./configRepository.js";
 import { listOllamaCloudModels, sendOllamaCloudChat } from "./ollamaProvider.js";
 import { hasOllamaApiKey, readOllamaApiKey, writeOllamaApiKey } from "./secretStore.js";
-import type { AdminAiSettingsView, AiChatResult, AiMessage, AiModelListResult, AiProviderSettings } from "./types.js";
+import type { AdminAiSettingsView, AiChatResult, AiMessage, AiModelListResult, AiProviderSettings, AiThinkingLevel } from "./types.js";
 import { assertAiMessages } from "./validation.js";
 
 export async function getAdminAiSettings(): Promise<AdminAiSettingsView> {
@@ -32,13 +32,14 @@ export async function testAiProviderConnection(): Promise<AiModelListResult> {
 
 export async function generateAiReply(
   messages: readonly AiMessage[],
-  options: { readonly minimumOutputTokens?: number } = {},
+  options: { readonly minimumOutputTokens?: number; readonly thinkingLevel?: AiThinkingLevel } = {},
 ): Promise<AiChatResult> {
   assertAiMessages(messages);
   const { settings, apiKey } = await readyProvider();
   const minimumOutputTokens = Math.min(4096, Math.max(0, Math.trunc(options.minimumOutputTokens ?? 0)));
+  const thinkingLevel = options.thinkingLevel ?? settings.thinkingLevel;
   return sendOllamaCloudChat(
-    minimumOutputTokens > settings.maxOutputTokens ? { ...settings, maxOutputTokens: minimumOutputTokens } : settings,
+    { ...settings, thinkingLevel, ...(minimumOutputTokens > settings.maxOutputTokens ? { maxOutputTokens: minimumOutputTokens } : {}) },
     apiKey,
     messages,
   );

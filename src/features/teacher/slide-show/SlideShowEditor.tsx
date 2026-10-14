@@ -4,8 +4,9 @@ import type { LearningSetSummary } from "../../../learning-sets/types.ts";
 import { imageFileToDataUrl } from "../../../slide-canvas/imageFile.ts";
 import { importPptxSlides } from "../../../slide-canvas/pptxImport.ts";
 import SlideEditorCanvas from "../../../slide-canvas/SlideEditorCanvas.tsx";
-import { emptySlideCanvas, type SlideEditorController, type SlideObjectStyle, type SlideShapeKind } from "../../../slide-canvas/SlideEditorController.ts";
-import { applyTemplate, type SlideTemplate } from "../../../slide-canvas/slideTemplates.ts";
+import { type SlideEditorController, type SlideObjectStyle, type SlideShapeKind } from "../../../slide-canvas/SlideEditorController.ts";
+import { emptySlideCanvas } from "../../../slide-canvas/slideEdits.ts";
+import { applyTemplate, type SlideTemplate } from "../../../slide-canvas/slideTemplates/index.ts";
 import { MAX_SLIDES, type Slide, type SlideEngineRound } from "../../../slide-show/types.ts";
 import { validateSlides, validateSlideShowName } from "../../../slide-show/validation.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -233,6 +234,18 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
     controller?.setBackground(color);
   };
 
+  /**
+   * The deck edits of one AI reply, applied together with the canvas edits: the slide list moves to
+   * the new order once, then the canvas is committed, so the whole reply is one undo step.
+   */
+  const applyAssistantDeck = useCallback((nextSlides: readonly Slide[], index: number): void => {
+    if (commitTimer.current !== null) window.clearTimeout(commitTimer.current);
+    commitTimer.current = null;
+    setSlides(captureCurrent(nextSlides));
+    setCurrentIndex(index);
+    setDirty(true);
+  }, [captureCurrent]);
+
   const applyDesign = async (template: SlideTemplate, all: boolean): Promise<void> => {
     if (!controller || !current) return;
     if (all && !await requestConfirmation({ title: "모든 슬라이드의 배경과 글꼴을 바꿀까요?", confirmLabel: "적용", cancelLabel: "취소", tone: "warning", blurBackground: true })) return;
@@ -302,7 +315,7 @@ export default function SlideShowEditor({ initial, initiallyDirty = false, sets,
             <label className={styles.customColor} aria-label="직접 고르기"><input type="color" value={background} onChange={(event) => changeBackground(event.target.value)} disabled={!controller} /></label>
           </div>
         </section>
-        <SlideAssistantPanel key={currentId} controller={controller} />
+        <SlideAssistantPanel key={currentId} controller={controller} slides={slides} currentIndex={currentIndex} onApplyDeck={applyAssistantDeck} />
         {selection ? <ObjectStylePanel style={selection} onChange={(patch) => controller?.updateSelection(patch)} onArrange={(action) => controller?.arrange(action)} onDuplicate={() => void controller?.duplicateSelection()} onDelete={() => controller?.deleteSelection()} /> : null}
         {current?.engine ? <SlideEnginePanel round={current.engine.round} sets={sets} disabled={busy} issue={engineIssue} onChange={setEngineRound} onRemove={removeEngine} /> : null}
       </aside>

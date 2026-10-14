@@ -12,3 +12,6 @@ database-debug.log
 functions/node_modules/
 functions/lib/
 .DS_Store
+
+# pptx 참고 자료: 저장소에 커밋하지 않는다.
+reference/

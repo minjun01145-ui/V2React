@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { usePlayers } from "../../../multiplayer/hooks.ts";
 import type { NicknameGrade } from "../../../multiplayer/types.ts";
 import { usePopup } from "../../../shared/popup/index.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
@@ -8,10 +7,7 @@ import {
   normalizeNickname,
   validateNickname,
 } from "./nickname.ts";
-import { pickRandomNickname } from "./randomNickname.ts";
-import { claimDailyRandomNickname } from "../../../student-data/random-nickname/repository.ts";
-import { dailyRandomNicknameDay } from "../../../student-data/random-nickname/model.ts";
-import type { DailyRandomNickname } from "../../../student-data/random-nickname/model.ts";
+import { ensureDailyRandomNickname } from "../../../student-data/random-nickname/repository.ts";
 
 export interface NicknameChoice {
   readonly nickname: string;
@@ -20,25 +16,17 @@ export interface NicknameChoice {
 
 interface Props {
   readonly roomId: string;
-  readonly uid: string;
-  readonly studentNumber: string;
   readonly defaultDisplayName: string;
   readonly onChooseNickname: (choice: NicknameChoice) => Promise<void>;
 }
 
-export default function NicknamePrompt({ roomId, uid, studentNumber, defaultDisplayName, onChooseNickname }: Props) {
+export default function NicknamePrompt({ roomId, defaultDisplayName, onChooseNickname }: Props) {
   const popup = usePopup();
-  const { activePlayers, loading: playersLoading } = usePlayers(roomId);
-  const activePlayersRef = useRef(activePlayers);
   const [busy, setBusy] = useState(false);
   const prompted = useRef(false);
 
   useEffect(() => {
-    activePlayersRef.current = activePlayers;
-  }, [activePlayers]);
-
-  useEffect(() => {
-    if (playersLoading || prompted.current || busy) return;
+    if (prompted.current || busy) return;
     prompted.current = true;
     void (async (): Promise<void> => {
       const values = await popup.requestInput({
@@ -67,21 +55,18 @@ export default function NicknamePrompt({ roomId, uid, studentNumber, defaultDisp
         if (values) {
           choice = { nickname: normalizeNickname(values.nickname), nicknameGrade: null };
         } else {
-          const usedNicknames = new Set(activePlayersRef.current.flatMap((player) => player.nickname ? [player.nickname] : []));
-          const candidate = pickRandomNickname(usedNicknames);
-          let roll: DailyRandomNickname;
           try {
-            roll = await claimDailyRandomNickname(uid, studentNumber, roomId, dailyRandomNicknameDay(), candidate);
+            const roll = await ensureDailyRandomNickname(roomId);
+            choice = { nickname: roll.nickname, nicknameGrade: roll.nicknameGrade };
           } catch (error: unknown) {
             prompted.current = false;
             await popup.showMessage({
-              title: "랜덤 닉네임을 저장하지 못했어요",
+              title: "랜덤 닉네임을 뽑지 못했어요",
               message: toErrorMessage(error, "잠시 후 다시 뽑아주세요."),
               tone: "error",
             });
             return;
           }
-          choice = { nickname: roll.nickname, nicknameGrade: roll.nicknameGrade };
         }
         if (!choice.nickname) {
           prompted.current = false;
@@ -100,7 +85,7 @@ export default function NicknamePrompt({ roomId, uid, studentNumber, defaultDisp
         setBusy(false);
       }
     })();
-  }, [busy, defaultDisplayName, onChooseNickname, playersLoading, popup, prompted]);
+  }, [busy, defaultDisplayName, onChooseNickname, popup, prompted, roomId]);
 
   return null;
 }
