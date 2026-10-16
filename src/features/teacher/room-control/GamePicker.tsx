@@ -32,6 +32,7 @@ const GROUPS = [
   ] },
   { title: "작업 중 게임", games: [
     ["learning-jump-tower", "학습 점프타워"],
+    ["word-deathmatch", "단어 데스매치"],
     ["chunk-line-up", "플랫포머 문장 만들기"],
   ] },
 ] as const;

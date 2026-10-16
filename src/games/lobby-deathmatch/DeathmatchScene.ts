@@ -195,6 +195,12 @@ export default class DeathmatchScene extends Phaser.Scene {
     else this.earlyClaims.push(claim);
   }
 
+  /** Where the local player stands in world space; null while dead or before create(). */
+  protected localFeet(): { readonly x: number; readonly y: number } | null {
+    if (!this.body || this.respawnAt !== null) return null;
+    return { x: this.body.center.x, y: this.body.bottom };
+  }
+
   override update(time: number, delta: number): void {
     const now = this.options.nowMs();
     this.lastFrames = this.options.samplePlayers();
