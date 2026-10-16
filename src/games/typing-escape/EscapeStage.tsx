@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { useEffect, useRef } from "react";
 import { BlobActor } from "../../game-engine/phaser-kit/BlobActor.ts";
 import { FONT_FAMILY, TEXT_METRICS_SAMPLE } from "../../game-engine/phaser-kit/art.ts";
+import { LocalCharacterHighlight } from "../../game-engine/phaser-kit/LocalCharacterHighlight.ts";
 import { FINISH, WORD_JUMP } from "./model.ts";
 import styles from "./TypingEscape.module.css";
 
@@ -27,8 +28,7 @@ class EscapeScene extends Phaser.Scene {
   private gun!: Phaser.GameObjects.Image;
   private spotlight!: Phaser.GameObjects.Graphics;
   private lamp!: Phaser.GameObjects.Arc;
-  private selfRing!: Phaser.GameObjects.Ellipse;
-  private selfArrow!: Phaser.GameObjects.Triangle;
+  private selfHighlight!: LocalCharacterHighlight;
   private cameraX = START_X;
   private wasWatching = false;
   private reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -103,8 +103,9 @@ class EscapeScene extends Phaser.Scene {
       art.fillStyle(0x9fba99).fillRect(8, 12, 36, 5).fillRect(10, 17, 5, 30);
       for (const x of [20, 28, 36]) art.fillStyle(0x3d574f).fillRect(x, 20, 3, 25);
     });
-    this.selfRing = this.add.ellipse(0, 0, 78, 20, 0xe2ff83, .55).setStrokeStyle(3, 0xe2ff83).setVisible(false);
-    this.selfArrow = this.add.triangle(0, 0, 0, 0, 26, 0, 13, 18, 0xe2ff83).setStrokeStyle(3, INK).setOrigin(.5, 1).setDepth(71).setVisible(false);
+    this.selfHighlight = new LocalCharacterHighlight(this);
+    this.selfHighlight.glow.setDepth(7).setVisible(false);
+    this.selfHighlight.marker.setDepth(71).setVisible(false);
     this.texture("escape-lid", 56, 16, art => {
       art.fillStyle(INK).fillRect(1, 7, 54, 9).fillRect(20, 0, 16, 7);
       art.fillStyle(0xa2b99b).fillRect(4, 8, 48, 4).fillRect(23, 3, 10, 4);
@@ -210,17 +211,19 @@ class EscapeScene extends Phaser.Scene {
       const scale = local ? 1.12 : others.length > 20 ? .68 : .82;
       let actor = this.actors.get(runner.id);
       if (!actor) {
-        const character = new BlobActor(this, runner.id, local);
+        // This game's bin and external tag share one highlight even while the blob is hidden.
+        const character = new BlobActor(this, runner.id, false);
         character.tag.setVisible(false);
         character.container.setScale(scale * 1.35);
         actor = { id: runner.id, character,
           bin: this.add.image(targetX, y, "escape-bin").setOrigin(.5, 1), lid: this.add.image(targetX, y - 47, "escape-lid").setOrigin(.5, 1),
           tag: this.add.text(targetX, y - 74, "", local
-            ? { ...textStyle, fontSize: "18px", color: "#192a31", backgroundColor: "#e2ff83", padding: { x: 7, y: 3 } }
+            ? { ...textStyle, fontSize: "18px", padding: { x: 7, y: 3 } }
             : { ...textStyle, fontSize: "13px", stroke: "#192a31", strokeThickness: 4 }).setOrigin(.5, 1),
           shadow: this.add.ellipse(targetX, y, 42, 7, INK, .2),
           x: targetX, y, distance: runner.distance, hits: runner.hits, escapes: runner.escapes, stepAt: -1000, leapAt: -1000, leapFrom: targetX };
         this.actors.set(runner.id, actor);
+        if (local) this.selfHighlight.styleTag(actor.tag);
       }
       if (runner.hits > actor.hits) this.shoot(actor, local);
       if (runner.escapes > actor.escapes) this.celebrate(actor, local);
@@ -253,9 +256,9 @@ class EscapeScene extends Phaser.Scene {
       actor.tag.setText(local ? `나 · ${runner.label}${runner.escapes ? ` · ${runner.escapes}` : ""}` : `${runner.label}${runner.escapes ? ` · ${runner.escapes}` : ""}`)
         .setPosition(actor.x, y - 66 * scale - hop).setDepth(local ? 72 : 70).setAlpha(alpha);
       if (local) {
-        const bob = this.reducedMotion ? 0 : Math.sin(time / 160) * 5;
-        this.selfArrow.setPosition(actor.x, y - 66 * scale - hop - 34 + bob).setVisible(true);
-        this.selfRing.setPosition(actor.x, y + 2).setDepth(7).setAlpha(.6 + Math.sin(time / 200) * .3).setVisible(true);
+        this.selfHighlight.update(this.reducedMotion ? 0 : time);
+        this.selfHighlight.marker.setVisible(true);
+        this.selfHighlight.glow.setPosition(actor.x, y + 2).setVisible(true);
         this.cameraX = Phaser.Math.Linear(this.cameraX, actor.x, Math.min(1, delta / 300));
       }
       const labels = labelsByRow.get(y) ?? [];
@@ -266,7 +269,10 @@ class EscapeScene extends Phaser.Scene {
     const camera = this.cameras.main;
     if (state.selfId) camera.setBounds(0, 0, 1120, 560).setZoom(ZOOM).centerOn(this.cameraX, 560);
     else camera.setZoom(1).centerOn(560, 280);
-    if (!state.runners.some(r => r.id === state.selfId)) { this.selfArrow.setVisible(false); this.selfRing.setVisible(false); }
+    if (!state.runners.some(r => r.id === state.selfId)) {
+      this.selfHighlight.marker.setVisible(false);
+      this.selfHighlight.glow.setVisible(false);
+    }
   }
 }
 

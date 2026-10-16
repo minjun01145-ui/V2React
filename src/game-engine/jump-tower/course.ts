@@ -1,5 +1,7 @@
 import { createSeededRandom } from "../core/random.ts";
 import { ITEM_HOVER, PARTY_ITEM_KINDS, type PartyItem, type PartyItemKind } from "../platformer-party/buffs.ts";
+import { climbMapForSeed, type ClimbMapDefinition } from "./maps/index.ts";
+import { movingPlatformX } from "./platforms/moving.ts";
 
 /**
  * The endless climb. Platform `k` sits k steps above the ground; its position,
@@ -21,7 +23,7 @@ export const CLIMB_MAX_SHIFT = 230;
 const MARGIN = 70;
 const MILESTONE_WIDTH = 260;
 
-export type ClimbPlatformKind = "step" | "moving" | "pad" | "milestone";
+export type ClimbPlatformKind = "step" | "moving" | "slippery" | "crumbling" | "pad" | "milestone";
 
 export interface ClimbPlatformStyle {
   readonly top: number;
@@ -51,22 +53,22 @@ export interface ClimbCourseSource {
   readonly kindOf: (id: string) => PartyItemKind | null;
 }
 
-export function climbPlatformWidth(index: number): number {
-  if (index % CLIMB_MILESTONE_EVERY === 0) return MILESTONE_WIDTH;
-  return Math.max(90, 170 - index);
+export function climbPlatformWidth(index: number, map?: ClimbMapDefinition): number {
+  if (index % CLIMB_MILESTONE_EVERY === 0) return map?.platforms.milestoneWidth ?? MILESTONE_WIDTH;
+  return Math.max(map?.platforms.minimumWidth ?? 90, (map?.platforms.width ?? 170) - index);
 }
 
-function kindOf(index: number): ClimbPlatformKind {
+function kindOf(index: number, map: ClimbMapDefinition): ClimbPlatformKind {
   if (index % CLIMB_MILESTONE_EVERY === 0) return "milestone";
   if (index % 15 === 7) return "pad";
-  if (index > 12 && index % 4 === 1) return "moving";
+  if (index % map.platforms.every === map.platforms.offset) return map.platforms.special;
   return "step";
 }
 
 /** Platform centres are a bounded random walk, cached per seed because each depends on the previous one. */
 const centreCache = new Map<string, number[]>();
 
-function centres(seed: string, upTo: number): number[] {
+function centres(seed: string, upTo: number, map: ClimbMapDefinition): number[] {
   let list = centreCache.get(seed);
   if (!list) {
     list = [CLIMB_WORLD_WIDTH / 2];
@@ -74,10 +76,10 @@ function centres(seed: string, upTo: number): number[] {
   }
   for (let index = list.length; index <= upTo; index += 1) {
     const previous = list[index - 1]!;
-    const width = climbPlatformWidth(index);
+    const width = climbPlatformWidth(index, map);
     const random = createSeededRandom(`climb:${seed}:${index}`);
-    const min = Math.max(MARGIN + width / 2, previous - CLIMB_MAX_SHIFT);
-    const max = Math.min(CLIMB_WORLD_WIDTH - MARGIN - width / 2, previous + CLIMB_MAX_SHIFT);
+    const min = Math.max(MARGIN + width / 2, previous - map.platforms.maxShift);
+    const max = Math.min(CLIMB_WORLD_WIDTH - MARGIN - width / 2, previous + map.platforms.maxShift);
     // Prefer real sideways hops so the climb zig-zags instead of stacking.
     let centre = min + random() * (max - min);
     if (Math.abs(centre - previous) < 70) centre = previous + (centre >= previous ? 1 : -1) * 90;
@@ -86,10 +88,10 @@ function centres(seed: string, upTo: number): number[] {
   return list;
 }
 
-export function climbPlatform(seed: string, index: number): ClimbPlatform {
-  const width = climbPlatformWidth(index);
-  const centre = centres(seed, index)[index] ?? CLIMB_WORLD_WIDTH / 2;
-  const kind = kindOf(index);
+export function climbPlatform(seed: string, index: number, map: ClimbMapDefinition = climbMapForSeed(seed)): ClimbPlatform {
+  const width = climbPlatformWidth(index, map);
+  const centre = centres(`${seed}:${map.id}`, index, map)[index] ?? CLIMB_WORLD_WIDTH / 2;
+  const kind = kindOf(index, map);
   const moving = kind === "moving";
   const random = createSeededRandom(`climb:${seed}:${index}:motion`);
   return {
@@ -98,15 +100,14 @@ export function climbPlatform(seed: string, index: number): ClimbPlatform {
     x: Math.round(centre - width / 2),
     y: -index * CLIMB_STEP,
     width,
-    range: moving ? Math.min(70, centre - width / 2 - MARGIN / 2, CLIMB_WORLD_WIDTH - MARGIN / 2 - centre - width / 2) : 0,
-    periodMs: moving ? 3_000 + Math.round(random() * 1_400) : 0,
+    range: moving ? Math.min(map.platforms.movingRange, centre - width / 2 - MARGIN / 2, CLIMB_WORLD_WIDTH - MARGIN / 2 - centre - width / 2) : 0,
+    periodMs: moving ? map.platforms.movingPeriodMs + Math.round(random() * 1_000) : 0,
   };
 }
 
 /** Left edge of a moving platform, driven by the shared server clock so every client agrees. */
 export function climbPlatformX(platform: ClimbPlatform, nowMs: number): number {
-  if (platform.kind !== "moving") return platform.x;
-  return platform.x + Math.sin((nowMs / platform.periodMs) * Math.PI * 2) * platform.range;
+  return platform.kind === "moving" ? movingPlatformX(platform, nowMs) : platform.x;
 }
 
 /** Floor number for feet at `feetY` (0 is the ground). */
@@ -132,7 +133,7 @@ export function climbItemsAt(seed: string, nowMs: number, nearFloor: number, rad
   for (let index = first; index <= nearFloor + radius; index += 1) {
     if (index % ITEM_EVERY !== ITEM_OFFSET) continue;
     const platform = climbPlatform(seed, index);
-    if (platform.kind === "moving" || platform.kind === "pad") continue;
+    if (platform.kind === "moving" || platform.kind === "pad" || platform.kind === "crumbling") continue;
     const kind = climbItemKind(seed, index, window);
     items.push({ id: `c${index}-${window}`, kind, x: platform.x + platform.width / 2, y: platform.y - ITEM_HOVER });
   }

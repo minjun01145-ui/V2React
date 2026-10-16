@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import { FONT_FAMILY, TEXT_RESOLUTION } from "../../phaser-kit/art.ts";
 import { bakeSprite } from "../../phaser-kit/BakedLayer.ts";
 import { climbPlatform, climbPlatformX, type ClimbCourseSource, type ClimbPlatform, type ClimbPlatformKind, type ClimbPlatformStyle } from "../course.ts";
+import { climbMapForSeed, type ClimbMapDefinition } from "../maps/index.ts";
+import { crumblePhase, CRUMBLE_WARNING_MS, CRUMBLE_HIDDEN_MS } from "../platforms/crumbling.ts";
 
 const PLATFORM_HEIGHT = 16;
 const PAD_HEIGHT = 26;
@@ -13,17 +15,37 @@ const LOOK: Readonly<Record<ClimbPlatformKind, { readonly top: number; readonly 
   step: { top: 0x8bd17c, side: 0x5a9e4b },
   pad: { top: 0x8bd17c, side: 0x5a9e4b },
   moving: { top: 0x60a5fa, side: 0x2563eb },
+  slippery: { top: 0xb9f5ff, side: 0x438bb9 },
+  crumbling: { top: 0x79515b, side: 0x3c2833 },
   milestone: { top: 0xfbbf24, side: 0xc98a16 },
 };
 
-function platformTexture(scene: Phaser.Scene, kind: ClimbPlatformKind, width: number, style?: ClimbPlatformStyle): string {
-  const { top, side } = style ?? LOOK[kind];
-  const key = style ? `climb-${kind}-${width}-${top}-${side}` : `climb-${kind}-${width}`;
-  return bakeSprite(scene, key, width + 4, PLATFORM_HEIGHT + 6, (graphics) => {
+function platformTexture(scene: Phaser.Scene, kind: ClimbPlatformKind, width: number, style?: ClimbPlatformStyle, map?: ClimbMapDefinition): string {
+  const palette = kind === "milestone" ? map?.theme.milestone : kind === "moving" ? map?.theme.moving : map?.theme.platform;
+  const { top, side } = style ?? (palette ? { top: palette[0], side: palette[1] } : LOOK[kind]);
+  const key = `climb-${map?.id ?? "learning"}-${kind}-${width}-${top}-${side}`;
+  return bakeSprite(scene, key, width + 4, PLATFORM_HEIGHT + 10, (graphics) => {
     graphics.fillStyle(0x0f172a, 0.14).fillRoundedRect(3, 5, width, PLATFORM_HEIGHT, 7);
     graphics.fillStyle(side, 1).fillRoundedRect(0, 3, width, PLATFORM_HEIGHT - 3, 7);
     graphics.fillStyle(top, 1).fillRoundedRect(0, 0, width, PLATFORM_HEIGHT - 5, 7);
     graphics.fillStyle(0xffffff, 0.4).fillRoundedRect(6, 2, width - 12, 3, 1);
+    if (map?.theme.shape === "cloud") {
+      graphics.fillStyle(top, 1);
+      for (let x = 12; x < width - 8; x += 22) graphics.fillEllipse(x, 9, 32, 20);
+    }
+    if (map?.theme.shape === "ice") {
+      graphics.lineStyle(2, 0xffffff, 0.55).lineBetween(12, 9, 33, 2).lineBetween(width - 42, 9, width - 18, 2);
+      graphics.fillStyle(side, 0.9).fillTriangle(16, 13, 22, 21, 28, 13);
+    }
+    if (kind === "slippery") {
+      graphics.lineStyle(2, 0xffffff, 0.95);
+      for (let x = 20; x < width - 8; x += 35) graphics.lineBetween(x, 3, x - 8, 9);
+    }
+    if (kind === "crumbling") {
+      graphics.lineStyle(2, map?.theme.accent ?? 0xff863f, 1);
+      graphics.lineBetween(width * 0.35, 1, width * 0.43, 6).lineBetween(width * 0.43, 6, width * 0.37, 13);
+      graphics.lineBetween(width * 0.7, 2, width * 0.61, 10);
+    }
     if (kind === "moving") {
       graphics.fillStyle(0xffffff, 0.9);
       graphics.fillTriangle(8, 7, 14, 3, 14, 11);
@@ -61,6 +83,8 @@ export class ClimbCourseView {
   private readonly seed: string;
   private readonly source: ClimbCourseSource | undefined;
   readonly statics: Phaser.Physics.Arcade.StaticGroup;
+  private readonly map: ClimbMapDefinition | undefined;
+  private readonly touchedAt = new Map<number, number>();
   readonly movers: Phaser.Physics.Arcade.Group;
   private readonly live = new Map<number, LivePlatform>();
   private highlight: Phaser.GameObjects.Graphics | undefined;
@@ -71,6 +95,7 @@ export class ClimbCourseView {
     this.scene = scene;
     this.seed = seed;
     this.source = source;
+    this.map = source ? undefined : climbMapForSeed(seed);
     this.statics = scene.physics.add.staticGroup();
     this.movers = scene.physics.add.group({ allowGravity: false, immovable: true });
   }
@@ -93,6 +118,11 @@ export class ClimbCourseView {
       }
     }
     for (const entry of this.live.values()) {
+      const phase = entry.platform.kind === "crumbling" ? crumblePhase(this.touchedAt.get(entry.platform.index), nowMs) : "solid";
+      (entry.zone.body as Phaser.Physics.Arcade.Body).enable = phase !== "hidden";
+      entry.art.setVisible(phase !== "hidden").setAlpha(phase === "warning" ? 0.55 + Math.sin(nowMs / 35) * 0.25 : 1);
+      if (phase === "warning") entry.art.setTint(0xffa060);
+      else entry.art.clearTint();
       if (entry.platform.kind !== "moving") continue;
       // Direct control derives collision velocity from the actual displacement.
       // Render-frame feedback can oscillate against Arcade's fixed physics steps.
@@ -100,7 +130,20 @@ export class ClimbCourseView {
       entry.zone.setX(target);
       entry.art.setX(target);
     }
+    for (const [index, touchedAt] of this.touchedAt) {
+      if (nowMs >= touchedAt + CRUMBLE_WARNING_MS + CRUMBLE_HIDDEN_MS) this.touchedAt.delete(index);
+    }
     this.drawHighlight();
+  }
+
+  /** First shared touch wins; simultaneous landings cannot extend an existing collapse. */
+  touch(index: number, touchedAt: number): void {
+    const previous = this.touchedAt.get(index);
+    if (previous !== undefined && crumblePhase(previous, touchedAt) !== "solid") {
+      this.touchedAt.set(index, Math.min(previous, touchedAt));
+      return;
+    }
+    this.touchedAt.set(index, touchedAt);
   }
 
   /** Every candidate receives the same glow; the effect never identifies the correct answer. */
@@ -146,7 +189,7 @@ export class ClimbCourseView {
   platformAt(leftX: number, rightX: number, feetY: number): ClimbPlatform | null {
     for (const entry of this.live.values()) {
       const body = entry.zone.body as Phaser.Physics.Arcade.Body;
-      if (Math.abs(feetY - body.top) <= 4 && rightX > body.left && leftX < body.right) return entry.platform;
+      if (body.enable && Math.abs(feetY - body.top) <= 4 && rightX > body.left && leftX < body.right) return entry.platform;
     }
     return null;
   }
@@ -189,7 +232,7 @@ export class ClimbCourseView {
     }
     oneWay(zone.body as Phaser.Physics.Arcade.Body);
     zone.setData("climbPlatform", platform);
-    const art = this.scene.add.image(centreX, platform.y, platformTexture(this.scene, platform.kind, platform.width, platform.style))
+    const art = this.scene.add.image(centreX, platform.y, platformTexture(this.scene, platform.kind, platform.width, platform.style, this.map))
       .setOrigin(0.5, 0)
       .setDepth(5);
     const pad = platform.kind === "pad"

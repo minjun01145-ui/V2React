@@ -6,6 +6,7 @@ import { CLIMB_JUMP_PAD_VELOCITY, CLIMB_PLAYER_HEIGHT, CLIMB_PLAYER_WIDTH } from
 import { ClimbCourseView } from "../../game-engine/jump-tower/scene/ClimbCourseView.ts";
 import { ensureSharedTextures, playerColor } from "../../game-engine/phaser-kit/art.ts";
 import { BLOB_TAG_Y, BlobActor, compactLabel } from "../../game-engine/phaser-kit/BlobActor.ts";
+import { characterCameraZoom, followCameraX } from "../../game-engine/phaser-kit/camera.ts";
 import { Effects } from "../../game-engine/phaser-kit/Effects.ts";
 import { clearPlatformerInput, createJumpState, type PlatformerInput } from "../../game-engine/platformer/movement.ts";
 import { launchFromPunch, PLATFORMER_MAX_FALL_SPEED, PLATFORMER_RUN_SPEED, steerPlatformerBody } from "../../game-engine/platformer/steering.ts";
@@ -15,10 +16,12 @@ import { PowerUpLayer } from "../../game-engine/platformer-party/PowerUpLayer.ts
 import { FIST_REACH, PUNCH_COOLDOWN_MS, PUNCH_EVENT, PUNCH_KNOCKBACK_MS, choosePunchTarget } from "../../game-engine/platformer-party/punch.ts";
 import type { LiveEvent } from "../../live-world/client.ts";
 import type { LiveMovementState, LiveRemoteFrame } from "../../live-world/core/types.ts";
-import { ARENA_COURSE, ARENA_LAVA_Y, ARENA_VIEW_HEIGHT, ARENA_WIDTH, DEATHMATCH_RESPAWN_MS, arenaSpawnPoint, isInLava } from "./arena.ts";
-import { DEATHMATCH_ITEMS } from "./items.ts";
+import { ARENA_VIEW_HEIGHT, ARENA_VIEW_WIDTH, DEATHMATCH_RESPAWN_MS, arenaCourse, arenaSpawnPoint } from "./arena.ts";
+import { createDeathmatchItems } from "./items.ts";
 import { createKillCredit } from "./killCredit.ts";
-import { LavaView } from "./scene/LavaView.ts";
+import type { ArenaMap } from "./maps/types.ts";
+import { ArenaHazards } from "./scene/ArenaHazards.ts";
+import { createArenaView } from "./scene/ArenaView.ts";
 import { PusherView } from "./scene/PusherView.ts";
 
 /** Broadcast by a player who died (lava or knocked out); `target` names whoever gets the kill ("" for none). */
@@ -29,6 +32,7 @@ const BLINK_MS = 1_200;
 const BAR_OFFSET_Y = BLOB_TAG_Y - 14;
 
 export interface DeathmatchSceneOptions {
+  readonly map: ArenaMap;
   readonly localPlayer: { readonly id: string; readonly label: string };
   /** First spawn position (body centre); later respawns pick their own. */
   readonly spawn: { readonly x: number; readonly y: number };
@@ -47,12 +51,12 @@ export interface DeathmatchSceneOptions {
   readonly onDeath: (victimId: string, killerId: string | null) => void;
 }
 
-/** The lobby deathmatch: one screen of platforms over lava; punch (or slash) others in or knock them out. */
+/** Shared world-space combat on a scrolling, themed arena. */
 export default class DeathmatchScene extends Phaser.Scene {
   private readonly options: DeathmatchSceneOptions;
   private course!: ClimbCourseView;
   private pushers!: PusherView;
-  private lava!: LavaView;
+  private hazards!: ArenaHazards;
   private effects!: Effects;
   private combat!: CombatLayer;
   private powerUps: PowerUpLayer | undefined;
@@ -72,6 +76,7 @@ export default class DeathmatchScene extends Phaser.Scene {
   private respawnAt: number | null = null;
   private blinkUntil = 0;
   private attackPickups = 0;
+  private cameraX = 0;
 
   constructor(options: DeathmatchSceneOptions) {
     super("lobby-deathmatch");
@@ -80,13 +85,15 @@ export default class DeathmatchScene extends Phaser.Scene {
 
   create(): void {
     ensureSharedTextures(this);
-    this.lava = new LavaView(this);
-    this.course = new ClimbCourseView(this, "deathmatch", ARENA_COURSE);
-    this.pushers = new PusherView(this);
+    const { map } = this.options;
+    createArenaView(this, map);
+    this.hazards = new ArenaHazards(this, map.hazards);
+    this.course = new ClimbCourseView(this, "deathmatch", arenaCourse(map));
+    this.pushers = new PusherView(this, map.pushers, map.width);
     this.effects = new Effects(this);
     this.combat = new CombatLayer(this, this.effects);
     this.powerUps = new PowerUpLayer(this, this.effects, {
-      source: DEATHMATCH_ITEMS,
+      source: createDeathmatchItems(map),
       localPlayerId: this.options.localPlayer.id,
       nowMs: this.options.nowMs,
       claimItem: this.options.claimItem,
@@ -94,8 +101,9 @@ export default class DeathmatchScene extends Phaser.Scene {
     });
     this.earlyClaims.forEach((claim) => this.powerUps?.receiveClaim(claim));
     this.earlyClaims = [];
-    // Side walls only; the top is open and the lava is handled by `isInLava`.
-    this.physics.world.setBounds(0, ARENA_LAVA_Y - 4_000, ARENA_WIDTH, 4_400, true, true, false, false);
+    // Solid side walls and ceiling; only maps with a safe floor collide below.
+    this.physics.world.setBounds(0, map.ceilingY, map.width, map.floorY - map.ceilingY, true, true, true, map.safeFloor);
+    this.physics.world.gravity.y *= map.gravityMultiplier;
 
     const { spawn } = this.options;
     this.player = this.add.zone(spawn.x, spawn.y, CLIMB_PLAYER_WIDTH, CLIMB_PLAYER_HEIGHT);
@@ -107,7 +115,7 @@ export default class DeathmatchScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.course.movers, undefined, landOn);
     this.physics.add.collider(this.player, this.pushers.group);
     this.actor = new BlobActor(this, this.options.localPlayer.id, true);
-    this.actor.setTag(`★ ${compactLabel(this.options.localPlayer.label, 10)}`);
+    this.actor.setTag(compactLabel(this.options.localPlayer.label, 10));
     this.blinkUntil = this.time.now + BLINK_MS;
 
     this.fitCamera();
@@ -161,7 +169,7 @@ export default class DeathmatchScene extends Phaser.Scene {
       this.remoteRespawnAt.set(event.playerId, this.options.nowMs() + DEATHMATCH_RESPAWN_MS);
       this.combat.reset(event.playerId);
       const frame = this.lastFrames.find((entry) => entry.playerId === event.playerId);
-      if (frame) this.burst(frame.x, frame.y, event.playerId, isInLava(frame.y + CLIMB_PLAYER_HEIGHT / 2 + 8));
+      if (frame) this.burst(frame.x, frame.y, event.playerId);
       this.options.onDeath(event.playerId, event.target || null);
       return;
     }
@@ -192,9 +200,10 @@ export default class DeathmatchScene extends Phaser.Scene {
     this.lastFrames = this.options.samplePlayers();
     this.course.update(0, now);
     this.pushers.update(now);
-    this.lava.update(time);
+    this.hazards.update(time);
     this.updateLocalPlayer(time, delta, now);
     this.updateActors(time, delta, now);
+    this.updateCamera(delta);
     this.powerUps?.update(time, this.respawnAt === null ? { x: this.body.center.x, y: this.body.center.y } : null);
     const attackPickups = this.powerUps?.count(this.options.localPlayer.id, "attack") ?? 0;
     if (attackPickups !== this.attackPickups) {
@@ -209,7 +218,7 @@ export default class DeathmatchScene extends Phaser.Scene {
     const left = this.combat.hit(this.options.localPlayer.id, damage, this.body.center.x, this.body.center.y - 6);
     this.cameras.main.shake(90, 0.005);
     if (left <= 0) {
-      this.die(this.options.nowMs(), false);
+      this.die(this.options.nowMs());
       return;
     }
     launchFromPunch(this.body, value);
@@ -220,9 +229,15 @@ export default class DeathmatchScene extends Phaser.Scene {
   private fitCamera(): void {
     const camera = this.cameras.main;
     camera.setSize(this.scale.width, this.scale.height);
-    const zoom = Math.min(this.scale.width / (ARENA_WIDTH + 40), this.scale.height / (ARENA_VIEW_HEIGHT + 60));
-    camera.setZoom(Phaser.Math.Clamp(zoom, 0.3, 2));
-    camera.centerOn(ARENA_WIDTH / 2, ARENA_LAVA_Y - ARENA_VIEW_HEIGHT / 2 + 30);
+    camera.setZoom(characterCameraZoom(this.scale.width, this.scale.height, ARENA_VIEW_WIDTH + 40, ARENA_VIEW_HEIGHT + 60));
+    this.cameraX = followCameraX(this.body.center.x, this.body.center.x, camera.width / camera.zoom, this.options.map.width, 0);
+    camera.centerOn(this.cameraX, this.options.map.floorY - ARENA_VIEW_HEIGHT / 2 + 30);
+  }
+
+  private updateCamera(delta: number): void {
+    const camera = this.cameras.main;
+    this.cameraX = followCameraX(this.cameraX, this.body.center.x, camera.width / camera.zoom, this.options.map.width, delta);
+    camera.centerOn(this.cameraX, this.options.map.floorY - ARENA_VIEW_HEIGHT / 2 + 30);
   }
 
   private canLandOn(platform: unknown): boolean {
@@ -268,15 +283,15 @@ export default class DeathmatchScene extends Phaser.Scene {
     if (grounded && !this.wasGrounded) this.effects.landingDust(body.center.x, body.bottom);
     this.wasGrounded = grounded;
 
-    if (isInLava(body.bottom)) {
-      this.die(now, true);
+    if (this.hazards.apply(body, delta)) {
+      this.die(now);
       return;
     }
     this.options.publish({ x: body.center.x, y: body.center.y, vx: body.velocity.x, vy: body.velocity.y });
   }
 
-  /** Lava or a knockout: the last puncher (if recent) gets the kill. */
-  private die(now: number, inLava: boolean): void {
+  /** Environmental hazards or a knockout: a recent puncher gets the kill. */
+  private die(now: number): void {
     const { x, y } = this.body.center;
     const localId = this.options.localPlayer.id;
     const killerId = this.killCredit.claim(now);
@@ -286,18 +301,18 @@ export default class DeathmatchScene extends Phaser.Scene {
     this.actor.container.setVisible(false);
     clearPlatformerInput(this.options.input);
     this.options.publishEvent(DEATH_EVENT, killerId ?? "", 0);
-    this.burst(x, y, localId, inLava);
+    this.burst(x, y, localId);
     this.cameras.main.shake(220, 0.01);
     this.options.onDeath(localId, killerId);
   }
 
-  private burst(x: number, y: number, playerId: string, inLava: boolean): void {
-    if (inLava) this.lava.splash(x);
-    this.effects.shatter(x, Math.min(y, ARENA_LAVA_Y - 10), playerColor(playerId));
+  private burst(x: number, y: number, playerId: string): void {
+    this.hazards.splash(x, y + CLIMB_PLAYER_HEIGHT / 2);
+    this.effects.shatter(x, Math.min(y, this.options.map.floorY - 10), playerColor(playerId));
   }
 
   private respawn(): void {
-    const spawn = arenaSpawnPoint(Math.random(), CLIMB_PLAYER_HEIGHT);
+    const spawn = arenaSpawnPoint(this.options.map, Math.random(), CLIMB_PLAYER_HEIGHT);
     this.combat.reset(this.options.localPlayer.id);
     this.body.enable = true;
     this.body.reset(spawn.x, spawn.y);
@@ -309,6 +324,7 @@ export default class DeathmatchScene extends Phaser.Scene {
     this.respawnAt = null;
     this.blinkUntil = this.time.now + BLINK_MS;
     this.effects.pickup(spawn.x, spawn.y);
+    this.fitCamera();
     this.options.publish({ x: spawn.x, y: spawn.y, vx: 0, vy: 0 });
   }
 
@@ -342,7 +358,7 @@ export default class DeathmatchScene extends Phaser.Scene {
       actor.setTag(compactLabel(label, 8));
       actor.update({ x: frame.x, feetY, vx: frame.vx, vy: frame.vy }, time, delta);
       const respawnAt = this.remoteRespawnAt.get(frame.playerId) ?? 0;
-      const shown = now >= respawnAt && feetY < ARENA_LAVA_Y;
+      const shown = now >= respawnAt && feetY <= this.options.map.floorY + 4;
       actor.container.setVisible(shown);
       if (now >= respawnAt) this.remoteRespawnAt.delete(frame.playerId);
       if (!shown) continue;

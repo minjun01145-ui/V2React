@@ -20,6 +20,7 @@ import { dailyChannelId } from "../../live-world/dailyChannel.ts";
 import { displayLabel, type Player } from "../../multiplayer/types.ts";
 import { arenaSpawnPoint } from "./arena.ts";
 import DeathmatchScene from "./DeathmatchScene.ts";
+import { selectArenaMap } from "./maps/index.ts";
 import { deathmatchScoreboard } from "./scoreboard.ts";
 import styles from "./LobbyDeathmatch.module.css";
 
@@ -43,10 +44,7 @@ interface FeedEntry {
   readonly self: boolean;
 }
 
-/**
- * Lobby deathmatch: everyone in the room on one screen, punching each other
- * into the lava. Kills and deaths are counted per day on two record boards.
- */
+/** The room's shared daily game channel chooses one arena; records remain daily. */
 export default function LobbyDeathmatch(props: Props) {
   return <ImmersiveStage><DeathmatchStage {...props} /></ImmersiveStage>;
 }
@@ -76,6 +74,7 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
     let active = true;
     const onError = (error: Error): void => { if (active) setConnectionError(error); };
     const channelId = dailyChannelId("deathmatch");
+    const map = selectArenaMap(`${roomId}:${channelId}`);
     const scope = { roomId, roundId: LOBBY_SCOPE_ID, channelId };
     let serverOffsetMs = 0;
     const unsubscribeClock = subscribeLiveServerTimeOffset((offset) => { serverOffsetMs = offset; }, onError);
@@ -108,8 +107,9 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
       window.setTimeout(() => { if (active) setFeed((current) => current.filter((item) => item.id !== entry.id)); }, FEED_MS);
     };
 
-    const spawn = arenaSpawnPoint(Math.random(), CLIMB_PLAYER_HEIGHT);
+    const spawn = arenaSpawnPoint(map, Math.random(), CLIMB_PLAYER_HEIGHT);
     const scene = new DeathmatchScene({
+      map,
       localPlayer: { id: playerId, label },
       spawn,
       input,
@@ -129,7 +129,7 @@ function DeathmatchStage({ roomId, playerId, label, players, onExit }: Props) {
       parent: host,
       width: host.clientWidth || 960,
       height: host.clientHeight || 620,
-      backgroundColor: "#1e1b4b",
+      backgroundColor: map.theme.background,
       physics: { default: "arcade", arcade: { gravity: { x: 0, y: CLIMB_GRAVITY }, debug: false } },
       scale: resizeScaleConfig(),
       render: { antialias: true, pixelArt: false },

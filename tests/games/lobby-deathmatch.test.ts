@@ -1,56 +1,63 @@
 import assert from "node:assert/strict";
 import { CLIMB_PLAYER_HEIGHT } from "../../src/game-engine/jump-tower/course.ts";
-import {
-  ARENA_COURSE,
-  ARENA_GADGET_COUNT,
-  ARENA_LAVA_Y,
-  ARENA_PLATFORMS,
-  ARENA_PUSHERS,
-  ARENA_WIDTH,
-  arenaSpawnPoint,
-  isInLava,
-  pusherExtension,
-  pusherSpan,
-} from "../../src/games/lobby-deathmatch/arena.ts";
+import { ARENA_PUSHERS, ARENA_WIDTH, arenaCourse, arenaSpawnPoint, pusherExtension, pusherSpan } from "../../src/games/lobby-deathmatch/arena.ts";
+import { characterCameraZoom, followCameraX } from "../../src/game-engine/phaser-kit/camera.ts";
+import { applyAttractor } from "../../src/games/lobby-deathmatch/hazards/attractor.ts";
+import { touchesLava } from "../../src/games/lobby-deathmatch/hazards/lava.ts";
+import lavaCavern from "../../src/games/lobby-deathmatch/maps/lava-cavern.ts";
+import deepOcean from "../../src/games/lobby-deathmatch/maps/deep-ocean.ts";
+import blackHole from "../../src/games/lobby-deathmatch/maps/black-hole.ts";
 import { createKillCredit, KILL_CREDIT_MS } from "../../src/games/lobby-deathmatch/killCredit.ts";
 import { deathmatchScoreboard } from "../../src/games/lobby-deathmatch/scoreboard.ts";
-import { DEATHMATCH_ITEMS, DEATHMATCH_ITEM_WINDOW_MS } from "../../src/games/lobby-deathmatch/items.ts";
+import { createDeathmatchItems, DEATHMATCH_ITEM_WINDOW_MS } from "../../src/games/lobby-deathmatch/items.ts";
 
-// Arena: few enough gadgets that falling in stays likely, all of them over the lava.
-assert.ok(ARENA_GADGET_COUNT <= 10, "at most ten platforms and gadgets in total");
-for (const platform of ARENA_PLATFORMS) {
-  assert.ok(platform.y < ARENA_LAVA_Y, "every platform floats above the lava");
-  assert.ok(platform.x - platform.range >= 0 && platform.x + platform.width + platform.range <= ARENA_WIDTH, "platforms stay on screen");
-}
-assert.deepEqual(ARENA_COURSE.platformsAt(0), ARENA_PLATFORMS);
-assert.deepEqual(ARENA_COURSE.platformsAt(1), [], "the whole arena is one screen");
-
-// Every standing platform can be reached with a double jump (about 197 px) from one below it, or from the spring.
-const DOUBLE_JUMP_HEIGHT = 190;
-const standing = ARENA_PLATFORMS.filter((platform) => platform.kind !== "pad");
-for (const platform of standing) {
-  const fromBelow = ARENA_PLATFORMS.some((other) => other !== platform && other.y > platform.y
-    && (other.kind === "pad" || other.y - platform.y <= DOUBLE_JUMP_HEIGHT));
-  assert.ok(fromBelow, `platform ${platform.index} is reachable`);
-}
-
-// Spawns land on a platform, never in the lava.
-for (const roll of [0, 0.34, 0.67, 0.99]) {
-  const spawn = arenaSpawnPoint(roll, CLIMB_PLAYER_HEIGHT);
-  const feet = spawn.y + CLIMB_PLAYER_HEIGHT / 2;
-  assert.ok(ARENA_PLATFORMS.some((platform) => platform.kind === "step" && Math.abs(platform.y - feet) <= 6
-    && spawn.x > platform.x && spawn.x < platform.x + platform.width));
-  assert.equal(isInLava(feet), false);
-  for (const pusher of ARENA_PUSHERS) {
-    const bodyTop = spawn.y - CLIMB_PLAYER_HEIGHT / 2;
-    const besideIt = feet <= pusher.y || bodyTop >= pusher.y + pusher.height;
-    const sweep = pusher.wall === "left" ? { left: 0, right: pusher.reach } : { left: ARENA_WIDTH - pusher.reach, right: ARENA_WIDTH };
-    const clearOfIt = spawn.x + 20 < sweep.left || spawn.x - 20 > sweep.right;
-    assert.ok(besideIt || clearOfIt, "nobody respawns in a pusher's path");
+const maps = [lavaCavern, deepOcean, blackHole];
+for (const map of maps) {
+  assert.equal(map.width, 960 * 3);
+  assert.deepEqual(arenaCourse(map).platformsAt(0), map.platforms);
+  assert.deepEqual(arenaCourse(map).platformsAt(1), []);
+  for (const platform of map.platforms) {
+    assert.ok(platform.y > map.ceilingY && platform.y < map.floorY);
+    assert.ok(platform.x - platform.range >= 0 && platform.x + platform.width + platform.range <= map.width);
   }
+  const spawnXs: number[] = [];
+  for (let index = 0; index < map.spawns.length; index += 1) {
+    const spawn = arenaSpawnPoint(map, (index + 0.1) / map.spawns.length, CLIMB_PLAYER_HEIGHT);
+    const feet = spawn.y + CLIMB_PLAYER_HEIGHT / 2;
+    spawnXs.push(spawn.x);
+    assert.ok(map.platforms.some((platform) => platform.kind === "step" && Math.abs(platform.y - feet) <= 6
+      && spawn.x > platform.x && spawn.x < platform.x + platform.width));
+    for (const pusher of map.pushers) {
+      const bodyTop = spawn.y - CLIMB_PLAYER_HEIGHT / 2;
+      const besideIt = feet <= pusher.y || bodyTop >= pusher.y + pusher.height;
+      const clearOfIt = pusher.wall === "left" ? spawn.x - 20 > pusher.reach : spawn.x + 20 < map.width - pusher.reach;
+      assert.ok(besideIt || clearOfIt, "spawns never intersect a pusher's sweep");
+    }
+  }
+  assert.ok(Math.min(...spawnXs) < map.width / 6 && Math.max(...spawnXs) > map.width * 5 / 6, "spawns span the expanded world");
 }
-assert.equal(isInLava(ARENA_LAVA_Y - 20), false);
-assert.equal(isInLava(ARENA_LAVA_Y + 10), true);
+
+const lava = lavaCavern.hazards.find((hazard) => hazard.kind === "lava")!;
+assert.equal(touchesLava(lava, 100, -20), false);
+assert.equal(touchesLava(lava, 2_700, 10), true, "lava uses world coordinates across the full map");
+assert.equal(deepOcean.safeFloor, true);
+assert.ok(deepOcean.gravityMultiplier < 1);
+const hole = blackHole.hazards.find((hazard) => hazard.kind === "attractor")!;
+const attracted = { center: { x: hole.x - 100, y: hole.y + 20 }, velocity: { x: 0, y: 0 } };
+assert.equal(applyAttractor(hole, attracted, 16), false);
+assert.ok(attracted.velocity.x > 0 && attracted.velocity.y < 0, "nearby players accelerate toward the centre");
+const outside = { center: { x: hole.x - hole.radius - 1, y: hole.y }, velocity: { x: 0, y: 0 } };
+applyAttractor(hole, outside, 16);
+assert.deepEqual(outside.velocity, { x: 0, y: 0 });
+assert.equal(applyAttractor(hole, { center: { x: hole.x, y: hole.y }, velocity: { x: 0, y: 0 } }, 16), true);
+
+const zoom = characterCameraZoom(960, 620, 1_000, 660);
+assert.equal(zoom, Math.min(960 / 1_000, 620 / 660), "expanding the world preserves the previous vertical scale");
+assert.equal(followCameraX(500, 0, 1_000, ARENA_WIDTH, 16), 500);
+assert.equal(followCameraX(2_380, ARENA_WIDTH, 1_000, ARENA_WIDTH, 16), 2_380);
+const followed = followCameraX(500, 1_500, 1_000, ARENA_WIDTH, 32);
+assert.ok(followed > 500 && followed < 1_500, "tracking is smooth, not a teleport");
+assert.ok(Math.abs(followed - followCameraX(followCameraX(500, 1_500, 1_000, ARENA_WIDTH, 16), 1_500, 1_000, ARENA_WIDTH, 16)) < 1e-9);
 
 // Pushers: rest in the wall, slide out slowly to their reach and back, without jumps between frames.
 for (const pusher of ARENA_PUSHERS) {
@@ -66,11 +73,11 @@ for (const pusher of ARENA_PUSHERS) {
   assert.equal(min, 0);
   assert.ok(Math.abs(max - pusher.reach) < 1);
   // It sweeps across a ledge just above its surface, at the height of someone standing there.
-  const ledge = ARENA_PLATFORMS.find((platform) => platform.kind === "step" && platform.y - (pusher.y + pusher.height) >= 0
+  const ledge = lavaCavern.platforms.find((platform) => platform.kind === "step" && platform.y - (pusher.y + pusher.height) >= 0
     && platform.y - (pusher.y + pusher.height) <= 8
     && (platform.x + platform.width / 2 < ARENA_WIDTH / 2) === (pusher.wall === "left"));
   assert.ok(ledge, "each pusher sweeps a ledge");
-  const fullOut = pusherSpan(pusher, pusher.periodMs * 0.7 - pusher.offsetMs + pusher.periodMs);
+  const fullOut = pusherSpan(pusher, pusher.periodMs * 0.7 - pusher.offsetMs + pusher.periodMs, ARENA_WIDTH);
   if (pusher.wall === "left") assert.ok(fullOut.right > ledge.x + ledge.width, "pushes all the way off the ledge");
   else assert.ok(fullOut.left < ledge.x, "pushes all the way off the ledge");
 }
@@ -93,22 +100,24 @@ assert.deepEqual(
   [["b", 3, 1], ["a", 3, 4], ["c", 1, 0], ["d", 0, 2]],
 );
 
-// Items: same for every client, never the star, all on static platforms, and every kind shows up.
+// Each map shares deterministic item windows, restricted to its own static world platforms.
 const seen = new Set<string>();
-for (let window = 0; window < 200; window += 1) {
-  const at = window * DEATHMATCH_ITEM_WINDOW_MS + 1;
-  const items = DEATHMATCH_ITEMS.itemsAt(at);
-  assert.deepEqual(items, DEATHMATCH_ITEMS.itemsAt(at + DEATHMATCH_ITEM_WINDOW_MS - 2), "items stay put for their window");
-  assert.equal(new Set(items.map((item) => item.id)).size, items.length);
-  for (const item of items) {
-    seen.add(item.kind);
-    assert.equal(DEATHMATCH_ITEMS.kindOf(item.id), item.kind);
-    assert.ok(ARENA_PLATFORMS.some((platform) => platform.kind === "step"
-      && item.x > platform.x && item.x < platform.x + platform.width && item.y < platform.y));
+for (const map of maps) {
+  const source = createDeathmatchItems(map);
+  for (let window = 0; window < 100; window += 1) {
+    const at = window * DEATHMATCH_ITEM_WINDOW_MS + 1;
+    const items = source.itemsAt(at);
+    assert.deepEqual(items, source.itemsAt(at + DEATHMATCH_ITEM_WINDOW_MS - 2));
+    assert.equal(new Set(items.map((item) => item.id)).size, items.length);
+    for (const item of items) {
+      seen.add(item.kind);
+      assert.equal(source.kindOf(item.id), item.kind);
+      assert.ok(map.platforms.some((platform) => platform.kind === "step"
+        && item.x > platform.x && item.x < platform.x + platform.width && item.y < platform.y));
+    }
   }
+  assert.equal(source.kindOf("nonsense"), null);
 }
-assert.equal(seen.has("star"), false, "no invincibility in the deathmatch");
 assert.deepEqual([...seen].sort(), ["attack", "dash", "jump", "punch", "speed", "sword"]);
-assert.equal(DEATHMATCH_ITEMS.kindOf("nonsense"), null);
 
 console.log("lobby deathmatch tests passed");

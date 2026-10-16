@@ -1,5 +1,6 @@
 import Phaser from "phaser";
-import { ARENA_PUSHERS, ARENA_WIDTH, pusherSpan, type ArenaPusher } from "../arena.ts";
+import { pusherSpan } from "../arena.ts";
+import type { ArenaPusher } from "../maps/types.ts";
 
 interface LivePusher {
   readonly pusher: ArenaPusher;
@@ -21,10 +22,12 @@ function rodLength(pusher: ArenaPusher): number {
 export class PusherView {
   readonly group: Phaser.Physics.Arcade.Group;
   private readonly pushers: LivePusher[];
+  private readonly width: number;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, pushers: readonly ArenaPusher[], width: number) {
+    this.width = width;
     this.group = scene.physics.add.group({ allowGravity: false, immovable: true });
-    this.pushers = ARENA_PUSHERS.map((pusher) => {
+    this.pushers = pushers.map((pusher) => {
       const zone = scene.add.zone(0, pusher.y + pusher.height / 2, rodLength(pusher), pusher.height);
       this.group.add(zone);
       (zone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setImmovable(true).setDirectControl(true);
@@ -34,7 +37,7 @@ export class PusherView {
 
   update(nowMs: number): void {
     for (const { pusher, zone, art } of this.pushers) {
-      const span = pusherSpan(pusher, nowMs);
+      const span = pusherSpan(pusher, nowMs, this.width);
       const length = rodLength(pusher);
       zone.setX(pusher.wall === "left" ? span.right - length / 2 : span.left + length / 2);
       this.draw(art, pusher, span.left, span.right);
@@ -51,7 +54,7 @@ export class PusherView {
     g.fillStyle(0x94a3b8, 1).fillRect(left, y + 9, right - left, 5);
     g.fillStyle(0x1e293b, 0.35).fillRect(left, y + height - 12, right - left, 4);
     // Wall housing.
-    const housingX = pusher.wall === "left" ? -10 : ARENA_WIDTH + 10 - 38;
+    const housingX = pusher.wall === "left" ? -10 : this.width + 10 - 38;
     g.fillStyle(0x334155, 1).fillRoundedRect(housingX, y - 8, 38, height + 16, 6);
     g.fillStyle(0xfacc15, 1).fillRect(housingX + 4, y - 4, 30, 4).fillRect(housingX + 4, y + height, 30, 4);
     // Rounded cylinder head with warning stripes.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { movementAction } from "../../src/game-engine/input/movementKeys.ts";
-import { createJumpState, takeJump } from "../../src/game-engine/platformer/movement.ts";
+import { createJumpState, createPlatformerInput, takeJump } from "../../src/game-engine/platformer/movement.ts";
 import {
   CLIMB_GRAVITY,
   CLIMB_MAX_SHIFT,
@@ -10,7 +10,11 @@ import {
   climbItemKindOf,
   climbItemsAt,
   climbPlatform,
+  climbPlatformX,
 } from "../../src/games/lobby-platformer/course.ts";
+import { CLIMB_MAPS, climbMapForSeed } from "../../src/game-engine/jump-tower/maps/index.ts";
+import { crumbleClaimId, crumbleClaimIndex, crumblePhase, CRUMBLE_WARNING_MS, CRUMBLE_HIDDEN_MS } from "../../src/game-engine/jump-tower/platforms/crumbling.ts";
+import { steerOnIce, ICE_ACCELERATION, ICE_DRAG } from "../../src/game-engine/jump-tower/platforms/slippery.ts";
 
 assert.equal(movementAction("ArrowLeft", "ArrowLeft"), "left");
 assert.equal(movementAction("KeyD", "ㅇ"), "right", "physical key codes should work with a Korean IME");
@@ -68,3 +72,44 @@ for (let window = 0; window < 40; window += 1) {
   for (const item of climbItemsAt("room-a", window * 25_000, 40)) climbKinds.add(item.kind);
 }
 assert(climbKinds.has("dash") && climbKinds.has("star"), "the lobby tower drops the dash and star items too");
+
+assert.equal(CLIMB_MAPS.length, 3);
+assert.deepEqual(climbMapForSeed("session-7"), climbMapForSeed("session-7"), "gathering, free play and late join select the same session map");
+const selectedMaps = new Set(Array.from({ length: 30 }, (_, index) => climbMapForSeed(`session-${index}`).id));
+assert.equal(selectedMaps.size, 3, "all three themes are selected without teacher configuration");
+for (const map of CLIMB_MAPS) {
+  const platforms = Array.from({ length: 100 }, (_, index) => climbPlatform("session", index + 1, map));
+  assert(platforms.some((platform) => platform.kind === map.platforms.special), `${map.id} includes its platform mechanic`);
+  for (const [offset, platform] of platforms.entries()) {
+    assert(platform.x - platform.range >= 0 && platform.x + platform.width + platform.range <= CLIMB_WORLD_WIDTH);
+    const below = offset === 0 ? climbPlatform("session", 0, map) : platforms[offset - 1]!;
+    assert(Math.abs(platform.x + platform.width / 2 - below.x - below.width / 2) <= map.platforms.maxShift + 1);
+  }
+}
+
+const moving = Array.from({ length: 20 }, (_, index) => climbPlatform("session", index + 1, CLIMB_MAPS[0])).find((platform) => platform.kind === "moving")!;
+assert.equal(climbPlatformX(moving, 5000), climbPlatformX({ ...moving }, 5000), "moving platforms depend on shared time, not page start");
+assert.notEqual(climbPlatformX(moving, 5000), climbPlatformX(moving, 5500));
+const touchTime = 1_790_000_000_000;
+assert.equal(crumbleClaimId(4, touchTime), crumbleClaimId(4, touchTime + 100), "concurrent touches share one transactional claim");
+assert.equal(crumbleClaimIndex(crumbleClaimId(4, touchTime)), 4);
+assert.equal(crumbleClaimIndex("c4-10"), null, "power-up claims cannot collapse a platform");
+assert.equal(crumblePhase(touchTime, touchTime + 100), "warning");
+assert.equal(crumblePhase(touchTime, touchTime + CRUMBLE_WARNING_MS), "hidden", "a late join uses the persisted server timestamp");
+assert.equal(crumblePhase(touchTime, touchTime + CRUMBLE_WARNING_MS + CRUMBLE_HIDDEN_MS), "solid");
+
+const iceInput = createPlatformerInput();
+let acceleration = 0;
+let drag = 0;
+const iceBody = {
+  setAccelerationX(value: number) { acceleration = value; return this; },
+  setDragX(value: number) { drag = value; return this; },
+} as Parameters<typeof steerOnIce>[0];
+iceInput.held.set("right", "right");
+steerOnIce(iceBody, iceInput, 1);
+assert.equal(acceleration, ICE_ACCELERATION);
+assert(ICE_ACCELERATION < 1700 && ICE_DRAG < 700, "ice accelerates and slows more gently than both normal surfaces and air");
+iceInput.held.clear();
+steerOnIce(iceBody, iceInput, 1);
+assert.equal(acceleration, 0);
+assert.equal(drag, ICE_DRAG, "releasing movement preserves the slippery glide");

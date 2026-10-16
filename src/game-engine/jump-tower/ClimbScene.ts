@@ -23,6 +23,9 @@ import {
 } from "./course.ts";
 import { ClimbBackdrop } from "./scene/ClimbBackdrop.ts";
 import { ClimbCourseView } from "./scene/ClimbCourseView.ts";
+import { CLIMB_MAPS, climbMapForSeed } from "./maps/index.ts";
+import { steerOnIce } from "./platforms/slippery.ts";
+import { crumbleClaimId, crumbleClaimIndex, crumblePhase } from "./platforms/crumbling.ts";
 
 const DROP_THROUGH_MS = 240;
 const VIEW_HEIGHT = 620;
@@ -76,6 +79,7 @@ export default class ClimbScene extends Phaser.Scene {
   private powerUps: PowerUpLayer | undefined;
   private earlyClaims: ItemClaim[] = [];
   private player!: Phaser.GameObjects.Zone;
+  private lastCrumbleClaim = "";
   private body!: Phaser.Physics.Arcade.Body;
   private actor!: BlobActor;
   private readonly remotes = new Map<string, BlobActor>();
@@ -103,7 +107,7 @@ export default class ClimbScene extends Phaser.Scene {
 
   create(): void {
     ensureSharedTextures(this);
-    this.backdrop = new ClimbBackdrop(this, !this.options.courseSource);
+    this.backdrop = new ClimbBackdrop(this, this.options.courseSource ? CLIMB_MAPS[0] : climbMapForSeed(this.options.seed), !this.options.courseSource);
     this.course = new ClimbCourseView(this, this.options.seed, this.options.courseSource);
     this.effects = new Effects(this);
     this.powerUps = new PowerUpLayer(this, this.effects, {
@@ -116,7 +120,7 @@ export default class ClimbScene extends Phaser.Scene {
       claimItem: this.options.claimItem,
       onBuffsChange: this.options.onBuffsChange,
     });
-    this.earlyClaims.forEach((claim) => this.powerUps?.receiveClaim(claim));
+    this.earlyClaims.forEach((claim) => this.receiveClaim(claim));
     this.earlyClaims = [];
 
     // Side walls only; the tower is open upwards forever.
@@ -139,7 +143,7 @@ export default class ClimbScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.course.statics, undefined, landOn);
     this.physics.add.collider(this.player, this.course.movers, undefined, landOn);
     this.actor = new BlobActor(this, this.options.localPlayer.id, true);
-    this.actor.setTag(`★ ${compactLabel(this.options.localPlayer.label, 10)}`);
+    this.actor.setTag(compactLabel(this.options.localPlayer.label, 10));
     if (this.options.mode === "teacher") {
       this.body.enable = false;
       this.actor.container.setVisible(false);
@@ -211,9 +215,14 @@ export default class ClimbScene extends Phaser.Scene {
   }
 
   receiveClaim(claim: ItemClaim): void {
-    // Claims can arrive before create(); keep them until the power-up layer exists.
-    if (this.powerUps) this.powerUps.receiveClaim(claim);
-    else this.earlyClaims.push(claim);
+    // Claims also retain collapse timestamps for students joining mid-collapse.
+    if (!this.powerUps) { this.earlyClaims.push(claim); return; }
+    const index = crumbleClaimIndex(claim.id);
+    if (index !== null) {
+      if (!this.options.courseSource && crumblePhase(claim.atMs, this.options.nowMs()) !== "solid") this.course.touch(index, claim.atMs);
+      return;
+    }
+    this.powerUps.receiveClaim(claim);
   }
 
   override update(time: number, delta: number): void {
@@ -231,7 +240,7 @@ export default class ClimbScene extends Phaser.Scene {
     this.updateActors(time, delta);
     this.powerUps?.update(time, this.dead || this.options.mode === "teacher" || this.options.rules && !this.options.rules.isActive() ? null : { x: this.body.center.x, y: this.body.center.y });
     this.followPlayer(delta);
-    this.backdrop.update();
+    this.backdrop.update(now);
     if (time >= this.nextStandingsAt) {
       this.nextStandingsAt = time + 500;
       this.reportStandings();
@@ -286,6 +295,13 @@ export default class ClimbScene extends Phaser.Scene {
     }
     body.setAllowGravity(true);
     const platform = body.blocked.down ? this.course.platformAt(body.left, body.right, body.bottom) : null;
+    if (platform?.kind === "crumbling") {
+      const id = crumbleClaimId(platform.index, this.options.nowMs());
+      if (id !== this.lastCrumbleClaim) {
+        this.lastCrumbleClaim = id;
+        void this.options.claimItem(id);
+      }
+    }
     if (rules && platform && platform.index !== this.landedIndex) {
       this.landedIndex = platform.index;
       const result = rules.onLand(platform);
@@ -309,7 +325,10 @@ export default class ClimbScene extends Phaser.Scene {
     }
     const grounded = body.blocked.down;
     const speedBoost = this.powerUps?.has("speed") ? BUFF_EFFECT.speed.runMultiplier : 1;
-    steerPlatformerBody(body, input, { grounded, knocked: time < this.knockedUntil, speedMultiplier: speedBoost });
+    const icy = grounded && platform?.kind === "slippery";
+    const knocked = time < this.knockedUntil;
+    steerPlatformerBody(body, input, { grounded: grounded && !icy, knocked, speedMultiplier: speedBoost });
+    if (icy && !knocked) steerOnIce(body, input, speedBoost);
     if (grounded) body.x += this.course.carrySpeedAt(body.center.x, body.bottom) * (delta / 1_000);
 
     const pad = grounded ? this.course.padAt(body.center.x, body.bottom) : null;

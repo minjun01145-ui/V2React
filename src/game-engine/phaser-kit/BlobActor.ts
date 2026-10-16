@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { recoilShove } from "./recoilShove.ts";
 import { FONT_FAMILY, TEXT_METRICS_SAMPLE, TEXT_RESOLUTION, ensureBodyTexture, playerColor, shade } from "./art.ts";
+import { LocalCharacterHighlight } from "./LocalCharacterHighlight.ts";
 
 const BODY_WIDTH = 34;
 const BODY_HEIGHT = 38;
@@ -41,6 +42,7 @@ export class BlobActor {
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private readonly fist: Phaser.GameObjects.Arc;
   private readonly halo: Phaser.GameObjects.Ellipse;
+  private readonly localHighlight: LocalCharacterHighlight | undefined;
   private glowing = false;
   private punchStartedAt = -Infinity;
   private recoilStartedAt = -Infinity;
@@ -79,8 +81,8 @@ export class BlobActor {
       fontSize: self ? "13px" : "10px",
       fontStyle: "300",
       // Remote names are tinted with their body colour so a tag is easy to match to its runner.
-      color: self ? "#7c2d12" : `#${shade(color, -0.55).toString(16).padStart(6, "0")}`,
-      backgroundColor: self ? "#fef3c7" : "rgba(255,255,255,.88)",
+      color: `#${shade(color, -0.55).toString(16).padStart(6, "0")}`,
+      backgroundColor: "rgba(255,255,255,.88)",
       padding: { x: self ? 6 : 4, y: 2 },
       testString: TEXT_METRICS_SAMPLE,
     }).setOrigin(0.5).setResolution(TEXT_RESOLUTION);
@@ -94,6 +96,8 @@ export class BlobActor {
       this.fist,
       this.tag,
     ]).setDepth(self ? 22 : 18);
+    this.localHighlight = self ? new LocalCharacterHighlight(scene) : undefined;
+    this.localHighlight?.apply(this.container, this.tag);
   }
 
   get facingDirection(): number {
@@ -137,6 +141,7 @@ export class BlobActor {
     const shove = this.recoilShoves ? recoilShove(time - this.recoilStartedAt) : 0;
     this.container.setPosition(Math.round(pose.x + this.recoilDirection * shove * SHOVE_DISTANCE), Math.round(pose.feetY - shove * 10));
     this.container.setAlpha(pose.alpha ?? 1);
+    this.localHighlight?.update(time);
 
     const grounded = Math.abs(pose.vy) < 30;
     const landed = this.previousVy > LANDING_SPEED && grounded;
