@@ -7,6 +7,7 @@ import {
   CLIMB_STEP,
   CLIMB_WORLD_WIDTH,
   climbFloorAt,
+  climbRaceFinished,
   climbItemKindOf,
   climbItemsAt,
   climbPlatform,
@@ -90,6 +91,12 @@ for (const map of CLIMB_MAPS) {
 const moving = Array.from({ length: 20 }, (_, index) => climbPlatform("session", index + 1, CLIMB_MAPS[0])).find((platform) => platform.kind === "moving")!;
 assert.equal(climbPlatformX(moving, 5000), climbPlatformX({ ...moving }, 5000), "moving platforms depend on shared time, not page start");
 assert.notEqual(climbPlatformX(moving, 5000), climbPlatformX(moving, 5500));
+
+// Picker race finish: the climb ends at the goal floor, while the lobby tower stays endless.
+assert.equal(climbRaceFinished(99, 100), false);
+assert.equal(climbRaceFinished(100, 100), true, "reaching the goal floor finishes the race");
+assert.equal(climbRaceFinished(0, undefined), false, "a tower without a goal never finishes");
+assert.equal(climbRaceFinished(400, undefined), false, "the lobby climb keeps going past any floor");
 const touchTime = 1_790_000_000_000;
 assert.equal(crumbleClaimId(4, touchTime), crumbleClaimId(4, touchTime + 100), "concurrent touches share one transactional claim");
 assert.equal(crumbleClaimIndex(crumbleClaimId(4, touchTime)), 4);

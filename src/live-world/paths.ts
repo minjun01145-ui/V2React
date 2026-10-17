@@ -19,3 +19,11 @@ export function liveChannelPath(tenantId: TenantId, scope: LiveWorldScope): stri
   const channelId = livePathSegment(scope.channelId, "channelId");
   return `liveWorld/v2/${tenant}/${roomId}/${roundId}/${channelId}`;
 }
+
+/**
+ * A game's records board sits in its own channel beside the live one. Deriving it here keeps the
+ * student who writes a record and the teacher who reads it on the same path.
+ */
+export function liveRecordsScope(scope: LiveWorldScope): LiveWorldScope {
+  return { ...scope, channelId: `${scope.channelId}-records` };
+}

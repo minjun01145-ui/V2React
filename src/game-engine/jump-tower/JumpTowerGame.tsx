@@ -15,6 +15,7 @@ import {
   createLiveMovementObserver,
   observeLiveRecords,
   createLiveRecords,
+  liveRecordsScope,
   subscribeLiveServerTimeOffset,
   type LiveRecord,
 } from "../../live-world/client.ts";
@@ -89,7 +90,7 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
     const events = createLiveEventChannel(scope, observer ? null : playerId, (event) => sceneRef.current?.receiveEvent(event), onError);
     const claims = createLiveClaims(scope, observer ? null : playerId, (claim) => sceneRef.current?.receiveClaim(claim), onError);
     // All-time bests persist per room, unlike the daily live channel above.
-    const recordScope = { roomId, roundId: roundId ?? LOBBY_SCOPE_ID, channelId: channelId ? `${channelId}-records` : RECORDS_CHANNEL_ID };
+    const recordScope = channelId ? liveRecordsScope(scope) : { ...scope, channelId: RECORDS_CHANNEL_ID };
     const reportRecords = (next: readonly LiveRecord[]): void => { setRecords(next); callbacksRef.current.onRecords?.(next); };
     const stopRecords = observer ? observeLiveRecords(recordScope, Math.max(1, players.length), reportRecords, onError) : null;
     const records = observer ? null : createLiveRecords(
@@ -117,6 +118,7 @@ export default function JumpTowerGame({ roomId, playerId, label, players, onExit
       localPlayer: { id: playerId, label },
       initialState,
       initialBest,
+      goalFloor: recordLimit,
       nowMs: () => Date.now() + serverOffsetMs,
       publish: (state) => movement?.updateLocal(state),
       samplePlayers: () => movement?.sampleRemotePlayers() ?? watching?.samplePlayers() ?? [],

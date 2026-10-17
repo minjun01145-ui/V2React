@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createLadder, pickStudentIndex, traceLadder } from "../src/student-picker/model.ts";
 import { jumpRaceScope, parseJumpRace, rankJumpRace } from "../src/student-picker/jump-race/model.ts";
+import { liveRecordsScope } from "../src/live-world/paths.ts";
 
 assert.equal(pickStudentIndex(0), -1);
 assert.equal(pickStudentIndex(22, () => 0), 0);
@@ -46,6 +47,9 @@ assert.deepEqual(lineUp.map((standing) => [standing.rank, standing.player.id, st
   "finishers by arrival time, then everyone else by height (earlier first on a tie), students without a record last");
 assert.equal(rankJumpRace([{ id: "a" }], [{ playerId: "a", floor: 140, reachedAtMs: 1 }], 100)[0]!.floor, 100, "a record above the goal counts as the goal");
 assert.deepEqual(jumpRaceScope("room", { raceId: "r1" }), { roomId: "room", roundId: "jump-race-r1", channelId: "race" });
+// The teacher reads the race records from the same derived channel the students write them to.
+assert.deepEqual(liveRecordsScope(jumpRaceScope("room", { raceId: "r1" })), { roomId: "room", roundId: "jump-race-r1", channelId: "race-records" });
+assert.deepEqual(liveRecordsScope({ roomId: "room", roundId: "round-1", channelId: "learning-tower" }), { roomId: "room", roundId: "round-1", channelId: "learning-tower-records" });
 assert.deepEqual(parseJumpRace({ raceId: "r1", showRunId: "run-1", goalFloor: 100, startedAtMs: 1 }), { raceId: "r1", showRunId: "run-1", goalFloor: 100, startedAtMs: 1 });
 assert.equal(parseJumpRace({ raceId: "r1", showRunId: "run-1", goalFloor: 0, startedAtMs: 1 }), null);
 assert.equal(parseJumpRace(null), null);

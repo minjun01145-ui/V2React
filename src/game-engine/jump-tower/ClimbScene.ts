@@ -16,6 +16,7 @@ import {
   CLIMB_PLAYER_WIDTH,
   CLIMB_WORLD_WIDTH,
   climbFloorAt,
+  climbRaceFinished,
   climbItemKindOf,
   climbItemsAt,
   type ClimbCourseSource,
@@ -46,6 +47,8 @@ export interface ClimbSceneOptions {
   readonly mode?: "student" | "teacher";
   readonly courseSource?: ClimbCourseSource | undefined;
   readonly initialBest?: number;
+  /** A race's finish line: the climb stops for this player once the floor is reached. */
+  readonly goalFloor?: number | undefined;
   readonly rules?: {
     readonly canLand: (platform: ClimbPlatform) => boolean;
     readonly onLand: (platform: ClimbPlatform) => boolean | "question" | "correct";
@@ -99,6 +102,8 @@ export default class ClimbScene extends Phaser.Scene {
   private dead = false;
   private respawnAt = 0;
   private landedIndex: number | null = null;
+  /** Set once this player reaches the race goal: the climb stops and the finish stands. */
+  private goalReached = false;
 
   constructor(options: ClimbSceneOptions) {
     super("lobby-climb");
@@ -167,14 +172,14 @@ export default class ClimbScene extends Phaser.Scene {
 
   /** ↓: drop through the platform underfoot. */
   dropDown(): void {
-    if (this.dead || this.options.rules && !this.options.rules.isActive()) return;
+    if (this.goalReached || this.dead || this.options.rules && !this.options.rules.isActive()) return;
     if (!this.body.blocked.down || this.body.bottom >= -2) return;
     this.dropUntil = this.time.now + DROP_THROUGH_MS;
     this.body.setVelocityY(60);
   }
 
   punch(): void {
-    if (!this.actor || this.dead || this.options.rules && !this.options.rules.isActive()) return;
+    if (!this.actor || this.goalReached || this.dead || this.options.rules && !this.options.rules.isActive()) return;
     if (this.time.now < this.punchReadyAt) return;
     this.punchReadyAt = this.time.now + PUNCH_COOLDOWN_MS;
     const facing = this.actor.facingDirection;
@@ -238,7 +243,7 @@ export default class ClimbScene extends Phaser.Scene {
     this.course.update(this.focusFloor(), now, this.options.mode === "teacher" ? null : this.options.rules?.answerFloor?.() ?? null);
     if (this.options.mode !== "teacher") this.updateLocalPlayer(time, delta);
     this.updateActors(time, delta);
-    this.powerUps?.update(time, this.dead || this.options.mode === "teacher" || this.options.rules && !this.options.rules.isActive() ? null : { x: this.body.center.x, y: this.body.center.y });
+    this.powerUps?.update(time, this.goalReached || this.dead || this.options.mode === "teacher" || this.options.rules && !this.options.rules.isActive() ? null : { x: this.body.center.x, y: this.body.center.y });
     this.followPlayer(delta);
     this.backdrop.update(now);
     if (time >= this.nextStandingsAt) {
@@ -288,7 +293,7 @@ export default class ClimbScene extends Phaser.Scene {
     const input = this.options.input;
     const rules = this.options.rules;
     if (this.dead && this.options.nowMs() >= this.respawnAt) this.respawn();
-    if (this.dead || rules && !rules.isActive()) {
+    if (this.goalReached || this.dead || rules && !rules.isActive()) {
       clearPlatformerInput(input);
       body.setAccelerationX(0).setVelocity(0, 0).setAllowGravity(false);
       return;
@@ -356,6 +361,12 @@ export default class ClimbScene extends Phaser.Scene {
         this.floor = floor;
         this.best = Math.max(this.best, floor);
         this.options.onHeight(this.floor, this.best);
+      }
+      if (climbRaceFinished(this.best, this.options.goalFloor)) {
+        this.goalReached = true;
+        this.body.stop().setAllowGravity(false);
+        clearPlatformerInput(input);
+        this.options.publish({ x: body.center.x, y: body.center.y, vx: 0, vy: 0 });
       }
     }
     if (this.powerUps?.has("star")) this.starTouches(time);

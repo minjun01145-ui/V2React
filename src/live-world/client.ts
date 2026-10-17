@@ -8,8 +8,10 @@ import { connectLiveClaims, type LiveClaim, type LiveClaims } from "./claims.ts"
 import type { LiveWorldScope } from "./core/types.ts";
 import { connectLiveEvents, type LiveEvent, type LiveEventChannel } from "./events.ts";
 import { connectLiveRecords, subscribeLiveRecords, type LiveRecord, type LiveRecords } from "./records.ts";
+import { liveRecordsScope } from "./paths.ts";
 
 export type { LiveClaim, LiveClaims, LiveEvent, LiveEventChannel, LiveRecord, LiveRecords };
+export { liveRecordsScope };
 
 function realtimeDatabase() {
   return getDatabase(firebaseApp);

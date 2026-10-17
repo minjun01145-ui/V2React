@@ -100,6 +100,14 @@ npm test --prefix functions
 
 main 배포는 화면 검사·빌드와 슬라이드 브라우저 회귀 검증을 먼저 완료하고, Rules 에뮬레이터 검증 및 서버 테스트를 통과한 뒤 Functions → Rules → Hosting 순으로 진행합니다. AI 단답형은 서버가 접수한 원래 답안과 시각으로 자동 채점하며, 실행이 중단되어도 Firestore 이벤트 재시도로 복구합니다.
 
+## 짝 맞추기 · 점프타워 뽑기
+
+짝 맞추기 카드의 선택·판정·보충은 `src/games/matching/`이 담당합니다. 한 짝을 판정하는 동안 누른 카드는 버리지 않고 그 판정이 끝난 뒤 순서대로 처리하므로, 빠르게 이어 누르는 학생도 카드를 잃지 않습니다. 보드에서 이미 바뀐 카드에 대한 탭만 무시합니다.
+
+점프타워 뽑기의 골인과 도착 순서는 `src/game-engine/jump-tower/`와 `src/student-picker/jump-race/`가 담당합니다. 목표 층(`goalFloor`)에 먼저 도달한 학생은 그 자리에서 조작이 멈추고, 도착 시각은 서버 시각 기준으로 기록됩니다. 교사 화면은 도착 순서대로 1등·2등…을 실시간으로 보여 주며, 학생 화면에도 자기 등수가 표시됩니다. 기록은 라이브 채널과 나란한 `-records` 채널(`liveRecordsScope`)에 저장되므로 학생이 쓰는 곳과 교사가 읽는 곳이 항상 같습니다. 목표 층이 없는 대기실 점프타워는 지금처럼 끝없이 올라갑니다.
+
+도메인 회귀는 `npm run test:games`와 `npm run test:routing`에 포함되며, 실제 카드 터치 회귀는 `npm run test:matching-cards --prefix external-test-browser`로 실행합니다.
+
 ## 작업 안내
 
 - [AGENTS.md](./AGENTS.md): 코드를 수정할 때의 최소 작업 원칙.

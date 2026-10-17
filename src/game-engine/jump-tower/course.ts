@@ -115,6 +115,14 @@ export function climbFloorAt(feetY: number): number {
   return Math.max(0, Math.round(-feetY / CLIMB_STEP));
 }
 
+/**
+ * A race ends for a player once their best floor reaches the goal. Without a goal the tower is
+ * endless, which is the lobby climb.
+ */
+export function climbRaceFinished(best: number, goalFloor: number | undefined): boolean {
+  return goalFloor !== undefined && best >= goalFloor;
+}
+
 // --- Power-up items -------------------------------------------------------
 
 export const CLIMB_ITEM_WINDOW_MS = 25_000;

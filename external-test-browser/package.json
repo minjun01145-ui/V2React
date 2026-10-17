@@ -16,6 +16,7 @@
     "test:slide-snapping": "node launch.mjs tests/slide-snapping.test.mjs",
     "test:opinions-page": "node launch.mjs tests/opinions-page.test.mjs",
     "test:slide-question": "node launch.mjs tests/slide-question.test.mjs",
+    "test:matching-cards": "node launch.mjs tests/matching-cards.test.mjs",
     "test:settings-fonts": "node launch.mjs tests/settings-fonts.test.mjs"
   },
   "devDependencies": {

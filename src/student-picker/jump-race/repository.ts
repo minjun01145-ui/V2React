@@ -1,6 +1,6 @@
 import { deleteField, doc, updateDoc, type Unsubscribe } from "firebase/firestore";
 import { db } from "../../firebase/firebaseClient.ts";
-import { observeLiveRecords } from "../../live-world/client.ts";
+import { liveRecordsScope, observeLiveRecords } from "../../live-world/client.ts";
 import { MULTIPLAYER_COLLECTION } from "../../multiplayer/constants.ts";
 import { subscribeSessionField } from "../../multiplayer/repository.ts";
 import { JUMP_RACE_GOAL_FLOOR, jumpRaceScope, parseJumpRace, type JumpRace, type JumpRaceRecord } from "./model.ts";
@@ -31,7 +31,8 @@ export function observeJumpRaceRecords(
   onRecords: (records: readonly JumpRaceRecord[]) => void,
   onError: (error: Error) => void,
 ): Unsubscribe {
-  return observeLiveRecords(jumpRaceScope(roomId, race), Math.max(1, playerCount), (records) => {
+  // Students write their finish into the race's records channel, so the teacher must read that one.
+  return observeLiveRecords(liveRecordsScope(jumpRaceScope(roomId, race)), Math.max(1, playerCount), (records) => {
     onRecords(records.map((record) => ({ playerId: record.playerId, floor: record.score, reachedAtMs: record.reachedAtMs })));
   }, onError);
 }

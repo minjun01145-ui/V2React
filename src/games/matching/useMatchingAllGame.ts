@@ -42,6 +42,18 @@ export function useMatchingAllGame(input: {
   const [progress, setProgress] = useState<GameProgress<MatchingAllDetails>>(() => createEmptyProgress());
   const [board, setBoard] = useState<readonly PairMatchingCard[]>(() => createAllMatchingBoard(pairs, [], `${session.roundId}:${player.id}:initial`));
   const [selectedCard, setSelectedCard] = useState<PairMatchingCard | null>(null);
+  /**
+   * The selection and taps made while a pair is judged live in refs: a fast student taps the next
+   * cards before React re-renders, so the selection must not be read stale and those taps must be
+   * replayed instead of dropped.
+   */
+  const selectedRef = useRef<PairMatchingCard | null>(null);
+  const queuedTapsRef = useRef<PairMatchingCard[]>([]);
+  /** Bumped when a judgment finishes, so queued taps replay against the settled board. */
+  const [settleTick, setSettleTick] = useState(0);
+  /** Card ids on the visible board, so a queued tap for a cleared card is discarded instead of faked. */
+  const boardIdsRef = useRef(new Set(board.map((card) => card.id)));
+  boardIdsRef.current = new Set(board.map((card) => card.id));
   const [matchedPairIds, setMatchedPairIds] = useState<readonly string[]>([]);
   const [removingCardIds, setRemovingCardIds] = useState<readonly string[]>([]);
   const [feedback, setFeedback] = useState("");
@@ -165,30 +177,54 @@ export function useMatchingAllGame(input: {
         : "결과를 저장하지 못했어요. 잠시 후 다시 눌러주세요.");
       setFeedbackTone("incorrect");
     } finally {
+      selectedRef.current = null;
       setSelectedCard(null);
       setRemovingCardIds([]);
       busyRef.current = false;
+      setSettleTick((tick) => tick + 1);
     }
   }, [disabled, matchedPairIds, persistResult]);
 
   const selectCard = useCallback((card: PairMatchingCard): void => {
-    if (busyRef.current || disabled || matchedPairIds.includes(card.pairId)) return;
-    if (!selectedCard) {
+    if (disabled || matchedPairIds.includes(card.pairId)) return;
+    if (busyRef.current) {
+      // Judging the previous pair: remember the tap and replay it once the board has settled.
+      queuedTapsRef.current.push(card);
+      return;
+    }
+    const current = selectedRef.current;
+    if (!current) {
+      selectedRef.current = card;
       setSelectedCard(card);
       setFeedback("");
       setFeedbackTone("");
       return;
     }
-    if (selectedCard.id === card.id) {
+    if (current.id === card.id) {
+      selectedRef.current = null;
       setSelectedCard(null);
       return;
     }
-    if (selectedCard.kind === card.kind) {
+    if (current.kind === card.kind) {
+      selectedRef.current = card;
       setSelectedCard(card);
       return;
     }
-    void submitPair(selectedCard, card);
-  }, [disabled, matchedPairIds, selectedCard, submitPair]);
+    selectedRef.current = null;
+    void submitPair(current, card);
+  }, [disabled, matchedPairIds, submitPair]);
+
+  // Replay taps made during a judgment once its state has been committed, so a fast student loses no card.
+  useEffect(() => {
+    if (busyRef.current) return;
+    const queued = queuedTapsRef.current;
+    if (queued.length === 0) return;
+    queuedTapsRef.current = [];
+    // A tap on a card this board already cleared is dropped: that card is no longer on the board.
+    for (const card of queued) {
+      if (boardIdsRef.current.has(card.id)) selectCard(card);
+    }
+  }, [settleTick, selectCard]);
 
   return {
     board,
