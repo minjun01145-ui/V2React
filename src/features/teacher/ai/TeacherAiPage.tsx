@@ -7,7 +7,6 @@ import {
 } from "../../../ai-admin/repository.ts";
 import { AI_PROVIDER_ID, OLLAMA_CLOUD_ENDPOINT, type AiProviderSettings, type AiThinkingLevel } from "../../../ai-admin/types.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
-import PageShell from "../../../shared/PageShell.tsx";
 import Button from "../../../shared/ui/Button.tsx";
 import Card from "../../../shared/ui/Card.tsx";
 import styles from "./TeacherAiPage.module.css";
@@ -45,7 +44,7 @@ function formatUpdatedAt(value: number): string {
   return value > 0 ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "medium", timeStyle: "short" }).format(value) : "아직 저장되지 않음";
 }
 
-export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
+export default function TeacherAiPage() {
   const [settings, setSettings] = useState<EditableSettings>(defaults);
   const [saved, setSaved] = useState<AiProviderSettings | null>(null);
   const [apiKey, setApiKey] = useState("");
@@ -139,7 +138,8 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
   const modelOptions = useMemo(() => models.includes(settings.model) ? models : [settings.model, ...models], [models, settings.model]);
 
   return (
-    <PageShell title="AI API 관리" roomId={roomId} actions={<Button variant="ghost" onClick={() => void load()} disabled={Boolean(busy)}>새로고침</Button>}>
+    <section className={styles.settings} aria-label="AI 설정">
+      <header className={styles.header}><h2>AI 설정</h2><Button variant="ghost" onClick={() => void load()} disabled={Boolean(busy)}>새로고침</Button></header>
       <div className={styles.statusGrid}>
         <Card as="div"><span>공급자</span><strong>Ollama Cloud</strong><small>{AI_PROVIDER_ID}</small></Card>
         <Card as="div"><span>상태</span><strong>{statusLabel}</strong></Card>
@@ -178,6 +178,6 @@ export default function TeacherAiPage({ roomId }: { readonly roomId: string }) {
           {reply ? <div className={styles.response}><span>AI 응답</span><p>{reply}</p>{replyMeta ? <small>{replyMeta}</small> : null}</div> : null}
         </Card>
       </div>
-    </PageShell>
+    </section>
   );
 }

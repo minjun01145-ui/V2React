@@ -15,7 +15,8 @@
     "test:slide-assistant": "node launch.mjs tests/slide-assistant.test.mjs",
     "test:slide-snapping": "node launch.mjs tests/slide-snapping.test.mjs",
     "test:opinions-page": "node launch.mjs tests/opinions-page.test.mjs",
-    "test:slide-question": "node launch.mjs tests/slide-question.test.mjs"
+    "test:slide-question": "node launch.mjs tests/slide-question.test.mjs",
+    "test:settings-fonts": "node launch.mjs tests/settings-fonts.test.mjs"
   },
   "devDependencies": {
     "electron": "44.5.1"

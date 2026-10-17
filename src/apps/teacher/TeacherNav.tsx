@@ -3,7 +3,6 @@ import { TEACHER_VIEW, teacherHref } from "./teacherRoute.ts";
 import BrandMark from "../../shared/ui/BrandMark.tsx";
 import Button from "../../shared/ui/Button.tsx";
 import { tenantHref, type TenantConfig } from "../../tenant/config.ts";
-import { PRIMARY_TENANT_ID } from "../../tenant/scope.ts";
 import styles from "./TeacherNav.module.css";
 
 const mainItems: readonly { readonly view: TeacherView; readonly label: string }[] = [
@@ -12,10 +11,6 @@ const mainItems: readonly { readonly view: TeacherView; readonly label: string }
   { view: TEACHER_VIEW.SLIDE_SHOW, label: "슬라이드쇼" },
   { view: TEACHER_VIEW.STUDENTS, label: "학생 명단" },
   { view: TEACHER_VIEW.OPINIONS, label: "학생 의견" },
-];
-const secondaryItems: readonly { readonly view: TeacherView; readonly label: string }[] = [
-  { view: TEACHER_VIEW.AI, label: "AI 설정" },
-  { view: TEACHER_VIEW.SETTINGS, label: "설정" },
 ];
 
 interface Props {
@@ -36,9 +31,7 @@ export default function TeacherNav({ currentView, tenant, onLogout }: Props) {
         ))}
       </div>
       <div className={styles.secondaryLinks}>
-        {secondaryItems.filter(({ view }) => view !== TEACHER_VIEW.AI || tenant.id === PRIMARY_TENANT_ID).map(({ view, label }) => (
-          <a className={styles.secondaryLink} href={teacherHref(view)} aria-current={currentView === view ? "page" : undefined} key={view}>{label}</a>
-        ))}
+        <a className={styles.secondaryLink} href={teacherHref(TEACHER_VIEW.SETTINGS)} aria-current={currentView === TEACHER_VIEW.SETTINGS ? "page" : undefined}>설정</a>
         <Button variant="onBrand" size="sm" onClick={() => void onLogout()}>로그아웃</Button>
       </div>
     </nav>

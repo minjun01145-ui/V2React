@@ -27,6 +27,12 @@ npm ci --prefix functions
 npm test --prefix functions
 ```
 
+## 교사 설정 · 시스템 폰트
+
+교사 메뉴의 **설정**에서 기존 수업·상점 설정, **AI 설정**, **폰트 설정**을 선택합니다. 기존 `#/ai` 주소도 설정의 AI 항목으로 열립니다. AI 관리는 기존과 같이 기본 tenant 교사에게만 표시됩니다.
+
+시스템 폰트는 슬라이드 편집기의 공용 카탈로그를 사용하며 선택 즉시 교사 화면에서 미리 볼 수 있습니다. **저장**하면 Firestore `tenants/{tenantId}/settings/appearance`의 `fontId`를 같은 tenant의 교사·학생 화면(로그인 포함)에 실시간 적용합니다. 해당 tenant 관리자만 쓸 수 있고, 공개 읽기 문서에는 글꼴 id만 보관합니다. **기본** 또는 알 수 없는 id는 기존 앱 글꼴을 사용합니다. 슬라이드/Fabric 콘텐츠의 개별 글꼴, 주사위 기호·고정폭 글꼴, Phaser 캔버스 텍스트는 유지합니다. 브라우저 회귀는 `npm run test:settings-fonts --prefix external-test-browser`, 권한 검증은 `npm run test:rules`로 실행합니다.
+
 ## 주요 디렉터리
 
 - `src/apps/`: 역할별 앱 진입점과 화면 조립.

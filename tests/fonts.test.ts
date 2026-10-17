@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { DEFAULT_FONT_FAMILY, FONT_CATALOG, FONT_GROUPS, fontById, fontForFamilyStack, fontStack } from "../src/fonts/catalog.ts";
+import { applyAppFont, DEFAULT_APP_FONT_ID, parseAppFontId } from "../src/fonts/appFont.ts";
 
 // 앱 전역 카탈로그: 슬라이드 양식이 여기서 글꼴을 파생하므로 id/스택 유일성과 분류가 유지돼야 한다.
 assert.ok(FONT_CATALOG.length >= 30, `카탈로그는 충분한 글꼴을 제공한다(현재 ${FONT_CATALOG.length}종)`);
@@ -38,4 +39,32 @@ assert.equal(fontForFamilyStack("'Jalnan', sans-serif")?.id, "jalnan");
 // 카탈로그에 없는 로컬 글꼴(Arial, PPT 가져오기)은 null이어야 기본 동작을 건드리지 않는다.
 assert.equal(fontForFamilyStack("Arial"), null);
 assert.equal(fontForFamilyStack("'SlideRegressionLateFont', monospace"), null);
+
+for (const font of FONT_CATALOG) assert.equal(parseAppFontId(font.id), font.id, "catalog ids are accepted");
+for (const invalid of [undefined, null, "", "missing", "constructor", "__proto__", 123, {}, []]) {
+  assert.equal(parseAppFontId(invalid), DEFAULT_APP_FONT_ID, "untrusted ids fall back to the current app font");
+}
+assert.equal(parseAppFontId(DEFAULT_APP_FONT_ID), DEFAULT_APP_FONT_ID);
+
+const properties = new Map<string, string>();
+const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
+Object.defineProperty(globalThis, "document", { configurable: true, value: {
+  documentElement: { style: {
+    setProperty: (name: string, value: string) => properties.set(name, value),
+    removeProperty: (name: string) => properties.delete(name),
+  } },
+} });
+try {
+  applyAppFont("jua");
+  assert.equal(properties.get("--app-font-family"), fontStack("jua"), "preview applies synchronously at the root");
+  applyAppFont("pretendard");
+  assert.equal(properties.get("--app-font-family"), fontStack("pretendard"), "changing the selection replaces the root font");
+  applyAppFont(DEFAULT_APP_FONT_ID);
+  assert.equal(properties.has("--app-font-family"), false, "default restores the existing CSS font stack");
+  applyAppFont("unknown");
+  assert.equal(properties.has("--app-font-family"), false, "unknown ids cannot become arbitrary CSS");
+} finally {
+  if (originalDocument) Object.defineProperty(globalThis, "document", originalDocument);
+  else Reflect.deleteProperty(globalThis, "document");
+}
 console.log("font catalog tests passed");

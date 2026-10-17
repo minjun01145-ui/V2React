@@ -3,10 +3,12 @@ import AdminLoginPage from "../../features/teacher/auth/AdminLoginPage.tsx";
 import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
 import { PopupProvider } from "../../shared/popup/index.ts";
 import { tenantConfigFromLocation } from "../../tenant/config.ts";
+import { useAppFont } from "../../fonts/useAppFont.ts";
 import TeacherWorkspace from "./TeacherWorkspace.tsx";
 
 function TeacherAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType<typeof tenantConfigFromLocation>> }) {
   const authState = useAdminAuth(tenant.id);
+  useAppFont(tenant.id);
   if (authState.loading) {
     return <AuthStatusPage title="관리자 정보를 확인하고 있어요" message="잠시만 기다려 주세요." />;
   }

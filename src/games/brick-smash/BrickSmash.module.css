@@ -41,7 +41,7 @@
   overflow: hidden;
   background: radial-gradient(ellipse at 54% 55%, rgba(76, 215, 255, .14), transparent 58%), linear-gradient(var(--sky-top), var(--navy) 65%, var(--navy-deep));
   color: var(--cream);
-  font-family: "Noto Sans KR", sans-serif;
+  font-family: inherit;
   font-weight: 300;
 }
 .game *, .game *::before, .game *::after { box-sizing: border-box; }

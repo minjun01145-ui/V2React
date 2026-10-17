@@ -1,3 +1,6 @@
+.settings { display: grid; gap: 1rem; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.header h2 { margin: 0; }
 .statusGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 .statusGrid > div { display: grid; gap: .35rem; }
 .statusGrid span { color: var(--color-muted); font-size: .76rem; font-weight: 300; letter-spacing: .04em; }

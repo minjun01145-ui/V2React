@@ -3,3 +3,7 @@
 .list div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-top: 1px solid var(--color-border); }
 .list dt { color: var(--color-muted); font-weight: 300; }
 .list dd { margin: 0; font-weight: 300; }
+.fontSettings { display: grid; gap: 1rem; }
+.fontSettings h2 { margin: 0; }
+.fontSettings > button { justify-self: start; }
+.fontSettings [role="alert"] { margin: 0; color: var(--color-danger-text); }

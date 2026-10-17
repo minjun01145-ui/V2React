@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { getTeacherView, TEACHER_VIEW, teacherHref } from "../src/apps/teacher/teacherRoute.ts";
+import { getTeacherView, getSettingsSection, TEACHER_VIEW, teacherHref } from "../src/apps/teacher/teacherRoute.ts";
 
 assert.equal(getTeacherView(""), TEACHER_VIEW.LOBBY);
 assert.equal(getTeacherView("#/lobby"), TEACHER_VIEW.LOBBY);
@@ -8,13 +8,23 @@ assert.equal(getTeacherView("#/students"), TEACHER_VIEW.STUDENTS);
 assert.equal(getTeacherView("#/opinions"), TEACHER_VIEW.OPINIONS);
 assert.equal(getTeacherView("#/sets"), TEACHER_VIEW.SETS);
 assert.equal(getTeacherView("#/slide-show"), TEACHER_VIEW.SLIDE_SHOW);
-assert.equal(getTeacherView("#/ai"), TEACHER_VIEW.AI);
+assert.equal(getTeacherView("#/ai"), TEACHER_VIEW.SETTINGS);
+assert.equal(getTeacherView("#/ai?legacy=1"), TEACHER_VIEW.SETTINGS);
+assert.equal(getTeacherView("#/settings/ai"), TEACHER_VIEW.SETTINGS);
+assert.equal(getTeacherView("#/settings/fonts"), TEACHER_VIEW.SETTINGS);
+assert.equal(getSettingsSection("#/ai"), "ai");
+assert.equal(getSettingsSection("#/ai?legacy=1"), "ai");
+assert.equal(getSettingsSection("#/settings/ai"), "ai");
+assert.equal(getSettingsSection("#/settings/fonts"), "fonts");
+assert.equal(getSettingsSection("#/settings/fonts?legacy=1"), "fonts");
+assert.equal(getSettingsSection("#/settings"), "general");
+assert.equal(getSettingsSection("#/settings/unknown"), "general");
 assert.equal(getTeacherView("#/unknown"), TEACHER_VIEW.LOBBY);
 assert.equal(teacherHref(TEACHER_VIEW.LOBBY), "#/lobby");
 assert.equal(teacherHref(TEACHER_VIEW.STUDENTS), "#/students");
 assert.equal(teacherHref(TEACHER_VIEW.OPINIONS), "#/opinions");
 assert.equal(teacherHref(TEACHER_VIEW.SETS), "#/sets");
 assert.equal(teacherHref(TEACHER_VIEW.SLIDE_SHOW), "#/slide-show");
-assert.equal(teacherHref(TEACHER_VIEW.AI), "#/ai");
+assert.equal(teacherHref(TEACHER_VIEW.SETTINGS), "#/settings");
 
 console.log("teacher route smoke tests passed");

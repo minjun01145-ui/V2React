@@ -9,10 +9,12 @@ import AuthStatusPage from "../../shared/AuthStatusPage.tsx";
 import { PopupProvider } from "../../shared/popup/index.ts";
 import { tenantConfigFromLocation } from "../../tenant/config.ts";
 import { StudentCharacterProvider } from "../../student-data/cosmetics/StudentCharacterProvider.tsx";
+import { useAppFont } from "../../fonts/useAppFont.ts";
 
 function StudentAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType<typeof tenantConfigFromLocation>> }) {
   const roomId = getRoomIdFromLocation();
   const authState = useStudentAuth(tenant.id);
+  useAppFont(tenant.id);
   const [claimedIdentity, setClaimedIdentity] = useState<StudentIdentity | null>(null);
   const identity = authState.value ?? claimedIdentity;
 

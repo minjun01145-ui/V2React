@@ -244,6 +244,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Public appearance only: login screens also use the tenant's UI font.
+    match /tenants/{tenantId}/settings/appearance {
+      allow get: if validTenantId(tenantId);
+      allow create, update: if isAdminForTenant(tenantId)
+        && request.resource.data.keys().hasOnly(["fontId"])
+        && request.resource.data.fontId is string
+        && request.resource.data.fontId.size() > 0
+        && request.resource.data.fontId.size() <= 64;
+      allow delete: if isAdminForTenant(tenantId);
+    }
+
     match /learningSets/{setId} {
       allow read: if isTenantReader("minjun");
       allow create, update, delete: if isAdminForTenant("minjun");
