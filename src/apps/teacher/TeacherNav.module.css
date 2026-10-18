@@ -45,8 +45,3 @@
   .secondaryLinks { margin-top: 0; margin-left: auto; flex-direction: row; border: 0; padding: 0; }
   .secondaryLinks > button { width: auto; }
 }
-:global(:root[data-theme]:not([data-theme="classic"])) .link,
-:global(:root[data-theme]:not([data-theme="classic"])) .secondaryLink { border-radius: var(--radius-sm); }
-:global(:root[data-theme="arcade"]) .nav { border-right: 4px double #a5aa94; }
-:global(:root[data-theme="paper"]) .nav { border-right: 6px solid #d5ccb6; }
-:global(:root[data-theme="space"]) .nav { border-right: 1px solid #3d5463; }

@@ -111,7 +111,7 @@ async function run() {
     await until(teacher, "document.body.textContent.includes('다음 주 신상') && document.body.textContent.includes('기본 게임')", "old settings retained");
     await click(teacher, "테마 · 폰트");
     await until(teacher, `document.querySelector('[aria-label="시스템 폰트"]')`, "font settings opens");
-    assert.equal(await evaluate(teacher, `document.querySelector('[aria-label="시스템 폰트"] option').textContent`), "기본");
+    assert.equal(await evaluate(teacher, `document.querySelector('[aria-label="시스템 폰트"] option').textContent`), "테마 기본 폰트");
     const defaultFamily = await evaluate(student, family);
     await evaluate(teacher, `document.querySelector('[aria-label="시스템 폰트"]').focus()`);
     assert.equal(await evaluate(teacher, `document.querySelectorAll('link[href*="text="]').length`), 0, "opening the system picker does not load the whole catalog");

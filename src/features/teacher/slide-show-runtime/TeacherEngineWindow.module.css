@@ -1,4 +1,4 @@
-.card { display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; color: #fff; background: linear-gradient(160deg, #2a3cc7, #0f1846); }
+.card { display: grid; place-content: center; justify-items: center; gap: 8px; text-align: center; color: #fff; background: linear-gradient(160deg, var(--color-primary), var(--color-brand-deep)); }
 .card > span { color: var(--color-on-brand-muted); font-weight: 300; }
 .card > strong { font-size: clamp(3rem, 9vw, 7rem); font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
 .card .small { font-size: clamp(1.5rem, 4vw, 3rem); }

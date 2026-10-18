@@ -1,4 +1,5 @@
-:root {
+/* [data-theme="classic"] lets a themed page still show a classic island (the theme picker preview). */
+:root, [data-theme="classic"] {
   --app-font-family: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", sans-serif;
   --color-bg: #f3f5fa;
   --color-surface: #ffffff;
@@ -74,6 +75,8 @@
   --space-8: 2rem;
   --color-brand-deep: #0f1846;
   --color-brand-deep-2: #1a2563;
+  /* Hard drop shadow under brand-deep bars; themes derive it from their own brand colour. */
+  --color-brand-shadow: color-mix(in srgb, var(--color-brand-deep) 55%, #000);
   --color-paper: #f3f5fa;
   --color-on-brand: #ffffff;
   --color-on-brand-muted: rgba(255, 255, 255, 0.68);

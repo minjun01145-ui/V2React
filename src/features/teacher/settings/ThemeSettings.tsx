@@ -3,9 +3,9 @@ import { THEMES, type ThemeId } from "../../../appearance/themes.ts";
 import { saveTheme, subscribeAppearance } from "../../../fonts/repository.ts";
 import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 import Card from "../../../shared/ui/Card.tsx";
-import { themeCover } from "../../../shared/ui/themeCover.ts";
 import type { TenantId } from "../../../tenant/scope.ts";
 import styles from "./TeacherSettingsPage.module.css";
+import ThemePreview from "./ThemePreview.tsx";
 
 export default function ThemeSettings({ tenantId }: { readonly tenantId: TenantId }) {
   const [selected, setSelected] = useState<ThemeId>("classic");
@@ -32,7 +32,7 @@ export default function ThemeSettings({ tenantId }: { readonly tenantId: TenantI
     <div className={styles.themes}>
       {THEMES.map((theme) => <button type="button" key={theme.id} aria-pressed={selected === theme.id}
         disabled={loading || saving} onClick={() => void select(theme.id)}>
-        <img src={themeCover("learning-jump-tower", theme.id)} alt="" />
+        <ThemePreview themeId={theme.id} />
         <span>{theme.label}{selected === theme.id ? " ✓" : ""}</span>
       </button>)}
     </div>

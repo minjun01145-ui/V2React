@@ -1,48 +1,55 @@
-/* Themes own materials and geometry as well as colour. Gameplay canvases and
-   authored slide content retain their own art and text styles. */
-:root[data-theme="arcade"] {
-  --color-bg: #e3e1d5; --color-surface: #f6f4e9; --color-surface-muted: #d9d9cb; --color-surface-subtle: #eeede0;
-  --color-text: #252c28; --color-muted: #596154; --color-border: #a5aa94; --color-border-strong: #606b53;
-  --color-primary: #365737; --color-primary-hover: #29432a; --color-primary-soft: #dbe4ca; --color-primary-text: #29432a; --color-primary-shadow: #1b301e;
-  --color-accent: #df704d; --color-accent-hover: #ed805c; --color-accent-shadow: #98472f; --color-accent-ink: #211c16;
-  --color-brand-deep: #29372c; --color-brand-deep-2: #3c4e35;
-  --radius-sm: 0px; --radius-md: 2px; --radius-lg: 2px; --radius-xl: 2px;
-  --surface-radius: 2px; --surface-border: 2px solid #58634d;
-  --shadow-raised: 4px 4px 0 #a2aa94; --shadow-card: 3px 3px 0 #a2aa94;
-  --shadow-card-tactile: 4px 4px 0 #a2aa94; --shadow-tactile: 3px 3px 0 #a2aa94;
-  --theme-background: repeating-linear-gradient(0deg, transparent 0 3px, #26372806 3px 4px);
-  --tile-shadow: 4px 4px 0 #89947a; --tile-ratio: 4 / 3;
+/* Themes recolour the shared tokens only; geometry stays the classic rounded, tactile style so every screen
+   keeps its layout. Selectors are not root-only, so a [data-theme] element (the settings preview) is a themed island.
+   Gameplay canvases, cover art and authored slide content keep their own colours. */
+
+[data-theme="candy"] {
+  --color-bg: #fff0f4; --color-surface: #ffffff; --color-surface-muted: #ffe4ec; --color-surface-subtle: #fff7f9;
+  --color-text: #3d1630; --color-muted: #8c5b76; --color-border: #fbd5e2; --color-border-strong: #f0afc6;
+  --color-primary: #d63a72; --color-primary-hover: #c22f64; --color-primary-shadow: #9c1f4d;
+  --color-primary-soft: #ffe1ec; --color-primary-text: #a01f50;
+  --color-accent: #6fd6c0; --color-accent-hover: #85e0cc; --color-accent-shadow: #3fa892; --color-accent-ink: #0f3a32;
+  --color-brand-deep: #5b1f47; --color-brand-deep-2: #7c2d61;
+  --theme-shadow: 92, 31, 71;
+  --theme-background: radial-gradient(circle, #ffd3e1 2px, transparent 2.6px);
+  --theme-background-size: 30px 30px;
 }
-:root[data-theme="paper"] {
-  --color-bg: #eee9dd; --color-surface: #fffcf4; --color-surface-muted: #eae2d1; --color-surface-subtle: #f7f1e5;
-  --color-text: #383c32; --color-muted: #696a5b; --color-border: #d5ccb6; --color-border-strong: #99977d;
-  --color-primary: #496453; --color-primary-hover: #364d40; --color-primary-soft: #e3eadc; --color-primary-text: #364d40; --color-primary-shadow: #324739;
-  --color-accent: #e7c77c; --color-accent-hover: #efda9e; --color-accent-shadow: #b29a5b; --color-accent-ink: #3c3929;
-  --color-brand-deep: #414d40; --color-brand-deep-2: #55634b;
-  --radius-sm: 3px; --radius-md: 4px; --radius-lg: 6px; --radius-xl: 8px;
-  --surface-radius: 3px; --surface-border: 1px solid #d5ccb6;
-  --shadow-raised: 0 2px 0 #fffaf0, 0 3px 0 #d5ccb6, 0 5px 0 #fffaf0, 0 6px 0 #d5ccb6;
-  --shadow-card: 0 2px 3px #433c2810; --shadow-card-tactile: var(--shadow-raised);
-  --theme-background: repeating-linear-gradient(0deg, transparent 0 31px, #615a3b0b 31px 32px);
-  --tile-shadow: 0 2px 4px #54492b18; --tile-ratio: 1 / 1;
+
+[data-theme="forest"] {
+  --color-bg: #eef4e8; --color-surface: #fffdf7; --color-surface-muted: #e2ecd6; --color-surface-subtle: #f6f9f0;
+  --color-text: #1e2d1c; --color-muted: #5b6d55; --color-border: #d3e0c6; --color-border-strong: #adc29a;
+  --color-primary: #2e7d4a; --color-primary-hover: #266b3e; --color-primary-shadow: #1a4e2c;
+  --color-primary-soft: #dcefdf; --color-primary-text: #1d5c34;
+  --color-accent: #ff9d3d; --color-accent-hover: #ffb05f; --color-accent-shadow: #c86c12; --color-accent-ink: #3a1c00;
+  --color-brand-deep: #183b26; --color-brand-deep-2: #24543a;
+  --theme-shadow: 24, 59, 38;
+  --theme-background: radial-gradient(55% 45% at 0% 0%, #dbeacb 0, transparent 70%), radial-gradient(45% 40% at 100% 100%, #e5eed6 0, transparent 70%);
+  --theme-background-size: auto;
 }
-:root[data-theme="space"] {
-  --color-bg: #101a25; --color-surface: #1b2a38; --color-surface-muted: #253a49; --color-surface-subtle: #20313e;
-  --color-text: #edf2ef; --color-muted: #afc1c8; --color-border: #3d5463; --color-border-strong: #72909d;
-  --color-primary: #386c84; --color-primary-hover: #477f98; --color-primary-soft: #263f4c; --color-primary-text: #c8e6ef; --color-primary-shadow: #112b39;
-  --color-accent: #edb96b; --color-accent-hover: #f3c98b; --color-accent-shadow: #a4763b; --color-accent-ink: #1b2833;
-  --color-brand-deep: #0b131d; --color-brand-deep-2: #172d3d;
-  --color-danger-soft: #4b252d; --color-danger-text: #ffc1c3; --color-success-soft: #1d443b; --color-warning-soft: #473c27;
-  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 10px;
-  --surface-radius: 8px; --surface-border: 1px solid #3d5463;
-  --shadow-raised: 0 8px 18px #0002; --shadow-card: 0 2px 4px #0002; --shadow-card-tactile: var(--shadow-raised);
-  --theme-background: radial-gradient(circle at 24px 31px, #a8c6d64d 1px, transparent 1.5px), radial-gradient(circle at 100px 90px, #a8c6d629 1px, transparent 1.5px);
-  --theme-background-size: 173px 163px, 251px 239px;
-  --tile-shadow: 0 4px 12px #0003; --tile-ratio: 16 / 9;
+
+[data-theme="ocean"] {
+  --color-bg: #eaf7fb; --color-surface: #ffffff; --color-surface-muted: #d9eff6; --color-surface-subtle: #f4fbfd;
+  --color-text: #0d2a36; --color-muted: #4f6e7b; --color-border: #cfe7ef; --color-border-strong: #a3cddb;
+  --color-primary: #0a7fa3; --color-primary-hover: #086d8c; --color-primary-shadow: #05506a;
+  --color-primary-soft: #d8f1f8; --color-primary-text: #075c78;
+  --color-accent: #ff7a59; --color-accent-hover: #ff9070; --color-accent-shadow: #cf5233; --color-accent-ink: #3a1206;
+  --color-brand-deep: #083a4f; --color-brand-deep-2: #0d5470;
+  --theme-shadow: 8, 58, 79;
+  --theme-background: linear-gradient(180deg, #d3eef7 0, transparent 360px), radial-gradient(120% 60% at 50% 120%, #d6f1f4 0, transparent 60%);
+  --theme-background-size: auto;
 }
-:root:is([data-theme="arcade"], [data-theme="paper"], [data-theme="space"]) {
+
+[data-theme="candy"], [data-theme="forest"], [data-theme="ocean"] {
   --color-ink: var(--color-text); --color-ink-soft: var(--color-text); --color-ink-muted: var(--color-muted);
+  --color-paper: var(--color-bg);
   --color-landing-bg: var(--color-bg); --color-landing-surface: var(--color-surface); --color-landing-border: var(--color-border);
-  --color-landing-input-bg: var(--color-surface-subtle); --color-landing-input-focus: var(--color-primary);
-  --color-paper: var(--color-bg); --focus-ring: 0 0 0 3px var(--color-border-strong);
+  --color-landing-input-bg: var(--color-surface); --color-landing-input-focus: var(--color-primary);
+  --color-landing-input-focus-ring: rgba(var(--theme-shadow), 0.18);
+  --focus-ring: 0 0 0 3px rgba(var(--theme-shadow), 0.25);
+  --shadow-card: 0 1px 2px rgba(var(--theme-shadow), 0.06), 0 2px 8px rgba(var(--theme-shadow), 0.06);
+  --shadow-raised: 0 1px 2px rgba(var(--theme-shadow), 0.06), 0 10px 30px -12px rgba(var(--theme-shadow), 0.25);
+  --shadow-pop: 0 14px 36px rgba(var(--theme-shadow), 0.2);
+  --shadow-tactile: 0 4px 0 rgba(var(--theme-shadow), 0.14);
+  --color-brand-shadow: color-mix(in srgb, var(--color-brand-deep) 55%, #000);
+  --shadow-card-tactile: 0 5px 0 rgba(var(--theme-shadow), 0.14), 0 12px 22px -14px rgba(var(--theme-shadow), 0.32);
+  --surface-radius: 20px; --surface-border: 0;
 }

@@ -2,7 +2,6 @@
 const images = import.meta.glob<string>("/src/assets/covers/*.webp", { eager: true, query: "?url", import: "default" });
 
 export interface CoverArt {
-  readonly key?: string;
   readonly image: string | null;
   readonly emoji: string;
   readonly color: string;
@@ -42,5 +41,5 @@ export function isCoverKey(value: string): value is CoverKey {
 }
 
 export function coverArt(key: CoverKey): CoverArt {
-  return { key, image: images[`/src/assets/covers/${key}.webp`] ?? null, ...PLACEHOLDERS[key] };
+  return { image: images[`/src/assets/covers/${key}.webp`] ?? null, ...PLACEHOLDERS[key] };
 }

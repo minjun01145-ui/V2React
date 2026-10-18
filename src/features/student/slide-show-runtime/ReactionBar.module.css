@@ -1,4 +1,4 @@
-.bar { position: relative; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 6px; border-radius: 18px; background: var(--color-brand-deep); box-shadow: 0 4px 0 #070d2e; }
+.bar { position: relative; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 6px; border-radius: 18px; background: var(--color-brand-deep); box-shadow: 0 4px 0 var(--color-brand-shadow); }
 .reaction { display: grid; place-items: center; width: 52px; height: 52px; padding: 0; border: 0; border-radius: 16px; background: rgba(255, 255, 255, 0.1); font-size: 1.75rem; line-height: 1; cursor: pointer; transition: transform 120ms var(--ease-pop), background-color 120ms ease; }
 .reaction:hover:not(:disabled) { background: rgba(255, 255, 255, 0.2); transform: translateY(-2px); }
 .reaction:active:not(:disabled) { transform: scale(0.92); transition-duration: 60ms; }

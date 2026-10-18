@@ -1,7 +1,6 @@
 import type { CSSProperties } from "react";
 import type { CoverArt } from "./coverArt.ts";
 import styles from "./CoverTile.module.css";
-import CoverArtwork from "./CoverArtwork.tsx";
 
 interface Props {
   title: string;
@@ -15,7 +14,7 @@ interface Props {
 export default function CoverTile({ title, art, selected, disabled, onClick, className = "" }: Props) {
   return <button type="button" aria-pressed={selected} disabled={disabled} onClick={onClick} className={`${styles.tile} ${className}`}>
     <span className={styles.art} style={art ? { "--cover-color": art.color } as CSSProperties : undefined} aria-hidden="true">
-      {art ? <CoverArtwork art={art} /> : null}
+      {art?.image ? <img src={art.image} alt="" draggable={false} /> : art ? <span className={styles.emoji}>{art.emoji}</span> : null}
     </span>
     <span className={styles.name}>{title}</span>
   </button>;
