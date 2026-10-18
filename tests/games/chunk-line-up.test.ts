@@ -167,6 +167,6 @@ powerUps.addClaim({ id: firstItem.id, by: "p1", atMs: itemNow });
 assert(!powerUps.available(itemNow).some((item) => item.id === firstItem.id), "claimed items disappear for everyone");
 assert.equal(powerUps.buffs("p1", itemNow + 1_000).has(firstItem.kind), true);
 assert.equal(powerUps.buffs("p2", itemNow + 1_000).size, 0, "only the picker gets the buff");
-assert.equal(powerUps.buffs("p1", itemNow + BUFF_DURATION_MS + 1).size, 0, "buffs last 30 seconds");
+assert.equal(powerUps.buffs("p1", itemNow + BUFF_DURATION_MS + 1).size, 0, "buffs expire after their duration");
 
 console.log("chunk line-up viewport and elevator tests passed");

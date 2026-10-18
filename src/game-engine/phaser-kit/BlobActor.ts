@@ -45,6 +45,8 @@ export class BlobActor {
   private readonly localHighlight: LocalCharacterHighlight | undefined;
   private glowing = false;
   private punchStartedAt = -Infinity;
+  /** False while swinging a weapon: the attack still holds the facing, but no fist pops out. */
+  private punchFist = true;
   private recoilStartedAt = -Infinity;
   private recoilDirection = 1;
   private recoilShoves = false;
@@ -119,9 +121,10 @@ export class BlobActor {
     this.flash(0xffffff);
   }
 
-  /** Quick jab in `direction` (−1 left, 1 right). */
-  punch(time: number, direction: number): void {
+  /** Quick jab in `direction` (−1 left, 1 right); `fist` off when a held weapon does the swinging. */
+  punch(time: number, direction: number, fist = true): void {
     this.punchStartedAt = time;
+    this.punchFist = fist;
     this.facing = direction < 0 ? -1 : 1;
   }
 
@@ -150,7 +153,7 @@ export class BlobActor {
     const punchAge = time - this.punchStartedAt;
     const punching = punchAge >= 0 && punchAge < PUNCH_MS;
     if (Math.abs(pose.vx) > 20 && !punching) this.facing = Math.sign(pose.vx);
-    if (punching) {
+    if (punching && this.punchFist) {
       const reach = Math.sin(Math.PI * punchAge / PUNCH_MS);
       this.fist.setVisible(true).setPosition(this.facing * (14 + reach * 22), -18 - reach * 2).setScale(0.8 + reach * 0.4);
     } else if (this.fist.visible) {

@@ -85,6 +85,7 @@ function WordArenaStage({ props, quiz, labels }: {
     // The best record is this player's running total, so a reload resumes it.
     let total = 0;
     let streak = 0;
+    let wrongAt = -Infinity;
     const board = createLiveRecords({ ...scope, channelId: `${WORD_DEATHMATCH_CHANNEL}-score` }, playerId, 50, setRecords,
       (best) => { total = Math.max(total, best); setScore(total); }, onError);
 
@@ -104,6 +105,8 @@ function WordArenaStage({ props, quiz, labels }: {
       onAttackPickups: () => undefined,
       onDeath: (victimId, killerId) => {
         const name = (id: string): string => labelsRef.current.get(id) ?? "친구";
+        // A wrong answer already announced this knockout.
+        if (victimId === playerId && Date.now() - wrongAt < 500) return;
         if (victimId === playerId) {
           effects.play(createGameAnnouncement({ tone: "warning", durationMs: 1_400,
             headline: killerId ? `${name(killerId)}에게 당했어요` : "앗, 떨어졌어요!", metric: "2초 후 다시 등장" }));
@@ -114,8 +117,9 @@ function WordArenaStage({ props, quiz, labels }: {
       onRoundScored: (index, correct) => {
         if (!correct) {
           streak = 0;
+          wrongAt = Date.now();
           const question = quiz.questionAt(index);
-          effects.play(createGameAnnouncement({ tone: "warning", headline: "아쉬워요", metric: `정답: ${question.options[question.correctSlot]}`, durationMs: 1_600 }));
+          effects.play(createGameAnnouncement({ tone: "warning", headline: "오답! 탈락", metric: `정답: ${question.options[question.correctSlot]}`, detail: "2초 후 다시 등장", durationMs: 1_800 }));
           return;
         }
         total += 1;

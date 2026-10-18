@@ -150,8 +150,8 @@ export default class DeathmatchScene extends Phaser.Scene {
       boosted: this.powerUps?.has("punch") ?? false,
       attackBonus: partyAttackBonus(this.powerUps?.count(localId, "attack") ?? 0),
     });
-    this.actor.punch(this.time.now, facing);
-    this.combat.swing(this.body.center.x, this.body.center.y, facing, sword);
+    this.actor.punch(this.time.now, facing, !sword);
+    this.combat.swing(localId, this.body.center.x, this.body.center.y, facing, sword, this.time.now);
     const target = choosePunchTarget(
       { x: this.body.center.x, y: this.body.center.y, facing },
       this.lastFrames.filter((frame) => this.isRemoteAlive(frame.playerId)),
@@ -177,8 +177,9 @@ export default class DeathmatchScene extends Phaser.Scene {
     const direction = event.value < 0 ? -1 : 1;
     const damage = decodePunchDamage(event.value);
     const attacker = this.lastFrames.find((frame) => frame.playerId === event.playerId);
-    this.remotes.get(event.playerId)?.punch(this.time.now, direction);
-    if (attacker) this.combat.swing(attacker.x, attacker.y, direction, this.powerUps?.playerHas(event.playerId, "sword") ?? false);
+    const swordHolder = this.powerUps?.playerHas(event.playerId, "sword") ?? false;
+    this.remotes.get(event.playerId)?.punch(this.time.now, direction, !swordHolder);
+    if (attacker) this.combat.swing(event.playerId, attacker.x, attacker.y, direction, swordHolder, this.time.now);
     if (event.target === this.options.localPlayer.id) {
       this.takeHit(event.playerId, event.value, damage);
       return;
@@ -204,6 +205,11 @@ export default class DeathmatchScene extends Phaser.Scene {
   /** A small celebratory hop; ignored while dead. */
   protected hop(): void {
     if (this.body && this.respawnAt === null) this.body.setVelocityY(-380);
+  }
+
+  /** Knocks the local player out without crediting anyone (e.g. standing on a wrong answer). */
+  protected eliminate(): void {
+    if (this.body && this.respawnAt === null) this.die(this.options.nowMs(), false);
   }
 
   override update(time: number, delta: number): void {
@@ -301,11 +307,11 @@ export default class DeathmatchScene extends Phaser.Scene {
     this.options.publish({ x: body.center.x, y: body.center.y, vx: body.velocity.x, vy: body.velocity.y });
   }
 
-  /** Environmental hazards or a knockout: a recent puncher gets the kill. */
-  private die(now: number): void {
+  /** Environmental hazards or a knockout: a recent puncher gets the kill unless `credit` is off. */
+  private die(now: number, credit = true): void {
     const { x, y } = this.body.center;
     const localId = this.options.localPlayer.id;
-    const killerId = this.killCredit.claim(now);
+    const killerId = credit ? this.killCredit.claim(now) : null;
     this.respawnAt = now + DEATHMATCH_RESPAWN_MS;
     this.body.stop().setAllowGravity(false);
     this.body.enable = false;

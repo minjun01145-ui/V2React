@@ -49,13 +49,14 @@ export default class WordDeathmatchScene extends DeathmatchScene {
     this.celebrateWinners(correct);
     const feet = this.localFeet();
     const scored = feet !== null && isOnPlatform(feet, correct);
+    this.word.onRoundScored(round.index, scored);
     if (feet && scored) {
       this.hop();
       this.effects.correct(feet.x, feet.y - 30);
     } else if (feet) {
-      this.effects.wrong(feet.x, feet.y - 30);
+      // Anyone off the answer platform is knocked out, like a fall.
+      this.eliminate();
     }
-    this.word.onRoundScored(round.index, scored);
   }
 
   /** Everyone sees the answer platform burst with confetti, and a star pop over each player standing on it. */

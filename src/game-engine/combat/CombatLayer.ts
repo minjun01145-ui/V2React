@@ -39,9 +39,9 @@ export class CombatLayer {
     return this.health.damage(targetId, damage);
   }
 
-  /** The visible part of a swing: a sword wave for sword holders (fists animate on the actor). */
-  swing(x: number, y: number, facing: number, sword: boolean): void {
-    if (sword) this.swords.slash(x, y, facing);
+  /** The visible part of a swing: a sword holder's blade sweeps and sends a wave (fists animate on the actor). */
+  swing(fighterId: string, x: number, y: number, facing: number, sword: boolean, time: number): void {
+    if (sword) this.swords.slash(fighterId, x, y, facing, time);
   }
 
   reset(fighterId: string): void {

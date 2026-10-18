@@ -17,7 +17,7 @@ export function isPermanentPartyItem(kind: PartyItemKind): kind is PermanentPart
 
 /** Items every party platformer drops; the other kinds are extras individual games opt into. */
 export const PARTY_ITEM_KINDS: readonly PartyItemKind[] = ["speed", "jump", "punch"];
-export const BUFF_DURATION_MS = 30_000;
+export const BUFF_DURATION_MS = 10_000;
 /** Items float this far above the surface they rest on. */
 export const ITEM_HOVER = 26;
 
