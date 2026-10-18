@@ -285,6 +285,18 @@ service cloud.firestore {
       }
     }
 
+    // Saved teacher worksheets: one per learning set and worksheet kind, private to the tenant's teachers.
+    match /tenants/{tenantId}/worksheets/{worksheetId} {
+      allow read, delete: if isAdminForTenant(tenantId);
+      allow create, update: if isAdminForTenant(tenantId)
+        && request.resource.data.keys().hasOnly(["tenantId", "setId", "kind", "document", "usage", "updatedAt"])
+        && request.resource.data.tenantId == tenantId
+        && request.resource.data.kind in ["reading", "recitation", "practice"]
+        && request.resource.data.setId is string
+        && worksheetId == request.resource.data.setId + "__" + request.resource.data.kind
+        && request.resource.data.document is map;
+    }
+
     match /studentProfiles/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdminForTenant(tenantIdFrom(resource.data)));
       allow write: if false;

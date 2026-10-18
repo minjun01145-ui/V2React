@@ -43,16 +43,17 @@ export const httpsCallable = (_functions, name) => async input => {
   window.lastWorksheetRequest=input;
   await new Promise(resolve=>setTimeout(resolve,100));
   if(window.failWorksheet) throw new Error('생성 실패 테스트');
-  if(input.mode==='meanings') return {data:{mode:'meanings',meanings:input.items.filter(item=>!item.meaning).map(item=>({id:item.id,meaning:'누락된 문장 뜻'})),latencyMs:100}};
+  if(input.mode==='meanings') return {data:{mode:'meanings',meanings:input.items.filter(item=>!item.meaning).map(item=>({id:item.id,meaning:'누락된 문장 뜻'})),latencyMs:100,usage:{promptTokens:300,outputTokens:80}}};
   const item=input.items[0]; const source=item.sourceText.replaceAll('/',' ').replace(/\s+/g,' ').trim();
+  const repeat=(count,make)=>Array.from({length:count},(_,index)=>make(index+1));
   const sections=[
-    {kind:'fill-blank',items:[{prompt:source.replace('faster','{{blank}}'),answer:'faster'}]},
-    {kind:'vocabulary',items:[{prompt:'더 빨리 → {{blank}}',answer:'faster'}]},
-    {kind:'sentence-writing',items:[{prompt:item.meaning,answer:source}]},
-    {kind:'translation',items:[{prompt:source,answer:item.meaning}]},
-    {kind:'correction',items:[{prompt:'I can run more faster than my brother.',answer:'more faster → faster'}]},
+    {kind:'fill-blank',items:repeat(10,n=>({prompt:source.replace('faster','{{blank}}')+' ('+n+')',answer:'faster'}))},
+    {kind:'vocabulary',items:repeat(10,()=>({prompt:'더 빨리 → {{blank}}',answer:'faster'}))},
+    {kind:'sentence-writing',items:repeat(5,()=>({prompt:item.meaning,answer:source}))},
+    {kind:'translation',items:repeat(5,()=>({prompt:source,answer:item.meaning}))},
+    {kind:'correction',items:repeat(10,()=>({prompt:'I can run more faster than my brother.',answer:'more → (삭제)'}))},
   ];
-  return {data:window.invalidWorksheet?{mode:'practice',sections:[],latencyMs:100}:{mode:'practice',sections,latencyMs:100}};
+  return {data:window.invalidWorksheet?{mode:'practice',sections:[],latencyMs:100}:{mode:'practice',sections,latencyMs:100,usage:{promptTokens:1200,outputTokens:5400}}};
 };`;
 let server, window, adminApp;
 const evaluate = code => window.webContents.executeJavaScript(code, true);
@@ -103,30 +104,50 @@ async function run() {
     window = new BrowserWindow({ show: false, width: 1200, height: 1200, webPreferences: { contextIsolation: true, nodeIntegration: false, backgroundThrottling: false } });
     window.webContents.on("console-message", event => { if (event.level === "error") console.error("BROWSER:", event.message); });
     await window.loadURL(`${server.resolvedUrls.local[0]}teacher/__worksheets`);
+    const pdfPages = buffer => (buffer.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
     await until("document.querySelector('select option[value=reading]')", "reading set loads through real Firestore");
     await selectSet("reading"); await click("본문 학습지 만들기");
     await until("document.querySelector('[data-worksheet] tbody tr') && !document.querySelector('[role=status]')", "deterministic reading worksheet");
     assert.equal(await evaluate("window.worksheetAiCalls||0"), 0, "complete meanings never call AI");
-    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] table').length"), 2);
-    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] tbody tr').length"), 22);
+    assert.equal(await evaluate("document.querySelector('[data-worksheet] h1').textContent"), "1학년 5과 - 본문 학습지");
+    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] table').length"), 1, "only the text and its meaning");
+    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] h2').length"), 0);
+    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] tbody tr').length"), 11);
     assert.ok((await evaluate("getComputedStyle(document.querySelector('[data-worksheet]')).fontFamily")).includes("Noto Sans KR"));
     assert.equal(await evaluate("document.querySelector('a[aria-current=page]').textContent"), "학습자료 만들기");
     const outputDir = process.env.WORKSHEET_ARTIFACT_DIR || resolve(root, "node_modules/.cache/worksheets");
     await mkdir(outputDir, { recursive: true });
     await screenshot(resolve(outputDir, "worksheet-reading.png"));
-    await writeFile(resolve(outputDir, "worksheet-reading.pdf"), await window.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true, displayHeaderFooter: false }));
+    const readingPdf = await window.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true, displayHeaderFooter: false });
+    await writeFile(resolve(outputDir, "worksheet-reading.pdf"), readingPdf);
+    assert.ok(pdfPages(readingPdf) <= 2, "the reading worksheet prints on at most two pages");
     await evaluate("window.print=()=>{window.printCalled=true};void 0"); await click("인쇄"); assert.equal(await evaluate("window.printCalled"), true);
+    await click("저장");
+    await until("Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='저장됨')", "worksheet saved under the real Rules");
+    await window.loadURL(`${server.resolvedUrls.local[0]}teacher/__worksheets`);
+    await until("document.querySelector('[data-worksheet] h1')?.textContent==='1학년 5과 - 본문 학습지'", "saved worksheet opens without regenerating");
+    assert.ok(await evaluate("Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='재생성')"));
+    await click("본문 연습 학습지");
+    await until("Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='본문 연습 학습지 만들기'&&!button.disabled)", "unsaved kind offers generation");
+    await click("본문 연습 학습지 만들기");
+    await until("document.querySelectorAll('[data-worksheet] table').length===2", "recitation worksheet: meaning writing and English writing");
+    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] [aria-label$=\"작성란\"]').length"), 22);
+    await click("연습문제 학습지");
+    await until("Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='연습문제 학습지 만들기'&&!button.disabled)", "practice kind selected");
     await click("연습문제 학습지 만들기");
-    await until("document.querySelector('[data-worksheet] h1')?.textContent==='연습문제 학습지'", "AI-boundary practice worksheet");
-    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] section').length"), 6);
+    await until("document.querySelector('[data-worksheet] h1')?.textContent==='1학년 5과 - 연습문제 학습지'", "AI-boundary practice worksheet");
+    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] li[class]').length >= 40"), true, "40 questions");
+    assert.ok((await evaluate("document.body.innerText")).includes("출력 5,400"), "token usage is shown");
     assert.equal(await evaluate("window.lastWorksheetRequest.mode"), "practice");
     await screenshot(resolve(outputDir, "worksheet-practice.png"));
     await writeFile(resolve(outputDir, "worksheet-practice.pdf"), await window.webContents.printToPDF({ printBackground: true, preferCSSPageSize: true, displayHeaderFooter: false }));
-    await evaluate("window.invalidWorksheet=true"); await click("연습문제 학습지 만들기");
+    await evaluate("window.invalidWorksheet=true"); await click("재생성");
     await until("document.querySelector('[role=alert]')?.textContent.includes('응답 형식')", "invalid AI JSON rejected before rendering");
-    await evaluate("window.invalidWorksheet=false;window.failWorksheet=true"); await click("연습문제 학습지 만들기");
+    await evaluate("window.invalidWorksheet=false;window.failWorksheet=true"); await click("재생성");
     await until("document.querySelector('[role=alert]')?.textContent.includes('생성 실패 테스트')", "generation failure shown");
-    await evaluate("window.failWorksheet=false"); await selectSet("missing"); await click("본문 학습지 만들기");
+    await evaluate("window.failWorksheet=false"); await click("본문 학습지"); await selectSet("missing");
+    await until("Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='본문 학습지 만들기'&&!button.disabled)", "missing-meaning set selected");
+    await click("본문 학습지 만들기");
     await until("document.querySelector('[data-worksheet]')?.textContent.includes('누락된 문장 뜻')", "missing meaning completed through AI2 boundary");
     assert.equal(await evaluate("window.lastWorksheetRequest.mode"), "meanings");
     console.log(`Worksheet browser tests passed: real Firestore and Rules, deterministic reading, AI-boundary practice, print, invalid response, error and missing meaning. ARTIFACTS ${outputDir}`);

@@ -3,6 +3,13 @@ import { isRecord } from "../shared/validation.js";
 export class WorksheetValidationError extends Error {}
 export const PRACTICE_KINDS = ["fill-blank", "vocabulary", "sentence-writing", "translation", "correction"] as const;
 export type PracticeKind = typeof PRACTICE_KINDS[number];
+/** Questions per type on one practice worksheet. */
+export const PRACTICE_COUNTS: Readonly<Record<PracticeKind, number>> = {
+  "fill-blank": 10, vocabulary: 10, "sentence-writing": 5, translation: 5, correction: 10,
+};
+/** A short text may not support the full count: a few missing questions are tolerated, extras are cut. */
+const PRACTICE_SHORTFALL = 3;
+
 export interface PracticeSection {
   readonly kind: PracticeKind;
   readonly items: readonly { readonly prompt: string; readonly answer: string }[];
@@ -38,16 +45,19 @@ export function parseWorksheetJson(reply: string): unknown {
 export function parsePracticeSections(raw: unknown): readonly PracticeSection[] {
   if (!isRecord(raw) || !Array.isArray(raw.sections) || raw.sections.length !== PRACTICE_KINDS.length) throw new WorksheetValidationError("AI 학습지의 문항 유형이 올바르지 않습니다.");
   return raw.sections.map((section: unknown, index): PracticeSection => {
-    if (!isRecord(section) || section.kind !== PRACTICE_KINDS[index] || !Array.isArray(section.items) || section.items.length < 1 || section.items.length > 6) throw new WorksheetValidationError("AI 학습지의 문항 구성이 올바르지 않습니다.");
-    const items = section.items.map((item: unknown) => {
+    const kind = PRACTICE_KINDS[index]!;
+    const count = PRACTICE_COUNTS[kind];
+    if (!isRecord(section) || section.kind !== kind || !Array.isArray(section.items)
+      || section.items.length < Math.max(1, count - PRACTICE_SHORTFALL)) throw new WorksheetValidationError("AI 학습지의 문항 수가 부족합니다. 다시 생성해주세요.");
+    const items = section.items.slice(0, count).map((item: unknown) => {
       if (!isRecord(item)) throw new WorksheetValidationError("AI 문항 형식이 올바르지 않습니다.");
       const prompt = text(item.prompt, 1200);
       const answer = text(item.answer, 1200);
-      if ((section.kind === "fill-blank" || section.kind === "vocabulary") && prompt.split("{{blank}}").length !== 2) throw new WorksheetValidationError("AI 빈칸 문항의 빈칸 표시가 올바르지 않습니다.");
-      if (section.kind !== "fill-blank" && section.kind !== "vocabulary" && prompt.includes("{{blank}}")) throw new WorksheetValidationError("AI 서술 문항에 빈칸 표시가 포함되었습니다.");
+      const blanks = prompt.split("{{blank}}").length - 1;
+      if ((kind === "fill-blank" || kind === "vocabulary") !== (blanks === 1) || blanks > 1) throw new WorksheetValidationError("AI 문항의 빈칸 표시가 올바르지 않습니다.");
       return { prompt, answer };
     });
-    return { kind: section.kind as PracticeKind, items };
+    return { kind, items };
   });
 }
 

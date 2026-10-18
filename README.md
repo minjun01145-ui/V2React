@@ -37,9 +37,9 @@ npm test --prefix functions
 
 **설정 → AI 설정**에서 공유 API 키와 AI1/AI2를 관리합니다. 기존 채점·튜터·슬라이드 도우미는 AI1을 그대로 사용하며, 학습지는 AI2를 사용합니다. AI2를 처음 저장하기 전에는 AI1을 복사하되 사고 수준은 **최대**, 출력 토큰은 최소 **8192**, 제한시간은 **300초**로 시작합니다. 저장 후에는 두 설정이 독립적입니다.
 
-**학습자료 만들기**에서 끊어읽기 세트를 선택해 본문/연습문제 학습지를 미리 보고 **인쇄**합니다. 본문과 뜻이 모두 있으면 AI 없이 생성하고, 누락된 뜻만 AI2로 보완합니다. 연습문제는 참고 문서의 빈칸·단어/표현·영작·해석·문법 오류 수정 유형과 별도 정답지를 사용합니다. 생성 결과는 저장하지 않으며, 다른 페이지로 이동하거나 새로고침하면 사라집니다. A4 양식은 시스템 폰트와 무관하게 Noto Sans KR을 사용하며 바닥글은 문서 끝에 표시합니다. AI 요청은 최대 100문장·JSON 기준 12,000자입니다.
+**학습자료 만들기**에서 끊어읽기 세트와 종류(본문 학습지·본문 연습 학습지·연습문제 학습지)를 골라 만들고, **저장**하면 다음에 같은 세트·종류를 열 때 바로 표시되며 **재생성**으로 다시 만듭니다. 제목은 세트 이름의 "N학년 N과"를 써서 "3학년 5과 - 본문 학습지"처럼 표시합니다. 본문 학습지는 본문과 뜻 표 하나이며 두 페이지 안에 들어가도록 글자와 간격을 줄입니다. 본문 연습 학습지는 뜻 쓰기·영어 쓰기 표입니다. 두 학습지는 AI 없이 만들고 누락된 뜻만 AI2로 보완합니다. 연습문제는 AI2가 빈칸 채우기 10·단어 및 표현 쓰기 10·문장 쓰기 5·해석하기 5·틀린 부분 고치기 10문항을 만들고 정답은 별도 페이지에 둡니다. AI를 쓴 생성은 입력·출력 토큰 수를 함께 표시·저장합니다. 저장 문서는 `tenants/{tenantId}/worksheets/{세트ID}__{종류}`에 있으며 해당 tenant 교사만 읽고 씁니다. A4 양식은 시스템 폰트와 무관하게 Noto Sans KR을 사용합니다. AI 요청은 최대 100문장·JSON 기준 12,000자입니다.
 
-`src/worksheet/`는 도메인 중립 문서 타입·인쇄 UI, `src/learning-worksheets/`는 본문/연습문제 변환과 서버 경계를 담당합니다. 운영에는 **Hosting과 Functions** 배포가 필요하고, 기존 AI 설정 문서의 브라우저 접근 차단 Rules는 그대로 사용합니다. 회귀 검증은 `npm run test:sets`, `npm test --prefix functions`, `npm run test:worksheets --prefix external-test-browser`입니다.
+`src/worksheet/`는 도메인 중립 문서 타입·페이지 맞춤·저장 형식 검증·인쇄 UI, `src/learning-worksheets/`는 학습지 종류별 변환·저장·서버 경계를 담당합니다. 운영에는 **Hosting, Functions, Firestore Rules** 배포가 필요합니다. 회귀 검증은 `npm run test:sets`, `npm test --prefix functions`, `npm run test:worksheets --prefix external-test-browser`입니다.
 학습지 브라우저 검증은 Java 21 이상을 PATH에 두고 실행합니다. 격리된 Firestore 에뮬레이터와 실제 repository·Rules로 본문을 읽고, AI callable 경계만 대체해 미리보기와 인쇄 PDF를 생성합니다.
 
 
