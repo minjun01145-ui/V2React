@@ -17,6 +17,7 @@
     "test:opinions-page": "node launch.mjs tests/opinions-page.test.mjs",
     "test:slide-question": "node launch.mjs tests/slide-question.test.mjs",
     "test:matching-cards": "node launch.mjs tests/matching-cards.test.mjs",
+    "test:worksheets": "firebase emulators:exec --config ../firebase.emulators.json --only firestore --project demo-worksheet \"node launch.mjs tests/worksheets.test.mjs\"",
     "test:settings-fonts": "node launch.mjs tests/settings-fonts.test.mjs"
   },
   "devDependencies": {

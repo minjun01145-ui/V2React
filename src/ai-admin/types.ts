@@ -1,7 +1,8 @@
 export const AI_PROVIDER_ID = "ollama-cloud" as const;
 export const OLLAMA_CLOUD_ENDPOINT = "https://ollama.com/api" as const;
 
-export type AiThinkingLevel = "off" | "low" | "medium" | "high";
+export type AiSlot = "ai1" | "ai2";
+export type AiThinkingLevel = "off" | "low" | "medium" | "high" | "max";
 
 export interface AiProviderSettings {
   readonly provider: typeof AI_PROVIDER_ID;

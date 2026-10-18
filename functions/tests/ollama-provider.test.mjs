@@ -51,6 +51,10 @@ assert.equal(chat.reply, "테스트 답변");
 assert.equal(chat.promptTokenCount, 12);
 assert.equal(chat.outputTokenCount, 7);
 
+await sendOllamaCloudChat({ ...settings, thinkingLevel: "max", maxOutputTokens: 16384, timeoutSeconds: 300 }, "secret-key-value", [{ role: "user", content: "긴 학습지" }], chatFetch);
+assert.equal(JSON.parse(String(capturedInit.body)).think, "max");
+assert.equal(JSON.parse(String(capturedInit.body)).options.num_predict, 16384);
+
 await assert.rejects(
   () => listOllamaCloudModels(settings, "bad-key", async () => new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 })),
   /401.*unauthorized/,

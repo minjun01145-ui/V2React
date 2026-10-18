@@ -2,7 +2,8 @@ export const AI_PROVIDER = "ollama-cloud" as const;
 export const OLLAMA_CLOUD_BASE_URL = "https://ollama.com/api" as const;
 
 export type AiMessageRole = "system" | "user" | "assistant";
-export type AiThinkingLevel = "off" | "low" | "medium" | "high";
+export type AiSlot = "ai1" | "ai2";
+export type AiThinkingLevel = "off" | "low" | "medium" | "high" | "max";
 
 export interface AiMessage {
   readonly role: AiMessageRole;

@@ -3,6 +3,7 @@ export const TEACHER_VIEW = Object.freeze({
   STUDENTS: "students",
   OPINIONS: "opinions",
   SETS: "sets",
+  WORKSHEETS: "worksheets",
   SLIDE_SHOW: "slide-show",
   SETTINGS: "settings",
 } as const);

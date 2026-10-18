@@ -1,0 +1,48 @@
+@page { size: A4; margin: 14mm 14mm 16mm; }
+.paper { box-sizing: border-box; width: 210mm; min-height: 297mm; padding: 14mm 14mm 16mm; margin: 0 auto; background: #fff; color: #0f172a; box-shadow: 0 4px 24px #0f172a24; font-family: 'Noto Sans KR', sans-serif !important; font-size: 10.5pt; font-weight: 400; line-height: 1.65; overflow-wrap: anywhere; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.paper * { box-sizing: border-box; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 6mm; border-bottom: 2.5px solid #1e3a8a; padding-bottom: 5mm; margin-bottom: 7mm; }
+.header h1 { margin: 0; color: #0f172a; font-size: 18pt; font-weight: 700; line-height: 1.4; }
+.header p { margin: 2mm 0 0; color: #64748b; font-size: 10pt; }
+.identity { display: flex; align-items: baseline; gap: 1.5mm; flex-shrink: 0; font-size: 9pt; white-space: nowrap; }
+.identity span { display: inline-block; width: 14mm; border-bottom: 1px solid #94a3b8; }
+.identity span:last-child { width: 22mm; }
+.section + .section { margin-top: 7mm; }
+.sectionTitle { display: flex; align-items: center; gap: 2.5mm; margin: 0 0 3mm; font-size: 12pt; font-weight: 700; break-after: avoid; page-break-after: avoid; }
+.sectionTitle > span { display: inline-flex; align-items: center; justify-content: center; min-width: 6mm; height: 6mm; padding: 0 1mm; border-radius: 2mm; background: #1e3a8a; color: #fff; font-size: 10pt; }
+.sentenceTable { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.numberColumn { width: 8mm; }
+.meaningColumn { width: 38%; }
+.sentenceTable th { padding: 2mm; background: #e0e7ff; color: #1e3a8a; font-size: 9pt; font-weight: 700; text-align: left; }
+.sentenceTable th:first-child, .sentenceTable td:first-child { padding: 1mm; text-align: center; font-size: 9pt; }
+.sentenceTable td { padding: 2.5mm 2mm; border-bottom: .5px solid #cbd5e1; vertical-align: middle; }
+.sentenceTable tr { break-inside: avoid; page-break-inside: avoid; }
+.sentenceTable tbody tr:nth-child(even) { background: #f8fafc; }
+.english { font-size: 11pt; font-weight: 500; }
+.meaning { color: #475569; font-size: 9.5pt; }
+.slash { color: #94a3b8; }
+.sentenceBlank { min-height: 11mm; border-bottom: 1px dashed #94a3b8; }
+.questions { padding: 0; margin: 0; list-style: none; }
+.question { margin: 0 0 5mm; break-inside: avoid; page-break-inside: avoid; }
+.questionPrompt { display: flex; gap: 2mm; }
+.questionPrompt strong { flex-shrink: 0; font-weight: 700; }
+.blank { display: inline-block; max-width: 100%; height: 1.4em; border-bottom: 1px solid #475569; vertical-align: baseline; margin: 0 1mm; }
+.choices { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm 4mm; padding: 2mm 0 0 5mm; margin: 0; list-style: none; }
+.longChoices { grid-template-columns: 1fr; }
+.writingLines { margin-left: 5mm; }
+.writingLines > div { height: 8mm; border-bottom: .5px solid #cbd5e1; }
+.notice { margin: 0 0 4mm; padding: 2.5mm 3mm; border-left: 3px solid #1e3a8a; background: #eef2ff; font-size: 9.5pt; break-inside: avoid; }
+.answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm 4mm; font-size: 9.5pt; }
+.answers > div { break-inside: avoid; }
+.answers strong { font-weight: 700; }
+.footer { margin-top: 10mm; text-align: center; color: #94a3b8; font-size: 8pt; }
+.newPage { break-before: page; page-break-before: always; }
+@media screen { .newPage { margin-top: 14mm !important; padding-top: 7mm; border-top: 1px dashed #cbd5e1; } }
+@media print {
+  :global(body:has([data-worksheet])) { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+  :global(body:has([data-worksheet]) *:has([data-worksheet])) { display: contents !important; }
+  :global(body:has([data-worksheet]) *:not(:has([data-worksheet])):not([data-worksheet]):not([data-worksheet] *)) { display: none !important; }
+  .paper { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; }
+  .newPage { margin-top: 0 !important; }
+  .sentenceTable thead { display: table-header-group; }
+}

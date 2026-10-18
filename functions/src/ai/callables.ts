@@ -3,10 +3,11 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { requirePrimaryAdmin } from "../shared/auth.js";
 import { getAdminAiSettings, generateAiReply, saveAdminAiSettings, testAiProviderConnection } from "./service.js";
 import { AiProviderError } from "./ollamaProvider.js";
-import { AiValidationError, parseAdminTestMessage, parseAiProviderSettings, parseOptionalApiKey } from "./validation.js";
+import { AiValidationError, parseAdminTestMessage, parseAiProviderSettings, parseOptionalApiKey, parseAiSlot } from "./validation.js";
+import { isRecord } from "../shared/validation.js";
 
 const readOptions = { region: "asia-northeast3", enforceAppCheck: false, timeoutSeconds: 30, maxInstances: 3 } as const;
-const inferenceOptions = { region: "asia-northeast3", enforceAppCheck: false, timeoutSeconds: 120, maxInstances: 3, memory: "256MiB" } as const;
+const inferenceOptions = { region: "asia-northeast3", enforceAppCheck: false, timeoutSeconds: 360, maxInstances: 3, memory: "256MiB" } as const;
 
 function callableError(error: unknown): HttpsError {
   if (error instanceof HttpsError) return error;
@@ -23,7 +24,7 @@ function callableError(error: unknown): HttpsError {
 export const getAiProviderSettings = onCall(readOptions, async (request) => {
   await requirePrimaryAdmin(request);
   try {
-    return await getAdminAiSettings();
+    return await getAdminAiSettings(parseAiSlot(isRecord(request.data) ? request.data.slot : undefined));
   } catch (error: unknown) {
     throw callableError(error);
   }
@@ -36,6 +37,7 @@ export const saveAiProviderSettings = onCall(readOptions, async (request) => {
       parseAiProviderSettings(request.data),
       parseOptionalApiKey(typeof request.data === "object" && request.data !== null && "apiKey" in request.data ? request.data.apiKey : null),
       adminUid,
+      parseAiSlot(isRecord(request.data) ? request.data.slot : undefined),
     );
   } catch (error: unknown) {
     throw callableError(error);
@@ -45,7 +47,7 @@ export const saveAiProviderSettings = onCall(readOptions, async (request) => {
 export const testAiConnection = onCall(inferenceOptions, async (request) => {
   await requirePrimaryAdmin(request);
   try {
-    return await testAiProviderConnection();
+    return await testAiProviderConnection(parseAiSlot(isRecord(request.data) ? request.data.slot : undefined));
   } catch (error: unknown) {
     throw callableError(error);
   }
@@ -54,7 +56,7 @@ export const testAiConnection = onCall(inferenceOptions, async (request) => {
 export const sendAiTestMessage = onCall(inferenceOptions, async (request) => {
   await requirePrimaryAdmin(request);
   try {
-    return await generateAiReply(parseAdminTestMessage(request.data).messages);
+    return await generateAiReply(parseAdminTestMessage(request.data).messages, { slot: parseAiSlot(isRecord(request.data) ? request.data.slot : undefined) });
   } catch (error: unknown) {
     throw callableError(error);
   }

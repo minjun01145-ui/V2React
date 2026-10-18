@@ -8,6 +8,7 @@ import styles from "./TeacherNav.module.css";
 const mainItems: readonly { readonly view: TeacherView; readonly label: string }[] = [
   { view: TEACHER_VIEW.LOBBY, label: "대기실" },
   { view: TEACHER_VIEW.SETS, label: "학습 세트" },
+  { view: TEACHER_VIEW.WORKSHEETS, label: "학습자료 만들기" },
   { view: TEACHER_VIEW.SLIDE_SHOW, label: "슬라이드쇼" },
   { view: TEACHER_VIEW.STUDENTS, label: "학생 명단" },
   { view: TEACHER_VIEW.OPINIONS, label: "학생 의견" },

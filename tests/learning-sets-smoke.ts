@@ -66,6 +66,10 @@ assert.deepEqual(parseLearningSet("set-1", { name: "필수 단어", type: "vocab
 });
 assert.equal(parseLearningSet("forms", { name: "비교급", type: "form-changes", itemCount: 4, createdAtMs: 1, updatedAtMs: 2 }, { items: formChanges })?.items[3]?.form3, "the best");
 assert.equal(parseLearningSet("bad-forms", { name: "비교급", type: "form-changes", itemCount: 1, createdAtMs: 1, updatedAtMs: 2 }, { items: [{ id: "x", sourceText: "fast", meaning: "빠른" }] }), null);
+const missingMeaningContent = { items: [{ id: "missing", sourceText: "I / go home.", meaning: "" }] };
+assert.equal(parseLearningSet("missing", { name: "본문", type: "reading-chunks" }, missingMeaningContent), null, "game readers still require meanings");
+assert.equal(parseLearningSet("missing", { name: "본문", type: "reading-chunks" }, missingMeaningContent, { allowMissingReadingMeanings: true })?.items[0]?.meaning, "", "worksheet reader can complete missing meanings");
+assert.equal(parseLearningSet("missing", { name: "단어", type: "vocabulary" }, missingMeaningContent, { allowMissingReadingMeanings: true }), null, "only reading worksheets relax missing meanings");
 
 // Shared word engine: chunked sentences break into ordered words; the key ignores case, spacing and edge punctuation.
 assert.deepEqual(chunksToWords(["I am", "a middle school student."]), ["I", "am", "a", "middle", "school", "student."]);

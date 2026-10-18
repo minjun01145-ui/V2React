@@ -16,30 +16,31 @@ export async function listLearningSets(): Promise<readonly LearningSetSummary[]>
     .sort((a, b) => b.updatedAtMs - a.updatedAtMs || a.name.localeCompare(b.name, "ko-KR"));
 }
 
-export function getLearningSet(setId: string, scope = "default"): Promise<LearningSet> {
+export function getLearningSet(setId: string, scope = "default", options: { readonly allowMissingReadingMeanings?: boolean } = {}): Promise<LearningSet> {
   const tenantId = currentTenantConfig().id;
   const cacheKey = `${tenantId}:${setId}`;
   const scopedCache = setCache.get(cacheKey) ?? new Map<string, Promise<LearningSet>>();
   setCache.set(cacheKey, scopedCache);
-  const cached = scopedCache.get(scope);
+  const cacheScope = options.allowMissingReadingMeanings ? `${scope}:missing-meanings` : scope;
+  const cached = scopedCache.get(cacheScope);
   if (cached) return cached;
   const setRef = tenantLearningSetRef(tenantId, setId);
   const request = Promise.all([getDoc(setRef), getDoc(doc(setRef, "content", "main"))])
     .then(([metadata, content]) => {
       if (!metadata.exists()) throw new Error("학습 세트를 찾을 수 없습니다.");
-      const parsed = parseLearningSet(setId, metadata.exists() ? metadata.data() : null, content.exists() ? content.data() : null);
+      const parsed = parseLearningSet(setId, metadata.exists() ? metadata.data() : null, content.exists() ? content.data() : null, options);
       if (!parsed) throw new Error("학습 세트를 찾을 수 없거나 데이터 형식이 올바르지 않습니다.");
       return parsed;
     })
     .catch((error: unknown) => {
-      scopedCache.delete(scope);
+      scopedCache.delete(cacheScope);
       if (scopedCache.size === 0) setCache.delete(cacheKey);
       throw error;
     });
-  scopedCache.set(scope, request);
+  scopedCache.set(cacheScope, request);
   globalThis.setTimeout(() => {
-    if (scopedCache.get(scope) !== request) return;
-    scopedCache.delete(scope);
+    if (scopedCache.get(cacheScope) !== request) return;
+    scopedCache.delete(cacheScope);
     if (scopedCache.size === 0) setCache.delete(cacheKey);
   }, SET_CACHE_TTL_MS);
   return request;

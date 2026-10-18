@@ -25,10 +25,10 @@ export async function setDoc(path, data, options) {
 `;
 const ai = String.raw`
 const settings = { provider:'ollama-cloud',baseUrl:'https://ollama.com/api',model:'gpt-oss:120b',temperature:0.3,maxOutputTokens:512,thinkingLevel:'off',timeoutSeconds:60,enabled:true,updatedAtMs:0,apiKeyConfigured:true };
-export async function getAiProviderSettings() { return settings; }
-export async function saveAiProviderSettings(data) { window.savedAi = data; return {...settings,...data,updatedAtMs:Date.now()}; }
+export async function getAiProviderSettings(slot='ai1') { return slot==='ai2'?{...settings,thinkingLevel:'max',maxOutputTokens:8192,timeoutSeconds:300}:settings; }
+export async function saveAiProviderSettings(data,slot) { window.savedAi = data; window.savedAiSlot=slot; return {...settings,...data,updatedAtMs:Date.now()}; }
 export async function testAiProviderConnection() { return { models:['gpt-oss:120b'],latencyMs:10 }; }
-export async function sendAiTestMessage() { return { reply:'테스트 응답',model:settings.model,latencyMs:10,promptTokenCount:5,outputTokenCount:3 }; }
+export async function sendAiTestMessage(_input,slot) { window.aiTestSlot=slot; return { reply:'테스트 응답',model:settings.model,latencyMs:10,promptTokenCount:5,outputTokenCount:3 }; }
 `;
 const fixture = (role) => `<!doctype html><html lang="ko"><meta charset="utf-8"><body><div id="root"></div><script type="module">
 import React from 'react';
@@ -37,7 +37,7 @@ import App from '/src/apps/${role}/${role === "teacher" ? "TeacherApp" : "Studen
 import '/src/styles/tokens.css'; import '/src/styles/reset.css'; import '/src/styles/global.css';
 createRoot(document.querySelector('#root')).render(React.createElement(App));
 </script></body></html>`;
-const unrelated = ["TeacherLobbyPage.tsx", "TeacherSetsPage.tsx", "TeacherStudentsPage.tsx", "TeacherOpinionsPage.tsx", "TeacherSlideShowPage.tsx", "/student/StudentPage.tsx"];
+const unrelated = ["TeacherLobbyPage.tsx", "TeacherSetsPage.tsx", "TeacherStudentsPage.tsx", "TeacherOpinionsPage.tsx", "TeacherSlideShowPage.tsx", "TeacherWorksheetsPage.tsx", "/student/StudentPage.tsx"];
 let server;
 const windows = [];
 const evaluate = (window, code) => window.webContents.executeJavaScript(code, true);
@@ -101,12 +101,20 @@ async function run() {
     assert.equal(await evaluate(teacher, "document.querySelector('h1').textContent"), "설정");
     assert.deepEqual(await evaluate(teacher, `Array.from(document.querySelectorAll('nav[aria-label="교사용 메뉴"] a')).map(a=>a.textContent.trim()).filter(label=>label.includes('설정'))`), ["설정"], "one settings navigation link");
     assert.equal(await evaluate(teacher, `document.querySelector('a[aria-current="page"]').textContent`), "설정");
+    assert.equal(await evaluate(teacher, `document.querySelectorAll('[aria-label="AI1 설정"],[aria-label="AI2 설정"]').length`), 2);
+    assert.equal(await evaluate(teacher, `document.querySelectorAll('[aria-label="AI 설정"] input[type=password]').length`), 1, "slots share a single API key input");
+    assert.equal(await evaluate(teacher, `document.querySelector('[aria-label="AI2 설정"] select').value`), "max");
     await click(teacher, "연결 테스트");
     await until(teacher, "document.body.textContent.includes('연결 테스트') && document.body.textContent.includes('조회에 성공')", "existing AI connection behavior");
+    await evaluate(teacher, `(()=>{const select=Array.from(document.querySelectorAll('[aria-label="AI 설정"] select')).at(-1);select.value='ai2';select.dispatchEvent(new Event('change',{bubbles:true}));})()`);
     await click(teacher, "보내기");
     await until(teacher, "document.body.textContent.includes('테스트 응답')", "existing AI messaging behavior");
+    assert.equal(await evaluate(teacher, "window.aiTestSlot"), "ai2", "message testing routes to the chosen slot");
+    await evaluate(teacher, `(()=>{const input=document.querySelector('[aria-label="AI2 설정"] input[list]');Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(input,'unsaved-ai2-model');input.dispatchEvent(new Event('input',{bubbles:true}));})()`);
     await click(teacher, "저장");
     await until(teacher, "window.savedAi", "existing AI save behavior");
+    assert.equal(await evaluate(teacher, "window.savedAiSlot"), "ai1", "saving AI1 does not silently save AI2");
+    assert.equal(await evaluate(teacher, `document.querySelector('[aria-label="AI2 설정"] input[list]').value`), "unsaved-ai2-model", "saving AI1 preserves the AI2 draft");
     await click(teacher, "수업 설정");
     await until(teacher, "document.body.textContent.includes('다음 주 신상') && document.body.textContent.includes('기본 게임')", "old settings retained");
     await click(teacher, "테마 · 폰트");

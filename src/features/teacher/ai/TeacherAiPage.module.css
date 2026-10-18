@@ -1,18 +1,11 @@
 .settings { display: grid; gap: 1rem; }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .header h2 { margin: 0; }
-.statusGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
-.statusGrid > div { display: grid; gap: .35rem; }
-.statusGrid span { color: var(--color-muted); font-size: .76rem; font-weight: 300; letter-spacing: .04em; }
-.statusGrid strong { font-size: 1.2rem; }
-.statusGrid small { color: var(--color-muted); overflow-wrap: anywhere; }
-.statusGrid .date { font-size: 1rem; }
 .columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: start; }
 .form { display: grid; gap: .85rem; }
 .form h2 { margin: .3rem 0 .4rem; }
 .form label { display: grid; gap: .4rem; color: var(--color-text); font-size: .8rem; font-weight: 300; }
 .form input:not([type="checkbox"]), .form textarea, .form select { width: 100%; border: 1px solid var(--color-border-strong); border-radius: .75rem; padding: .75rem .82rem; color: var(--color-text); background: var(--color-surface); font: inherit; }
-.form input[readonly] { color: var(--color-muted); background: var(--color-surface-subtle); }
 .form textarea { resize: vertical; line-height: 1.55; }
 .form input:focus, .form textarea:focus, .form select:focus { border-color: var(--color-primary); outline: 3px solid var(--color-primary-soft); }
 .compactFields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
@@ -27,6 +20,5 @@
 .response span { color: var(--color-primary); font-size: .72rem; font-weight: 300; letter-spacing: .06em; }
 .response p { margin: 0; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
 .response small { color: var(--color-muted); }
-.guide { display: none; }
 @media (max-width: 900px) { .columns { grid-template-columns: 1fr; } }
-@media (max-width: 620px) { .statusGrid, .compactFields { grid-template-columns: 1fr; } }
+@media (max-width: 620px) { .compactFields { grid-template-columns: 1fr; } }

@@ -32,7 +32,7 @@ export function parseLearningSetSummary(id: string, value: unknown): LearningSet
   };
 }
 
-function parseItems(value: unknown, type: LearningSetType): readonly LearningSetItem[] | null {
+function parseItems(value: unknown, type: LearningSetType, allowMissingReadingMeanings: boolean): readonly LearningSetItem[] | null {
   if (!isRecord(value) || !Array.isArray(value.items)) return null;
   const items: LearningSetItem[] = [];
   for (const raw of value.items) {
@@ -40,7 +40,7 @@ function parseItems(value: unknown, type: LearningSetType): readonly LearningSet
     const id = typeof raw.id === "string" ? raw.id : "";
     const sourceText = typeof raw.sourceText === "string" ? raw.sourceText.trim() : "";
     const meaning = typeof raw.meaning === "string" ? raw.meaning.trim() : "";
-    if (!id || !sourceText || !meaning) return null;
+    if (!id || !sourceText || (!meaning && !(allowMissingReadingMeanings && type === LEARNING_SET_TYPE.READING_CHUNKS))) return null;
     const form2 = typeof raw.form2 === "string" ? raw.form2.trim() : "";
     const form3 = typeof raw.form3 === "string" ? raw.form3.trim() : "";
     if (type === LEARNING_SET_TYPE.FORM_CHANGES && (!form2 || !form3)) return null;
@@ -62,9 +62,9 @@ function parseItems(value: unknown, type: LearningSetType): readonly LearningSet
   return items;
 }
 
-export function parseLearningSet(id: string, metadata: unknown, content: unknown): LearningSet | null {
+export function parseLearningSet(id: string, metadata: unknown, content: unknown, options: { readonly allowMissingReadingMeanings?: boolean } = {}): LearningSet | null {
   const summary = parseLearningSetSummary(id, metadata);
-  const items = summary ? parseItems(content, summary.type) : null;
+  const items = summary ? parseItems(content, summary.type, options.allowMissingReadingMeanings === true) : null;
   if (!summary || !items) return null;
   return { ...summary, itemCount: items.length, items };
 }

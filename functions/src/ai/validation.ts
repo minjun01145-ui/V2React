@@ -1,10 +1,16 @@
 import { isRecord } from "../shared/validation.js";
-import { AI_PROVIDER, OLLAMA_CLOUD_BASE_URL, type AiMessage, type AiProviderSettings, type AiThinkingLevel } from "./types.js";
+import { AI_PROVIDER, OLLAMA_CLOUD_BASE_URL, type AiMessage, type AiProviderSettings, type AiThinkingLevel, type AiSlot } from "./types.js";
 
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/;
-const THINKING_LEVELS = new Set<AiThinkingLevel>(["off", "low", "medium", "high"]);
+const THINKING_LEVELS: Record<AiThinkingLevel, true> = { off: true, low: true, medium: true, high: true, max: true };
 
 export class AiValidationError extends Error {}
+
+export function parseAiSlot(value: unknown): AiSlot {
+  if (value === undefined || value === "ai1") return "ai1";
+  if (value === "ai2") return "ai2";
+  throw new AiValidationError("AI 슬롯을 확인해주세요.");
+}
 
 function finiteNumber(value: unknown, label: string): number {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -22,9 +28,9 @@ export function parseAiProviderSettings(value: unknown): Omit<AiProviderSettings
 
   if (!MODEL_PATTERN.test(model)) throw new AiValidationError("Ollama 모델 이름을 확인해주세요.");
   if (temperature < 0 || temperature > 2) throw new AiValidationError("Temperature는 0부터 2까지 설정할 수 있습니다.");
-  if (maxOutputTokens < 16 || maxOutputTokens > 4096) throw new AiValidationError("최대 출력 토큰은 16부터 4096까지 설정할 수 있습니다.");
-  if (timeoutSeconds < 10 || timeoutSeconds > 120) throw new AiValidationError("응답 제한 시간은 10초부터 120초까지 설정할 수 있습니다.");
-  if (!THINKING_LEVELS.has(thinkingLevel)) throw new AiValidationError("사고 수준 설정을 확인해주세요.");
+  if (maxOutputTokens < 16 || maxOutputTokens > 16384) throw new AiValidationError("최대 출력 토큰은 16부터 16384까지 설정할 수 있습니다.");
+  if (timeoutSeconds < 10 || timeoutSeconds > 300) throw new AiValidationError("응답 제한 시간은 10초부터 300초까지 설정할 수 있습니다.");
+  if (!Object.hasOwn(THINKING_LEVELS, thinkingLevel)) throw new AiValidationError("사고 수준 설정을 확인해주세요.");
 
   return {
     provider: AI_PROVIDER,

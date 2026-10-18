@@ -1,0 +1,46 @@
+import assert from "node:assert/strict";
+import { mock } from "node:test";
+import { PRACTICE_KINDS, parseWorksheetInput, parsePracticeSections, parseMissingMeanings, parseWorksheetJson } from "../lib/worksheet/model.js";
+const items = [{ id: "a", sourceText: "We / paint walls.", meaning: "우리는 / 벽에 그림을 그린다." }, { id: "b", sourceText: "We / are proud.", meaning: "" }];
+const input = { mode: "practice", name: "본문", items };
+const sections = PRACTICE_KINDS.map(kind => ({ kind, items: [{ prompt: kind === "fill-blank" || kind === "vocabulary" ? "We {{blank}} walls." : "본문 문항", answer: "paint" }] }));
+assert.deepEqual(parseWorksheetInput(input), input);
+assert.throws(() => parseWorksheetInput({ ...input, mode: "arbitrary-proxy" }));
+assert.throws(() => parseWorksheetInput({ ...input, items: [items[0], items[0]] }));
+assert.throws(() => parseWorksheetInput({ ...input, items: [] }));
+assert.deepEqual(parsePracticeSections(parseWorksheetJson('```json\n' + JSON.stringify({ sections }) + '\n```')), sections);
+assert.throws(() => parseWorksheetJson("not JSON"));
+assert.throws(() => parsePracticeSections({ sections: sections.slice(1) }));
+assert.throws(() => parsePracticeSections({ sections: [{ ...sections[0], kind: "untrusted" }, ...sections.slice(1)] }));
+assert.throws(() => parsePracticeSections({ sections: [{ ...sections[0], items: [{ prompt: "No blank", answer: "answer" }] }, ...sections.slice(1)] }));
+assert.throws(() => parsePracticeSections({ sections: [{ ...sections[0], items: [{ prompt: "{{blank}}", answer: "" }] }, ...sections.slice(1)] }));
+assert.deepEqual(parseMissingMeanings({ meanings: [{ id: "b", meaning: "우리는 자랑스럽다." }] }, items), [{ id: "b", meaning: "우리는 자랑스럽다." }]);
+assert.throws(() => parseMissingMeanings({ meanings: [{ id: "a", meaning: "덮어쓰기" }] }, items));
+let aiCalls = 0;
+let aiOptions;
+let output = JSON.stringify({ sections });
+mock.module(new URL("../lib/ai/service.js", import.meta.url), { namedExports: { generateAiReply: async (_messages, options) => { aiCalls++; aiOptions = options; return { reply: output, latencyMs: 42 }; } } });
+const { generateWorksheetDraft } = await import("../lib/worksheet/service.js");
+const result = await generateWorksheetDraft(input);
+assert.deepEqual(result.sections, sections); assert.deepEqual(aiOptions, { slot: "ai2" }); assert.equal(result.latencyMs, 42);
+const before = aiCalls;
+assert.deepEqual(await generateWorksheetDraft({ ...input, mode: "meanings", items: [items[0]] }), { mode: "meanings", meanings: [], latencyMs: 0 });
+assert.equal(aiCalls, before, "existing meanings need no AI");
+output = JSON.stringify({ meanings: [{ id: "b", meaning: "우리는 자랑스럽다." }] });
+assert.equal((await generateWorksheetDraft({ ...input, mode: "meanings" })).meanings[0].id, "b");
+output = "invalid"; await assert.rejects(generateWorksheetDraft(input), /JSON/);
+
+const { db } = await import("../lib/shared/firebase.js");
+const dbMock = mock.method(db, "collection", name => ({ doc: uid => ({ get: async () => ({ exists: name === "admins" && uid !== "student", data: () => ({ active: uid === "teacher", tenantId: "minjun" }) }) }) }));
+const { generateWorksheet } = await import("../lib/worksheet/callables.js");
+const teacher = { uid: "teacher", token: { firebase: { sign_in_provider: "password" } } };
+try {
+  const calls = aiCalls;
+  await assert.rejects(generateWorksheet.run({ auth: null, data: input }), error => error.code === "unauthenticated");
+  await assert.rejects(generateWorksheet.run({ auth: { ...teacher, uid: "student" }, data: input }), error => error.code === "permission-denied");
+  await assert.rejects(generateWorksheet.run({ auth: { ...teacher, uid: "inactive" }, data: input }), error => error.code === "permission-denied");
+  assert.equal(aiCalls, calls, "only an active teacher reaches AI");
+  output = JSON.stringify({ sections });
+  assert.equal((await generateWorksheet.run({ auth: teacher, data: input })).sections.length, 5);
+} finally { dbMock.mock.restore(); }
+console.log("Worksheet server tests passed: schema, missing meanings, AI2 selection and teacher authorization");

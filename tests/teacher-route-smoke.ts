@@ -7,6 +7,7 @@ assert.equal(getTeacherView("#/settings"), TEACHER_VIEW.SETTINGS);
 assert.equal(getTeacherView("#/students"), TEACHER_VIEW.STUDENTS);
 assert.equal(getTeacherView("#/opinions"), TEACHER_VIEW.OPINIONS);
 assert.equal(getTeacherView("#/sets"), TEACHER_VIEW.SETS);
+assert.equal(getTeacherView("#/worksheets"), TEACHER_VIEW.WORKSHEETS);
 assert.equal(getTeacherView("#/slide-show"), TEACHER_VIEW.SLIDE_SHOW);
 assert.equal(getTeacherView("#/ai"), TEACHER_VIEW.SETTINGS);
 assert.equal(getTeacherView("#/ai?legacy=1"), TEACHER_VIEW.SETTINGS);
@@ -24,6 +25,7 @@ assert.equal(teacherHref(TEACHER_VIEW.LOBBY), "#/lobby");
 assert.equal(teacherHref(TEACHER_VIEW.STUDENTS), "#/students");
 assert.equal(teacherHref(TEACHER_VIEW.OPINIONS), "#/opinions");
 assert.equal(teacherHref(TEACHER_VIEW.SETS), "#/sets");
+assert.equal(teacherHref(TEACHER_VIEW.WORKSHEETS), "#/worksheets");
 assert.equal(teacherHref(TEACHER_VIEW.SLIDE_SHOW), "#/slide-show");
 assert.equal(teacherHref(TEACHER_VIEW.SETTINGS), "#/settings");
 

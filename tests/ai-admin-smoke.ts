@@ -14,6 +14,9 @@ assert.doesNotThrow(() => validateAiSettings(validSettings));
 assert.throws(() => validateAiSettings({ ...validSettings, model: "bad model" }), /모델 이름/);
 assert.throws(() => validateAiSettings({ ...validSettings, temperature: 3 }), /Temperature/);
 assert.throws(() => validateAiSettings({ ...validSettings, apiKey: "short" }), /API 키/);
+assert.doesNotThrow(() => validateAiSettings({ ...validSettings, thinkingLevel: "max", maxOutputTokens: 16384, timeoutSeconds: 300 }));
+assert.throws(() => validateAiSettings({ ...validSettings, maxOutputTokens: 16385 }), /출력 토큰/);
+assert.throws(() => validateAiSettings({ ...validSettings, timeoutSeconds: 301 }), /제한 시간/);
 assert.doesNotThrow(() => validateAiTestMessage({ systemPrompt: "한국어로 답변", prompt: "안녕하세요" }));
 assert.throws(() => validateAiTestMessage({ systemPrompt: "", prompt: "" }), /테스트 메시지/);
 

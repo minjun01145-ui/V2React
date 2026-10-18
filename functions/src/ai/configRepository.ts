@@ -1,9 +1,8 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { db } from "../shared/firebase.js";
 import { isRecord } from "../shared/validation.js";
-import { AI_PROVIDER, OLLAMA_CLOUD_BASE_URL, type AiProviderSettings, type AiThinkingLevel } from "./types.js";
+import { AI_PROVIDER, OLLAMA_CLOUD_BASE_URL, type AiProviderSettings, type AiThinkingLevel, type AiSlot } from "./types.js";
 
-const configRef = db.collection("aiProviderConfigs").doc(AI_PROVIDER);
 
 export const DEFAULT_AI_PROVIDER_SETTINGS: AiProviderSettings = Object.freeze({
   provider: AI_PROVIDER,
@@ -18,13 +17,17 @@ export const DEFAULT_AI_PROVIDER_SETTINGS: AiProviderSettings = Object.freeze({
 });
 
 function savedThinkingLevel(value: unknown): AiThinkingLevel {
-  return value === "low" || value === "medium" || value === "high" ? value : "off";
+  return value === "low" || value === "medium" || value === "high" || value === "max" ? value : "off";
 }
 
-export async function readAiProviderSettings(): Promise<AiProviderSettings> {
-  const snapshot = await configRef.get();
+export function copyAi2Settings(ai1: AiProviderSettings): AiProviderSettings {
+  return { ...ai1, thinkingLevel: "max", maxOutputTokens: Math.max(8192, ai1.maxOutputTokens), timeoutSeconds: 300, updatedAtMs: 0 };
+}
+
+export async function readAiProviderSettings(slot: AiSlot = "ai1"): Promise<AiProviderSettings> {
+  const snapshot = await db.collection("aiProviderConfigs").doc(slot === "ai1" ? AI_PROVIDER : `${AI_PROVIDER}-ai2`).get();
   const raw: unknown = snapshot.exists ? snapshot.data() : null;
-  if (!isRecord(raw)) return DEFAULT_AI_PROVIDER_SETTINGS;
+  if (!isRecord(raw)) return slot === "ai2" ? copyAi2Settings(await readAiProviderSettings("ai1")) : DEFAULT_AI_PROVIDER_SETTINGS;
   return {
     provider: AI_PROVIDER,
     baseUrl: OLLAMA_CLOUD_BASE_URL,
@@ -41,10 +44,11 @@ export async function readAiProviderSettings(): Promise<AiProviderSettings> {
 export async function writeAiProviderSettings(
   settings: Omit<AiProviderSettings, "updatedAtMs">,
   adminUid: string,
+  slot: AiSlot = "ai1",
 ): Promise<AiProviderSettings> {
   const updatedAtMs = Date.now();
   const saved: AiProviderSettings = { ...settings, updatedAtMs };
-  await configRef.set({
+  await db.collection("aiProviderConfigs").doc(slot === "ai1" ? AI_PROVIDER : `${AI_PROVIDER}-ai2`).set({
     ...saved,
     updatedAt: FieldValue.serverTimestamp(),
     updatedBy: adminUid,
