@@ -68,3 +68,31 @@ try {
   else Reflect.deleteProperty(globalThis, "document");
 }
 console.log("font catalog tests passed");
+
+const { THEMES, parseThemeId, themeFontId } = await import("../src/appearance/themes.ts");
+const { themeCover } = await import("../src/shared/ui/themeCover.ts");
+for (const invalid of [undefined, null, "unknown", "__proto__", {}, 42]) assert.equal(parseThemeId(invalid), "classic");
+for (const theme of THEMES) {
+  assert.equal(parseThemeId(theme.id), theme.id);
+  assert.ok(FONT_CATALOG.some((font) => font.id === themeFontId(theme.id)));
+}
+assert.equal(new Set(THEMES.map((theme) => themeCover("typing", theme.id))).size, 4, "each theme supplies different artwork");
+assert.notEqual(themeCover("typing", "arcade"), themeCover("matching", "arcade"), "covers distinguish game activities");
+Object.defineProperty(globalThis, "document", { configurable: true, value: {
+  documentElement: { dataset: { theme: "paper" }, style: {
+    setProperty: (name: string, value: string) => properties.set(name, value),
+    removeProperty: (name: string) => properties.delete(name),
+  } },
+} });
+try {
+  applyAppFont("default");
+  assert.equal(properties.get("--app-font-family"), fontStack("gowun-dodum"), "default follows the theme");
+  applyAppFont("jua");
+  assert.equal(properties.get("--app-font-family"), fontStack("jua"), "user can override a theme font");
+  applyAppFont("default");
+  assert.equal(properties.get("--app-font-family"), fontStack("gowun-dodum"), "reset returns to the theme font");
+} finally {
+  if (originalDocument) Object.defineProperty(globalThis, "document", originalDocument);
+  else Reflect.deleteProperty(globalThis, "document");
+}
+console.log("appearance theme and font tests passed");

@@ -1,3 +1,4 @@
 .frame { height: 100dvh; display: grid; grid-template-rows: minmax(0, 1fr); padding: 12px; overflow: hidden; background: var(--color-bg); }
 .frame > * { min-height: 0; min-width: 0; }
 @media (max-width: 767px) { .frame { height: auto; min-height: 100dvh; overflow: visible; } }
+:global(:root[data-theme]:not([data-theme="classic"])) .frame { background-image: var(--theme-background); background-size: var(--theme-background-size, auto); }

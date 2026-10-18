@@ -1,4 +1,11 @@
 .heading { margin: .45rem 0 .6rem; }
+.themes { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; }
+.themes button { padding: 0; overflow: hidden; border: 2px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text); cursor: pointer; }
+.themes button[aria-pressed="true"] { border-color: var(--color-primary); outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.themes button:focus-visible { outline: 3px solid var(--color-accent); outline-offset: 4px; }
+.themes button:disabled { cursor: wait; opacity: .65; }
+.themes img { display: block; width: 100%; aspect-ratio: 16 / 10; }
+.themes span { display: block; padding: 12px; }
 .list { display: grid; gap: .65rem; margin: 1.2rem 0 0; }
 .list div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-top: 1px solid var(--color-border); }
 .list dt { color: var(--color-muted); font-weight: 300; }

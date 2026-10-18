@@ -1,5 +1,6 @@
 import { FONT_CATALOG } from "./catalog.ts";
 import { registerFont } from "./loader.ts";
+import { parseThemeId, themeFontId } from "../appearance/themes.ts";
 
 export const DEFAULT_APP_FONT_ID = "default";
 
@@ -10,7 +11,9 @@ export function parseAppFontId(value: unknown): string {
 
 /** CSS updates synchronously for preview; only the selected catalog face is registered. */
 export function applyAppFont(id: string): void {
-  const font = FONT_CATALOG.find((entry) => entry.id === id);
+  const themeId = parseThemeId(document.documentElement.dataset?.theme);
+  const effectiveId = id === DEFAULT_APP_FONT_ID && themeId !== "classic" ? themeFontId(themeId) : id;
+  const font = FONT_CATALOG.find((entry) => entry.id === effectiveId);
   if (font) {
     document.documentElement.style.setProperty("--app-font-family", font.family);
   } else {

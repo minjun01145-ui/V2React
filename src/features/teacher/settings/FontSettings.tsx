@@ -49,7 +49,7 @@ export default function FontSettings({ tenantId }: { readonly tenantId: TenantId
     <h2>폰트 설정</h2>
     {loading ? <p role="status">불러오는 중…</p> : <FontSelect
       value={FONT_CATALOG.find((font) => font.id === fontId)?.family ?? ""}
-      label="시스템 폰트" ariaLabel="시스템 폰트" defaultOptionLabel="기본" previewFonts={false} disabled={saving}
+      label="시스템 폰트" ariaLabel="시스템 폰트" defaultOptionLabel="테마 기본 폰트" previewFonts={false} disabled={saving}
       onChange={(family) => {
         const id = FONT_CATALOG.find((font) => font.family === family)?.id ?? DEFAULT_APP_FONT_ID;
         setFontId(id);

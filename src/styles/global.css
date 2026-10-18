@@ -1,3 +1,4 @@
+@import "./themes.css";
 :root {
   font-family: var(--app-font-family);
   font-weight: 400;

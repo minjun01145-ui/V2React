@@ -48,3 +48,5 @@
   .button:hover:not(:disabled),
   .button:active:not(:disabled) { transform: none; }
 }
+:global(:root[data-theme]:not([data-theme="classic"])) .ghost { background: var(--color-surface); }
+:global(:root[data-theme]:not([data-theme="classic"])) .lg { border-radius: var(--radius-md); }

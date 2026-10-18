@@ -1,0 +1,48 @@
+/* Themes own materials and geometry as well as colour. Gameplay canvases and
+   authored slide content retain their own art and text styles. */
+:root[data-theme="arcade"] {
+  --color-bg: #e3e1d5; --color-surface: #f6f4e9; --color-surface-muted: #d9d9cb; --color-surface-subtle: #eeede0;
+  --color-text: #252c28; --color-muted: #596154; --color-border: #a5aa94; --color-border-strong: #606b53;
+  --color-primary: #365737; --color-primary-hover: #29432a; --color-primary-soft: #dbe4ca; --color-primary-text: #29432a; --color-primary-shadow: #1b301e;
+  --color-accent: #df704d; --color-accent-hover: #ed805c; --color-accent-shadow: #98472f; --color-accent-ink: #211c16;
+  --color-brand-deep: #29372c; --color-brand-deep-2: #3c4e35;
+  --radius-sm: 0px; --radius-md: 2px; --radius-lg: 2px; --radius-xl: 2px;
+  --surface-radius: 2px; --surface-border: 2px solid #58634d;
+  --shadow-raised: 4px 4px 0 #a2aa94; --shadow-card: 3px 3px 0 #a2aa94;
+  --shadow-card-tactile: 4px 4px 0 #a2aa94; --shadow-tactile: 3px 3px 0 #a2aa94;
+  --theme-background: repeating-linear-gradient(0deg, transparent 0 3px, #26372806 3px 4px);
+  --tile-shadow: 4px 4px 0 #89947a; --tile-ratio: 4 / 3;
+}
+:root[data-theme="paper"] {
+  --color-bg: #eee9dd; --color-surface: #fffcf4; --color-surface-muted: #eae2d1; --color-surface-subtle: #f7f1e5;
+  --color-text: #383c32; --color-muted: #696a5b; --color-border: #d5ccb6; --color-border-strong: #99977d;
+  --color-primary: #496453; --color-primary-hover: #364d40; --color-primary-soft: #e3eadc; --color-primary-text: #364d40; --color-primary-shadow: #324739;
+  --color-accent: #e7c77c; --color-accent-hover: #efda9e; --color-accent-shadow: #b29a5b; --color-accent-ink: #3c3929;
+  --color-brand-deep: #414d40; --color-brand-deep-2: #55634b;
+  --radius-sm: 3px; --radius-md: 4px; --radius-lg: 6px; --radius-xl: 8px;
+  --surface-radius: 3px; --surface-border: 1px solid #d5ccb6;
+  --shadow-raised: 0 2px 0 #fffaf0, 0 3px 0 #d5ccb6, 0 5px 0 #fffaf0, 0 6px 0 #d5ccb6;
+  --shadow-card: 0 2px 3px #433c2810; --shadow-card-tactile: var(--shadow-raised);
+  --theme-background: repeating-linear-gradient(0deg, transparent 0 31px, #615a3b0b 31px 32px);
+  --tile-shadow: 0 2px 4px #54492b18; --tile-ratio: 1 / 1;
+}
+:root[data-theme="space"] {
+  --color-bg: #101a25; --color-surface: #1b2a38; --color-surface-muted: #253a49; --color-surface-subtle: #20313e;
+  --color-text: #edf2ef; --color-muted: #afc1c8; --color-border: #3d5463; --color-border-strong: #72909d;
+  --color-primary: #386c84; --color-primary-hover: #477f98; --color-primary-soft: #263f4c; --color-primary-text: #c8e6ef; --color-primary-shadow: #112b39;
+  --color-accent: #edb96b; --color-accent-hover: #f3c98b; --color-accent-shadow: #a4763b; --color-accent-ink: #1b2833;
+  --color-brand-deep: #0b131d; --color-brand-deep-2: #172d3d;
+  --color-danger-soft: #4b252d; --color-danger-text: #ffc1c3; --color-success-soft: #1d443b; --color-warning-soft: #473c27;
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 10px;
+  --surface-radius: 8px; --surface-border: 1px solid #3d5463;
+  --shadow-raised: 0 8px 18px #0002; --shadow-card: 0 2px 4px #0002; --shadow-card-tactile: var(--shadow-raised);
+  --theme-background: radial-gradient(circle at 24px 31px, #a8c6d64d 1px, transparent 1.5px), radial-gradient(circle at 100px 90px, #a8c6d629 1px, transparent 1.5px);
+  --theme-background-size: 173px 163px, 251px 239px;
+  --tile-shadow: 0 4px 12px #0003; --tile-ratio: 16 / 9;
+}
+:root:is([data-theme="arcade"], [data-theme="paper"], [data-theme="space"]) {
+  --color-ink: var(--color-text); --color-ink-soft: var(--color-text); --color-ink-muted: var(--color-muted);
+  --color-landing-bg: var(--color-bg); --color-landing-surface: var(--color-surface); --color-landing-border: var(--color-border);
+  --color-landing-input-bg: var(--color-surface-subtle); --color-landing-input-focus: var(--color-primary);
+  --color-paper: var(--color-bg); --focus-ring: 0 0 0 3px var(--color-border-strong);
+}

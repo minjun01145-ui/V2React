@@ -127,3 +127,5 @@
   .card[data-size="large"] { animation: none; }
   .interactive:hover:not(:disabled) { transform: none; }
 }
+:global(:root[data-theme]:not([data-theme="classic"])) .card[data-size="large"] { background: var(--color-surface); border: var(--surface-border); border-radius: var(--surface-radius); box-shadow: var(--shadow-card); }
+:global(:root[data-theme]:not([data-theme="classic"])) .card[data-size="large"] .avatar { background: var(--color-surface-muted); }

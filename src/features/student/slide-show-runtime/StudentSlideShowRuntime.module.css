@@ -8,3 +8,5 @@
 .engineStatus { display: grid; place-content: center; gap: 6px; text-align: center; background: linear-gradient(160deg, #2a3cc7, #0f1846); color: #fff; }
 .engineStatus strong { font-size: clamp(1.5rem, 4vw, 3rem); font-weight: 300; }
 .engineStatus span { color: var(--color-on-brand-muted); font-weight: 300; }
+:global(:root[data-theme]:not([data-theme="classic"])) .engineStatus { background: var(--color-brand-deep); }
+:global(:root[data-theme]:not([data-theme="classic"])) .hud { border-radius: var(--radius-md); box-shadow: var(--shadow-card); }

@@ -3,3 +3,4 @@
 @media (max-width: 959px) {
   .workspace { grid-template-columns: minmax(0, 1fr); }
 }
+:global(:root[data-theme]:not([data-theme="classic"])) .workspace { background-image: var(--theme-background); background-size: var(--theme-background-size, auto); }

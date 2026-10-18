@@ -4,3 +4,4 @@
 @media (max-width: 1099px) { .layout { height: auto; min-height: 100dvh; } .body { grid-template-rows: auto; } }
 
 @media (max-width: 767px) { .layout { grid-template-rows: minmax(64px, auto) auto; } }
+:global(:root[data-theme]:not([data-theme="classic"])) .layout { background-image: var(--theme-background); background-size: var(--theme-background-size, auto); }

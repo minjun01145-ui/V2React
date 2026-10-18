@@ -248,7 +248,9 @@ service cloud.firestore {
     match /tenants/{tenantId}/settings/appearance {
       allow get: if validTenantId(tenantId);
       allow create, update: if isAdminForTenant(tenantId)
-        && request.resource.data.keys().hasOnly(["fontId"])
+        && request.resource.data.keys().hasOnly(["fontId", "themeId"])
+        && (!request.resource.data.keys().hasAny(["themeId"])
+          || request.resource.data.themeId in ["classic", "arcade", "paper", "space"])
         && request.resource.data.fontId is string
         && request.resource.data.fontId.size() > 0
         && request.resource.data.fontId.size() <= 64;

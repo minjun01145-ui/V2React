@@ -6,6 +6,7 @@ import type { TenantConfig } from "../../../tenant/config.ts";
 import { PRIMARY_TENANT_ID } from "../../../tenant/scope.ts";
 import TeacherAiPage from "../ai/TeacherAiPage.tsx";
 import FontSettings from "./FontSettings.tsx";
+import ThemeSettings from "./ThemeSettings.tsx";
 import styles from "./TeacherSettingsPage.module.css";
 import CharacterShopManagement from "./CharacterShopManagement.tsx";
 
@@ -19,7 +20,7 @@ interface Props {
 const sections = [
   { id: "general", label: "수업 설정" },
   { id: "ai", label: "AI 설정" },
-  { id: "fonts", label: "폰트 설정" },
+  { id: "fonts", label: "테마 · 폰트" },
 ] as const;
 
 export default function TeacherSettingsPage({ roomId, tenant, section, onSectionChange }: Props) {
@@ -38,7 +39,7 @@ export default function TeacherSettingsPage({ roomId, tenant, section, onSection
       <CharacterShopManagement />
       </> : null}
       {activeSection === "ai" ? <TeacherAiPage /> : null}
-      {activeSection === "fonts" ? <FontSettings tenantId={tenant.id} /> : null}
+      {activeSection === "fonts" ? <><ThemeSettings tenantId={tenant.id} /><FontSettings tenantId={tenant.id} /></> : null}
     </PageShell>
   );
 }

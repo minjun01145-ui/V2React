@@ -35,3 +35,6 @@ button.card[data-feedback] { opacity: 1; }
   button.card:hover:not(:disabled):not([data-selected="true"]):not([data-exiting="true"]):not([data-feedback]), button.card:active:not(:disabled):not([data-feedback]), button.card:hover:active:not(:disabled):not([data-selected="true"]):not([data-exiting="true"]):not([data-feedback]) { transform: none; }
   .card::after { display: none; }
 }
+:global(:root[data-theme]:not([data-theme="classic"])) .card { border-radius: var(--surface-radius); --learning-card-marker: var(--color-muted); --learning-card-edge: var(--color-border); }
+:global(:root[data-theme]:not([data-theme="classic"])) .card:not([data-feedback]):not([data-exiting="true"]) { background: var(--color-surface); border: var(--surface-border); }
+:global(:root[data-theme]:not([data-theme="classic"])) .eyebrow { color: var(--color-muted); }

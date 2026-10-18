@@ -29,3 +29,4 @@
 .missing { display: grid; gap: .3rem; }
 @media (max-width: 760px) { .panel { grid-template-columns: 1fr; } .preview { position: static; grid-template-columns: 1fr 1fr; } .previewHeading { grid-column: 1 / -1; } .avatar { height: 10rem; grid-row: span 2; } .missing { grid-column: 1 / -1; } }
 @media (max-width: 480px) { .grid, .weekly { grid-template-columns: repeat(2, minmax(0, 1fr)); } .preview { padding: .75rem; } }
+:global(:root[data-theme]:not([data-theme="classic"])) .avatar { background: var(--color-surface-muted); }

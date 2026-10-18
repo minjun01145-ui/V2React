@@ -61,3 +61,7 @@
   .field input, .adminLink { transition: none; }
   .brand, .brand:hover { transform: none; transition: none; }
 }
+:global(:root[data-theme]:not([data-theme="classic"])) .page { background: var(--theme-background), var(--color-brand-deep); background-size: var(--theme-background-size, auto); }
+:global(:root[data-theme]:not([data-theme="classic"])) .form { border: var(--surface-border); border-radius: var(--surface-radius); box-shadow: var(--shadow-raised); }
+:global(:root[data-theme]:not([data-theme="classic"])) .field input { border-radius: var(--radius-md); }
+:global(:root[data-theme]:not([data-theme="classic"])) .field input:focus { background: var(--color-surface); }

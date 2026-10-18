@@ -106,3 +106,5 @@
  .profileStage { width: 80px; height: 80px; }
  .profileAction { grid-column: 1 / -1; justify-self: stretch; }
 }
+:global(:root[data-theme]:not([data-theme="classic"])) .stage { background: var(--theme-background), var(--color-surface-muted); background-size: var(--theme-background-size, auto); }
+:global(:root[data-theme]:not([data-theme="classic"])) .profileStage { background: var(--color-surface-muted); border-color: var(--color-border); border-radius: var(--radius-lg); }

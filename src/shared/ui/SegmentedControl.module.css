@@ -10,3 +10,5 @@
   .option { transition: background 120ms ease, color 120ms ease; }
   .option:active:not(:disabled) { transform: none; }
 }
+:global(:root[data-theme]:not([data-theme="classic"])) .group,
+:global(:root[data-theme]:not([data-theme="classic"])) .option { border-radius: var(--radius-sm); }

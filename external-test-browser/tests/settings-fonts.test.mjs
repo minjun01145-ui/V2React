@@ -17,9 +17,9 @@ export function onSnapshot(path, onValue) {
   queueMicrotask(emit);
   return () => window.removeEventListener('storage', changed);
 }
-export async function setDoc(path, data) {
+export async function setDoc(path, data, options) {
   if (window.failFontSave) throw new Error('저장 실패 테스트');
-  localStorage.setItem(path, JSON.stringify(data));
+  localStorage.setItem(path, JSON.stringify(options?.merge ? { ...JSON.parse(localStorage.getItem(path) || '{}'), ...data } : data));
   window.dispatchEvent(new StorageEvent('storage', { key: path }));
 }
 `;
@@ -109,7 +109,7 @@ async function run() {
     await until(teacher, "window.savedAi", "existing AI save behavior");
     await click(teacher, "수업 설정");
     await until(teacher, "document.body.textContent.includes('다음 주 신상') && document.body.textContent.includes('기본 게임')", "old settings retained");
-    await click(teacher, "폰트 설정");
+    await click(teacher, "테마 · 폰트");
     await until(teacher, `document.querySelector('[aria-label="시스템 폰트"]')`, "font settings opens");
     assert.equal(await evaluate(teacher, `document.querySelector('[aria-label="시스템 폰트"] option').textContent`), "기본");
     const defaultFamily = await evaluate(student, family);
@@ -134,7 +134,7 @@ async function run() {
     await chooseFont(teacher, "'Noto Serif KR', serif");
     await click(teacher, "수업 설정");
     await until(teacher, `${family}.includes('Jua')`, "leaving unsaved preview restores persisted choice");
-    await click(teacher, "폰트 설정");
+    await click(teacher, "테마 · 폰트");
     await until(teacher, `document.querySelector('[aria-label="시스템 폰트"]')`, "font settings reopens");
     await evaluate(teacher, "document.fonts.ready");
     await evaluate(teacher, "(async () => { document.getAnimations().forEach(animation=>animation.finish()); await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))); })()");

@@ -26,3 +26,7 @@
 @media (prefers-reduced-motion: reduce) {
   .dot { animation: none; }
 }
+.thumb { position: relative; }
+.thumb > span { transform: none; filter: none; }
+:global(:root[data-theme]:not([data-theme="classic"])) .bar { border-radius: var(--surface-radius); border: var(--surface-border); box-shadow: var(--shadow-raised); }
+:global(:root[data-theme]:not([data-theme="classic"])) .thumb { border-radius: var(--radius-sm); }

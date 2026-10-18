@@ -13,3 +13,5 @@
 .select:hover:not(:disabled) { border-color: var(--color-border-strong); }
 .select:focus { border-color: var(--color-primary); outline: none; box-shadow: var(--focus-ring); }
 .select:disabled { background-color: var(--color-surface-muted); opacity: 0.7; }
+:global(:root[data-theme]:not([data-theme="classic"])) .select { background-color: var(--color-surface); }
+:global(:root[data-theme="space"]) .select { background-image: none; }

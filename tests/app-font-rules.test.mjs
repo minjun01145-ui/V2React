@@ -19,6 +19,15 @@ assert.equal((await request(path)).status, 404, "login screens can read a missin
 assert.equal((await request(path, "PATCH", { fontId: "jua" }, teacher)).status, 200, "tenant teacher can save");
 assert.equal((await request(path)).status, 200, "public appearance is available before student login");
 assert.equal((await request(path, "GET", undefined, student)).status, 200);
+for (const themeId of ["classic", "arcade", "paper", "space"]) {
+  assert.equal((await request(path, "PATCH", { fontId: "default", themeId }, teacher)).status, 200, "teacher can select a theme");
+  assert.equal((await request(path, "PATCH", { fontId: "jua", themeId }, teacher)).status, 200, "custom fonts coexist with themes");
+  assert.equal((await request(path, "PATCH", { fontId: "default", themeId }, student)).status, 403, "students cannot change the theme");
+  assert.equal((await request(path, "PATCH", { fontId: "default", themeId }, hana)).status, 403, "themes stay tenant scoped");
+}
+for (const themeId of ["unknown", "", 42, "__proto__"]) {
+  assert.equal((await request(path, "PATCH", { fontId: "default", themeId }, teacher)).status, 403, "unknown themes are rejected");
+}
 for (const token of [undefined, student, hana, jwt("font-inactive", "minjun")]) {
   assert.equal((await request(path, "PATCH", { fontId: "pretendard" }, token)).status, 403, "only active same-tenant teachers can write");
   assert.equal((await request(path, "DELETE", undefined, token)).status, 403, "only active same-tenant teachers can reset");
