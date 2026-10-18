@@ -57,7 +57,7 @@ export default class DeathmatchScene extends Phaser.Scene {
   private course!: ClimbCourseView;
   private pushers!: PusherView;
   private hazards!: ArenaHazards;
-  private effects!: Effects;
+  protected effects!: Effects;
   private combat!: CombatLayer;
   private powerUps: PowerUpLayer | undefined;
   private earlyClaims: ItemClaim[] = [];
@@ -199,6 +199,11 @@ export default class DeathmatchScene extends Phaser.Scene {
   protected localFeet(): { readonly x: number; readonly y: number } | null {
     if (!this.body || this.respawnAt !== null) return null;
     return { x: this.body.center.x, y: this.body.bottom };
+  }
+
+  /** A small celebratory hop; ignored while dead. */
+  protected hop(): void {
+    if (this.body && this.respawnAt === null) this.body.setVelocityY(-380);
   }
 
   override update(time: number, delta: number): void {

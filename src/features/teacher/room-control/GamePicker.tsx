@@ -29,10 +29,10 @@ const GROUPS = [
     ["brick-smash", "벽돌 팡팡"],
     ["word-ninja", "단어 닌자"],
     ["chunk-jump-race", "점프 문장 만들기"],
+    ["word-deathmatch", "단어 데스매치"],
   ] },
   { title: "작업 중 게임", games: [
     ["learning-jump-tower", "학습 점프타워"],
-    ["word-deathmatch", "단어 데스매치"],
     ["chunk-line-up", "플랫포머 문장 만들기"],
   ] },
 ] as const;

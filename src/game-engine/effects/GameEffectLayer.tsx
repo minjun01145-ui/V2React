@@ -32,5 +32,5 @@ export function GameEffectLayer({ effect, className }: {
       <b className={styles.metric}>{effect.metric}</b>
       {effect.detail && <span className={styles.detail}>{effect.detail}</span>}
     </div>
-  </div>, document.body);
+  </div>, document.fullscreenElement ?? document.body);
 }

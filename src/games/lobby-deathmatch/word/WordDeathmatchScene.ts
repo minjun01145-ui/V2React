@@ -1,4 +1,4 @@
-import type { ClimbPlatform } from "../../../game-engine/jump-tower/course.ts";
+import { CLIMB_PLAYER_HEIGHT, type ClimbPlatform } from "../../../game-engine/jump-tower/course.ts";
 import DeathmatchScene, { type DeathmatchSceneOptions } from "../DeathmatchScene.ts";
 import { isOnPlatform, roundAt, type WordQuiz } from "./model.ts";
 import { AnswerBoards } from "./scene/AnswerBoards.ts";
@@ -45,8 +45,25 @@ export default class WordDeathmatchScene extends DeathmatchScene {
     }
     if (round?.phase !== "reveal" || round.index <= this.judgedThrough) return;
     this.judgedThrough = round.index;
-    const feet = this.localFeet();
     const correct = this.word.answers[this.word.quiz.questionAt(round.index).correctSlot];
-    this.word.onRoundScored(round.index, feet !== null && isOnPlatform(feet, correct));
+    this.celebrateWinners(correct);
+    const feet = this.localFeet();
+    const scored = feet !== null && isOnPlatform(feet, correct);
+    if (feet && scored) {
+      this.hop();
+      this.effects.correct(feet.x, feet.y - 30);
+    } else if (feet) {
+      this.effects.wrong(feet.x, feet.y - 30);
+    }
+    this.word.onRoundScored(round.index, scored);
+  }
+
+  /** Everyone sees the answer platform burst with confetti, and a star pop over each player standing on it. */
+  private celebrateWinners(correct: ClimbPlatform): void {
+    this.effects.celebrate(correct.x + 20, correct.x + correct.width - 20, correct.y - 10, "정답!");
+    for (const frame of this.word.samplePlayers()) {
+      const feet = { x: frame.x, y: frame.y + CLIMB_PLAYER_HEIGHT / 2 };
+      if (isOnPlatform(feet, correct)) this.effects.sparkle(feet.x, feet.y - 40);
+    }
   }
 }
