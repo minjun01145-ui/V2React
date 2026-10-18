@@ -2,7 +2,8 @@ import { app, BrowserWindow } from "electron";
 import assert from "node:assert/strict";
 import { resolve } from "node:path";
 import { createRequire } from "node:module";
-import { mkdir, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer } from "../../node_modules/vite/dist/node/index.js";
 
 app.on("window-all-closed", () => {});
@@ -38,6 +39,14 @@ createRoot(document.querySelector('#root')).render(React.createElement('div',{cl
 const functionsBoundary = String.raw`
 export const getFunctions = () => ({});
 export const httpsCallable = (_functions, name) => async input => {
+  if(name==='generateExamQuestions'){
+    window.lastExamRequest=input; window.examBatch=(window.examBatch||0)+1;
+    await new Promise(resolve=>setTimeout(resolve,100));
+    const questions=Array.from({length:input.count},(_,index)=>index%4===3
+      ?{format:'written',prompt:'다음 문장에서 어법상 어색한 부분을 찾아 바르게 고쳐 쓰시오. ('+window.examBatch+'-'+(index+1)+')',context:'How about [[have]] dinner together?',answer:'have → having',explanation:'전치사의 목적어는 동명사이다.'}
+      :{format:'choice',prompt:'다음 문장의 빈칸에 알맞은 것은? ('+window.examBatch+'-'+(index+1)+')',context:'He is ______ than me.',choices:['tall','taller','tallest','more tall','most tall'],correctChoice:2,explanation:'비교급 + than.'});
+    return {data:{questions,usage:{promptTokens:800,outputTokens:2500}}};
+  }
   if(name!=='generateWorksheet') throw new Error('Unexpected callable '+name);
   window.worksheetAiCalls=(window.worksheetAiCalls||0)+1;
   window.lastWorksheetRequest=input;
@@ -106,7 +115,9 @@ async function run() {
     await window.loadURL(`${server.resolvedUrls.local[0]}teacher/__worksheets`);
     const pdfPages = buffer => (buffer.toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
     await until("document.querySelector('select option[value=reading]')", "reading set loads through real Firestore");
-    await selectSet("reading"); await click("본문 학습지 만들기");
+    await selectSet("reading");
+    await until("Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='본문 학습지 만들기'&&!button.disabled)", "reading set ready");
+    await click("본문 학습지 만들기");
     await until("document.querySelector('[data-worksheet] tbody tr') && !document.querySelector('[role=status]')", "deterministic reading worksheet");
     assert.equal(await evaluate("window.worksheetAiCalls||0"), 0, "complete meanings never call AI");
     assert.equal(await evaluate("document.querySelector('[data-worksheet] h1').textContent"), "1학년 5과 - 본문 학습지");
@@ -150,7 +161,34 @@ async function run() {
     await click("본문 학습지 만들기");
     await until("document.querySelector('[data-worksheet]')?.textContent.includes('누락된 문장 뜻')", "missing meaning completed through AI2 boundary");
     assert.equal(await evaluate("window.lastWorksheetRequest.mode"), "meanings");
-    console.log(`Worksheet browser tests passed: real Firestore and Rules, deterministic reading, AI-boundary practice, print, invalid response, error and missing meaning. ARTIFACTS ${outputDir}`);
+    const pdfPath = resolve(outputDir, "worksheet-exam-download.pdf");
+    window.webContents.session.on("will-download", (_event, item) => item.setSavePath(pdfPath));
+    await click("시험 연습문제"); await selectSet("reading");
+    await until("Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='5문제 만들기'&&!button.disabled)", "exam question builder ready");
+    await click("5문제 만들기");
+    await until("document.querySelectorAll('section[aria-label=\"새로 만든 문제\"] input[type=checkbox]').length===5", "five draft questions");
+    assert.ok((await evaluate("document.body.innerText")).includes("출력 2,500"), "exam generation shows token usage");
+    await evaluate("Array.from(document.querySelectorAll('section[aria-label=\"새로 만든 문제\"] input[type=checkbox]')).slice(0,3).forEach(box=>box.click())");
+    await click("선택한 3문제 저장");
+    await until("document.body.innerText.includes('저장된 문제 3개')", "chosen questions saved to the question bank");
+    await click("5문제 만들기");
+    await until("window.examBatch===2&&document.querySelectorAll('section[aria-label=\"새로 만든 문제\"] input[type=checkbox]').length===5", "second batch");
+    assert.equal(await evaluate("window.lastExamRequest.avoid.length"), 5, "saved and unsaved questions are sent to avoid repeats");
+    await click("모두 선택"); await click("선택한 5문제 저장");
+    await until("document.body.innerText.includes('저장된 문제 8개')", "questions keep accumulating");
+    await click("학습지 생성하기");
+    await until("document.querySelector('[data-worksheet] h1')?.textContent==='1학년 5과 - 시험 연습문제'", "exam worksheet from the question bank");
+    assert.equal(await evaluate("document.querySelectorAll('[data-worksheet] section:not([data-new-page]) > ol > li').length"), 8);
+    assert.ok((await evaluate("document.querySelector('[data-worksheet]').innerText")).includes("정답 및 해설"));
+    await screenshot(resolve(outputDir, "worksheet-exam.png"));
+    await click("PDF 다운로드");
+    await until(`Array.from(document.querySelectorAll('button')).some(button=>button.textContent==='PDF 다운로드'&&!button.disabled)`, "PDF built");
+    const deadline = Date.now() + 15000;
+    while (!existsSync(pdfPath) && Date.now() < deadline) await new Promise((done) => setTimeout(done, 100));
+    const pdf = await readFile(pdfPath);
+    assert.equal(pdf.subarray(0, 4).toString(), "%PDF", "PDF download produces a PDF file");
+    assert.ok(pdfPages(pdf) >= 2, "answers start a new PDF page");
+    console.log(`Worksheet browser tests passed: real Firestore and Rules, reading/recitation/practice, save and reopen, question bank batches, exam worksheet, PDF download, invalid response, error and missing meaning. ARTIFACTS ${outputDir}`);
   } catch (error) { exitCode = 1; console.error(error); }
   finally { window?.destroy(); await server?.close(); if (adminApp) await deleteApp(adminApp); app.exit(exitCode); }
 }

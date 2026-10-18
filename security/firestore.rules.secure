@@ -291,10 +291,23 @@ service cloud.firestore {
       allow create, update: if isAdminForTenant(tenantId)
         && request.resource.data.keys().hasOnly(["tenantId", "setId", "kind", "document", "usage", "updatedAt"])
         && request.resource.data.tenantId == tenantId
-        && request.resource.data.kind in ["reading", "recitation", "practice"]
+        && request.resource.data.kind in ["reading", "recitation", "practice", "exam"]
         && request.resource.data.setId is string
         && worksheetId == request.resource.data.setId + "__" + request.resource.data.kind
         && request.resource.data.document is map;
+    }
+
+    // Teacher-approved questions per learning set, kept for reuse beyond one worksheet. Saved questions are
+    // immutable: teachers add or delete them.
+    match /tenants/{tenantId}/questionBank/{questionId} {
+      allow read, delete: if isAdminForTenant(tenantId);
+      allow create: if isAdminForTenant(tenantId)
+        && request.resource.data.keys().hasOnly(["tenantId", "setId", "question", "createdAtMs", "createdAt"])
+        && request.resource.data.tenantId == tenantId
+        && request.resource.data.setId is string
+        && request.resource.data.question is map
+        && request.resource.data.createdAtMs is int;
+      allow update: if false;
     }
 
     match /studentProfiles/{uid} {

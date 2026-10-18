@@ -22,7 +22,7 @@ function count(value: unknown): number {
 
 function question(raw: unknown): WorksheetQuestion {
   const value = record(raw);
-  const base = { number: count(value.number), text: text(value.text) };
+  const base = { number: count(value.number), text: text(value.text), ...(typeof value.context === "string" && value.context ? { context: value.context } : {}) };
   switch (value.type) {
     case "choice": return { ...base, type: "choice", choices: list(value.choices).map(text) };
     case "blank": return { ...base, type: "blank", answerLength: count(value.answerLength) };
@@ -46,7 +46,7 @@ function block(raw: unknown): WorksheetBlock {
     case "notice": return { type: "notice", text: text(value.text) };
     case "answers": return { type: "answers", entries: list(value.entries).map((entry) => {
       const item = record(entry);
-      return { number: count(item.number), answer: text(item.answer) };
+      return { number: count(item.number), answer: text(item.answer), ...(typeof item.note === "string" && item.note ? { note: item.note } : {}) };
     }) };
     default: throw new WorksheetFormatError("저장된 학습지 블록 형식이 올바르지 않습니다.");
   }

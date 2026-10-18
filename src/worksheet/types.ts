@@ -25,11 +25,14 @@ export type WorksheetBlock =
   | { readonly type: "sentences"; readonly blank?: "english" | "meaning"; readonly rows: readonly SentenceRow[] }
   | { readonly type: "questions"; readonly questions: readonly WorksheetQuestion[] }
   | { readonly type: "notice"; readonly text: string }
-  | { readonly type: "answers"; readonly entries: readonly { readonly number: number; readonly answer: string }[] };
+  /** `note` (e.g. an explanation) puts each entry on its own line. */
+  | { readonly type: "answers"; readonly entries: readonly { readonly number: number; readonly answer: string; readonly note?: string }[] };
 
 export type WorksheetQuestion = {
   readonly number: number;
   readonly text: string;
+  /** A boxed passage, example (<보기>) or dialogue printed under the prompt. */
+  readonly context?: string;
 } & (
   | { readonly type: "choice"; readonly choices: readonly string[] }
   /** `text` holds one {{blank}} marker. */

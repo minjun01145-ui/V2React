@@ -1,10 +1,13 @@
 import type { RuntimeLearningSet } from "../learning-sets/types.ts";
+import { examAnswerText, type BankQuestion } from "../question-bank/types.ts";
+import { parseAiUsage, type AiUsage } from "../shared/aiUsage.ts";
 import type { SentenceRow, WorksheetDocument, WorksheetQuestion } from "../worksheet/types.ts";
 
 export const WORKSHEET_KINDS = {
   reading: "본문 학습지",
   recitation: "본문 연습 학습지",
   practice: "연습문제 학습지",
+  exam: "시험 연습문제",
 } as const;
 export type WorksheetKind = keyof typeof WORKSHEET_KINDS;
 
@@ -21,8 +24,6 @@ export interface PracticeSection {
   readonly items: readonly { readonly prompt: string; readonly answer: string }[];
 }
 export interface MissingMeaning { readonly id: string; readonly meaning: string }
-/** Tokens one AI generation used; null when the provider did not report them. */
-export interface WorksheetUsage { readonly promptTokens: number | null; readonly outputTokens: number | null }
 
 /** "3학년 5과 Paint a Better…" → "3학년 5과"; sets named without a grade and lesson keep their full name. */
 export function lessonLabel(setName: string): string {
@@ -86,17 +87,27 @@ export function createPracticeWorksheet(set: Pick<RuntimeLearningSet, "name">, s
   };
 }
 
+/** Saved question-bank questions as an exam paper; answers and explanations follow on their own page. */
+export function createExamWorksheet(set: Pick<RuntimeLearningSet, "name">, questions: readonly BankQuestion[]): WorksheetDocument {
+  return {
+    ...frame(set, "exam"),
+    sections: [
+      { blocks: [{ type: "questions", questions: questions.map(({ content }, index): WorksheetQuestion => {
+        const base = { number: index + 1, text: content.prompt, ...(content.context ? { context: content.context } : {}) };
+        return content.format === "choice" ? { ...base, type: "choice", choices: content.choices } : { ...base, type: "written", lines: 2 };
+      }) }] },
+      { title: "정답 및 해설", newPage: true, blocks: [{ type: "answers", entries: questions.map(({ content }, index) => ({
+        number: index + 1, answer: examAnswerText(content), ...(content.explanation ? { note: content.explanation } : {}),
+      })) }] },
+    ],
+  };
+}
+
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function parseUsage(value: unknown): WorksheetUsage | null {
-  if (!record(value)) return null;
-  const tokens = (raw: unknown): number | null => typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? Math.trunc(raw) : null;
-  return { promptTokens: tokens(value.promptTokens), outputTokens: tokens(value.outputTokens) };
-}
-
-export function parsePracticeResult(value: unknown): { readonly sections: readonly PracticeSection[]; readonly usage: WorksheetUsage | null } {
+export function parsePracticeResult(value: unknown): { readonly sections: readonly PracticeSection[]; readonly usage: AiUsage | null } {
   if (!record(value) || value.mode !== "practice" || !Array.isArray(value.sections) || value.sections.length !== 5) throw new Error("학습지 응답 형식이 올바르지 않습니다.");
   const kinds = Object.keys(PRACTICE_LABELS);
   const sections = value.sections.map((section: unknown, index): PracticeSection => {
@@ -109,15 +120,15 @@ export function parsePracticeResult(value: unknown): { readonly sections: readon
     });
     return { kind, items };
   });
-  return { sections, usage: parseUsage(value.usage) };
+  return { sections, usage: parseAiUsage(value.usage) };
 }
 
-export function parseMeaningsResult(value: unknown, missingIds: readonly string[]): { readonly meanings: readonly MissingMeaning[]; readonly usage: WorksheetUsage | null } {
+export function parseMeaningsResult(value: unknown, missingIds: readonly string[]): { readonly meanings: readonly MissingMeaning[]; readonly usage: AiUsage | null } {
   if (!record(value) || value.mode !== "meanings" || !Array.isArray(value.meanings) || value.meanings.length !== missingIds.length) throw new Error("누락된 뜻의 응답 형식이 올바르지 않습니다.");
   const meanings = value.meanings.map((entry: unknown) => {
     if (!record(entry) || typeof entry.id !== "string" || typeof entry.meaning !== "string" || !entry.meaning.trim() || entry.meaning.length > 1000) throw new Error("뜻 데이터가 올바르지 않습니다.");
     return { id: entry.id, meaning: entry.meaning };
   });
   if (new Set(meanings.map((entry) => entry.id)).size !== meanings.length || missingIds.some((id) => !meanings.some((entry) => entry.id === id))) throw new Error("뜻의 문장 번호가 본문과 다릅니다.");
-  return { meanings, usage: parseUsage(value.usage) };
+  return { meanings, usage: parseAiUsage(value.usage) };
 }

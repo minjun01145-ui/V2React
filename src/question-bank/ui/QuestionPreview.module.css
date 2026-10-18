@@ -1,0 +1,9 @@
+.preview { display: grid; gap: .45rem; min-width: 0; color: var(--color-text); }
+.prompt { margin: 0; font-size: var(--text-md); }
+.context { padding: .5rem .75rem; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface-subtle); white-space: pre-line; font-size: var(--text-sm); }
+.choices { display: grid; gap: .2rem; margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); }
+.choices li { padding: .15rem .4rem; border-radius: 6px; }
+.choices li[data-correct="true"] { background: var(--color-success-soft); color: var(--color-success-shadow); }
+.choices li[data-correct="true"]::after { content: " ✓"; }
+.answer { margin: 0; padding: .25rem .5rem; border-radius: 6px; background: var(--color-success-soft); color: var(--color-success-shadow); font-size: var(--text-sm); }
+.explanation { margin: 0; color: var(--color-muted); font-size: var(--text-sm); }

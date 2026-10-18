@@ -2,10 +2,11 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { db, functions } from "../firebase/firebaseClient.ts";
 import type { RuntimeLearningSet } from "../learning-sets/types.ts";
+import { parseAiUsage, type AiUsage } from "../shared/aiUsage.ts";
 import { currentTenantConfig } from "../tenant/config.ts";
 import type { WorksheetDocument } from "../worksheet/types.ts";
 import { parseWorksheetDocument } from "../worksheet/validation.ts";
-import { parseMeaningsResult, parsePracticeResult, parseUsage, type WorksheetKind, type WorksheetUsage } from "./model.ts";
+import { parseMeaningsResult, parsePracticeResult, type WorksheetKind } from "./model.ts";
 
 const generateCallable = () => httpsCallable<unknown, unknown>(functions, "generateWorksheet", { timeout: 360_000 });
 const payload = (set: RuntimeLearningSet) => set.items.map(({ id, sourceText, meaning }) => ({ id, sourceText, meaning }));
@@ -22,7 +23,7 @@ export async function completeWorksheetMeanings(set: RuntimeLearningSet) {
 
 export interface SavedWorksheet {
   readonly document: WorksheetDocument;
-  readonly usage: WorksheetUsage | null;
+  readonly usage: AiUsage | null;
 }
 
 /** One saved worksheet per set and kind; saving again replaces it. */
@@ -34,7 +35,7 @@ export async function loadSavedWorksheet(setId: string, kind: WorksheetKind): Pr
   const snapshot = await getDoc(worksheetRef(setId, kind));
   if (!snapshot.exists()) return null;
   const data = snapshot.data();
-  return { document: parseWorksheetDocument(data.document), usage: parseUsage(data.usage) };
+  return { document: parseWorksheetDocument(data.document), usage: parseAiUsage(data.usage) };
 }
 
 export async function saveWorksheet(setId: string, kind: WorksheetKind, saved: SavedWorksheet): Promise<void> {

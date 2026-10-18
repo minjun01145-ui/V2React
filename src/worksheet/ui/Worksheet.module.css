@@ -29,12 +29,16 @@
 .answerLine { margin-left: 2mm; white-space: nowrap; }
 .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5mm 4mm; padding: 2mm 0 0 5mm; margin: 0; list-style: none; }
 .longChoices { grid-template-columns: 1fr; }
+.shortChoices { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .writingLines { margin-left: 5mm; }
 .writingLines > div { height: 8mm; border-bottom: .5px solid #cbd5e1; }
 .notice { margin: 0 0 4mm; padding: 2.5mm 3mm; border-left: 3px solid #1e3a8a; background: #eef2ff; font-size: 9.5pt; break-inside: avoid; }
 .answers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3mm 4mm; font-size: 9.5pt; }
 .answers > div { break-inside: avoid; }
 .answers strong { font-weight: 700; }
+.notedAnswers { grid-template-columns: 1fr; gap: 2mm; }
+.answerNote { display: block; margin: .5mm 0 0 5mm; color: #475569; font-size: 8.5pt; line-height: 1.5; }
+.context { margin: 2mm 0 0 5mm; padding: 2mm 3mm; border: .5px solid #94a3b8; border-radius: 1.5mm; white-space: pre-line; font-size: 10pt; line-height: 1.55; }
 .footer { margin-top: 10mm; text-align: center; color: #94a3b8; font-size: 8pt; }
 .newPage { break-before: page; page-break-before: always; }
 @media screen { .newPage { margin-top: 14mm !important; padding-top: 7mm; border-top: 1px dashed #cbd5e1; } }
