@@ -56,6 +56,9 @@ brick-smash.webp (벽돌 팡팡) — BG #e0562a
 word-ninja.webp (단어 닌자) — BG #1fa85a
   A tiny round ninja with a headband slashing a flying watermelon in half with a glowing blade, juice droplets and fruit halves spinning away.
 
+gold-run.webp (골드런) — BG #e0a10f
+  A round blob runner seen from behind, sprinting down a three-lane canyon road at sunset with a sack of gold on its back, gold bars floating ahead and a green O arch and red X arch at the end of the road.
+
 chunk-line-up.webp (플랫포머 문장 만들기) — BG #8b4ff0
   A cute mushroom-hat platformer hero jumping between floating grassy platforms, carrying a blank word block.
 

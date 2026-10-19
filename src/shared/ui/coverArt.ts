@@ -29,6 +29,7 @@ const PLACEHOLDERS = {
   "lobby-platformer": { emoji: "🦘", color: "#0e9be0" },
   "lobby-deathmatch": { emoji: "🌋", color: "#dc2626" },
   "word-deathmatch": { emoji: "⚔️", color: "#7c3aed" },
+  "gold-run": { emoji: "🪙", color: "#e0a10f" },
   "solo": { emoji: "🎧", color: "#a24ff0" },
   "drawing": { emoji: "🎨", color: "#7954d8" },
   "exam-practice": { emoji: "📝", color: "#2563eb" },
