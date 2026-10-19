@@ -477,6 +477,20 @@ service cloud.firestore {
       }
     }
 
+    // Exam practice 오답노트: questions the student got wrong, kept until they delete them.
+    match /studentGameData/{accountId}/examWrongAnswers/{entryId} {
+      allow read, delete: if ownsStudentGameData(accountId) || isAdminForStudentAccount(accountId);
+      allow create: if ownsStudentGameData(accountId)
+        && request.resource.data.keys().hasOnly(["setId", "setName", "content", "response", "createdAt", "createdAtMs"])
+        && request.resource.data.setId is string && request.resource.data.setId.size() <= 128
+        && request.resource.data.setName is string && request.resource.data.setName.size() <= 120
+        && request.resource.data.content is map && request.resource.data.content.size() <= 7
+        && request.resource.data.response is map && request.resource.data.response.size() <= 2
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdAtMs is int;
+      allow update: if false;
+    }
+
     match /studentGameData/{accountId}/cosmetics/profile {
       allow read: if ownsStudentGameData(accountId) || isAdminForStudentAccount(accountId);
       allow create, update: if ownsStudentGameData(accountId)

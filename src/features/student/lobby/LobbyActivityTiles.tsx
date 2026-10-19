@@ -11,8 +11,9 @@ interface Props {
   readonly onPlatformer?: () => void;
   readonly onDeathmatch?: () => void;
   readonly onDrawing?: () => void;
+  readonly onExam?: () => void;
 }
-export default function LobbyActivityTiles({ disabled = false, soloDisabled = false, onShop, onSolo, onSentence, onAcidRain, onPlatformer, onDeathmatch, onDrawing }: Props) {
+export default function LobbyActivityTiles({ disabled = false, soloDisabled = false, onShop, onSolo, onSentence, onAcidRain, onPlatformer, onDeathmatch, onDrawing, onExam }: Props) {
   const tiles = [
     { title: "캐릭터 상점", art: coverArt("character-shop"), onClick: onShop, disabled },
     { title: "혼자하기", art: coverArt("solo"), onClick: onSolo, disabled: disabled || soloDisabled },
@@ -21,6 +22,7 @@ export default function LobbyActivityTiles({ disabled = false, soloDisabled = fa
     { title: "점프 타워", art: coverArt("lobby-platformer"), onClick: onPlatformer, disabled },
     { title: "데스매치", art: coverArt("lobby-deathmatch"), onClick: onDeathmatch, disabled },
     { title: "그림그리기", art: coverArt("drawing"), onClick: onDrawing, disabled },
+    { title: "시험문제 풀기", art: coverArt("exam-practice"), onClick: onExam, disabled },
   ];
   return <div className={styles.grid}>{tiles.map((tile) => <CoverTile key={tile.title} title={tile.title} art={tile.art} disabled={tile.disabled} {...(tile.onClick ? { onClick: tile.onClick } : {})} />)}</div>;
 }

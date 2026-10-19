@@ -31,6 +31,7 @@ const PLACEHOLDERS = {
   "word-deathmatch": { emoji: "⚔️", color: "#7c3aed" },
   "solo": { emoji: "🎧", color: "#a24ff0" },
   "drawing": { emoji: "🎨", color: "#7954d8" },
+  "exam-practice": { emoji: "📝", color: "#2563eb" },
   "character-shop": { emoji: "👕", color: "#e69421" },
 } as const satisfies Record<string, { readonly emoji: string; readonly color: string }>;
 

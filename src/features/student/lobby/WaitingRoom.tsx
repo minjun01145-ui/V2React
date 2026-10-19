@@ -28,6 +28,7 @@ const SentencePracticeGame = lazy(() => import("../../../games/typing/SentencePr
 const LobbyPlatformer = lazy(() => import("../../../games/lobby-platformer/LobbyPlatformer.tsx"));
 const LobbyDeathmatch = lazy(() => import("../../../games/lobby-deathmatch/LobbyDeathmatch.tsx"));
 const DrawingBoard = lazy(() => import("../../../collaborative-drawing/DrawingBoard.tsx"));
+const ExamPracticePage = lazy(() => import("../exam-practice/ExamPracticePage.tsx"));
 
 interface Props {
   readonly roomId: string;
@@ -132,6 +133,11 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
       />
     </Suspense>;
   }
+  if (activityOpen === "exam") {
+    return <Suspense fallback={<StatusPanel title="시험문제 풀기 준비 중">화면을 불러오고 있어요.</StatusPanel>}>
+      <ExamPracticePage uid={uid} studentNumber={selfStudentNumber} onExit={() => openActivity(null)} />
+    </Suspense>;
+  }
   if (activityOpen === "deathmatch") {
     return <Suspense fallback={<StatusPanel title="데스매치 준비 중">게임 화면을 불러오고 있어요.</StatusPanel>}>
       <LobbyDeathmatch
@@ -159,7 +165,7 @@ export default function WaitingRoom({ roomId, session, player, identity, selfStu
           onClose={() => setShopOpen(false)}
         />
       </Card>
-      <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => openActivity("solo")} onSentence={() => openActivity("sentence")} onAcidRain={() => openActivity("acid-rain")} onPlatformer={() => openActivity("platformer")} onDeathmatch={() => openActivity("deathmatch")} onDrawing={() => openActivity("drawing")} />
+      <LobbyActivityTiles onShop={() => setShopOpen(true)} soloDisabled={!soloAllowed} onSolo={() => openActivity("solo")} onSentence={() => openActivity("sentence")} onAcidRain={() => openActivity("acid-rain")} onPlatformer={() => openActivity("platformer")} onDeathmatch={() => openActivity("deathmatch")} onDrawing={() => openActivity("drawing")} onExam={() => openActivity("exam")} />
       <OpinionButton roomId={roomId} author={{ playerId: uid, studentNumber: selfStudentNumber, displayName }} />
       </div>
       <div className={styles.right}>

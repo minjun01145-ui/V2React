@@ -1,6 +1,6 @@
 import type { LobbyGathering } from "../../../multiplayer/lobbyGathering.ts";
 
-export type LobbyActivity = "solo" | "drawing" | "sentence" | "acid-rain" | "platformer" | "deathmatch" | null;
+export type LobbyActivity = "solo" | "drawing" | "sentence" | "acid-rain" | "platformer" | "deathmatch" | "exam" | null;
 
 export interface LobbyActivityState {
   readonly activity: LobbyActivity;
