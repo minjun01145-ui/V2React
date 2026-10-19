@@ -46,6 +46,15 @@ npm test --prefix functions
 `src/worksheet/`는 도메인 중립 문서 타입·페이지 맞춤·저장 형식 검증·인쇄 UI, `src/learning-worksheets/`는 학습지 종류별 변환·저장·서버 경계를 담당합니다. 운영에는 **Hosting, Functions, Firestore Rules** 배포가 필요합니다. 회귀 검증은 `npm run test:sets`, `npm test --prefix functions`, `npm run test:worksheets --prefix external-test-browser`입니다.
 학습지 브라우저 검증은 Java 21 이상을 PATH에 두고 실행합니다. 격리된 Firestore 에뮬레이터와 실제 repository·Rules로 본문을 읽고, AI callable 경계만 대체해 미리보기와 인쇄 PDF를 생성합니다.
 
+## 문제 엔진: OX · 빈칸 채우기
+
+게임이 가져다 쓰는 순수 문제 엔진입니다(`src/game-engine/question-engine/`). 학습 세트 연결은 `src/learning-sets/trueFalseAdapter.ts`, `fillBlankAdapter.ts`가 맡습니다.
+
+- **OX(`true-false/`)**: "dog - 고양이"처럼 짝을 보여 주고 O/X를 고릅니다. 단어 세트와 끊어읽기 세트 모두 쓰며, 끊어읽기 세트는 완성 문장(`entry`) 또는 끊어읽기 덩어리(`chunk`) 단위를 고릅니다. 틀린 짝은 다른 항목의 뜻에서 고르되, 같은 단어의 다른 뜻(dog - 강아지)은 X로 내지 않습니다. O 비율은 기본 50%입니다.
+- **빈칸 채우기(`fill-blank/`)**: 끊어읽기 세트의 문장마다 한 단어를 비우고 뜻과 함께 보기 2~5개(게임에서 선택)를 냅니다. AI 없이 `wordClass.ts`의 규칙(전치사·be동사·대명사 같은 닫힌 품사 목록, 어미, 앞뒤 단어)으로 품사를 추정해 동사엔 동사, 비교급엔 비교급, 전치사엔 다른 전치사를 오답으로 고릅니다. 세트 안에서 같은 자리를 채운 적 있는 단어(정답이 될 수도 있는 단어)와 사람 이름은 오답으로 내지 않습니다. 규칙 기반이라 완벽하진 않으며, 품사 추정이 애매하면 철자·길이가 비슷한 단어로 채웁니다.
+
+검증은 `npm run test:multiple-choice`에 포함됩니다.
+
 
 ## 주요 디렉터리
 

@@ -1,5 +1,6 @@
 import { shuffled } from "../../core/random.ts";
 import { validateCanonicalQuestionSet } from "../canonicalQuestionSet.ts";
+import { answerKey as normalized } from "../text.ts";
 import type {
   BuildMultipleChoiceSetInput,
   ChoiceDirection,
@@ -15,10 +16,6 @@ interface DirectedPair<TSource> {
   readonly pair: MultipleChoicePair<TSource>;
   readonly prompt: string;
   readonly answer: string;
-}
-
-function normalized(value: string): string {
-  return value.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function directed<TSource>(pair: MultipleChoicePair<TSource>, direction: ChoiceDirection): DirectedPair<TSource> {
