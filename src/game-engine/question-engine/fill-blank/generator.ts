@@ -1,7 +1,7 @@
 import { createSeededRandom, shuffled } from "../../core/random.ts";
 import { validateCanonicalQuestionSet } from "../canonicalQuestionSet.ts";
 import type { MultipleChoiceOption } from "../multiple-choice/types.ts";
-import { blankable, buildVocabulary, pickDistractors, tokenize, type Token, type Vocabulary } from "./distractors.ts";
+import { blankable, buildVocabulary, pickDistractors, safeDistractor, tokenize, type Token, type Vocabulary } from "./distractors.ts";
 import type { BuildFillBlankSetInput, FillBlankQuestion, FillBlankQuestionSet, FillBlankSentence } from "./types.ts";
 import type { WordClass } from "./wordClass.ts";
 
@@ -17,17 +17,44 @@ function cased(word: string, target: Token): string {
   return target.start === 0 || target.text[0] !== target.text[0]!.toLowerCase() ? word[0]!.toUpperCase() + word.slice(1) : word;
 }
 
-function buildQuestion<TSource>(sentence: FillBlankSentence<TSource>, tokens: readonly Token[], vocabulary: Vocabulary, choiceCount: number, seed: string): FillBlankQuestion<TSource> | null {
+interface BlankChoice {
+  readonly token: Token;
+  readonly distractors: readonly string[];
+}
+
+/** A prepared blank: random among the sentence's prepared words, random distractors among the safe ones. */
+function preparedChoice(sentence: FillBlankSentence<unknown>, tokens: readonly Token[], vocabulary: Vocabulary, count: number, seed: string): BlankChoice | null {
+  const random = createSeededRandom(`${seed}:${sentence.id}:prepared`);
+  const usable = (sentence.prepared ?? []).flatMap((blank) => {
+    const token = tokens.find((candidate) => candidate.text === blank.answer);
+    if (!token) return [];
+    const safe = [...new Set(blank.distractors.map((word) => word.trim()))].filter((word) => word && safeDistractor(word, token, vocabulary));
+    // Rule-made distractors top up a blank whose prepared ones were filtered out.
+    const topUp = safe.length >= count ? [] : pickDistractors(token, tokens, vocabulary, count, `${seed}:${sentence.id}:${token.start}`)
+      .filter((word) => !safe.some((kept) => kept.toLowerCase() === word));
+    const distractors = [...shuffled(safe, `${seed}:${sentence.id}:${token.start}:prepared`), ...topUp].slice(0, count);
+    return distractors.length === count ? [{ token, distractors }] : [];
+  });
+  return usable.length ? usable[Math.floor(random() * usable.length)]! : null;
+}
+
+/** A rule-made blank: the best few words by priority, then a seeded pick among them so rounds differ. */
+function ruleChoice(sentence: FillBlankSentence<unknown>, tokens: readonly Token[], vocabulary: Vocabulary, count: number, seed: string): BlankChoice | null {
   const random = createSeededRandom(`${seed}:${sentence.id}:target`);
-  // The best few candidates by priority, then a seeded pick among them so rounds differ.
   const ranked = tokens.filter((token) => blankable(token, vocabulary))
-    .map((token) => ({ token, distractors: pickDistractors(token, tokens, vocabulary, choiceCount - 1, `${seed}:${sentence.id}:${token.start}`) }))
-    .filter((entry) => entry.distractors.length === choiceCount - 1)
+    .map((token) => ({ token, distractors: pickDistractors(token, tokens, vocabulary, count, `${seed}:${sentence.id}:${token.start}`) }))
+    .filter((entry) => entry.distractors.length === count)
     .sort((left, right) => BLANK_PRIORITY[right.token.wordClass] - BLANK_PRIORITY[left.token.wordClass]);
   if (!ranked.length) return null;
   const best = BLANK_PRIORITY[ranked[0]!.token.wordClass];
   const top = ranked.filter((entry) => BLANK_PRIORITY[entry.token.wordClass] >= best - 1);
-  const { token, distractors } = top[Math.floor(random() * top.length)]!;
+  return top[Math.floor(random() * top.length)]!;
+}
+
+function buildQuestion<TSource>(sentence: FillBlankSentence<TSource>, tokens: readonly Token[], vocabulary: Vocabulary, choiceCount: number, seed: string): FillBlankQuestion<TSource> | null {
+  const choice = preparedChoice(sentence, tokens, vocabulary, choiceCount - 1, seed) ?? ruleChoice(sentence, tokens, vocabulary, choiceCount - 1, seed);
+  if (!choice) return null;
+  const { token, distractors } = choice;
 
   const id = `fill-blank:${sentence.id}`;
   const correctOptionId = `${id}:correct`;

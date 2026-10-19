@@ -7,5 +7,6 @@ export type {
   FillBlankQuestion,
   FillBlankQuestionSet,
   FillBlankSentence,
+  PreparedBlank,
 } from "./types.ts";
 export type { WordClass } from "./wordClass.ts";

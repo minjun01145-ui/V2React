@@ -2,11 +2,19 @@ import type { CanonicalQuestionSet } from "../types.ts";
 import type { MultipleChoiceOption } from "../multiple-choice/types.ts";
 import type { WordClass } from "./wordClass.ts";
 
+/** A blank prepared ahead of time (e.g. by AI): the word to hide and confusable wrong answers for it. */
+export interface PreparedBlank {
+  readonly answer: string;
+  readonly distractors: readonly string[];
+}
+
 /** One sentence of the source text, chunk markers already removed. */
 export interface FillBlankSentence<TSource = unknown> {
   readonly id: string;
   readonly text: string;
   readonly meaning: string;
+  /** When given, the blank and distractors come from here (still checked by the engine's rules). */
+  readonly prepared?: readonly PreparedBlank[];
   readonly source: TSource;
 }
 

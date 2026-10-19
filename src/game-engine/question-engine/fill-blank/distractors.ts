@@ -61,6 +61,13 @@ export function blankable(token: Token, vocabulary: Vocabulary): boolean {
   return token.text.length >= 2 && !vocabulary.names.has(token.text.toLowerCase());
 }
 
+/** A wrong answer is unsafe when it is the answer, a name, or fills this very gap elsewhere in the set. */
+export function safeDistractor(word: string, target: Token, vocabulary: Vocabulary): boolean {
+  const key = word.toLowerCase();
+  return key !== target.text.toLowerCase() && (key.length >= 2 || key === "a") && !vocabulary.names.has(key)
+    && !vocabulary.contexts.get(key)?.has(contextKey(target.previous, target.next));
+}
+
 /**
  * Up to `count` confusable wrong answers for `target`, best first. Same class and same ending score
  * highest; closed classes also draw on their fixed list (in → on, at, to). A word that fills the same
@@ -68,13 +75,12 @@ export function blankable(token: Token, vocabulary: Vocabulary): boolean {
  */
 export function pickDistractors(target: Token, sentence: readonly Token[], vocabulary: Vocabulary, count: number, seed: unknown): string[] {
   const answer = target.text.toLowerCase();
-  const gap = contextKey(target.previous, target.next);
   const inSentence = new Set(sentence.map((token) => token.text.toLowerCase()));
   const closed = (CLOSED_CLASSES as Readonly<Record<string, readonly string[]>>)[target.wordClass] ?? [];
   const candidates = new Set<string>([...vocabulary.classes.keys(), ...closed]);
   const scored: { word: string; score: number }[] = [];
   for (const word of shuffled([...candidates], seed)) {
-    if (word === answer || word.length < 2 && word !== "a" || vocabulary.names.has(word) || vocabulary.contexts.get(word)?.has(gap)) continue;
+    if (!safeDistractor(word, target, vocabulary)) continue;
     const classes = vocabulary.classes.get(word);
     let score = 0;
     if (closed.includes(word) || classes?.has(target.wordClass)) score += target.wordClass === "unknown" ? 1 : 4;

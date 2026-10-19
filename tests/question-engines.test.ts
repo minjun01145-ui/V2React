@@ -3,6 +3,7 @@ import { evaluateFillBlank } from "../src/game-engine/question-engine/fill-blank
 import { wordClass } from "../src/game-engine/question-engine/fill-blank/wordClass.ts";
 import { CHOICE_DIRECTION } from "../src/game-engine/question-engine/multiple-choice/index.ts";
 import { evaluateTrueFalse } from "../src/game-engine/question-engine/true-false/index.ts";
+import { parseFillBlankBank } from "../src/learning-sets/fillBlankBank.ts";
 import { adaptLearningSetToFillBlank } from "../src/learning-sets/fillBlankAdapter.ts";
 import { LEARNING_SET_QUESTION_SCOPE } from "../src/learning-sets/multipleChoiceTypes.ts";
 import { adaptLearningSetToTrueFalse } from "../src/learning-sets/trueFalseAdapter.ts";
@@ -70,5 +71,28 @@ for (const question of [...blanks.questions, ...toPark]) {
 }
 assert.throws(() => adaptLearningSetToFillBlank(words, { choiceCount: 3 }), "fill blank needs a reading set");
 assert.throws(() => adaptLearningSetToFillBlank(reading, { choiceCount: 6 }));
+
+// AI-prepared blanks: several per sentence give different questions across rounds; unsafe distractors are dropped.
+const bank = parseFillBlankBank({ sentences: {
+  s1: { sourceText: "I / have / a dog.", blanks: [
+    { answer: "have", distractors: ["has", "having", "had", "keep", "keeps", "Tom"] },
+    { answer: "dog", distractors: ["dogs", "cat", "bird", "fish", "pet", "rabbit"] },
+    { answer: "I", distractors: ["He", "She", "They", "We", "You", "It"] },
+  ] },
+  s3: { sourceText: "We / went / to the moon / yesterday.", blanks: [{ answer: "went", distractors: ["go", "goes", "gone", "going", "came", "ran"] }] },
+} });
+const seen = new Set<string>();
+const optionMixes = new Set<string>();
+for (let round = 0; round < 30; round += 1) {
+  const question = adaptLearningSetToFillBlank(reading, { choiceCount: 4, bank, seed: `round-${round}` }).questions.find((entry) => entry.source.itemId === "s1")!;
+  seen.add(question.answer);
+  optionMixes.add(question.options.map((option) => option.text).sort().join(","));
+  assert(["have", "dog", "I"].includes(question.answer), "prepared blanks are used when present");
+  assert(!question.options.some((option) => option.text === "Tom"), "prepared names are still filtered by the engine");
+}
+assert.equal(seen.size, 3, "every prepared blank appears across rounds");
+assert(optionMixes.size >= 6, `option mixes vary across rounds (${optionMixes.size})`);
+const stale = adaptLearningSetToFillBlank(reading, { choiceCount: 4, bank, seed: "stale" }).questions.find((entry) => entry.source.itemId === "s3")!;
+assert.notDeepEqual(stale.options.map((option) => option.text).sort(), ["came", "go", "goes", "went"], "an edited sentence ignores its old prepared blanks");
 
 console.log("OX and fill-blank engine tests passed");
