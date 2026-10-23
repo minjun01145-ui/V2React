@@ -5,7 +5,7 @@
 .option:hover:not([aria-pressed="true"]):not(:disabled) { color: var(--color-text); }
 .option[aria-pressed="true"] { background: var(--color-brand-deep); color: #fff; box-shadow: 0 3px 0 rgba(15, 24, 70, 0.35); }
 .option:active:not(:disabled) { transform: scale(0.97); }
-.option:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.option:focus-visible { outline: 2px solid transparent; box-shadow: var(--focus-ring); }
 @media (prefers-reduced-motion: reduce) {
   .option { transition: background 120ms ease, color 120ms ease; }
   .option:active:not(:disabled) { transform: none; }

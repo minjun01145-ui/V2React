@@ -20,8 +20,8 @@
 .target b[data-error="true"] { color: #d04c5a; text-decoration: underline wavy rgba(208, 76, 90, .45); text-underline-offset: .28em; }
 .inputLabel { composes: footer from "../../game-engine/stage/GameLayout.module.css"; display: grid; gap: 6px; }
 .inputLabel > span { color: #626d87; font-size: var(--text-sm); font-weight: 300; }
-.inputLabel textarea, .inputLabel input { width: 100%; min-width: 0; resize: none; padding: 10px 12px; border: 2px solid #d8ddef; border-radius: 1rem; outline: none; color: #202b45; background: #fbfcff; font: inherit; font-size: var(--text-game-card); font-weight: 300; transition: border-color .15s, box-shadow .15s, background .15s; }
-.inputLabel textarea:focus, .inputLabel input:focus { outline: none; border-color: #6d75df; box-shadow: 0 0 0 4px rgba(109, 117, 223, .13); }
+.inputLabel textarea, .inputLabel input { width: 100%; min-width: 0; resize: none; padding: 10px 12px; border: 2px solid #d8ddef; border-radius: 1rem; outline: 2px solid transparent; color: #202b45; background: #fbfcff; font: inherit; font-size: var(--text-game-card); font-weight: 300; transition: border-color .15s, box-shadow .15s, background .15s; }
+.inputLabel textarea:focus, .inputLabel input:focus { outline: 2px solid transparent; border-color: #6d75df; box-shadow: 0 0 0 4px rgba(109, 117, 223, .13); }
 .inputLabel textarea[aria-invalid="true"], .inputLabel input[aria-invalid="true"] { border-color: #dc6672; background: #fffafb; }
 .inputLabel textarea:disabled, .inputLabel input:disabled { color: #657087; background: #f2f4f9; }
 .feedback { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 12px; border-radius: 1rem; color: #68738c; background: #f5f7fb; font-size: var(--text-sm); font-weight: 300; }

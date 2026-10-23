@@ -26,7 +26,7 @@
   border: 0;
   border-radius: 28px;
   background: #fff;
-  box-shadow: 0 8px 0 rgba(0, 0, 0, .25), 0 30px 60px -20px rgba(0, 0, 0, .5);
+  box-shadow: var(--shadow-lg);
   transform: rotate(-1.5deg);
   transition: transform 200ms var(--ease-pop);
   text-decoration: none;
@@ -35,13 +35,13 @@
 .brandMark { width: 100%; height: auto; }
 
 .loginPanel { display: grid; gap: 1.15rem; align-content: center; }
-.form { width: 100%; padding: clamp(1.35rem, 4vw, 2rem); border: 0; border-radius: 24px; background: var(--color-surface); box-shadow: 0 8px 0 rgba(0, 0, 0, .22), 0 30px 60px -24px rgba(0, 0, 0, .45); display: grid; gap: 1rem; }
+.form { width: 100%; padding: clamp(1.35rem, 4vw, 2rem); border: 0; border-radius: 24px; background: var(--color-surface); box-shadow: var(--shadow-lg); display: grid; gap: 1rem; }
 
 .form h2 { margin: .25rem 0 0; font-size: 1.5rem; font-weight: 300; letter-spacing: -.02em; }
 
 .field { display: grid; gap: .4rem; }
 .field label { color: var(--color-text); font-size: .8125rem; font-weight: 300; }
-.field input { width: 100%; min-height: 52px; padding: 0 1rem; border: 2px solid var(--color-border); border-radius: 14px; outline: none; color: var(--color-text); background: var(--color-surface-subtle); font-size: 1.0625rem; font-weight: 300; transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease; }
+.field input { width: 100%; min-height: 52px; padding: 0 1rem; border: 2px solid var(--color-border); border-radius: 14px; outline: 2px solid transparent; color: var(--color-text); background: var(--color-surface-subtle); font-size: 1.0625rem; font-weight: 300; transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease; }
 .field input::placeholder { color: var(--color-muted); }
 .field input:hover { border-color: var(--color-border-strong); }
 .field input:focus { border-color: var(--color-primary); background: #fff; box-shadow: var(--focus-ring); }
@@ -62,6 +62,6 @@
   .brand, .brand:hover { transform: none; transition: none; }
 }
 :global(:root[data-theme]:not([data-theme="classic"])) .page { background: var(--theme-background), var(--color-brand-deep); background-size: var(--theme-background-size, auto); }
-:global(:root[data-theme]:not([data-theme="classic"])) .form { border: var(--surface-border); border-radius: var(--surface-radius); box-shadow: var(--shadow-raised); }
+:global(:root[data-theme]:not([data-theme="classic"])) .form { border: var(--surface-border); border-radius: var(--surface-radius); box-shadow: var(--shadow-md); }
 :global(:root[data-theme]:not([data-theme="classic"])) .field input { border-radius: var(--radius-md); }
 :global(:root[data-theme]:not([data-theme="classic"])) .field input:focus { background: var(--color-surface); }

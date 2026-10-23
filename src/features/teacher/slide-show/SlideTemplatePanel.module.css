@@ -1,4 +1,4 @@
-.panel { display: grid; gap: 12px; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 4px 0 rgba(16, 26, 58, 0.08), var(--shadow-card); }
+.panel { display: grid; gap: 12px; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 4px 0 rgba(16, 26, 58, 0.08), var(--shadow-sm); }
 .panel h3 { margin: 0; font-size: 1rem; font-weight: inherit; }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .card { display: grid; gap: 4px; min-width: 0; padding: 4px; border: 2px solid var(--color-border); border-radius: 12px; background: #fff; color: var(--color-text); font: inherit; cursor: pointer; transition: border-color 120ms ease, transform 120ms var(--ease-pop); }

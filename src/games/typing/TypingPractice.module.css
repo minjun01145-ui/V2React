@@ -39,7 +39,7 @@
 .ground i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#4abf79,#efc84a); transition:width .2s ease; }
 .inputArea { position:relative; z-index:3; display:grid; gap:.35rem; max-width:760px; margin:0 auto; text-align:center; }
 .inputArea > span { color:#48758e; font-size:.74rem; font-weight:300; }
-.inputArea input { box-sizing:border-box; width:100%; padding:.85rem 1rem; border:2px solid #83c6e5; border-radius:1rem; outline:none; color:#153f5d; background:rgba(255,255,255,.94); text-align:center; font: inherit; font-size: var(--text-game-card); font-weight:300; box-shadow:0 8px 25px rgba(46,125,165,.12); }
+.inputArea input { box-sizing:border-box; width:100%; padding:.85rem 1rem; border:2px solid #83c6e5; border-radius:1rem; outline: 2px solid transparent; color:#153f5d; background:rgba(255,255,255,.94); text-align:center; font: inherit; font-size: var(--text-game-card); font-weight:300; box-shadow:0 8px 25px rgba(46,125,165,.12); }
 .inputArea input:focus { border-color:#278dc1; box-shadow:0 0 0 4px rgba(39,141,193,.15); }
 .inputArea input[aria-invalid="true"] { border-color:#cf3048; }
 .inputArea small { color:#60849a; font-size:.68rem; font-weight:300; }

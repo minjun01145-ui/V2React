@@ -77,10 +77,10 @@
 }
 
 .nicknameRow { display: flex; max-width: 10rem; align-items: center; justify-content: center; gap: .3rem; }
-.gradeBadge { display: inline-grid; flex: none; width: 1.35rem; height: 1.35rem; place-items: center; border-radius: .4rem; font-size: .72rem; font-weight: 300; line-height: 1; background: #eef2f7; color: #475569; }
-.gradeBadge[data-grade="B"] { background: #e0f2fe; color: #0369a1; }
-.gradeBadge[data-grade="A"] { background: #fef3c7; color: #92400e; }
-.gradeBadge[data-grade="S"] { background: linear-gradient(135deg, #fef08a, #f0abfc, #bfdbfe); color: #581c87; box-shadow: 0 0 0 1px rgba(168, 85, 247, .18), 0 2px 8px rgba(168, 85, 247, .2); }
+.gradeBadge { display: inline-grid; flex: none; width: 1.35rem; height: 1.35rem; place-items: center; border-radius: .4rem; font-size: .72rem; font-weight: 300; line-height: 1; background: var(--color-grade-bg); color: var(--color-grade-ink); }
+.gradeBadge[data-grade="B"] { background: var(--color-grade-b-bg); color: var(--color-grade-b-ink); }
+.gradeBadge[data-grade="A"] { background: var(--color-grade-a-bg); color: var(--color-grade-a-ink); }
+.gradeBadge[data-grade="S"] { background: var(--color-grade-s-bg); color: var(--color-grade-s-ink); box-shadow: var(--color-grade-s-glow); }
 
 .actionHint {
   opacity: 0;
@@ -127,5 +127,5 @@
   .card[data-size="large"] { animation: none; }
   .interactive:hover:not(:disabled) { transform: none; }
 }
-:global(:root[data-theme]:not([data-theme="classic"])) .card[data-size="large"] { background: var(--color-surface); border: var(--surface-border); border-radius: var(--surface-radius); box-shadow: var(--shadow-card); }
+:global(:root[data-theme]:not([data-theme="classic"])) .card[data-size="large"] { background: var(--color-surface); border: var(--surface-border); border-radius: var(--surface-radius); box-shadow: var(--shadow-sm); }
 :global(:root[data-theme]:not([data-theme="classic"])) .card[data-size="large"] .avatar { background: var(--color-surface-muted); }

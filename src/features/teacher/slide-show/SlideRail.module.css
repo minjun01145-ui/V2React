@@ -5,6 +5,6 @@
 .item:hover:not(:disabled) .thumb { opacity: 1; transform: translateY(-2px); }
 .item[aria-current="true"] .thumb { opacity: 1; outline-color: var(--color-accent); }
 .item[aria-current="true"] .number { background: var(--color-accent); color: var(--color-accent-ink); }
-.item:focus-visible { outline: none; }
+.item:focus-visible { outline: 2px solid transparent; }
 .item:focus-visible .thumb { outline-color: #8fa2ff; }
 .engineOutline { border: 2px dashed var(--color-accent-shadow); border-radius: 4px; background: rgba(255, 201, 51, 0.35); pointer-events: none; }

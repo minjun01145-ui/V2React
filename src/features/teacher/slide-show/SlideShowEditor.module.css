@@ -1,11 +1,11 @@
-.editor { display: grid; min-width: 0; overflow: hidden; border-radius: 24px; background: #fff; box-shadow: 0 6px 0 rgba(16, 26, 58, 0.1), var(--shadow-raised); }
+.editor { display: grid; min-width: 0; overflow: hidden; border-radius: 24px; background: #fff; box-shadow: 0 6px 0 rgba(16, 26, 58, 0.1), var(--shadow-md); }
 
 .header { display: flex; gap: 12px; align-items: center; padding: 14px 16px; background: linear-gradient(120deg, var(--color-brand-deep), var(--color-brand-deep-2)); }
 .nameInput { flex: 1; min-width: 0; height: 48px; padding: 0 16px; border: 2px solid transparent; border-radius: 14px; background: rgba(255, 255, 255, 0.08); color: #fff; font: inherit; font-size: 1.375rem; transition: background-color 140ms ease, border-color 140ms ease; }
 .header > button:disabled { opacity: 1; background: rgba(255, 255, 255, 0.1); color: var(--color-on-brand-muted); box-shadow: none; filter: none; }
 .nameInput::placeholder { color: var(--color-on-brand-muted); }
 .nameInput:hover:not(:disabled) { background: rgba(255, 255, 255, 0.13); }
-.nameInput:focus { border-color: var(--color-accent); background: rgba(255, 255, 255, 0.14); outline: none; }
+.nameInput:focus { border-color: var(--color-accent); background: rgba(255, 255, 255, 0.14); outline: 2px solid transparent; }
 
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 14px; border-bottom: 1px solid var(--color-border); background: #fff; }
 .tool { display: grid; justify-items: center; gap: 3px; min-width: 62px; padding: 7px 8px 6px; border: 0; border-radius: 14px; background: transparent; color: var(--color-ink-soft); font: inherit; font-size: var(--text-xs); cursor: pointer; transition: transform 140ms var(--ease-pop), background-color 120ms ease, color 120ms ease; }
@@ -39,7 +39,7 @@
 .stage { position: sticky; top: 12px; aspect-ratio: 16 / 9; max-height: calc(100dvh - 160px); min-width: 0; }
 
 .inspector { display: grid; gap: 14px; min-width: 0; }
-.slidePanel { display: grid; gap: 12px; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 4px 0 rgba(16, 26, 58, 0.08), var(--shadow-card); }
+.slidePanel { display: grid; gap: 12px; padding: 14px; border-radius: 18px; background: #fff; box-shadow: 0 4px 0 rgba(16, 26, 58, 0.08), var(--shadow-sm); }
 .slidePanel h3 { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 1rem; font-weight: inherit; }
 .slidePanel h3 b { display: grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 9px; background: var(--color-brand-deep); color: var(--color-accent); font-size: var(--text-sm); font-weight: inherit; }
 .swatches { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }

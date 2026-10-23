@@ -3,7 +3,7 @@
 .previewHeading { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; justify-content: space-between; }
 .previewHeading h3, .store h3 { margin: 0; font-size: 1rem; }
 .previewHeading strong { color: var(--color-primary-text); font-size: .85rem; }
-.avatar { display: grid; place-items: center; height: 11rem; border-radius: .8rem; padding: 1rem; background: linear-gradient(145deg, #eef2ff, #fff7ed); }
+.avatar { display: grid; place-items: center; height: 11rem; border-radius: .8rem; padding: 1rem; background: var(--stage-backdrop); }
 .slots { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
 .slots button { display: grid; min-width: 0; text-align: left; border: 1px solid var(--color-border); border-radius: .5rem; padding: .4rem; background: var(--color-surface); }
 .slots span { font-size: .65rem; }

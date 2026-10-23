@@ -22,7 +22,7 @@
   background: rgba(255,255,255,.9);
   font: 300 .76rem/1.2 inherit;
   cursor: pointer;
-  box-shadow: 0 5px 15px rgba(35,105,143,.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .slots button:not(:disabled):hover {

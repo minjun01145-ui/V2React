@@ -1,6 +1,6 @@
 .field { display: grid; gap: 6px; min-width: 0; color: var(--color-muted); font-size: var(--text-sm); }
 .select { width: 100%; min-width: 0; height: 40px; padding: 0 10px; border: 2px solid var(--color-border); border-radius: var(--radius-md); background: #fff; color: var(--color-text); font-size: var(--text-sm); }
-.select:focus { border-color: var(--color-primary); outline: none; box-shadow: var(--focus-ring); }
+.select:focus { border-color: var(--color-primary); outline: 2px solid transparent; box-shadow: var(--focus-ring); }
 .select > optgroup { color: var(--color-muted); }
 .select > option { color: var(--color-text); }
 :global(:root[data-theme]:not([data-theme="classic"])) .select { background: var(--color-surface); }

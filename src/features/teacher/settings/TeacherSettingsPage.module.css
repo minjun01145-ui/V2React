@@ -1,6 +1,6 @@
 .heading { margin: .45rem 0 .6rem; }
 .themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-.themes button { padding: 0; overflow: hidden; border: 0; border-radius: 16px; background: var(--color-surface); color: var(--color-text); cursor: pointer; text-align: left; box-shadow: 0 0 0 1px var(--color-border), var(--shadow-card-tactile); transition: transform 160ms var(--ease-pop), box-shadow 160ms; }
+.themes button { padding: 0; overflow: hidden; border: 0; border-radius: 16px; background: var(--color-surface); color: var(--color-text); cursor: pointer; text-align: left; box-shadow: 0 0 0 1px var(--color-border), var(--shadow-md); transition: transform 160ms var(--ease-pop), box-shadow 160ms; }
 .themes button:hover:not(:disabled) { transform: translateY(-3px); }
 .themes button[aria-pressed="true"] { box-shadow: 0 0 0 4px var(--color-accent), 0 6px 0 var(--color-accent-shadow); }
 .themes button:focus-visible { outline: 3px solid var(--color-primary); outline-offset: 4px; }

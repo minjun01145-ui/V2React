@@ -1,5 +1,5 @@
 @page { size: A4; margin: 14mm 14mm 16mm; }
-.paper { box-sizing: border-box; width: 210mm; min-height: 297mm; padding: 14mm 14mm 16mm; margin: 0 auto; background: #fff; color: #0f172a; box-shadow: 0 4px 24px #0f172a24; font-family: 'Noto Sans KR', sans-serif !important; font-size: 10.5pt; font-weight: 400; line-height: 1.65; overflow-wrap: anywhere; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.paper { box-sizing: border-box; width: 210mm; min-height: 297mm; padding: 14mm 14mm 16mm; margin: 0 auto; background: #fff; color: #0f172a; box-shadow: var(--shadow-md); font-family: 'Noto Sans KR', sans-serif !important; font-size: 10.5pt; font-weight: 400; line-height: 1.65; overflow-wrap: anywhere; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .paper * { box-sizing: border-box; }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 6mm; border-bottom: 2.5px solid #1e3a8a; padding-bottom: 4mm; margin-bottom: 6mm; }
 .header h1 { margin: 0; color: #0f172a; font-size: 17pt; font-weight: 700; line-height: 1.35; }

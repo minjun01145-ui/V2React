@@ -5,7 +5,7 @@
   height: 100%;
   min-width: 0;
   overflow: hidden;
-  outline: none;
+  outline: 2px solid transparent;
   background: #8fd3ff;
 }
 
