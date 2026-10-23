@@ -9,7 +9,9 @@
   "scripts": {
     "dev": "vite",
     "console": "npm start --prefix external-test-browser",
+    "build:console": "powershell -NoProfile -ExecutionPolicy Bypass -File external-test-browser/windows/build.ps1",
     "test:console": "npm test --prefix external-test-browser",
+    "test:console:windows": "node external-test-browser/tests/native-browser.test.mjs",
     "typecheck": "tsc --noEmit",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",

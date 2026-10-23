@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, ipcMain } from "electron";
+import { BrowserWindow, WebContentsView, ipcMain, session } from "electron";
 import { join } from "node:path";
 import { GRID, paneBounds } from "./settings.mjs";
 import { loginScope, readLogin, saveLogin } from "./passwords.mjs";
@@ -14,6 +14,8 @@ export function createBrowser(settings, { maximize = true, show = true } = {}) {
     backgroundColor: "#101827",
     autoHideMenuBar: true,
     webPreferences: {
+      session: session.fromPartition("classroom-shell", { cache: false }),
+      v8CacheOptions: "none",
       preload: join(import.meta.dirname, "preload.cjs"),
       nodeIntegration: false,
       contextIsolation: true,
@@ -29,7 +31,8 @@ export function createBrowser(settings, { maximize = true, show = true } = {}) {
     const view = new WebContentsView({
       webPreferences: {
         preload: join(import.meta.dirname, "login-preload.cjs"),
-        partition: `persist:classroom-${index === 0 ? "teacher" : 9990 + index}`,
+        session: session.fromPartition(`persist:classroom-${index === 0 ? "teacher" : 9990 + index}`, { cache: false }),
+        v8CacheOptions: "none",
         nodeIntegration: false,
         contextIsolation: true,
         sandbox: true,

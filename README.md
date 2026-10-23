@@ -16,9 +16,9 @@ npm run dev
 
 `.env.local`에 Firebase Web 설정을 채웁니다. Firebase 초기 설정과 배포는 [SETUP_KO.md](./SETUP_KO.md)를 참고하세요.
 
-Windows 수업 콘솔은 최상단의 [교실 수업 콘솔.cmd](./교실%20수업%20콘솔.cmd)를 더블클릭해 실행합니다. 첫 실행에는 Node.js와 런타임 다운로드를 위한 인터넷 연결이 필요합니다. 접속 사이트는 [external-test-browser/config.json](./external-test-browser/config.json)에서 설정합니다. 교사화면은 자동으로 열리고 테스트화면 1·2·3은 각각 `켜기`를 눌러 엽니다. 상단 메뉴에서 네 화면을 모아 보거나 한 화면만 크게 볼 수 있으며, 보기 전환은 진행 중인 화면을 다시 로드하지 않습니다.
+Windows 수업 콘솔은 C# WinForms와 PC의 공유 WebView2 런타임을 사용합니다. [Windows 실행기 다운로드](https://github.com/minjun01145-ui/V2React/releases/download/classroom-console-v1.0.0/ClassroomConsole.exe) 또는 `npm run build:console`로 만든 `external-test-browser/dist/ClassroomConsole.exe` 하나만 복사해 실행할 수 있으며, 실행기 옆에는 DLL·설정 파일·Node.js가 필요하지 않습니다. 저장소에서는 기존 [교실 수업 콘솔.cmd](./교실%20수업%20콘솔.cmd)와 [하나쌤 수업 콘솔.cmd](./하나쌤%20수업%20콘솔.cmd)도 사용할 수 있습니다. 교사화면은 자동으로 열리고 테스트화면 1·2·3은 각각 `켜기`를 눌러 엽니다. 상단 메뉴에서 네 화면을 모아 보거나 한 화면만 크게 볼 수 있으며, 보기 전환은 진행 중인 화면을 다시 로드하지 않습니다. `주소 설정`에서 각 화면의 시작 주소를 바꾸고, 같은 실행기에서 다른 교실 콘솔도 열 수 있습니다.
 
-각 화면에서 최초 한 번 로그인하면 이후에는 화면별 로그인 세션과 Windows에서 암호화한 로그인 정보를 사용해 자동으로 로그인합니다. 로그인 정보와 브라우저 프로필은 해당 PC에만 보관하며 Git에 포함하지 않습니다. 콘솔 검증은 `npm run test:console`, 브라우저 동작 및 자동 로그인 검증은 `npm run test:browser --prefix external-test-browser`, `npm run test:passwords --prefix external-test-browser`로 실행합니다.
+각 화면의 쿠키·웹 저장소는 독립된 임시 프로필에서 실행하고, 성공한 로그인만 Windows DPAPI로 암호화해 다음 실행 때 자동 로그인합니다. 설정·암호화 로그인·작은 네이티브 로더는 `%LOCALAPPDATA%\V2React\ClassroomConsole`에 보관하며, 임시 브라우저 데이터는 종료 시와 다음 실행 시 정리합니다. 저장소에서 처음 실행하면 기존 Electron 프로필의 저장된 로그인도 원본을 보존하며 이전합니다. 배포 실행에는 Windows 64비트, .NET Framework 4.8과 WebView2 런타임이 필요합니다. 빠른 콘솔 검증은 `npm run test:console`, 실제 Windows 네 화면·암호화 저장·자동 로그인 회귀는 `npm run test:console:windows`입니다. 기존 Electron 코드는 웹 앱 브라우저 회귀 테스트용으로 남겨 두며 해당 테스트에는 `npm ci --prefix external-test-browser`가 필요합니다.
 
 ```bash
 npm run check

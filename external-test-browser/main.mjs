@@ -3,6 +3,7 @@ import { readFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { createBrowser } from "./browser.mjs";
 import { parseSettings } from "./settings.mjs";
+import { clearInstallCache, clearProfileCache } from "./cache.mjs";
 
 // Sessions and encrypted logins stay local and are excluded from Git.
 // CONSOLE_VARIANT (e.g. "hana") selects config.<variant>.json and a separate profile so consoles can run side by side.
@@ -12,10 +13,15 @@ mkdirSync(profilePath, { recursive: true });
 app.setPath("userData", profilePath);
 app.setPath("sessionData", profilePath);
 app.commandLine.appendSwitch("lang", "ko-KR");
+app.commandLine.appendSwitch("disable-http-cache");
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  for (const cleanup of [() => clearInstallCache(import.meta.dirname), () => clearProfileCache(profilePath)]) {
+    try { cleanup(); }
+    catch (error) { console.warn("수업 콘솔 캐시 정리를 다음 실행에 다시 시도합니다:", error.code); }
+  }
   let browser;
   app.on("second-instance", () => {
     if (!browser) return;
