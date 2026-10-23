@@ -38,7 +38,7 @@ function StudentAppContent({ tenant }: { readonly tenant: NonNullable<ReturnType
 
 export default function StudentApp() {
   const tenant = tenantConfigFromLocation();
-  if (!tenant) return <AuthStatusPage title="사용자 주소를 확인해 주세요" message="등록되지 않은 사용자 주소입니다." />;
+  if (!tenant) return <AuthStatusPage title="사용자 주소를 확인해 주세요" message="등록되지 않은 사용자 주소입니다." loading={false} />;
   document.title = tenant.brandAlt;
   return <PopupProvider><StudentAppContent tenant={tenant} /></PopupProvider>;
 }

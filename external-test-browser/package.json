@@ -9,6 +9,7 @@
     "start": "node launch.mjs .",
     "test": "node --test tests/settings.test.mjs",
     "test:browser": "node launch.mjs tests/browser.test.mjs",
+    "test:student-session": "node launch.mjs tests/student-session.test.mjs",
     "test:passwords": "node launch.mjs tests/passwords.test.mjs",
     "test:slide-editor": "node launch.mjs tests/slide-editor.test.mjs",
     "test:slide-templates": "node launch.mjs tests/slide-templates.test.mjs",

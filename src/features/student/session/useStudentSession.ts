@@ -120,11 +120,17 @@ export function useStudentSession({
 
   useEffect(() => {
     activeJoin.current = null;
-    preparationAttempt.current += 1;
-    preparedRound.current?.release();
-    preparedRound.current = null;
+    confirmingRound.current = null;
     setJoining(false);
     setJoinError(null);
+    setReadinessError(null);
+    return () => {
+      activeJoin.current = null;
+      confirmingRound.current = null;
+      preparationAttempt.current += 1;
+      preparedRound.current?.release();
+      preparedRound.current = null;
+    };
   }, [playerId, roomId]);
 
   useEffect(() => {
@@ -136,9 +142,9 @@ export function useStudentSession({
   }, [activeRoundId]);
 
   useEffect(() => {
-    if (session?.status === SESSION_STATUS.PREPARING && activeRoundId) return;
     preparationAttempt.current += 1;
     confirmingRound.current = null;
+    setReadinessError(null);
   }, [activeRoundId, session?.status]);
 
   useEffect(() => {
@@ -181,8 +187,6 @@ export function useStudentSession({
     }
     return undefined;
   }, [session?.roundId, session?.status]);
-
-  useEffect(() => () => preparedRound.current?.release(), []);
 
   useEffect(() => {
     if (participationDecision !== "ensure" || activeJoin.current || joinError || participantError) return;

@@ -7,18 +7,19 @@ interface Props {
   readonly title: string;
   readonly message: string;
   readonly error?: string;
+  readonly loading?: boolean;
 }
 
-export default function AuthStatusPage({ title, message, error }: Props) {
+export default function AuthStatusPage({ title, message, error, loading = !error }: Props) {
   const tenant = tenantConfigFromLocation() ?? tenantConfig(PRIMARY_TENANT_ID);
   return (
     <main className={styles.page}>
-      <section className={styles.card} role={error ? "alert" : "status"}>
+      <section className={styles.card} role={loading ? "status" : "alert"} aria-busy={loading}>
         <BrandMark className={styles.brandMark} tenant={tenant} />
         <h1>{title}</h1>
         <p className={styles.message}>{message}</p>
-        {error ? <p className={styles.error}>{error}</p> : <span className={styles.loader} aria-hidden="true" />}
-        {error ? <a className={styles.homeLink} href={tenantHref("/", tenant.id)}>첫 화면으로 돌아가기</a> : null}
+        {error ? <p className={styles.error}>{error}</p> : null}
+        {loading ? <span className={styles.loader} aria-hidden="true" /> : <a className={styles.homeLink} href={tenantHref("/", tenant.id)}>첫 화면으로 돌아가기</a>}
       </section>
     </main>
   );

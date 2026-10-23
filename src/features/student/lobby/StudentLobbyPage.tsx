@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { GameSession, Player } from "../../../multiplayer/types.ts";
 import type { StudentIdentity } from "../../../auth/types.ts";
+import { usePopup } from "../../../shared/popup/index.ts";
+import { toErrorMessage } from "../../../shared/errors/errorMessage.ts";
 
 import LobbyLayout from "./LobbyLayout.tsx";
 import LobbyTopBar from "./LobbyTopBar.tsx";
@@ -33,6 +35,7 @@ interface EntryProps {
 type Props = LobbyProps | EntryProps;
 
 export default function StudentLobbyPage(props: Props) {
+  const { showMessage } = usePopup();
   const [leaving, setLeaving] = useState(false);
   const topBar = <LobbyTopBar leaving={leaving} onLeave={() => {
     if (leaving) return;
@@ -40,6 +43,7 @@ export default function StudentLobbyPage(props: Props) {
     void props.onLeave().catch((error: unknown) => {
       console.error(error);
       setLeaving(false);
+      void showMessage({ title: "로그아웃하지 못했어요", message: toErrorMessage(error, "다시 시도해 주세요."), tone: "error" });
     });
   }} />;
   if (props.player === null) {
